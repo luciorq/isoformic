@@ -109,7 +109,15 @@ PE1_DEGs <- path_package("isoformic", "extdata", "DEGs_PE_fixed2.csv") |>
   read_csv()
 
 PE1_counts <- path_package("isoformic", "extdata", "PE_1_counts.csv") |>
-  read_csv()
+  read_csv() |>
+  rename(`transcript_id` = `...1`)
+```
+
+```{r}
+sample_table <- data.frame(
+  samples = colnames(PE1_counts)[2:ncol(PE1_counts)],
+  condition = c(rep("treatment", 8), rep("control", ncol(PE1_counts) - 9))
+)
 ```
 
 #### Download referance files
@@ -177,7 +185,7 @@ tpm_join <- tx_to_gene |>
   select(transcript_id, transcript_name) |>
   distinct()
 PE1_counts <- PE1_counts |>
-  left_join(tpm_join, by = c("...1" = "transcript_id"))
+  left_join(tpm_join, by = c("transcript_id"))
 ```
 
 The DET table will be our main table for analysis
@@ -262,6 +270,18 @@ Another good way more quantifiable way to visualize this switch is using the Tra
 
 Function to plot the profile here
 ```{r}
+sample_table
+
+PE1_counts
+
+
+DEG_DET_table |>
+  filter(!transcript_type %in% "gene")
+
+unique(DEG_DET_table$transcript_type)
+
+
+
 ```
 
 
@@ -350,5 +370,4 @@ exon_df |>
   plot_tx_context()
 ```
 
-
-
+#@ References

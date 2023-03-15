@@ -12,6 +12,7 @@ Isoform-level biological interpretation of transcriptomic data.
 Useful links:
 \itemize{
   \item \url{https://github.com/luciorq/isoformic}
+  \item \url{https://luciorq.github.io/isoformic/}
   \item Report bugs at \url{https://github.com/luciorq/isoformic/issues}
 }
 

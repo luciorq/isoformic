@@ -45,7 +45,7 @@ prepare_exon_annotation <- function(gene_name,
     dplyr::pull(tx_id)
 
   # parent_id <- tx_id_vector[1]
-  tx_id_vector |>
+  tx_exon_table <- tx_id_vector |>
     purrr::map_dfr(
       .f = \(parent_id) {
         gene_annot_df |>
@@ -58,4 +58,17 @@ prepare_exon_annotation <- function(gene_name,
       }
     ) |>
     dplyr::mutate(tx_name = gene_name)
+
+  # if (isTRUE(unique(tx_exon_table$strand) == "-")) {
+
+  # }
+
+  tx_exon_table <- tx_exon_table |>
+    dplyr::rename(
+      exon_left = X4,
+      exon_right = X5,
+      strand = X7
+    )
+
+  return(tx_exon_table)
 }
