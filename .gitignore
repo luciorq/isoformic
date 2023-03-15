@@ -1,3 +1,6 @@
 inst/doc
 .Rproj.user
 docs
+*.gz
+*.fa
+*.pdf

@@ -5,7 +5,7 @@ Version: 0.0.0.9000
 Authors@R: c(
     person("Lucio Rezende", "Queiroz", , "luciorqueiroz@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-6090-1834")),
-    person("Izabela Mamede", "Conceicao", , "iza.mamede@gmail.com", role = "aut",
+    person("Izabela Mamede", "Conceicao", , "iza.mamede@gmail.com", role = c("aut", "ctb"),
            comment = c(ORCID = "0000-0002-0707-5588"))
   )
 Description: Isoform-level biological interpretation of transcriptomic

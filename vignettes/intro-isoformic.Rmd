@@ -8,7 +8,7 @@ output:
     toc_float: true
 author:
   - name: Izabela Mamede Conceição
-    affiliation: Laboratory of Genetics Biochmistry, Federal University of Minas Gerais Brazil
+    affiliation: Laboratory of Genetics Biochmistry, Federal University of Minas Gerais, Brazil
   - name: Lucio Rezende Queiroz
     affiliation: Department of Pathology and Laboratory Medicine, Weill Cornell Medicine
 vignette: |
