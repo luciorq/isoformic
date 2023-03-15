@@ -126,7 +126,7 @@ The references used for this project were obtained from from the [GENCODE Projec
 
 The annotation file in GFF3 format was obtained from <https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_43/gencode.v43.chr_patch_hapl_scaff.annotation.gff3.gz>.
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 download_reference(file_type = "fasta")
 download_reference(file_type = "gff")
 ```
@@ -274,14 +274,10 @@ sample_table
 
 PE1_counts
 
-
 DEG_DET_table |>
   filter(!transcript_type %in% "gene")
 
 unique(DEG_DET_table$transcript_type)
-
-
-
 ```
 
 
