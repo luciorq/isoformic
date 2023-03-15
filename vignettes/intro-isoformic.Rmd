@@ -27,7 +27,7 @@ knitr::opts_chunk$set(
 
 # The Isoformic method
 
-Welcome to `isoformic`, a workflow for isoform-level biological interpretation of Transcriptomic data.
+Welcome to `isoformic`, a workflow for isoform-level biological interpretation of transcriptomic data.
 
 ## Information
 
@@ -38,6 +38,7 @@ This tutorial will encompass X different steps divided into X unities for which 
 ## Dependencies
 
 ```{r, message=FALSE}
+# pkgload::load_all()
 library(isoformic)
 ```
 
@@ -47,10 +48,11 @@ Load dependency packages
 library(fs)
 library(readr)
 library(dplyr)
-library(SummarizedExperiment)
+library(tidyr)
 library(stringr)
-library(fishpond)
-library(tximeta)
+# library(SummarizedExperiment)
+# library(tximeta)
+# library(fishpond)
 ```
 
 ## Setting up the data
