@@ -29,40 +29,8 @@ plot_tx_context <- function(exon_table) {
     ) |>
     dplyr::mutate(tpm = 5)
 
-  # segment_na_df <- plot_data |>
-  #   dplyr::group_by(tx_id) |>
-  #   dplyr::summarise(right_end = max(exon_left, exon_right)) |>
-  #   dplyr::ungroup()
-  #
-  # for (row_index in seq_len(nrow(segment_na_df))) {
-  #   tx_id_right <- dplyr::pull(segment_na_df[row_index, ], tx_id)
-  #   segment_right <- dplyr::pull(segment_na_df[row_index, ], right_end)
-  #   plot_data <- plot_data |>
-  #     dplyr::mutate(
-  #       segment_end = dplyr::if_else(
-  #         condition = tx_id %in% tx_id_right & X5 == segment_right,
-  #         true = NA_real_,
-  #         false = segment_end
-  #       )
-  #     ) |>
-  #     dplyr::mutate(
-  #       segment_start = dplyr::if_else(
-  #         is.na(segment_end),
-  #         NA_real_,
-  #         segment_start
-  #       )
-  #     ) |>
-  #     dplyr::mutate(
-  #       segment_middle = dplyr::if_else(
-  #         is.na(segment_end),
-  #         NA_real_,
-  #         segment_middle
-  #       )
-  #     )
-  # }
 
   plot_data[nrow(plot_data),"segment_start"] <- NA_real_
-  # plot_data[nrow(plot_data),"tpm"] <- NA_real_
 
   tx_id_vector <- plot_data$tx_id
 
@@ -72,7 +40,6 @@ plot_tx_context <- function(exon_table) {
     plot_data[plot_data$tx_id %in% tx_id & plot_data$exon_right == exon_right_max, "segment_start"] <- NA_real_
     plot_data[plot_data$tx_id %in% tx_id & plot_data$exon_right == exon_right_max, "segment_middle"] <- NA_real_
     plot_data[plot_data$tx_id %in% tx_id & plot_data$exon_right == exon_right_max, "segment_end"] <- NA_real_
-    # plot_data[plot_data$tx_id %in% tx_id & plot_data$exon_right == exon_right_max, "tpm"] <- NA_real_
   }
 
   plot_data |>
@@ -106,11 +73,11 @@ plot_tx_context <- function(exon_table) {
       ggplot2::vars(tx_id),
       ncol = 1
     ) +
-    ggplot2::theme_classic() +
     ggplot2::labs(
       x = "Genomic Coordinate",
       y = "TPM"
     ) +
+    ggplot2::theme_classic() +
     ggplot2::theme(
       strip.background = ggplot2::element_blank(),
       strip.text.x = ggplot2::element_blank()

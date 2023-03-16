@@ -26,7 +26,6 @@ prepare_exon_annotation <- function(gene_name,
       progress = FALSE
     )
   }
-
   gene_annot_df <- annot_df |>
     dplyr::filter(
       stringr::str_detect(X9, paste0("gene_name=", gene_name, ";"))
@@ -58,17 +57,11 @@ prepare_exon_annotation <- function(gene_name,
       }
     ) |>
     dplyr::mutate(tx_name = gene_name)
-
-  # if (isTRUE(unique(tx_exon_table$strand) == "-")) {
-
-  # }
-
   tx_exon_table <- tx_exon_table |>
     dplyr::rename(
       exon_left = X4,
       exon_right = X5,
       strand = X7
     )
-
   return(tx_exon_table)
 }
