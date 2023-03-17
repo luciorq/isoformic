@@ -5,6 +5,10 @@
 <!-- badges: end -->
 
 Welcome to `isoformic`, a workflow for isoform-level biological interpretation of transcriptomic data.
+This pipeline uses known annotated transcripts to produce biologically relevant results based on the different ypes of transcripts for any case versus control transcriptomic comparisson.
+
+![trancripttypesgraph](https://i.imgur.com/UWoAr0k.png)
+
 
 ## Installation
 
@@ -15,12 +19,4 @@ You can install the development version of isoformic from [GitHub](https://githu
 devtools::install_github("luciorq/isoformic")
 ```
 
-## Example
-
-This is a basic example which shows you how to solve a common problem:
-
-``` r
-library(isoformic)
-## basic example code
-```
 
