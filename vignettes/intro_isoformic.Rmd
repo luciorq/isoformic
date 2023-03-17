@@ -1,0 +1,415 @@
+---
+title: "Isoformic:  Isoform-level biological interpretation of transcriptomic data"
+date: "2023-02-09"
+output:
+  rmarkdown::html_document:
+    highlight: tango
+    toc: true
+    toc_float: true
+author:
+  - name: Izabela Mamede Conceição
+    affiliation: Laboratory of Genetics Biochemistry, Universidade Federal de Minas Gerais, Belo Horizonte, Brazil
+  - name: Lucio Rezende Queiroz
+    affiliation: Department of Pathology and Laboratory Medicine, Weill Cornell Medicine
+vignette: |
+  %\VignetteIndexEntry{intro-isoformic}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+<!-- run this document with rmarkdown::render("swish.Rmd") -->
+
+```{r setup, echo=FALSE, results="hide"}
+knitr::opts_chunk$set(
+  tidy = FALSE, cache = FALSE, dev = "png",
+  message = FALSE, error = FALSE, warning = FALSE
+)
+```
+
+# The Isoformic method
+
+Welcome to `isoformic`, a workflow for isoform-level biological interpretation of transcriptomic data.
+
+## Information
+
+All data used for the examples here were extracted from the paper: "Landscape of Dysregulated Placental RNA Editing Associated With Preeclampsia" <https://www.ahajournals.org/doi/10.1161/HYPERTENSIONAHA.120.14756> in which were analized preeclamptic and control placentas.
+This dataset was chosen due for having many biological replicates with high sequencing depth.
+
+This tutorial will encompass X different steps divided into X unities for which type of analysis you want to perform.
+
+## Dependencies
+
+```{r, message=FALSE}
+# pkgload::load_all()
+library(isoformic)
+```
+
+Load dependency packages
+
+```{r, message=FALSE}
+library(fs)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(stringr)
+# library(SummarizedExperiment)
+# library(tximeta)
+# library(fishpond)
+```
+
+## Setting up the data
+
+### Part 1: Data input
+
+In this version you would need two essential input and two optional inputs.
+
+**Essential input 1:** A transcript differential expression table.
+This table can be outputted from any kind of differential expression software you use but it needs to contain 1) information on Transcript name OR Ensembl Transcript ID per line 2) log2FoldChange information in a column named "log2FoldChange".
+3) pvalue information in a column named "pvalue".
+Any other columns on the table will not be used on the main analysis.
+This DET table should be the UNFILTERED version of your table.
+
+Example:
+
+```{r, warning=FALSE, message=FALSE}
+PE1_DETs <- read_csv(path_package("isoformic", "extdata", "DETs_fixed.csv"))
+head(PE1_DETs)
+```
+
+**Essential input 2:** a FASTA file from GENCODE which corresponds to the same fasta you used for the transcriptome alignment.
+These need to be on the same version since here you will use names from that GENCODE version to do most of the mergings.
+The annotation used also need to be GENCODE since it posses the transcript_type column that will be used as information as well.
+If you wish you CAN provide that information through and external source not being GENCODE, and from that you will need a table with at least three columns: 1)a transcript_name column that needs to match those gene names on your DET table and on your TPM table, 2) a gene-name column to tell which gene those transcripts belong to and 3) a transcript_type column.
+
+This table will also have to use transcript names from GENCODE and have a column stating the transcript biotype that is also got from gencode annotation.
+The statistics can be pvalue, svalue or qvalue but a log2FoldChange between your case and control conditions is also needed for most of the plots.
+
+**Optional inputs:** 1) A Transcript per million (TPM) table matching the transcripts in the differential expression table 2) a GFF3 file of the transcriptome version which corresponds to your FASTA and 3) a table of differentially expressed genes of that data to also use as comparison.
+
+------------------------------------------------------------------------
+
+Any differential expression table can be used here but the pipeline authors, after multiple testing, reached the conclusion that the swish implementation for a differential transcript expression analysis using inferential replicate counts from Salmon is the one that performs the best for medium to high depth transcriptome libraries when looking at number of transcripts and significant values.
+
+Not well annotated transcriptomes will not output results as these and all the tests here mentioned were done using human data.
+
+------------------------------------------------------------------------
+
+Load example the input files
+
+Isoformic makes available example files that can be used as model for formatting the necessary files for running the workflow.
+The files can be found in the following path.
+
+```{r}
+path_package("isoformic", "extdata")
+```
+
+And the files available can be seen with:
+
+```{r}
+path_package("isoformic", "extdata") |>
+  dir_ls()
+```
+
+```{r, message=FALSE}
+PE1_DETs <- path_package("isoformic", "extdata", "DETs_fixed.csv") |>
+  read_csv()
+PE1_DEGs <- path_package("isoformic", "extdata", "DEGs_PE_fixed2.csv") |>
+  read_csv()
+PE1_counts <- path_package("isoformic", "extdata", "PE_1_counts.csv") |>
+  read_csv() |>
+  rename(`transcript_id` = `...1`)
+```
+
+Here we load the table which points for the libraries that represent our cases (treatment) and our controls.
+In this library, cases are the pregnant woman with Preeclampsia and controls matched pregnant without Preeclampsia
+
+```{r}
+sample_table <- data.frame(
+  samples = colnames(PE1_counts)[2:ncol(PE1_counts)],
+  condition = c(rep("treatment", 8), rep("control", ncol(PE1_counts) - 9))
+)
+```
+
+#### Download reference files
+
+The references used for this project were obtained from from the [GENCODE Project](https://www.gencodegenes.org/human/) version 34 for the Human genome annotation.
+
+The annotation file in GFF3 format was obtained from <https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_34/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz>.
+
+This step may take a while depending on the speed of your internet connection
+
+```{r, eval=TRUE}
+download_reference(version = "34", file_type = "fasta")
+download_reference(version = "34", file_type = "gff")
+```
+
+------------------------------------------------------------------------
+
+### Part 2: Transcript to Gene and Gene to transcript
+
+Using the FASTA file from GENCODE we will construct a transcript per gene dictionary table and add that information to the main DEG, DET and TPM table.
+This step will depend a lot on the names of the columns on your tables so in the Vignette we decided to change names to keep consistency.
+
+The input used here is a FASTA file containing the transcript sequences and their annotation information downloaded from the GENCODE website with the specific version you used for the alignment.
+In the case here GENCODE v34.
+
+```{r, warning=FALSE, message=FALSE}
+fasta_path <- "data-raw/gencode.v34.transcripts.fa.gz"
+read_lines(fasta_path, n_max = 5)
+```
+
+As that header shows the imported table is still very weird and not tidy, so we pass it through the make_tx_to_gene function that will make it tidy and ready for further use.
+
+```{r, warning=FALSE}
+tx_to_gene <- make_tx_to_gene(
+  file_path = fasta_path,
+  file_type = "fasta"
+)
+head(tx_to_gene)
+```
+
+Now our tx_to_gene table has 6 columns that are in order: Ensembl transcript id, Ensembl gene id, Havanna gene id, Havanna transcript id, transcript name, gene name, entrez gene number and transcript type.
+For the DEG, DET and TPM table we will need the Ensembl gene id, the Gene name and the transcript type information so we can convert our tables for transcript_name and add the type information and if the gene is a DE to the DET table.
+
+Select the columns with the gene id and the gene name info
+
+```{r}
+tx_to_gene <- tx_to_gene |>
+  select(
+    transcript_id, gene_id,
+    transcript_name, gene_name,
+    transcript_type
+  )
+```
+
+First we add the gene_name information to the DEG table
+
+```{r}
+gene_join <- tx_to_gene |>
+  select(gene_id, gene_name) |>
+  distinct()
+PE1_DEGs <- PE1_DEGs |>
+  left_join(gene_join, by = "gene_id")
+```
+
+Now the transcript name for the TPM table
+
+```{r}
+tpm_join <- tx_to_gene |>
+  select(transcript_id, transcript_name) |>
+  distinct()
+PE1_counts <- PE1_counts |>
+  left_join(tpm_join, by = c("transcript_id"))
+```
+
+The DET table will be our main table for analysis.
+
+------------------------------------------------------------------------
+
+### Part 3: Constructing the main table
+
+The Gene-level information will input for us categorical values to be added on the DET table.
+In more detail: we need to now if that transcript's gene (1) pass on the gene-level expression cutoff values and (2) which type does that transcript belongs to.
+
+There are multiple types on the Ensembl library and some of their definitions superpose to one another, the ones further analyzed here can be seen on this figure
+
+```{r}
+knitr::include_graphics("https://i.imgur.com/UWoAr0k.png")
+```
+
+First we add the transcript name and type information to the DET table
+
+```{r}
+transcript_joined <- tx_to_gene |>
+  select(transcript_id, transcript_name, transcript_type) |>
+  distinct()
+PE1_DETs <- PE1_DETs |>
+  left_join(transcript_joined, by = "transcript_id")
+```
+
+For the gene expression level we have to convert the DEG table and do some cutting to get the genes which present as DE and exclude possible noise.
+Here we used the cutoffs of absolute log2FC higher than one and pvalue lower than 0.05
+
+So we first filter the DEG table for the significative ones and the add it as a column on our main DET table using the isDEGsig function.
+
+```{r}
+PE1_DEGs_new_names_sig <- PE1_DEGs |>
+  filter(abs(log2FC) >= 1) |>
+  filter(pvalue <= 0.05) |>
+  select(gene_name) |>
+  drop_na()
+DEGs_sig_joined <- PE1_DEGs_new_names_sig |>
+  left_join(tx_to_gene, by = "gene_name")
+transcript_gene_join <- tx_to_gene |>
+  select(transcript_name, gene_name) |>
+  distinct()
+```
+
+```{r}
+PE1_DETs_final <- is_deg_sig(DEGs_sig_joined$transcript_name, PE1_DETs)
+PE1_DETs_final <- PE1_DETs_final |>
+  left_join(transcript_gene_join, by = "transcript_name")
+```
+
+And now we have all the tables we will need for all graphs and analyses.
+
+One detail is that the DET final table now allows us to see genes whose transcripts are differentially expressed but their genes are not with a simple dplyr filter.
+
+```{r}
+DETs_not_DEGs <- PE1_DETs_final |>
+  filter(pvalue < 0.05, abs(log2FC) > 1, DEG_sig == "NO")
+```
+
+This table will represent cases which could be characterized as isoform switches, when two transcripts of the same gene are expressed in opposite directions what makes the total expression of that gene not be significant either up or downregulated.
+
+# Log2FC Plot
+
+The simplest and first plot on this tutorial will be a log2FC plot, this plot will compare the foldchange of case vs control from the gene, to that of its transcripts adding to that the significance information.
+
+For that we will make a combined version of the DEG table with the DET table using the function join_DEG_DET.
+
+```{r}
+DEG_DET_table <- join_DEG_DET(PE1_DEGs, PE1_DETs_final, 1, 0.05)
+head(DEG_DET_table)
+```
+
+Now you just use the plotLog2FC for any gene you would like.
+The function also works well with a small vector of gene_names.
+
+```{r}
+plot_log2FC(DEG_DET_table, "RBPJ")
+```
+
+```{r}
+# work here to look better? or just remove for now
+# the best would be a loop that goes over each one of a list and #plots them in a folder the default could be the det not deg table
+plot_log2FC(DEG_DET_table, c("RBPJ", "EGFR", "PNCK"))
+```
+
+# Profile Plot
+
+Another good way more quantifiable way to visualize this switch is using the Transcript per Million Count of each transcript, compared to those of the gene between the case and control conditions.
+For this we use a profile plot that in one size plots the values of TPM for the case conditions and in the other the value of the TPM for the control conditions.
+
+Function to plot the profile here
+
+```{r}
+sample_table
+PE1_counts
+DEG_DET_table |>
+  filter(!transcript_type %in% "gene")
+unique(DEG_DET_table$transcript_type)
+```
+
+# Functional Transcript Enrichment
+
+One of the biggest caveats for transcript level analysis is that in many times is hard to extract biologically relevant information from so much data. Instead of having a final table with 900 genes you get a table with over 3.000 transcripts after the differential expression cut.
+The next step for gene-level DE would be functional enrichment or assigning the genes to metabolic pathways those may be regulating.
+Unfortunately are no comprehensive datasets for pathways transcripts may be regulating and the gene level analyses normally loses the difference between those transcripts which can produce proteins (protein_coding) from canonical translation pathways and those which cannot.
+To solve this problem we developed a method of expanding the known .gmts for transcript information and then separately enrich each selected category of transcript.
+Between the alternative spliced isoforms of that do not code for canonical proteins the most abundant are those classified as *Nonsense-mediated decay*, that have a premature stop codon which is subject to targeted degradation and the *processed transcript*, which, for any reason, do not posses a complete Open Reading Frame.
+Inside the processed transcript category the one with the highest count are the *retained introns*, sequences which retain an intronic portion after their processing.
+
+These three categories are the most abundant in those transcripts which arise from the alternative splicing of a protein coding gene and these three will be the main focus for our enrichment and further graphs.
+
+So first we choose a .gmt to be used for the enrichment, in this case we loaded a human reactome gene list from MSigDB called c2.
+But any gene list in [GMT format](https://software.broadinstitute.org/cancer/software/gsea/wiki/index.php/Data_formats) works here. The gmt is loaded on the fgsea format with lists for each biological process.
+
+```{r}
+genesets_list <- fgsea::gmtPathways(
+  gmt.file = path_package("isoformic", "extdata", "hsapiens_REAC_subset.gmt")
+)
+```
+
+Visualize how is our table before running
+
+```{r}
+head(PE1_DETs_final)
+```
+
+Then you run the run_enrichment function it needs your DETs final table, the genesetlist and a pvalue cutoff to be used.
+It will generate a table of enrichment but with an extra column "experiment".
+
+```{r, warning=FALSE}
+enrichment_df <- run_enrichment(
+  det_df = PE1_DETs_final,
+  genesets_list = genesets_list,
+  pval_cutoff = 0.05
+)
+head(enrichment_df)
+```
+
+This experiment column has five possible values: Protein-coding: which is the enrichment associated with the transcripts categorized as protein coding.
+Unproductive: This is a term that will be used moving forward to combine those three categories of alternative spliced isoforms transcribed by coding genes. The authors are aware that biologically this term is deprecated since those kind of transcripts can produce peptides from alternative translation pathways. So here unproductive should be read as virtually incapable of producing the protein that is associated with that gene.
+As interpretation, we made this category to find pathways which are not being regulated on our coding data, but by the unproductive transcripts.
+
+We also added three categories which are the individual alternative spliced types and the pathways regulated by those for specific analysis. In a very deep transcriptome the individual enrichment from those categories can also lead to promissing insights.
+
+Plotting the enrichment
+
+We used a LollipopPlot to plot all the enrichments side by side with the size of each pathway as the radius of the circles and the transparency is if that pathway passes on the desired cutoff. First we plot for only Protein_coding versus Unproductive with a very extringent NES cutoff.
+
+```{r}
+enrichment_df %>%
+  filter(experiment %in% c("protein_coding", "unproductive") & abs(NES)> 2) %>%
+  ggplot2::ggplot(ggplot2::aes(pathway, experiment))+
+  ggplot2::geom_point(ggplot2::aes(col = NES, size = size))+
+  ggplot2::coord_flip()+
+  ggplot2::theme_minimal()+
+  viridis::scale_color_viridis(option = "mako", direction = -1)
+```
+
+And now the specific unproductive subtypes
+```{r}
+enrichment_df %>%
+  filter(!experiment %in% c("protein_coding", "unproductive") & abs(NES)> 1.5) %>%
+  ggplot2::ggplot(ggplot2::aes(pathway, experiment))+
+  ggplot2::geom_point(ggplot2::aes(col = NES, size = size))+
+  ggplot2::coord_flip()+
+  ggplot2::theme_minimal()+
+  viridis::scale_color_viridis(option = "magma", direction = -1)
+```
+
+
+# Genomic Context Plot
+
+One of the main issues we arrived at the start of the isoform level analysis, was that there was no easy direct way to visualize transcript-types if compared one to another, and using the transcript-type and the transcript per million information.
+
+Most of the alignment plots today use the outputs from .bam/.sam files that align directly to the genome making us lose the transcript-type information and increasing considerably the processing time for any analysis for the size of the files and the time it takes to re-align.
+
+To solve this problem we used a more direct approach which allows us to visualize the difference of introns and exons between the transcript, the types of those transcripts and how much they were counted according to the pseudo-alignment; but in turn it loses the read alignment count proportion.
+This alignment count unfortunately requires running alignment softwares and dealing with .sam and .bam files which will not be covered on this tutorial.
+We called this plot the genomic context plot and it takes inspiration from the way Ensembl shows it transcripts on their genome browser.
+
+This specific plot requires a GFF file that can also be downloaded from GENCODE to be included in the file path on next function.
+This GFF file needs to be downloaded on the accurate version for your transcriptome, in this case v34.
+
+```{r}
+exon_df <- prepare_exon_annotation(
+  gene_name = "XIST",
+  file_path = "data-raw/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz",
+  file_type = "gff"
+)
+```
+
+This will be the table used for plotting
+```{r}
+exon_df
+```
+
+Plotting
+
+```{r}
+exon_df |>
+  plot_tx_context()
+```
+
+\#\@ References
+
+Ensembl
+Fgsea
+Swish
+
