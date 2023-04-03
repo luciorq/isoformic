@@ -93,14 +93,14 @@ join_DEG_DET <- function(DEG_tab, DET_final_tab, logfc_cut, pval_cut) {
     dplyr::rename(name = transcript_name)
   DEG_tab_mod <- DEG_tab_mod[
     colnames(DEG_tab_mod)[colnames(DEG_tab_mod)
-    %in% colnames(DET_final_tab_mod)]
+                          %in% colnames(DET_final_tab_mod)]
   ]
   DEGs_DETs_table <- dplyr::bind_rows(DEG_tab_mod, DET_final_tab_mod)
-  DEGs_DETs_table$sig <- c()
+  DEGs_DETs_table$significance <- c()
   DEGs_DETs_table$abs_log2FC <- base::abs(DEGs_DETs_table$log2FC)
   DEGs_DETs_table$significance <- "not_sig"
   DEGs_DETs_table$significance[DEGs_DETs_table$abs_log2FC > logfc_cut &&
-    DEGs_DETs_table$pvalue < pval_cut] <- "sig"
+                                 DEGs_DETs_table$pvalue < pval_cut] <- "sig"
   return(DEGs_DETs_table)
 }
 
@@ -162,30 +162,36 @@ run_enrichment <- function(det_df,
 
 #' Plot Log2 Fold-Change Results
 #' @export
-plot_log2FC <- function(DEG_DET_table, selected_gene) {
+plot_log2FC <- function(DEG_DET_table, selected_gene, custom_colors = NULL) {
   DEG_DET_table$transcript_type <- as.factor(DEG_DET_table$transcript_type)
-  palette_test <- data.frame(
-    factors = levels(DEG_DET_table$transcript_type),
-    colors = c(
-      "#F8766D", "#C77CFF", "#00BFC4",
-      "#CD9600", "#7CAE00", "#8494FF",
-      "#00A9FF", "#FF61CC", "#0CB702",
-      "#E68613", "#00C19A", "#ABA300",
-      "#FF68A1"
-    )
-  )
-  palette_test <- tibble::deframe(palette_test)
-  DEG_DET_table |>
-    dplyr::filter(gene_name %in% selected_gene) |>
-    ggplot2::ggplot(
-      ggplot2::aes(
-        x = name, y = log2FC,
-        alpha = significance,
-        fill = transcript_type
-      )
-    ) +
-    ggplot2::geom_bar(stat = "identity") +
-    ggplot2::theme_minimal() +
-    ggplot2::scale_fill_manual(values = palette_test) +
-    ggplot2::facet_wrap(~gene_name)
+  palette_test <- data.frame(factors = levels(DEG_DET_table$transcript_type),
+                             colors = c("#F8766D", "#C77CFF", "#00BFC4", "#CD9600", "#7CAE00",
+                                                 "#8494FF", "#00A9FF", "#FF61CC", "#0CB702", "#E68613",
+                                                 "#00C19A", "#ABA300", "#FF68A1"))
+                                                 n_colors <- if (!is.null(custom_colors)) length(custom_colors) else 13
+                                                 max_colors <- length(palette_test$colors)
+                                                 
+                                                 if (n_colors > max_colors) {
+                                                   n_colors <- max_colors
+                                                   message("Maximum number of colors exceeded. Using maximum number of colors (", max_colors, ") instead.")
+                                                 }
+                                                 
+                                                 if (n_colors < length(levels(DEG_DET_table$transcript_type))) {
+                                                   n_colors <- length(levels(DEG_DET_table$transcript_type))
+                                                   message("Number of specified colors is less than the number of required colors. Using all levels of 'transcript_type' column instead.")
+                                                 }
+                                                 
+                                                 my_colors <- if (!is.null(custom_colors)) {
+                                                   custom_colors[1:n_colors]
+                                                 } else {
+                                                   palette_test$colors[1:n_colors]
+                                                 }
+                                                 
+                                                 ggplot2::ggplot(DEG_DET_table[DEG_DET_table$gene_name %in% selected_gene,],
+                                                                 ggplot2::aes(x = name, y = log2FC, fill = transcript_type)) + 
+                                                   ggplot2::geom_bar(stat = "identity") +
+                                                   ggplot2::scale_color_manual(values = my_colors) +
+                                                   ggplot2::theme_bw()+
+                                                   ggplot2::facet_wrap(~gene_name)
+                                                 #ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, vjust = 0.5))
 }
