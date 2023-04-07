@@ -22,7 +22,7 @@ Useful links:
 
 Authors:
 \itemize{
-  \item Izabela Mamede Conceicao \email{iza.mamede@gmail.com} (\href{https://orcid.org/0000-0002-0707-5588}{ORCID})
+  \item Izabela Mamede Conceicao \email{iza.mamede@gmail.com} (\href{https://orcid.org/0000-0002-0707-5588}{ORCID}) [contributor]
 }
 
 }

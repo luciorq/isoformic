@@ -4,7 +4,7 @@
 \alias{plot_log2FC}
 \title{Plot Log2 Fold-Change Results}
 \usage{
-plot_log2FC(DEG_DET_table, selected_gene)
+plot_log2FC(DEG_DET_table, selected_gene, custom_colors = NULL)
 }
 \description{
 Plot Log2 Fold-Change Results
