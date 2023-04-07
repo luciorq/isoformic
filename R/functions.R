@@ -187,11 +187,18 @@ plot_log2FC <- function(DEG_DET_table, selected_gene, custom_colors = NULL) {
   } else {
     palette_test$colors[1:n_colors]
   }
-  
-  ggplot2::ggplot(DEG_DET_table[DEG_DET_table$gene_name %in% selected_gene,],
-                  ggplot2::aes(x = name, y = log2FC, fill = transcript_type)) + 
-    ggplot2::geom_bar(stat = "identity") +
-    ggplot2::scale_fill_manual(values = my_colors) +
-    ggplot2::theme_bw()
+  if(all(DEG_DET_table$significance[DEG_DET_table$gene_name %in% selected_gene] == "sig")) {
+    
+    ggplot2::ggplot(DEG_DET_table[DEG_DET_table$gene_name %in% selected_gene,],
+                    ggplot2::aes(x = name, y = log2FC, fill = transcript_type)) + 
+      ggplot2::geom_bar(stat = "identity") +
+      ggplot2::scale_fill_manual(values = my_colors) +
+      ggplot2::theme_bw()
+  } else {
+    ggplot2::ggplot(DEG_DET_table[DEG_DET_table$gene_name %in% selected_gene,],
+                    ggplot2::aes(x = name, y = log2FC, fill = transcript_type, alpha = significance)) + 
+      ggplot2::geom_bar(stat = "identity") +
+      ggplot2::scale_fill_manual(values = my_colors) +
+      ggplot2::theme_bw()}
   #ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, vjust = 0.5))
 }
