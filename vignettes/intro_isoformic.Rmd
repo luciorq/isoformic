@@ -120,7 +120,7 @@ PE1_DEGs <- path_package("isoformic", "extdata", "DEGs_PE_fixed2.csv") |>
   read_csv()
 PE1_counts <- path_package("isoformic", "extdata", "PE_1_counts.csv") |>
   read_csv() |>
-  rename(`transcript_id` = `...1`)
+  dplyr::rename(transcript_id = ...1)
 ```
 
 Here we load the table which points for the libraries that represent our cases (treatment) and our controls.
@@ -178,7 +178,7 @@ Select the columns with the gene id and the gene name info
 
 ```{r}
 tx_to_gene <- tx_to_gene |>
-  select(
+  dplyr::select(
     transcript_id, gene_id,
     transcript_name, gene_name,
     transcript_type
@@ -189,7 +189,7 @@ First we add the gene_name information to the DEG table
 
 ```{r}
 gene_join <- tx_to_gene |>
-  select(gene_id, gene_name) |>
+  dplyr::select(gene_id, gene_name) |>
   distinct()
 PE1_DEGs <- PE1_DEGs |>
   left_join(gene_join, by = "gene_id")
@@ -199,7 +199,7 @@ Now the transcript name for the TPM table
 
 ```{r}
 tpm_join <- tx_to_gene |>
-  select(transcript_id, transcript_name) |>
+  dplyr::select(transcript_id, transcript_name) |>
   distinct()
 PE1_counts <- PE1_counts |>
   left_join(tpm_join, by = c("transcript_id"))
@@ -224,7 +224,7 @@ First we add the transcript name and type information to the DET table
 
 ```{r}
 transcript_joined <- tx_to_gene |>
-  select(transcript_id, transcript_name, transcript_type) |>
+  dplyr::select(transcript_id, transcript_name, transcript_type) |>
   distinct()
 PE1_DETs <- PE1_DETs |>
   left_join(transcript_joined, by = "transcript_id")
@@ -239,12 +239,12 @@ So we first filter the DEG table for the significative ones and the add it as a 
 PE1_DEGs_new_names_sig <- PE1_DEGs |>
   filter(abs(log2FC) >= 1) |>
   filter(pvalue <= 0.05) |>
-  select(gene_name) |>
+  dplyr::select(gene_name) |>
   drop_na()
 DEGs_sig_joined <- PE1_DEGs_new_names_sig |>
   left_join(tx_to_gene, by = "gene_name")
 transcript_gene_join <- tx_to_gene |>
-  select(transcript_name, gene_name) |>
+  dplyr::select(transcript_name, gene_name) |>
   distinct()
 ```
 
@@ -402,7 +402,7 @@ exon_df
 
 Plotting
 
-```{r}
+```{r, fig.height=17}
 exon_df |>
   plot_tx_context()
 ```
@@ -412,4 +412,3 @@ exon_df |>
 Ensembl
 Fgsea
 Swish
-
