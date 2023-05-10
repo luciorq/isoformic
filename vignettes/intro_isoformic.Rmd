@@ -20,7 +20,7 @@ editor_options:
     wrap: sentence
 ---
 
-<!-- run this document with rmarkdown::render("swish.Rmd") -->
+<!-- run this document with rmarkdown::render("intro_isoformic.Rmd") -->
 
 ```{r setup, echo=FALSE, results="hide"}
 knitr::opts_chunk$set(
@@ -353,23 +353,24 @@ Plotting the enrichment
 We used a LollipopPlot to plot all the enrichments side by side with the size of each pathway as the radius of the circles and the transparency is if that pathway passes on the desired cutoff. First we plot for only Protein_coding versus Unproductive with a very extringent NES cutoff.
 
 ```{r}
-enrichment_df %>%
-  filter(experiment %in% c("protein_coding", "unproductive") & abs(NES)> 2) %>%
-  ggplot2::ggplot(ggplot2::aes(pathway, experiment))+
-  ggplot2::geom_point(ggplot2::aes(col = NES, size = size))+
-  ggplot2::coord_flip()+
-  ggplot2::theme_minimal()+
+enrichment_df |>
+  filter((experiment %in% c("protein_coding", "unproductive")) & (abs(NES) > 2)) |>
+  ggplot2::ggplot(ggplot2::aes(pathway, experiment)) +
+  ggplot2::geom_point(ggplot2::aes(col = NES, size = size)) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_minimal() +
   viridis::scale_color_viridis(option = "mako", direction = -1)
 ```
 
 And now the specific unproductive subtypes
+
 ```{r}
-enrichment_df %>%
-  filter(!experiment %in% c("protein_coding", "unproductive") & abs(NES)> 1.5) %>%
-  ggplot2::ggplot(ggplot2::aes(pathway, experiment))+
-  ggplot2::geom_point(ggplot2::aes(col = NES, size = size))+
-  ggplot2::coord_flip()+
-  ggplot2::theme_minimal()+
+enrichment_df |>
+  filter(!experiment %in% c("protein_coding", "unproductive") & abs(NES) > 1.5) |>
+  ggplot2::ggplot(ggplot2::aes(pathway, experiment)) +
+  ggplot2::geom_point(ggplot2::aes(col = NES, size = size)) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_minimal() +
   viridis::scale_color_viridis(option = "magma", direction = -1)
 ```
 

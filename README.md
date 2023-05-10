@@ -5,7 +5,7 @@
 <!-- badges: end -->
 
 Welcome to `isoformic`, a workflow for isoform-level biological interpretation of transcriptomic data.
-This pipeline uses known annotated transcripts to produce biologically relevant results based on the different ypes of transcripts for any case versus control transcriptomic comparisson.
+This pipeline uses known annotated transcripts to produce biologically relevant results based on the different types of transcripts for any case versus control transcriptomic comparison.
 
 ![trancripttypesgraph](https://i.imgur.com/UWoAr0k.png)
 
@@ -18,5 +18,3 @@ You can install the development version of isoformic from [GitHub](https://githu
 # install.packages("devtools")
 devtools::install_github("luciorq/isoformic")
 ```
-
-
