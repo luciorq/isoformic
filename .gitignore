@@ -4,3 +4,5 @@ docs
 *.gz
 *.fa
 *.pdf
+/doc/
+/Meta/
