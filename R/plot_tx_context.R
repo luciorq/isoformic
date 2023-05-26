@@ -1,3 +1,5 @@
+#' Plot Transcript Genomic Context
+#' @export
 plot_tx_context <- function(exon_table, custom_colors = NULL) {
   exon_table <- exon_table |>
     dplyr::mutate(
@@ -25,7 +27,6 @@ plot_tx_context <- function(exon_table, custom_colors = NULL) {
       segment_middle = floor((segment_end + segment_start) / 2)
     ) |>
     dplyr::mutate(tpm = 5)
-
 
   plot_data[nrow(plot_data),"segment_start"] <- NA_real_
 

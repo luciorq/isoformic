@@ -43,7 +43,6 @@ This tutorial will encompass X different steps divided into X unities for which 
 ## Dependencies
 
 ```{r, message=FALSE}
-# pkgload::load_all()
 library(isoformic)
 ```
 
@@ -56,7 +55,6 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 library(SummarizedExperiment)
-library(tidySummarizedExperiment)
 #library(tximeta)
 # library(fishpond)
 ```
@@ -78,7 +76,7 @@ In this version you would need two essential input and two optional inputs.
 
 **Essential input 1:** A transcript differential expression table.
 This table can be outputted from any kind of differential expression software you use but it needs to contain 1) information on Transcript name OR Ensembl Transcript ID per line 2) log2FoldChange information in a column named "log2FoldChange".
-3) pvalue information in a column named "pvalue".
+3) p-value information in a column named "pvalue".
 Any other columns on the table will not be used on the main analysis.
 This DET table should be the UNFILTERED version of your table.
 
@@ -140,6 +138,7 @@ sample_table <- data.frame(
   samples = colnames(PE1_counts)[2:ncol(PE1_counts)],
   condition = c(rep("treatment", 8), rep("control", ncol(PE1_counts) - 9))
 )
+head(sample_table)
 ```
 
 #### Download reference files
@@ -151,45 +150,45 @@ The annotation file in GFF3 format was obtained from <https://ftp.ebi.ac.uk/pub/
 This step may take a while depending on the speed of your internet connection
 
 ```{r, eval=TRUE}
-# download_reference(version = "33", file_type = "fasta")
+download_reference(version = "33", file_type = "fasta")
 # download_reference(version = "33", file_type = "gff")
-download_reference(version = "33", file_type = "gtf")
+# download_reference(version = "33", file_type = "gtf")
 ```
 
 ------------------------------------------------------------------------
 
 ### Part 2: Create the `linkedTxome` object from GENCODE annotation
 
-`tximeta` is capable of importing most of the annotation automatically,
-but for getting the transcript types we will will need to create the `linkedTxome` object manually.
+`tximeta` is capable of importing most of the annotations automatically,
+but for getting the transcript types we will need to create the `linkedTxome` object manually.
 
 The full documentation can be found at the [`tximeta` ](https://bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html#What_if_checksum_isn%E2%80%99t_known)
 
 ```{r}
-gtf_file_path <- "data-raw/gencode.v33.chr_patch_hapl_scaff.annotation.gtf.gz"
-fs::file_exists(gtf_file_path)
-
-base_dir <- "data-raw/gencode_v33"
-json_file_path <- paste0(base_dir, ".json")
-fs::dir_create(base_dir)
-tximeta::makeLinkedTxome(
-  indexDir = base_dir,
-  source = "LocalGENCODE",
-  organism = "Homo sapiens",
-  release = "33",
-  genome = "hg38",
-  fasta = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_33/gencode.v33.transcripts.fa.gz",
-  gtf = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_33/gencode.v33.chr_patch_hapl_scaff.annotation.gtf.gz",
-  write = TRUE,
-  jsonFile = json_file_path
-)
-
-tximeta::loadLinkedTxome("data-raw/gencode_v33.json")
+# gtf_file_path <- "data-raw/gencode.v33.chr_patch_hapl_scaff.annotation.gtf.gz"
+# fs::file_exists(gtf_file_path)
+# 
+# base_dir <- "data-raw/gencode_v33"
+# json_file_path <- paste0(base_dir, ".json")
+# fs::dir_create(base_dir)
+# tximeta::makeLinkedTxome(
+#   indexDir = base_dir,
+#   source = "LocalGENCODE",
+#   organism = "Homo sapiens",
+#   release = "33",
+#   genome = "hg38",
+#   fasta = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_33/gencode.v33.transcripts.fa.gz",
+#   gtf = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_33/gencode.v33.chr_patch_hapl_scaff.annotation.gtf.gz",
+#   write = TRUE,
+#   jsonFile = json_file_path
+# )
+# 
+# tximeta::loadLinkedTxome("data-raw/gencode_v33.json")
 ```
 
 ------------------------------------------------------------------------
 
-### Part 3: Transcript to Gene and Gene to transcript
+### Part 3: Transcript to Gene and Gene to transcript reference tables
 
 Using the FASTA file from GENCODE we will construct a transcript per gene dictionary table and add that information to the main DEG, DET and TPM table.
 This step will depend a lot on the names of the columns on your tables so in the Vignette we decided to change names to keep consistency.
@@ -226,7 +225,7 @@ tx_to_gene <- tx_to_gene |>
   )
 ```
 
-First we add the gene_name information to the DEG table
+First we add the `gene_name` information to the DEG table
 
 ```{r}
 gene_join <- tx_to_gene |>
@@ -274,7 +273,7 @@ PE1_DETs <- PE1_DETs |>
 For the gene expression level we have to convert the DEG table and do some cutting to get the genes which present as DE and exclude possible noise.
 Here we used the cutoffs of absolute log2FC higher than one and pvalue lower than 0.05
 
-So we first filter the DEG table for the significative ones and the add it as a column on our main DET table using the isDEGsig function.
+So we first filter the DEG table for the significant ones and the add it as a column on our main DET table using the isDEGsig function.
 
 ```{r}
 PE1_DEGs_new_names_sig <- PE1_DEGs |>
@@ -304,7 +303,7 @@ DETs_not_DEGs <- PE1_DETs_final |>
   filter(pvalue < 0.05, abs(log2FC) > 1, DEG_sig == "NO")
 ```
 
-This table will represent cases which could be characterized as isoform switches, when two transcripts of the same gene are expressed in opposite directions what makes the total expression of that gene not be significant either up or downregulated.
+This table will represent cases which could be characterized as isoform switches, when two transcripts of the same gene are expressed in opposite directions what makes the total expression of that gene not be significant either up or down-regulated.
 
 # Log2FC Plot
 
@@ -357,7 +356,7 @@ Inside the processed transcript category the one with the highest count are the 
 These three categories are the most abundant in those transcripts which arise from the alternative splicing of a protein coding gene and these three will be the main focus for our enrichment and further graphs.
 
 So first we choose a .gmt to be used for the enrichment, in this case we loaded a human reactome gene list from MSigDB called c2.
-But any gene list in [GMT format](https://software.broadinstitute.org/cancer/software/gsea/wiki/index.php/Data_formats) works here. The gmt is loaded on the fgsea format with lists for each biological process.
+But any gene list in [GMT format][gmt-format-ref] works here. The gmt is loaded on the fgsea format with lists for each biological process.
 
 ```{r}
 genesets_list <- fgsea::gmtPathways(
@@ -415,7 +414,6 @@ enrichment_df |>
   viridis::scale_color_viridis(option = "magma", direction = -1)
 ```
 
-
 # Genomic Context Plot
 
 One of the main issues we arrived at the start of the isoform level analysis, was that there was no easy direct way to visualize transcript-types if compared one to another, and using the transcript-type and the transcript per million information.
@@ -449,7 +447,7 @@ exon_df |>
   plot_tx_context()
 ```
 
-\#\@ References
+# References
 
 [ensembl-ref]: <https://ensembl.org/>
 [gencode-ref]: <https://www.gencodegenes.org/human/>
@@ -458,3 +456,4 @@ exon_df |>
 [fishpond-ref]: <https://bioconductor.org/packages/release/bioc/html/fishpond.html>
 [salmon-ref]: <https://github.com/COMBINE-lab/salmon>
 [pe-paper-ref]: <https://www.ahajournals.org/doi/10.1161/HYPERTENSIONAHA.120.14756>
+[gmt-format-ref]: <https://software.broadinstitute.org/cancer/software/gsea/wiki/index.php/Data_formats>

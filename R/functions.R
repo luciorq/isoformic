@@ -6,7 +6,9 @@
 #' This function can extract a transcript to gene relationship table
 #'   from GENCODE annotation files, such as the transcriptome FASTA and
 #'   GFF3 or GTF annotation files.
+#'
 #' @param file_path Path to file containing the reference.
+#'
 #' @inheritParams download_reference
 #' @export
 make_tx_to_gene <- function(file_path, file_type = "fasta") {
@@ -164,39 +166,39 @@ run_enrichment <- function(det_df,
 #' @export
 plot_log2FC <- function(DEG_DET_table, selected_gene, custom_colors = NULL) {
   DEG_DET_table$transcript_type <- as.factor(DEG_DET_table$transcript_type)
-  
+
   palette_test <- data.frame(colors = c("#F8766D", "#C77CFF", "#00BFC4", "#CD9600", "#7CAE00",
                                                  "#8494FF", "#00A9FF", "#FF61CC", "#0CB702", "#E68613",
                                                  "#00C19A", "#ABA300", "#FF68A1"))
-                                                 
+
   n_colors <- if (!is.null(custom_colors)) length(custom_colors) else nlevels(DEG_DET_table$transcript_type)
   max_colors <- nrow(palette_test)
-  
+
   if (n_colors > max_colors) {
     n_colors <- max_colors
     message("Maximum number of colors exceeded. Using maximum number of colors (", max_colors, ") instead.")
   }
-  
+
   if (n_colors < nlevels(DEG_DET_table$transcript_type)) {
     n_colors <- nlevels(DEG_DET_table$transcript_type)
     message("Number of specified colors is less than the number of required colors. Using all levels of 'transcript_type' column instead.")
   }
-  
+
   my_colors <- if (!is.null(custom_colors)) {
     custom_colors[1:n_colors]
   } else {
     palette_test$colors[1:n_colors]
   }
   if(all(DEG_DET_table$significance[DEG_DET_table$gene_name %in% selected_gene] == "sig")) {
-    
+
     ggplot2::ggplot(DEG_DET_table[DEG_DET_table$gene_name %in% selected_gene,],
-                    ggplot2::aes(x = name, y = log2FC, fill = transcript_type)) + 
+                    ggplot2::aes(x = name, y = log2FC, fill = transcript_type)) +
       ggplot2::geom_bar(stat = "identity") +
       ggplot2::scale_fill_manual(values = my_colors) +
       ggplot2::theme_bw()
   } else {
     ggplot2::ggplot(DEG_DET_table[DEG_DET_table$gene_name %in% selected_gene,],
-                    ggplot2::aes(x = name, y = log2FC, fill = transcript_type, alpha = significance)) + 
+                    ggplot2::aes(x = name, y = log2FC, fill = transcript_type, alpha = significance)) +
       ggplot2::geom_bar(stat = "identity") +
       ggplot2::scale_fill_manual(values = my_colors) +
       ggplot2::theme_bw()}
