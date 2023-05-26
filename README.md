@@ -1,5 +1,5 @@
 
-# isoformic
+# isoformic <img src="man/figures/logo.png" align="right" height="136" />
 
 <!-- badges: start -->
 <!-- badges: end -->

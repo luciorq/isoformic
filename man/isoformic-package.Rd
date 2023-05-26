@@ -6,6 +6,8 @@
 \alias{isoformic-package}
 \title{isoformic: Isoformic: isoform-level biological interpretation of transcriptomic data}
 \description{
+\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
+
 Isoform-level biological interpretation of transcriptomic data.
 }
 \seealso{
