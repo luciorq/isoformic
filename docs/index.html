@@ -9,6 +9,12 @@
     data.">
 <title>Isoformic: isoform-level biological interpretation of
     transcriptomic data • isoformic</title>
+<!-- favicons --><link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" type="image/png" sizes="180x180" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" type="image/png" sizes="120x120" href="apple-touch-icon-120x120.png">
+<link rel="apple-touch-icon" type="image/png" sizes="76x76" href="apple-touch-icon-76x76.png">
+<link rel="apple-touch-icon" type="image/png" sizes="60x60" href="apple-touch-icon-60x60.png">
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.2.2/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.2.2/bootstrap.bundle.min.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
@@ -17,6 +23,7 @@
     transcriptomic data">
 <meta property="og:description" content="Isoform-level biological interpretation of transcriptomic
     data.">
+<meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
 <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
@@ -30,7 +37,7 @@
     
     <a class="navbar-brand me-2" href="index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9001</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -68,21 +75,35 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
-<div class="page-header"><h1 id="isoformic">isoformic<a class="anchor" aria-label="anchor" href="#isoformic"></a>
-</h1></div>
+<div class="page-header">
+<img src="logo.png" class="logo" alt=""><h1 id="isoformic-">isoformic <a class="anchor" aria-label="anchor" href="#isoformic-"></a>
+</h1>
+</div>
 <!-- badges: start -->
 <!-- badges: end -->
-<p>Welcome to <code>isoformic</code>, a workflow for isoform-level biological interpretation of transcriptomic data. This pipeline uses known annotated transcripts to produce biologically relevant results based on the different ypes of transcripts for any case versus control transcriptomic comparisson.</p>
-<div class="float">
-<img src="https://i.imgur.com/UWoAr0k.png" alt="trancripttypesgraph"><div class="figcaption">trancripttypesgraph</div>
-</div>
+<p>Welcome to <code>isoformic</code>, a workflow for isoform-level biological interpretation of transcriptomic data. This workflow uses known annotated transcripts to produce biologically relevant results based on the different types of transcripts for any comparison of case versus control transcriptomic data.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>You can install the development version of isoformic from <a href="https://github.com/" class="external-link">GitHub</a> with:</p>
+<p>You can install the development version of <code>isoformic</code> from <a href="https://github.com/" class="external-link">GitHub</a> with:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># install.packages("devtools")</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"luciorq/isoformic"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"remotes"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"luciorq/isoformic"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
+</h2>
+<div class="float">
+<img src="https://i.imgur.com/UWoAr0k.png" alt="Types of Transcripts"><div class="figcaption">Types of Transcripts</div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="motivation">Motivation<a class="anchor" aria-label="anchor" href="#motivation"></a>
+</h2>
+<p>Performing differential expression analysis at the isoform level, rather than the gene level, is important for gaining a more detailed understanding of gene regulation and functional differences in biological systems. While gene-level analysis provides insights into the overall expression changes of genes, it fails to capture the complex dynamics occurring at the isoform level. Isoforms, resulting from alternative splicing or alternative transcription start sites, can possess distinct structural features and functional properties. By examining isoform-level expression changes, researchers can identify and characterize specific isoforms that may have unique roles in cellular processes, such as isoform-specific protein-protein interactions or protein functions. This granularity enables a more accurate interpretation of complex biological phenomena, such as tissue-specific expression patterns, cell differentiation, or disease progression. Additionally, isoform-level analysis can help uncover regulatory mechanisms and identify potential biomarkers or therapeutic targets that may be missed when solely relying on gene-level analysis. Therefore, considering the isoform-level expression changes provides a more comprehensive view of transcriptional dynamics and enhances our understanding of gene regulation in a given biological context.</p>
+<hr>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
