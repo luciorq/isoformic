@@ -10,7 +10,7 @@ author:
   - name: Izabela Mamede Conceição
     affiliation: Laboratory of Genetics Biochemistry, Universidade Federal de Minas Gerais, Belo Horizonte, Brazil
   - name: Lucio Rezende Queiroz
-    affiliation: Department of Pathology and Laboratory Medicine, Weill Cornell Medicine
+    affiliation: Department of Pathology and Laboratory Medicine, Weill Cornell Medicine, New York, USA
 vignette: |
   %\VignetteIndexEntry{intro-isoformic}
   %\VignetteEncoding{UTF-8}
@@ -35,7 +35,7 @@ Welcome to `isoformic`, a workflow for isoform-level biological interpretation o
 
 ## Information
 
-All data used for the examples here were extracted from the paper: "Landscape of Dysregulated Placental RNA Editing Associated With Preeclampsia" <https://www.ahajournals.org/doi/10.1161/HYPERTENSIONAHA.120.14756> in which were analized preeclamptic and control placentas.
+All data used for the examples here were extracted from the paper: ["Landscape of Dysregulated Placental RNA Editing Associated With Preeclampsia"][pe-paper-ref] in which were analyzed generated RNA-Seq datasets from preeclamptic and control placentas.
 This dataset was chosen due for having many biological replicates with high sequencing depth.
 
 This tutorial will encompass X different steps divided into X unities for which type of analysis you want to perform.
@@ -55,12 +55,22 @@ library(readr)
 library(dplyr)
 library(tidyr)
 library(stringr)
-# library(SummarizedExperiment)
-# library(tximeta)
+library(SummarizedExperiment)
+library(tidySummarizedExperiment)
+#library(tximeta)
 # library(fishpond)
 ```
 
 ## Setting up the data
+
+### Initial Considerations
+
+We highly recommend the use of [Salmon][salmon-ref] for transcript-level abundance estimation and the [`swish`][swish-ref] method implemented in the [fishpond][fishpond-ref] R package for isoform-level differential expression.
+
+For a general overview of that process follow the tutorial on ["Processing Bulk RNA-Seq data"](./processing-rna-seq-data.Rmd).
+
+The [GENCODE][gencode-ref] project offers a good annotation of isoforms for the human and mouse genomes, including isoforms of non-coding genes.
+Using other sources of annotation can render completely different results for the following analysis.
 
 ### Part 1: Data input
 
@@ -84,8 +94,8 @@ These need to be on the same version since here you will use names from that GEN
 The annotation used also need to be GENCODE since it posses the transcript_type column that will be used as information as well.
 If you wish you CAN provide that information through and external source not being GENCODE, and from that you will need a table with at least three columns: 1)a transcript_name column that needs to match those gene names on your DET table and on your TPM table, 2) a gene-name column to tell which gene those transcripts belong to and 3) a transcript_type column.
 
-This table will also have to use transcript names from GENCODE and have a column stating the transcript biotype that is also got from gencode annotation.
-The statistics can be pvalue, svalue or qvalue but a log2FoldChange between your case and control conditions is also needed for most of the plots.
+This table will also have to use transcript names from GENCODE and have a column stating the transcript biotype that is also got from GENCODE annotation.
+The statistics can be 'pvalue', 'svalue' or 'qvalue' but a 'log2FoldChange' between your case and control conditions is also needed for most of the plots.
 
 **Optional inputs:** 1) A Transcript per million (TPM) table matching the transcripts in the differential expression table 2) a GFF3 file of the transcriptome version which corresponds to your FASTA and 3) a table of differentially expressed genes of that data to also use as comparison.
 
@@ -97,7 +107,6 @@ Not well annotated transcriptomes will not output results as these and all the t
 
 ------------------------------------------------------------------------
 
-Load example the input files
 
 Isoformic makes available example files that can be used as model for formatting the necessary files for running the workflow.
 The files can be found in the following path.
@@ -124,7 +133,7 @@ PE1_counts <- path_package("isoformic", "extdata", "PE_1_counts.csv") |>
 ```
 
 Here we load the table which points for the libraries that represent our cases (treatment) and our controls.
-In this library, cases are the pregnant woman with Preeclampsia and controls matched pregnant without Preeclampsia
+In this library, cases are the pregnant woman with Preeclampsia and controls matched pregnant without Preeclampsia.
 
 ```{r}
 sample_table <- data.frame(
@@ -135,20 +144,52 @@ sample_table <- data.frame(
 
 #### Download reference files
 
-The references used for this project were obtained from from the [GENCODE Project](https://www.gencodegenes.org/human/) version 34 for the Human genome annotation.
+The references used for this project were obtained from from the [GENCODE Project][gencode-ref] version 34 for the Human genome annotation.
 
 The annotation file in GFF3 format was obtained from <https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_34/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz>.
 
 This step may take a while depending on the speed of your internet connection
 
 ```{r, eval=TRUE}
-download_reference(version = "34", file_type = "fasta")
-download_reference(version = "34", file_type = "gff")
+# download_reference(version = "33", file_type = "fasta")
+# download_reference(version = "33", file_type = "gff")
+download_reference(version = "33", file_type = "gtf")
 ```
 
 ------------------------------------------------------------------------
 
-### Part 2: Transcript to Gene and Gene to transcript
+### Part 2: Create the `linkedTxome` object from GENCODE annotation
+
+`tximeta` is capable of importing most of the annotation automatically,
+but for getting the transcript types we will will need to create the `linkedTxome` object manually.
+
+The full documentation can be found at the [`tximeta` ](https://bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html#What_if_checksum_isn%E2%80%99t_known)
+
+```{r}
+gtf_file_path <- "data-raw/gencode.v33.chr_patch_hapl_scaff.annotation.gtf.gz"
+fs::file_exists(gtf_file_path)
+
+base_dir <- "data-raw/gencode_v33"
+json_file_path <- paste0(base_dir, ".json")
+fs::dir_create(base_dir)
+tximeta::makeLinkedTxome(
+  indexDir = base_dir,
+  source = "LocalGENCODE",
+  organism = "Homo sapiens",
+  release = "33",
+  genome = "hg38",
+  fasta = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_33/gencode.v33.transcripts.fa.gz",
+  gtf = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_33/gencode.v33.chr_patch_hapl_scaff.annotation.gtf.gz",
+  write = TRUE,
+  jsonFile = json_file_path
+)
+
+tximeta::loadLinkedTxome("data-raw/gencode_v33.json")
+```
+
+------------------------------------------------------------------------
+
+### Part 3: Transcript to Gene and Gene to transcript
 
 Using the FASTA file from GENCODE we will construct a transcript per gene dictionary table and add that information to the main DEG, DET and TPM table.
 This step will depend a lot on the names of the columns on your tables so in the Vignette we decided to change names to keep consistency.
@@ -156,12 +197,12 @@ This step will depend a lot on the names of the columns on your tables so in the
 The input used here is a FASTA file containing the transcript sequences and their annotation information downloaded from the GENCODE website with the specific version you used for the alignment.
 In the case here GENCODE v34.
 
-```{r, warning=FALSE, message=FALSE}
-fasta_path <- "data-raw/gencode.v34.transcripts.fa.gz"
+```{r, warning = FALSE, message = FALSE}
+fasta_path <- "data-raw/gencode.v33.transcripts.fa.gz"
 read_lines(fasta_path, n_max = 5)
 ```
 
-As that header shows the imported table is still very weird and not tidy, so we pass it through the make_tx_to_gene function that will make it tidy and ready for further use.
+As that header shows the imported table is still very weird and not tidy, so we pass it through the `make_tx_to_gene` function that will make it tidy and ready for further use.
 
 ```{r, warning=FALSE}
 tx_to_gene <- make_tx_to_gene(
@@ -171,7 +212,7 @@ tx_to_gene <- make_tx_to_gene(
 head(tx_to_gene)
 ```
 
-Now our tx_to_gene table has 6 columns that are in order: Ensembl transcript id, Ensembl gene id, Havanna gene id, Havanna transcript id, transcript name, gene name, entrez gene number and transcript type.
+Now our `tx_to_gene` table has 6 columns that are in order: Ensembl transcript id, Ensembl gene id, Havanna gene id, Havanna transcript id, transcript name, gene name, entrez gene number and transcript type.
 For the DEG, DET and TPM table we will need the Ensembl gene id, the Gene name and the transcript type information so we can convert our tables for transcript_name and add the type information and if the gene is a DE to the DET table.
 
 Select the columns with the gene id and the gene name info
@@ -410,6 +451,10 @@ exon_df |>
 
 \#\@ References
 
-Ensembl
-Fgsea
-Swish
+[ensembl-ref]: <https://ensembl.org/>
+[gencode-ref]: <https://www.gencodegenes.org/human/>
+[fgsea-ref]: <https://bioconductor.org/packages/release/bioc/html/fgsea.html>
+[swish-ref]: <https://bioconductor.org/packages/release/bioc/vignettes/fishpond/inst/doc/swish.html>
+[fishpond-ref]: <https://bioconductor.org/packages/release/bioc/html/fishpond.html>
+[salmon-ref]: <https://github.com/COMBINE-lab/salmon>
+[pe-paper-ref]: <https://www.ahajournals.org/doi/10.1161/HYPERTENSIONAHA.120.14756>

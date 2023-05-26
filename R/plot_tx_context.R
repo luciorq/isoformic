@@ -70,7 +70,7 @@ tx_id_to_name <-tx_to_gene |>
 
   plot_data |>
     dplyr::arrange(tx_id) |>
-    dplyr::left_join(tx_id_to_name, by = c("tx_id" = "transcript_id")) %>%
+    dplyr::left_join(tx_id_to_name, by = c("tx_id" = "transcript_id")) |>
     ggplot2::ggplot() +
     ggplot2::geom_rect(
       mapping = ggplot2::aes(
