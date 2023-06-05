@@ -54,8 +54,8 @@ library(readr)
 library(dplyr)
 library(tidyr)
 library(stringr)
-library(SummarizedExperiment)
-#library(tximeta)
+# library(SummarizedExperiment)
+# library(tximeta)
 # library(fishpond)
 ```
 
@@ -150,12 +150,14 @@ The annotation file in GFF3 format was obtained from <https://ftp.ebi.ac.uk/pub/
 This step may take a while depending on the speed of your internet connection
 
 ```{r, eval=TRUE}
-download_reference(version = "33", file_type = "fasta")
-# download_reference(version = "33", file_type = "gff")
-# download_reference(version = "33", file_type = "gtf")
+download_reference(version = "34", file_type = "fasta")
+download_reference(version = "34", file_type = "gff")
+# download_reference(version = "34", file_type = "gtf")
 ```
 
 ------------------------------------------------------------------------
+
+<!-- 
 
 ### Part 2: Create the `linkedTxome` object from GENCODE annotation
 
@@ -163,6 +165,7 @@ download_reference(version = "33", file_type = "fasta")
 but for getting the transcript types we will need to create the `linkedTxome` object manually.
 
 The full documentation can be found at the [`tximeta` ](https://bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html#What_if_checksum_isn%E2%80%99t_known)
+
 
 ```{r}
 # gtf_file_path <- "data-raw/gencode.v33.chr_patch_hapl_scaff.annotation.gtf.gz"
@@ -186,9 +189,11 @@ The full documentation can be found at the [`tximeta` ](https://bioconductor.org
 # tximeta::loadLinkedTxome("data-raw/gencode_v33.json")
 ```
 
+-->
+
 ------------------------------------------------------------------------
 
-### Part 3: Transcript to Gene and Gene to transcript reference tables
+### Part 2: Transcript to Gene and Gene to transcript reference tables
 
 Using the FASTA file from GENCODE we will construct a transcript per gene dictionary table and add that information to the main DEG, DET and TPM table.
 This step will depend a lot on the names of the columns on your tables so in the Vignette we decided to change names to keep consistency.
@@ -197,7 +202,7 @@ The input used here is a FASTA file containing the transcript sequences and thei
 In the case here GENCODE v34.
 
 ```{r, warning = FALSE, message = FALSE}
-fasta_path <- "data-raw/gencode.v33.transcripts.fa.gz"
+fasta_path <- "data-raw/gencode.v34.transcripts.fa.gz"
 read_lines(fasta_path, n_max = 5)
 ```
 
@@ -334,15 +339,35 @@ plot_log2FC(DEG_DET_table, c("RBPJ", "EGFR", "PNCK"))
 Another good way more quantifiable way to visualize this switch is using the Transcript per Million Count of each transcript, compared to those of the gene between the case and control conditions.
 For this we use a profile plot that in one size plots the values of TPM for the case conditions and in the other the value of the TPM for the control conditions.
 
-Function to plot the profile here
+<!-- Function to plot the profile here -->
 
 ```{r}
-sample_table
-PE1_counts
 DEG_DET_table |>
   filter(!transcript_type %in% "gene")
 unique(DEG_DET_table$transcript_type)
+
+profile_data_df <- prepare_profile_data(
+  txi_transcript = PE1_counts,
+  tx_to_gene = tx_to_gene,
+  sample_metadata = sample_table,
+  de_result_gene = PE1_DEGs,
+  de_result_transcript = PE1_DETs,
+  var = "condition",
+  var_levels = c("control", "treatment")
+)
+
+# Create output directory if don't exist yet
+path_to_save <- "results/profile_plot"
+fs::dir_create(path_to_save)
+
+profile_plot <- plot_tx_expr(
+  genes_to_plot = "EGFR",
+  profile_data = profile_data_df
+)
+profile_plot
 ```
+
+
 
 # Functional Transcript Enrichment
 
