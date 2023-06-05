@@ -472,6 +472,21 @@ exon_df |>
   plot_tx_context()
 ```
 
+### Protein coding example
+
+```{r}
+exon_df <- prepare_exon_annotation(
+  gene_name = "EGFR",
+  file_path = "data-raw/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz",
+  file_type = "gff"
+)
+```
+
+```{r, fig.height=11}
+exon_df |>
+  plot_tx_context()
+```
+
 # References
 
 [ensembl-ref]: <https://ensembl.org/>
