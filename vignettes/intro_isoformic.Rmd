@@ -76,9 +76,13 @@ In this version you would need two essential input and two optional inputs.
 
 **Essential input 1:** A transcript differential expression table.
 This table can be outputted from any kind of differential expression software you use but it needs to contain 1) information on Transcript name OR Ensembl Transcript ID per line 2) log2FoldChange information in a column named "log2FoldChange".
-3) p-value information in a column named "pvalue".
+3) `p-value` information in a column named "pvalue".
 Any other columns on the table will not be used on the main analysis.
 This DET table should be the UNFILTERED version of your table.
+
+```{r}
+path_package("isoformic")
+```
 
 Example:
 
@@ -89,8 +93,8 @@ head(PE1_DETs)
 
 **Essential input 2:** a FASTA file from GENCODE which corresponds to the same fasta you used for the transcriptome alignment.
 These need to be on the same version since here you will use names from that GENCODE version to do most of the mergings.
-The annotation used also need to be GENCODE since it posses the transcript_type column that will be used as information as well.
-If you wish you CAN provide that information through and external source not being GENCODE, and from that you will need a table with at least three columns: 1)a transcript_name column that needs to match those gene names on your DET table and on your TPM table, 2) a gene-name column to tell which gene those transcripts belong to and 3) a transcript_type column.
+The annotation used also need to be GENCODE since it posses the `transcript_type` column that will be used as information as well.
+If you wish you CAN provide that information through and external source not being GENCODE, and from that you will need a table with at least three columns: 1)a `transcript_name` column that needs to match those gene names on your DET table and on your TPM table, 2) a gene-name column to tell which gene those transcripts belong to and 3) a transcript_type column.
 
 This table will also have to use transcript names from GENCODE and have a column stating the transcript biotype that is also got from GENCODE annotation.
 The statistics can be 'pvalue', 'svalue' or 'qvalue' but a 'log2FoldChange' between your case and control conditions is also needed for most of the plots.
@@ -150,6 +154,7 @@ The annotation file in GFF3 format was obtained from <https://ftp.ebi.ac.uk/pub/
 This step may take a while depending on the speed of your internet connection
 
 ```{r, eval=TRUE}
+
 download_reference(version = "34", file_type = "fasta")
 download_reference(version = "34", file_type = "gff")
 # download_reference(version = "34", file_type = "gtf")
@@ -321,17 +326,22 @@ DEG_DET_table <- join_DEG_DET(PE1_DEGs, PE1_DETs_final, 1, 0.05)
 head(DEG_DET_table)
 ```
 
-Now you just use the plotLog2FC for any gene you would like.
-The function also works well with a small vector of gene_names.
+Now you just use the `plotLog2FC` for any gene you would like.
+The function also works well with a small vector of `gene_names`.
 
 ```{r}
 plot_log2FC(DEG_DET_table, "RBPJ")
 ```
 
 ```{r}
-# work here to look better? or just remove for now
-# the best would be a loop that goes over each one of a list and #plots them in a folder the default could be the det not deg table
-plot_log2FC(DEG_DET_table, c("RBPJ", "EGFR", "PNCK"))
+# Work here to look better? or just remove for now
+# the best would be a loop that goes over each one of a list and
+# plots them in a folder the default could be the DET not deg table
+plot_obj <- plot_log2FC(DEG_DET_table, c("RBPJ", "EGFR", "PNCK"))
+library(ggplot2)
+plot_obj +
+  theme_classic() +
+   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 ```
 
 # Profile Plot
@@ -355,19 +365,28 @@ profile_data_df <- prepare_profile_data(
   var = "condition",
   var_levels = c("control", "treatment")
 )
-
-# Create output directory if don't exist yet
-path_to_save <- "results/profile_plot"
-fs::dir_create(path_to_save)
+# 
+# # Create output directory if don't exist yet
+# path_to_save <- "results/profile_plot"
+# fs::dir_create(path_to_save)
 
 profile_plot <- plot_tx_expr(
-  genes_to_plot = "EGFR",
+  genes_to_plot = "NDRG1",
   profile_data = profile_data_df
 )
 profile_plot
 ```
 
+```{r}
+profile_data_df
 
+profile_plot <- plot_tx_expr(
+  genes_to_plot = "ILR2A",
+  profile_data = profile_data_df
+)
+profile_data_df |>
+  filter(genename == "BRCA2")
+```
 
 # Functional Transcript Enrichment
 
@@ -384,9 +403,14 @@ So first we choose a .gmt to be used for the enrichment, in this case we loaded 
 But any gene list in [GMT format][gmt-format-ref] works here. The gmt is loaded on the fgsea format with lists for each biological process.
 
 ```{r}
+path_package("isoformic", "extdata", "hsapiens_REAC_subset.gmt")
+
 genesets_list <- fgsea::gmtPathways(
   gmt.file = path_package("isoformic", "extdata", "hsapiens_REAC_subset.gmt")
 )
+
+head(str(genesets_list))
+head(genesets_list[[1]])
 ```
 
 Visualize how is our table before running
@@ -405,6 +429,10 @@ enrichment_df <- run_enrichment(
   pval_cutoff = 0.05
 )
 head(enrichment_df)
+
+head(names(genesets_list))
+
+unique(enrichment_df$experiment)
 ```
 
 This experiment column has five possible values: Protein-coding: which is the enrichment associated with the transcripts categorized as protein coding.
@@ -417,7 +445,7 @@ Plotting the enrichment
 
 We used a LollipopPlot to plot all the enrichments side by side with the size of each pathway as the radius of the circles and the transparency is if that pathway passes on the desired cutoff. First we plot for only Protein_coding versus Unproductive with a very extringent NES cutoff.
 
-```{r}
+```{r, fig.height=12}
 enrichment_df |>
   filter((experiment %in% c("protein_coding", "unproductive")) & (abs(NES) > 2)) |>
   ggplot2::ggplot(ggplot2::aes(pathway, experiment)) +
