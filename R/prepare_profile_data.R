@@ -126,7 +126,7 @@ prepare_profile_data <- function(
 
   # filter DE genes
   gene_expr_df <- gene_expr_df %>%
-    dplyr::mutate(transcript_type = "Gene") %>%
+    dplyr::mutate(transcript_type = "gene") %>%
     dplyr::left_join(de_genes_df, by = c(genename = "gene_name")) %>%
     dplyr::distinct()
 

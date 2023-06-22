@@ -34,30 +34,7 @@ plot_tx_context <- function(exon_table, custom_colors = NULL) {
 
   DEG_DET_table_nogene <-DEG_DET_table |> filter(transcript_type != "gene")
   DEG_DET_table_nogene$transcript_type <- as.factor(DEG_DET_table_nogene$transcript_type)
-
-  palette_test <- data.frame(factors = levels(DEG_DET_table_nogene$transcript_type),
-                             colors = c("#C77CFF", "#00BFC4", "#CD9600", "#7CAE00",
-                                                 "#8494FF", "#00A9FF", "#FF61CC", "#0CB702",
-                                                 "#E68613",
-                                                 "#00C19A", "#ABA300", "#FF68A1"))
-                                                 n_colors <- if (!is.null(custom_colors)) length(custom_colors) else 13
-                                                 max_colors <- length(palette_test$colors)
-
-                                                 if (n_colors > max_colors) {
-                                                   n_colors <- max_colors
-                                                   message("Maximum number of colors exceeded. Using maximum number of colors (", max_colors, ") instead.")
-                                                 }
-
-                                                 if (n_colors < length(levels(DEG_DET_table$transcript_type))) {
-                                                   n_colors <- length(levels(DEG_DET_table$transcript_type))
-                                                   message("Number of specified colors is less than the number of required colors. Using all levels of 'transcript_type' column instead.")
-                                                 }
-
-                                                 my_colors <- if (!is.null(custom_colors)) {
-                                                   custom_colors[1:n_colors]
-                                                 } else {
-                                                   palette_test$colors[1:n_colors]
-                                                 }
+  
   for (tx_id in tx_id_vector) {
     tx_id_data <- plot_data[plot_data$tx_id %in% tx_id, ]
     exon_right_max <- max(tx_id_data$exon_right, na.rm = TRUE)
@@ -83,8 +60,8 @@ tx_id_to_name <-tx_to_gene |>
       ),
       color = NA
     ) +
-    ggplot2::scale_fill_manual(values = palette_test$colors) +
-    ggplot2::scale_color_manual(values = palette_test$colors)+
+    ggplot2::scale_fill_manual(values = tx_type_color_names) +
+    ggplot2::scale_color_manual(values = tx_type_color_names)+
     ggplot2::geom_segment(
       mapping = ggplot2::aes(
         x = segment_start,
