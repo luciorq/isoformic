@@ -17,26 +17,6 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
   facet_num <- length(genes_to_plot)
   facet_row_num <- round(sqrt(facet_num))
 
-  # TODO: get biotypes from annotation
-  fixed_tx_biotypes <- c(
-    "Gene",
-    "protein_coding", "retained_intron", "processed_transcript",
-    "nonsense_mediated_decay", "lncRNA", "processed_pseudogene",
-    "transcribed_unprocessed_pseudogene"
-  )
-  tx_type_color_names <- unique(as.character(expr_df$transcript_type))
-  tx_biotype_color <- c(
-    RColorBrewer::brewer.pal(name = "Set1", n = 8),
-    rep("#999999", times = (length(tx_type_color_names) - length(fixed_tx_biotypes)))
-  )
-  names(tx_biotype_color) <- tx_type_color_names
-  # Replace strange yellow
-  tx_biotype_color[6] <-  "#c2c200"
-
-  expr_df <- expr_df %>%
-    dplyr::mutate(transcript_type = forcats::as_factor(transcript_type)) %>%
-    dplyr::mutate(transcript_type = forcats::fct_relevel(transcript_type, names(tx_biotype_color)))
-
   # FIXME this should be removed after integration with S4 object
   var <- colnames(expr_df)[2]
   var_levels <- levels(dplyr::pull(expr_df, {{ var }}))
@@ -98,7 +78,7 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
       ), size = 3, shape = 21
     ) +
     ggplot2::scale_alpha_manual(values = transparency_vector) +
-    ggplot2::scale_color_manual(values = tx_biotype_color, aesthetics = c("color", "fill")) +
+    ggplot2::scale_color_manual(values = tx_type_color_names, aesthetics = c("color", "fill")) +
     #ggplot2::theme_bw()
     ggpubr::theme_pubr() +
     ggplot2::theme(legend.position = "right") +
