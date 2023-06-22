@@ -315,6 +315,29 @@ DETs_not_DEGs <- PE1_DETs_final |>
 
 This table will represent cases which could be characterized as isoform switches, when two transcripts of the same gene are expressed in opposite directions what makes the total expression of that gene not be significant either up or down-regulated.
 
+# Colors
+
+Before we start plotting we will define a general set of colors to be used through the entire pipeline associated with a certain type of transcript. Here we colored all the most abundant types separately and the less abundant on the same grey tone and name that vector accordingly
+
+```{r}
+
+fixed_tx_biotypes <- c("gene", "protein_coding", "retained_intron", 
+                         "processed_transcript", "nonsense_mediated_decay",
+                         "lncRNA","processed_pseudogene",
+                       "transcribed_unprocessed_pseudogene",
+"unprocessed_pseudogene", "non_stop_decay", "transcribed_unitary_pseudogene",
+                         "pseudogene", "unitary_pseudogene")
+
+tx_type_color_names <- c("#fb8072", "#a6d854", "#8da0cb", "#fc8d62",
+                                    "#66c2a5", "#e78ac3", "#ffd92f", "#e5c494",
+                                    "#d9d9d9", "#d9d9d9", "#d9d9d9", "#ffffb3",
+                                    "#d9d9d9")
+
+names(tx_type_color_names) <- fixed_tx_biotypes
+
+tx_type_color_names
+```
+
 # Log2FC Plot
 
 The simplest and first plot on this tutorial will be a log2FC plot, this plot will compare the foldchange of case vs control from the gene, to that of its transcripts adding to that the significance information.
@@ -346,10 +369,8 @@ plot_obj +
 
 # Profile Plot
 
-Another good way more quantifiable way to visualize this switch is using the Transcript per Million Count of each transcript, compared to those of the gene between the case and control conditions.
+Another good more quantifiable way to visualize this switch is using the Transcript per Million Count of each transcript, compared to those of the gene between the case and control conditions.
 For this we use a profile plot that in one size plots the values of TPM for the case conditions and in the other the value of the TPM for the control conditions.
-
-<!-- Function to plot the profile here -->
 
 ```{r}
 DEG_DET_table |>
@@ -371,21 +392,21 @@ profile_data_df <- prepare_profile_data(
 # fs::dir_create(path_to_save)
 
 profile_plot <- plot_tx_expr(
-  genes_to_plot = "NDRG1",
+  genes_to_plot = "RBPJ",
   profile_data = profile_data_df
 )
 profile_plot
 ```
 
 ```{r}
-profile_data_df
+#profile_data_df
 
-profile_plot <- plot_tx_expr(
-  genes_to_plot = "ILR2A",
-  profile_data = profile_data_df
-)
-profile_data_df |>
-  filter(genename == "BRCA2")
+#profile_plot <- plot_tx_expr(
+ # genes_to_plot = "ILR2A",
+  #profile_data = profile_data_df
+#)
+#profile_data_df |>
+ # filter(genename == "ILR2A")
 ```
 
 # Functional Transcript Enrichment
@@ -394,8 +415,8 @@ One of the biggest caveats for transcript level analysis is that in many times i
 The next step for gene-level DE would be functional enrichment or assigning the genes to metabolic pathways those may be regulating.
 Unfortunately are no comprehensive datasets for pathways transcripts may be regulating and the gene level analyses normally loses the difference between those transcripts which can produce proteins (protein_coding) from canonical translation pathways and those which cannot.
 To solve this problem we developed a method of expanding the known .gmts for transcript information and then separately enrich each selected category of transcript.
-Between the alternative spliced isoforms of that do not code for canonical proteins the most abundant are those classified as *Nonsense-mediated decay*, that have a premature stop codon which is subject to targeted degradation and the *processed transcript*, which, for any reason, do not posses a complete Open Reading Frame.
-Inside the processed transcript category the one with the highest count are the *retained introns*, sequences which retain an intronic portion after their processing.
+Between the alternative spliced isoforms of that do not code for canonical proteins the most abundant are those classified as *Nonsense-mediated decay*, that have a premature stop codon which is subject to targeted degradation and the *Processed transcript*, which, for any reason, do not posses a complete Open Reading Frame.
+Inside the processed transcript category the one with the highest count are the *Retained introns*, sequences which retain an intronic portion after their processing.
 
 These three categories are the most abundant in those transcripts which arise from the alternative splicing of a protein coding gene and these three will be the main focus for our enrichment and further graphs.
 
@@ -403,10 +424,10 @@ So first we choose a .gmt to be used for the enrichment, in this case we loaded 
 But any gene list in [GMT format][gmt-format-ref] works here. The gmt is loaded on the fgsea format with lists for each biological process.
 
 ```{r}
-path_package("isoformic", "extdata", "hsapiens_REAC_subset.gmt")
+path_package("isoformic", "extdata", "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt")
 
 genesets_list <- fgsea::gmtPathways(
-  gmt.file = path_package("isoformic", "extdata", "hsapiens_REAC_subset.gmt")
+  gmt.file = path_package("isoformic", "extdata", "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt")
 )
 
 head(str(genesets_list))
@@ -482,7 +503,7 @@ This GFF file needs to be downloaded on the accurate version for your transcript
 
 ```{r}
 exon_df <- prepare_exon_annotation(
-  gene_name = "XIST",
+  gene_name = "RBPJ",
   file_path = "data-raw/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz",
   file_type = "gff"
 )
