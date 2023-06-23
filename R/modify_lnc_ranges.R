@@ -1,5 +1,5 @@
 #' Edit the lncrna start and end table
-#' @param file_type Table of lncRNA starts and ends plus a value to add
+#' Table of lncRNA starts and ends plus a value to add
 #' @export
 modify_lnc_ranges <- function(lncRNA_start_end, value_to_add) {
 lncRNAisos_start_and_end_1mb <-lncRNA_start_end %>%
