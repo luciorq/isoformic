@@ -44,11 +44,21 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
       nudge_x = -0.2, segment.colour = "lightgray"
     ) +
     ggplot2::geom_point(
-      ggplot2::aes(x = .data[[var]], y = sd_max, fill = transcript_type, color = transcript_type),
+      ggplot2::aes(
+        x = .data[[var]],
+        y = sd_max,
+        fill = transcript_type,
+        color = transcript_type
+      ),
       size = 1.5, alpha = 0.4, shape = 24
     ) +
     ggplot2::geom_point(
-      ggplot2::aes(x = .data[[var]], y = sd_min, fill = transcript_type, color = transcript_type),
+      ggplot2::aes(
+        x = .data[[var]],
+        y = sd_min,
+        fill = transcript_type,
+        color = transcript_type
+      ),
       size = 1.5, alpha = 0.4, shape = 25
     ) +
     ggplot2::geom_line(
@@ -61,7 +71,8 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
       ), size = 1.5
     ) +
     ggplot2::geom_errorbar(
-      ggplot2::aes(x = .data[[var]],
+      ggplot2::aes(
+        x = .data[[var]],
                    ymin = sd_min,
                    ymax = sd_max,
                    group = genename,

@@ -11,7 +11,7 @@ Authors@R: c(
 Description: Isoform-level biological interpretation of transcriptomic
     data.
 License: MIT + file LICENSE
-Imports: 
+Imports:
     cli,
     dplyr,
     fgsea,
