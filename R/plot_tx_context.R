@@ -28,13 +28,13 @@ plot_tx_context <- function(exon_table, custom_colors = NULL) {
     ) |>
     dplyr::mutate(tpm = 5)
 
-  plot_data[nrow(plot_data),"segment_start"] <- NA_real_
+  plot_data[nrow(plot_data), "segment_start"] <- NA_real_
 
   tx_id_vector <- plot_data$tx_id
 
-  DEG_DET_table_nogene <-DEG_DET_table |> filter(transcript_type != "gene")
+  DEG_DET_table_nogene <- DEG_DET_table |> filter(transcript_type != "gene")
   DEG_DET_table_nogene$transcript_type <- as.factor(DEG_DET_table_nogene$transcript_type)
-  
+
   for (tx_id in tx_id_vector) {
     tx_id_data <- plot_data[plot_data$tx_id %in% tx_id, ]
     exon_right_max <- max(tx_id_data$exon_right, na.rm = TRUE)
@@ -43,8 +43,8 @@ plot_tx_context <- function(exon_table, custom_colors = NULL) {
     plot_data[plot_data$tx_id %in% tx_id & plot_data$exon_right == exon_right_max, "segment_end"] <- NA_real_
   }
 
-tx_id_to_name <-tx_to_gene |>
-  dplyr::select(transcript_id, transcript_name, transcript_type)
+  tx_id_to_name <- tx_to_gene |>
+    dplyr::select(transcript_id, transcript_name, transcript_type)
 
   plot_data |>
     dplyr::arrange(tx_id) |>
@@ -61,7 +61,7 @@ tx_id_to_name <-tx_to_gene |>
       color = NA
     ) +
     ggplot2::scale_fill_manual(values = tx_type_color_names) +
-    ggplot2::scale_color_manual(values = tx_type_color_names)+
+    ggplot2::scale_color_manual(values = tx_type_color_names) +
     ggplot2::geom_segment(
       mapping = ggplot2::aes(
         x = segment_start,

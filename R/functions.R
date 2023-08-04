@@ -95,14 +95,14 @@ join_DEG_DET <- function(DEG_tab, DET_final_tab, logfc_cut, pval_cut) {
     dplyr::rename(name = transcript_name)
   DEG_tab_mod <- DEG_tab_mod[
     colnames(DEG_tab_mod)[colnames(DEG_tab_mod)
-                          %in% colnames(DET_final_tab_mod)]
+    %in% colnames(DET_final_tab_mod)]
   ]
   DEGs_DETs_table <- dplyr::bind_rows(DEG_tab_mod, DET_final_tab_mod)
   DEGs_DETs_table$significance <- c()
   DEGs_DETs_table$abs_log2FC <- base::abs(DEGs_DETs_table$log2FC)
   DEGs_DETs_table$significance <- "not_sig"
   DEGs_DETs_table$significance[DEGs_DETs_table$abs_log2FC > logfc_cut &
-                                 DEGs_DETs_table$pvalue < pval_cut] <- "sig"
+    DEGs_DETs_table$pvalue < pval_cut] <- "sig"
   return(DEGs_DETs_table)
 }
 
@@ -172,8 +172,8 @@ plot_log2FC <- function(DEG_DET_table, selected_gene, custom_colors = NULL) {
         x = name,
         y = log2FC,
         fill = transcript_type
-        )
-      ) +
+      )
+    ) +
       ggplot2::geom_bar(stat = "identity") +
       ggplot2::scale_fill_manual(values = tx_type_color_names) +
       ggplot2::theme_bw()
@@ -190,6 +190,6 @@ plot_log2FC <- function(DEG_DET_table, selected_gene, custom_colors = NULL) {
       ggplot2::geom_bar(stat = "identity") +
       ggplot2::scale_fill_manual(values = tx_type_color_names) +
       ggplot2::theme_bw()
-   }
-  #ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, vjust = 0.5))
+  }
+  # ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, vjust = 0.5))
 }

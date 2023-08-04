@@ -8,7 +8,7 @@
 plot_tx_expr <- function(genes_to_plot, profile_data) {
   # dependencies
   .data <- rlang::.data
-  `%>%` <- dplyr::`%>%`
+  `|>` <- dplyr::`|>`
 
   # genes_to_plot <- "ATF3"
   # profile_data <- profile_data_df
@@ -23,23 +23,26 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
 
   dodge_value <- ggplot2::position_dodge(width = 0.008)
 
-  plot_df <- expr_df %>%
-    dplyr::filter(parent_gene %in% genes_to_plot) %>%
-    dplyr::mutate(log2_mean_TPM = log2(mean_TPM + 1)) %>%
-    dplyr::mutate(sd_min = log2((mean_TPM - SD) + 1),
-                  sd_max = log2((mean_TPM + SD) + 1))
+  plot_df <- expr_df |>
+    dplyr::filter(parent_gene %in% genes_to_plot) |>
+    dplyr::mutate(log2_mean_TPM = log2(mean_TPM + 1)) |>
+    dplyr::mutate(
+      sd_min = log2((mean_TPM - SD) + 1),
+      sd_max = log2((mean_TPM + SD) + 1)
+    )
 
 
   transparency_vector <- c(1, 0.2)
   names(transparency_vector) <- c("Yes", "No")
-  plot_object <- plot_df %>%
+  plot_object <- plot_df |>
     ggplot2::ggplot() +
     ggrepel::geom_text_repel(
       mapping = ggplot2::aes(
         x = .data[[var]], y = log2_mean_TPM,
         label = dplyr::if_else(
           DE == "Yes" & .data[[var]] == var_levels[1],
-          true = as.character(genename), false = "")
+          true = as.character(genename), false = ""
+        )
       ),
       nudge_x = -0.2, segment.colour = "lightgray"
     ) +
@@ -62,7 +65,7 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
       size = 1.5, alpha = 0.4, shape = 25
     ) +
     ggplot2::geom_line(
-      mapping =  ggplot2::aes(
+      mapping = ggplot2::aes(
         x = .data[[var]],
         y = log2_mean_TPM,
         group = genename,
@@ -73,11 +76,12 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
     ggplot2::geom_errorbar(
       ggplot2::aes(
         x = .data[[var]],
-                   ymin = sd_min,
-                   ymax = sd_max,
-                   group = genename,
-                   color = transcript_type
-      ), alpha = 0.2, width = 0.01, position = dodge_value
+        ymin = sd_min,
+        ymax = sd_max,
+        group = genename,
+        color = transcript_type
+      ),
+      alpha = 0.2, width = 0.01, position = dodge_value
     ) +
     ggplot2::geom_point(
       ggplot2::aes(
@@ -86,11 +90,12 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
         color = transcript_type,
         fill = transcript_type,
         alpha = DE
-      ), size = 3, shape = 21
+      ),
+      size = 3, shape = 21
     ) +
     ggplot2::scale_alpha_manual(values = transparency_vector) +
     ggplot2::scale_color_manual(values = tx_type_color_names, aesthetics = c("color", "fill")) +
-    #ggplot2::theme_bw()
+    # ggplot2::theme_bw()
     ggpubr::theme_pubr() +
     ggplot2::theme(legend.position = "right") +
     # ggplot2::facet_grid(rows = vars(transcript_name), cols = vars(genename))
