@@ -1,5 +1,8 @@
 #' Download Reference Files From GENCODE
-#' @param file_type One of gff, fasta, or gtf.
+#' @param reference Source of the reference file
+#'   One of "gencode" or "mane". Defaults to "gencode".
+#' @param file_type One of "gff", "fasta", or "gtf". Defaults to "gff".
+#'
 #' @export
 download_reference <- function(version = "43",
                                reference = "gencode",

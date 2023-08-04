@@ -17,8 +17,6 @@ prepare_profile_data <- function(
     use_fdr = TRUE) {
   # dependencies
   .data <- rlang::.data
-  `|>` <- dplyr::`|>`
-
   # Extract tx2gene from gene annotation table
   # renamed gene annotation to gene_metadata
   # TODO: should gene_metadata be renamed to transcript_metadata?

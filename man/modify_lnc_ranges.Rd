@@ -2,16 +2,17 @@
 % Please edit documentation in R/modify_lnc_ranges.R
 \name{modify_lnc_ranges}
 \alias{modify_lnc_ranges}
-\title{Edit the lncrna start and end table}
+\title{Edit the lncRNA start and end table
+Table of lncRNA starts and ends plus a value to add}
 \usage{
-  modify_lnc_ranges(lncRNA_start_end, value_to_add)
+modify_lnc_ranges(lncRNA_start_end, value_to_add)
 }
 \arguments{
-  \item{lncRNA_start_end}{Table with start and end information of the lncRNA}
-  
-  \item{value_to_add}{vector of a value to add on each side}
-  
+\item{lncRNA_start_end}{Genomic position where the lncRNA annotation Starts.}
+
+\item{value_to_add}{Value to add to the lncRNA annotation.}
 }
 \description{
-  Edit the lncrna start and end table
+Edit the lncRNA start and end table
+Table of lncRNA starts and ends plus a value to add
 }

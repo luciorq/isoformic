@@ -1,14 +1,15 @@
 #' Plot Transcript per gene expression
 #'
 #' @param genes_to_plot a character vector with gene names
+#'
 #' @param profile_data tibble output from `prepare_profile_data`
+#'
 #' @return a `ggplot` object
 #'
 #' @export
 plot_tx_expr <- function(genes_to_plot, profile_data) {
   # dependencies
   .data <- rlang::.data
-  `|>` <- dplyr::`|>`
 
   # genes_to_plot <- "ATF3"
   # profile_data <- profile_data_df

@@ -1,5 +1,10 @@
 #' Edit the lncRNA start and end table
 #' Table of lncRNA starts and ends plus a value to add
+#'
+#' @param lncRNA_start_end Genomic position where the lncRNA annotation Starts.
+#'
+#' @param value_to_add Value to add to the lncRNA annotation.
+#'
 #' @export
 modify_lnc_ranges <- function(lncRNA_start_end, value_to_add) {
   lncRNAisos_start_and_end_1mb <- lncRNA_start_end |>

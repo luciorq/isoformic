@@ -109,6 +109,11 @@ join_DEG_DET <- function(DEG_tab, DET_final_tab, logfc_cut, pval_cut) {
 
 
 #' Run Functional Analysis
+#'
+#' @param det_df
+#' @param genesets_list
+#' @param pval_cutoff
+#' @param lfc_cutoff
 #' @export
 run_enrichment <- function(det_df,
                            genesets_list,
@@ -166,7 +171,7 @@ run_enrichment <- function(det_df,
 #' @export
 plot_log2FC <- function(DEG_DET_table, selected_gene, custom_colors = NULL) {
   if (all(DEG_DET_table$significance[DEG_DET_table$gene_name %in% selected_gene] == "sig")) {
-    ggplot2::ggplot(
+    plot_obj <- ggplot2::ggplot(
       data = DEG_DET_table[DEG_DET_table$gene_name %in% selected_gene, ],
       mapping = ggplot2::aes(
         x = name,
@@ -178,7 +183,7 @@ plot_log2FC <- function(DEG_DET_table, selected_gene, custom_colors = NULL) {
       ggplot2::scale_fill_manual(values = tx_type_color_names) +
       ggplot2::theme_bw()
   } else {
-    ggplot2::ggplot(
+    plot_obj <- ggplot2::ggplot(
       data = DEG_DET_table[DEG_DET_table$gene_name %in% selected_gene, ],
       mapping = ggplot2::aes(
         x = name,
@@ -191,5 +196,6 @@ plot_log2FC <- function(DEG_DET_table, selected_gene, custom_colors = NULL) {
       ggplot2::scale_fill_manual(values = tx_type_color_names) +
       ggplot2::theme_bw()
   }
+  return(plot_obj)
   # ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, vjust = 0.5))
 }

@@ -154,7 +154,6 @@ The annotation file in GFF3 format was obtained from <https://ftp.ebi.ac.uk/pub/
 This step may take a while depending on the speed of your internet connection
 
 ```{r, eval=TRUE}
-
 download_reference(version = "34", file_type = "fasta")
 download_reference(version = "34", file_type = "gff")
 # download_reference(version = "34", file_type = "gtf")
@@ -175,7 +174,7 @@ The full documentation can be found at the [`tximeta` ](https://bioconductor.org
 ```{r}
 # gtf_file_path <- "data-raw/gencode.v33.chr_patch_hapl_scaff.annotation.gtf.gz"
 # fs::file_exists(gtf_file_path)
-# 
+#
 # base_dir <- "data-raw/gencode_v33"
 # json_file_path <- paste0(base_dir, ".json")
 # fs::dir_create(base_dir)
@@ -190,7 +189,7 @@ The full documentation can be found at the [`tximeta` ](https://bioconductor.org
 #   write = TRUE,
 #   jsonFile = json_file_path
 # )
-# 
+#
 # tximeta::loadLinkedTxome("data-raw/gencode_v33.json")
 ```
 
@@ -320,18 +319,21 @@ This table will represent cases which could be characterized as isoform switches
 Before we start plotting we will define a general set of colors to be used through the entire pipeline associated with a certain type of transcript. Here we colored all the most abundant types separately and the less abundant on the same grey tone and name that vector accordingly
 
 ```{r}
+fixed_tx_biotypes <- c(
+  "gene", "protein_coding", "retained_intron",
+  "processed_transcript", "nonsense_mediated_decay",
+  "lncRNA", "processed_pseudogene",
+  "transcribed_unprocessed_pseudogene",
+  "unprocessed_pseudogene", "non_stop_decay", "transcribed_unitary_pseudogene",
+  "pseudogene", "unitary_pseudogene"
+)
 
-fixed_tx_biotypes <- c("gene", "protein_coding", "retained_intron", 
-                         "processed_transcript", "nonsense_mediated_decay",
-                         "lncRNA","processed_pseudogene",
-                       "transcribed_unprocessed_pseudogene",
-"unprocessed_pseudogene", "non_stop_decay", "transcribed_unitary_pseudogene",
-                         "pseudogene", "unitary_pseudogene")
-
-tx_type_color_names <- c("#fb8072", "#a6d854", "#8da0cb", "#fc8d62",
-                                    "#66c2a5", "#e78ac3", "#ffd92f", "#e5c494",
-                                    "#d9d9d9", "#d9d9d9", "#d9d9d9", "#ffffb3",
-                                    "#d9d9d9")
+tx_type_color_names <- c(
+  "#fb8072", "#a6d854", "#8da0cb", "#fc8d62",
+  "#66c2a5", "#e78ac3", "#ffd92f", "#e5c494",
+  "#d9d9d9", "#d9d9d9", "#d9d9d9", "#ffffb3",
+  "#d9d9d9"
+)
 
 names(tx_type_color_names) <- fixed_tx_biotypes
 
@@ -364,7 +366,7 @@ plot_obj <- plot_log2FC(DEG_DET_table, c("RBPJ", "EGFR", "PNCK"))
 library(ggplot2)
 plot_obj +
   theme_classic() +
-   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
 ```
 
 # Profile Plot
@@ -386,7 +388,7 @@ profile_data_df <- prepare_profile_data(
   var = "condition",
   var_levels = c("control", "treatment")
 )
-# 
+#
 # # Create output directory if don't exist yet
 # path_to_save <- "results/profile_plot"
 # fs::dir_create(path_to_save)
@@ -399,14 +401,14 @@ profile_plot
 ```
 
 ```{r}
-#profile_data_df
+# profile_data_df
 
-#profile_plot <- plot_tx_expr(
- # genes_to_plot = "ILR2A",
-  #profile_data = profile_data_df
-#)
-#profile_data_df |>
- # filter(genename == "ILR2A")
+# profile_plot <- plot_tx_expr(
+# genes_to_plot = "ILR2A",
+# profile_data = profile_data_df
+# )
+# profile_data_df |>
+# filter(genename == "ILR2A")
 ```
 
 # Functional Transcript Enrichment
@@ -430,7 +432,7 @@ genesets_list <- fgsea::gmtPathways(
   gmt.file = path_package("isoformic", "extdata", "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt")
 )
 
-head(str(genesets_list))
+head(str(genesets_list[1:5]))
 head(genesets_list[[1]])
 ```
 
@@ -468,7 +470,9 @@ We used a LollipopPlot to plot all the enrichments side by side with the size of
 
 ```{r, fig.height=12}
 enrichment_df |>
-  filter((experiment %in% c("protein_coding", "unproductive")) & (abs(NES) > 2)) |>
+  dplyr::filter((experiment %in% c("protein_coding", "unproductive")) & (abs(NES) > 2)) |>
+  dplyr::arrange(padj) |>
+  dplyr::slice_head(n = 30) |>
   ggplot2::ggplot(ggplot2::aes(pathway, experiment)) +
   ggplot2::geom_point(ggplot2::aes(col = NES, size = size)) +
   ggplot2::coord_flip() +
@@ -480,7 +484,9 @@ And now the specific unproductive subtypes
 
 ```{r}
 enrichment_df |>
-  filter(!experiment %in% c("protein_coding", "unproductive") & abs(NES) > 1.5) |>
+  dplyr::filter(!experiment %in% c("protein_coding", "unproductive") & abs(NES) > 1.5) |>
+  dplyr::arrange(padj) |>
+  dplyr::slice_head(n = 20) |>
   ggplot2::ggplot(ggplot2::aes(pathway, experiment)) +
   ggplot2::geom_point(ggplot2::aes(col = NES, size = size)) +
   ggplot2::coord_flip() +
