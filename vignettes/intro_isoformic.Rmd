@@ -542,6 +542,23 @@ exon_df |>
   plot_tx_context()
 ```
 
+Testing with XIST and EGFR for genes in dual context.
+
+```{r}
+dual_exon_df <- prepare_exon_annotation(
+  gene_name = c("XIST", "EGFR"),
+  file_path = "data-raw/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz",
+  file_type = "gff"
+)
+```
+
+```{r, fig.height=11}
+dual_side_exon_df |>
+  dplyr::filter(tx_id %in% c("ENST00000602495.1", "ENST00000602863.2")) |>
+  plot_tx_context()
+```
+
+
 # References
 
 [ensembl-ref]: <https://ensembl.org/>
