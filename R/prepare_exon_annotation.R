@@ -26,10 +26,16 @@ prepare_exon_annotation <- function(gene_name,
       progress = FALSE
     )
   }
-  gene_annot_df <- annot_df |>
-    dplyr::filter(
-      stringr::str_detect(X9, paste0("gene_name=", gene_name, ";"))
-    )
+  gene_annot_df <- tibble::tibble()
+  for (i in gene_name) {
+    gene_annot_df_temp <- annot_df |>
+      dplyr::filter(
+        stringr::str_detect(X9, paste0("gene_name=", i, ";"))
+      )
+    gene_annot_df <- dplyr::bind_rows(gene_annot_df, gene_annot_df_temp)
+  }
+
+
   tx_id_vector <- gene_annot_df |>
     dplyr::filter(X3 %in% "transcript") |>
     dplyr::select(X9) |>
@@ -52,11 +58,17 @@ prepare_exon_annotation <- function(gene_name,
             X3 %in% "exon",
             stringr::str_detect(X9, glue::glue("Parent={parent_id};"))
           ) |>
-          dplyr::select(c(X4, X5, X7)) |>
-          dplyr::mutate(tx_id = parent_id)
+          dplyr::mutate(
+            tx_name = stringr::str_extract(X9, "gene_name=.*?;") |>
+              stringr::str_remove("^gene_name=") |>
+              stringr::str_remove(";")
+          ) |>
+          dplyr::select(c(X4, X5, X7, tx_name)) |>
+          dplyr::mutate(tx_id = parent_id) |>
+          dplyr::relocate(tx_name, .after = tx_id)
       }
-    ) |>
-    dplyr::mutate(tx_name = gene_name)
+    ) #|>
+  # dplyr::mutate(tx_name = gene_name)
   tx_exon_table <- tx_exon_table |>
     dplyr::rename(
       exon_left = X4,

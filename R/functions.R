@@ -110,10 +110,10 @@ join_DEG_DET <- function(DEG_tab, DET_final_tab, logfc_cut, pval_cut) {
 
 #' Run Functional Analysis
 #'
-#' @param det_df
-#' @param genesets_list
-#' @param pval_cutoff
-#' @param lfc_cutoff
+#' @param det_df data.frame with differential expression of transcripts
+#' @param genesets_list list of gene sets to be used in the enrichment analysis
+#' @param pval_cutoff p-value cutoff for the enrichment analysis
+#' @param lfc_cutoff log2 fold change cutoff for the enrichment analysis
 #' @export
 run_enrichment <- function(det_df,
                            genesets_list,

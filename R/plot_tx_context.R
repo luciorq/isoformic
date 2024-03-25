@@ -1,6 +1,11 @@
 #' Plot Transcript Genomic Context
 #' @export
 plot_tx_context <- function(exon_table, custom_colors = NULL) {
+
+  if (!tibble::is_tibble(exon_table)) {
+    exon_table <- tibble::as_tibble(exon_table)
+  }
+
   exon_table <- exon_table |>
     dplyr::mutate(
       exon_left = as.numeric(exon_left),

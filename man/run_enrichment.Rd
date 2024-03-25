@@ -6,6 +6,15 @@
 \usage{
 run_enrichment(det_df, genesets_list, pval_cutoff = 0.05, lfc_cutoff = 1)
 }
+\arguments{
+\item{det_df}{data.frame with differential expression of transcripts}
+
+\item{genesets_list}{list of gene sets to be used in the enrichment analysis}
+
+\item{pval_cutoff}{p-value cutoff for the enrichment analysis}
+
+\item{lfc_cutoff}{log2 fold change cutoff for the enrichment analysis}
+}
 \description{
 Run Functional Analysis
 }

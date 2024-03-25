@@ -322,13 +322,16 @@ genes_recategorized_dic |>
   ggtitle("Recategorized transcripts TPM between case and control")
 ```
 
-It is possible to also use this information with the pathway results. Here an example using the df_enrichment output from the functional transcript enrichment for the Angiogenesis pathway genes.
+It is possible to also use this information with the pathway results.
+Here an example using the df_enrichment output from the functional transcript enrichment for the Angiogenesis pathway genes.
 
 First we isoformic recategorize those transcripts
 ```{r}
-enrichment_angiogenesis_productive <- enrichment_df |> filter(pathway == "HALLMARK_ANGIOGENESIS" & experiment == "protein_coding")
+enrichment_angiogenesis_productive <- enrichment_df |>
+  filter(pathway == "HALLMARK_ANGIOGENESIS" & experiment == "protein_coding")
 
-genes_angiogenesis_prod <- mane_filt |> filter(gene_name %in% unlist(enrichment_angiogenesis_productive$leadingEdge))
+genes_angiogenesis_prod <- mane_filt |>
+  filter(gene_name %in% unlist(enrichment_angiogenesis_productive$leadingEdge))
 
 angiogenesis_recategorized <- isoformic_categorize(
   gene_vector = genes_angiogenesis_prod$gene_name,
@@ -337,7 +340,7 @@ angiogenesis_recategorized <- isoformic_categorize(
 )
 ```
 
-Then we do the joining to get the TPM information from the profile table
+Then we do the joining to get the TPM information from the profile table.
 
 ```{r}
 angiogenesis_recategorized_dic <- angiogenesis_recategorized |>
@@ -378,7 +381,3 @@ angiogenesis_recategorized_dic |>
 [pe-paper-ref]: <https://www.ahajournals.org/doi/10.1161/HYPERTENSIONAHA.120.14756>
 [gmt-format-ref]: <https://software.broadinstitute.org/cancer/software/gsea/wiki/index.php/Data_formats>
 [mane-ref]: <https://www.ncbi.nlm.nih.gov/refseq/MANE/>
-
-
-
-

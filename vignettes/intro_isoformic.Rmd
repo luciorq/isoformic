@@ -552,8 +552,8 @@ dual_exon_df <- prepare_exon_annotation(
 )
 ```
 
-```{r, fig.height=11}
-dual_side_exon_df |>
+```{r, fig.height=3}
+dual_exon_df |>
   dplyr::filter(tx_id %in% c("ENST00000602495.1", "ENST00000602863.2")) |>
   plot_tx_context()
 ```

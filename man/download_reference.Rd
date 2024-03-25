@@ -14,7 +14,10 @@ download_reference(
 )
 }
 \arguments{
-\item{file_type}{One of gff, fasta, or gtf.}
+\item{reference}{Source of the reference file
+One of "gencode" or "mane". Defaults to "gencode".}
+
+\item{file_type}{One of "gff", "fasta", or "gtf". Defaults to "gff".}
 }
 \description{
 Download Reference Files From GENCODE

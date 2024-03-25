@@ -24,6 +24,8 @@ editor_options:
 
 ```{r}
 library(tidyverse)
+library(fs)
+library(isoformic)
 ```
 
 
@@ -52,6 +54,16 @@ Recently lncRNAs present in those borders have risen as important regulators of 
 The main input for this pipeline will be our DET_final table witch was outputted from the first part of the other pipeline, we will use it to select all lncRNA isoforms in our data. We will also do a soft filtering of pvalue < 0.05 and absolute log2FC higher then 0.5. This is a good time to also filter a bit our lncRNA list for the specific targets we want to analize since if not the correlation analysis will become a very computationally demanding task.
 
 ```{r}
+PE1_DETs_final <- path_package("isoformic", "extdata", "PE1_DETs_final.rds") |>
+  readr::read_rds()
+
+tx_to_gene <- path_package("isoformic", "extdata", "tx_to_gene.rds") |>
+  readr::read_rds()
+```
+
+
+
+```{r}
 lnc_for_analysis <- c(
   "UCA1-238", "AC008687.3-201",
   "DUBR-230", "DUBR-202", "DUBR-213",
@@ -69,12 +81,15 @@ lnc_for_analysis <- c(
 ```
 
 ```{r}
-PE1_lncRNAs <- PE1_DETs_final |> filter(transcript_type == "lncRNA" & abs(log2FC) > 0.5 & pvalue < 0.05 & transcript_name %in% lnc_for_analysis)
+PE1_lncRNAs <- PE1_DETs_final |> 
+  filter(
+    transcript_type == "lncRNA" & abs(log2FC) > 0.5 & pvalue < 0.05 & transcript_name %in% lnc_for_analysis
+  )
 
 head(PE1_lncRNAs)
 ```
 
-So our first goal will be to get every transcript that is located around our lncRNAs. TAD lengths vary widely but over 80% of all TADs fall below 2 megabases, so here we will use 1 megabase to each side as a cut for possible cis-action.
+So our first goal will be to get every transcript that is located around our lncRNAs. TAD lengths vary widely but over 80% of all TADs fall below 2 megabases, so here we will use 1 megabase to each side as a cut for possible cis-acting lncRNA.
 
 The information of genomic coordinates will be done using the .gff we had downloaded and the package GenomicFeatures.
 
@@ -85,12 +100,13 @@ txdbv34
 ```
 
 
-We will make a vector using the transcript ids of the lncRNAs from our table
+We will make a vector using the transcript ids of the lncRNAs from our table.
+
 ```{r}
 keys <- PE1_lncRNAs$transcript_id
 ```
 
-Now we use biomaRt select function to select the transcript start, transcript end transcript strand and chromosome columns for our selected lncRNA. You can reduce even more this list if you have a smaller number of lncRNAs you want to analize. Reducing this number is good for running the transcript correlation later on. The time it takes for it will increase exponentially base don the ammount of lncRNA you have here.
+Now we use the biomaRt select function to select the transcript start, transcript end transcript strand and chromosome columns for our selected lncRNA. You can reduce even more this list if you have a smaller number of lncRNAs you want to analyze. Reducing this number is suitable for running the transcript correlation later on. The time it takes for it will increase exponentially base don the amount of lncRNA you have here.
 
 ```{r}
 columns(txdbv34)
@@ -310,20 +326,10 @@ The duos found here can later be visualized on a platform like UCSC Genome Brows
 ## Trans-action
 
 At this point we already have almost all the information we need  for the inference of pathways associated with possible trans-acting targets.
-What we will do here is wuite direct, we will use the correlation value os the lncRNA-mRNA pairs to enrich and with that we will have Normalized Enrichment Scores which vary depending of the expression direction of the lncRNA and of it`s target.
+What we will do here is quite direct, we will use the correlation value as the lncRNA-mRNA pairs to enrich and with that we will have Normalized Enrichment Scores which vary depending of the expression direction of the lncRNA and of it`s target.
 
 As an example we will choose one lncRNAs isoform and enrich it`s targets.
 
 ```{r}
 "LINC01095-203"
 ```
-
-
-
-
-
-
-
-
-
-
