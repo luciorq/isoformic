@@ -21,7 +21,7 @@ remotes::install_github("luciorq/isoformic")
 
 ## Overview
 
-![trancript_types](https://i.imgur.com/UWoAr0k.png)
+![Types of Transcripts](https://i.imgur.com/UWoAr0k.png)
 
 ## Motivation
 

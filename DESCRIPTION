@@ -1,16 +1,16 @@
 Package: isoformic
 Title: Isoformic: isoform-level biological interpretation of
     transcriptomic data
-Version: 0.0.0.9005
+Version: 0.0.0.9006
 Authors@R: c(
     person("Lucio Rezende", "Queiroz", , "luciorqueiroz@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-6090-1834")),
     person("Izabela Mamede", "Conceicao", , "iza.mamede@gmail.com", role = c("aut", "ctb"),
            comment = c(ORCID = "0000-0002-0707-5588")),
-    person("Luigi", "Marchionni", , "iza.mamede@gmail.com", role = c("aut", "ctb"),
+    person("Luigi", "Marchionni", , "lum4003@med.cornell.edu", role = c("aut", "ctb"),
            comment = c(ORCID = "0000-0002-7336-8071")),
-           person("Gloria", "Franco", , "iza.mamede@gmail.com", role = c("aut", "ctb"),
-           comment = c(ORCID = "0000-0002-0707-5588"))
+           person("Gloria", "Franco", , "gfranco@ufmg.br", role = c("aut", "ctb"),
+           comment = c(ORCID = "0000-0001-5245-2365"))
   )
 Description: Isoform-level biological interpretation of transcriptomic
     data.
@@ -33,7 +33,6 @@ Suggests:
     knitr,
     rmarkdown,
     viridis,
-    condathis,
     testthat (>= 3.0.0)
 VignetteBuilder:
     knitr
@@ -41,9 +40,6 @@ BiocViews:
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
-Remotes:
-    github::luciorq/condathis
-    bioc:fgsea
 URL: https://github.com/luciorq/isoformic,
     https://luciorq.github.io/isoformic/
 BugReports: https://github.com/luciorq/isoformic/issues

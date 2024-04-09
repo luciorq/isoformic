@@ -6,6 +6,14 @@
 \usage{
 plot_tx_context(exon_table, custom_colors = NULL)
 }
+\arguments{
+\item{exon_table}{a tibble with exon information.
+Must contain columns \code{tx_id}, \code{exon_left}, and \code{exon_right}.}
+
+\item{custom_colors}{a vector of colors to use for each transcript. If not
+provided, the function will use the default colors. Actually, this
+argument is *\strong{NOT implemented} yet.}
+}
 \description{
-Plot Transcript Genomic Context
+This function plots the genomic context of all transcripts of given genes.
 }

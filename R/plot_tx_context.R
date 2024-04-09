@@ -1,7 +1,16 @@
 #' Plot Transcript Genomic Context
+#'
+#' This function plots the genomic context of all transcripts of given genes.
+#'
+#' @param exon_table a tibble with exon information.
+#'   Must contain columns `tx_id`, `exon_left`, and `exon_right`.
+#'
+#' @param custom_colors a vector of colors to use for each transcript. If not
+#'    provided, the function will use the default colors. Actually, this
+#'    argument is ***NOT implemented** yet.
+#'
 #' @export
 plot_tx_context <- function(exon_table, custom_colors = NULL) {
-
   if (!tibble::is_tibble(exon_table)) {
     exon_table <- tibble::as_tibble(exon_table)
   }
@@ -37,7 +46,8 @@ plot_tx_context <- function(exon_table, custom_colors = NULL) {
 
   tx_id_vector <- plot_data$tx_id
 
-  DEG_DET_table_nogene <- DEG_DET_table |> filter(transcript_type != "gene")
+  DEG_DET_table_nogene <- DEG_DET_table |>
+    dplyr::filter(transcript_type != "gene")
   DEG_DET_table_nogene$transcript_type <- as.factor(DEG_DET_table_nogene$transcript_type)
 
   for (tx_id in tx_id_vector) {
@@ -95,5 +105,11 @@ plot_tx_context <- function(exon_table, custom_colors = NULL) {
       x = "Genomic Coordinate",
       y = "TPM"
     ) +
-    ggplot2::theme_classic()
+    ggplot2::theme_classic() +
+    ggplot2::theme(
+      axis.title.y = ggplot2::element_blank(),
+      axis.text.y = ggplot2::element_blank(),
+      axis.ticks.y = ggplot2::element_blank(),
+      axis.line.y = ggplot2::element_blank()
+    )
 }

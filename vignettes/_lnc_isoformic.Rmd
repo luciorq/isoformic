@@ -81,7 +81,7 @@ lnc_for_analysis <- c(
 ```
 
 ```{r}
-PE1_lncRNAs <- PE1_DETs_final |> 
+PE1_lncRNAs <- PE1_DETs_final |>
   filter(
     transcript_type == "lncRNA" & abs(log2FC) > 0.5 & pvalue < 0.05 & transcript_name %in% lnc_for_analysis
   )
