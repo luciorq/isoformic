@@ -1,6 +1,13 @@
-# Validate Isoformic Object
-#' Validate if `{isoformic}` mae has been run for the object.
-#' @param obj mae
+#' Validate Isoformic Object
+#'
+#' Validate if `MultiAssayExperiment` object is compatible with`{isoformic}`.
+#'   Also, validates if `{isoformic}` preparation steps have been executed
+#'   for the object.
+#'
+#' @param mae `MultiAssayExperiment` object to be validated.
+#'
+#' @return `MultiAssayExperiment` object with valid `{isoformic}` slots.
+#'
 #' @export
 validate_isoformic_mae <- function(mae) {
   check_mae(mae)
@@ -21,4 +28,6 @@ validate_isoformic_mae <- function(mae) {
   }
   check_mae_isoformic_is_list(mae)
   check_mae_isoformic_tx_to_gene(mae)
+  check_mae_tx_in_genes(mae)
+  return(mae)
 }
