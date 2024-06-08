@@ -6,3 +6,5 @@
 ^pkgdown$
 ^doc$
 ^Meta$
+^justfile$
+^data-raw$
