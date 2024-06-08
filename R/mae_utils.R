@@ -23,7 +23,7 @@ is_mae <- function(mae) {
   }
 }
 
-# Check if the rownames of each Experiment in the `mae` are the same
+# Check if the `rownames` of each Experiment in the `mae` obj are the same
 check_mae_assay_rownames <- function(mae) {
   tx_sample_name <- MultiAssayExperiment::sampleMap(mae)[MultiAssayExperiment::sampleMap(mae)[["assay"]] %in% "transcript", ][["primary"]]
   gene_sample_name <- MultiAssayExperiment::sampleMap(mae)[MultiAssayExperiment::sampleMap(mae)[["assay"]] %in% "gene", ][["primary"]]
