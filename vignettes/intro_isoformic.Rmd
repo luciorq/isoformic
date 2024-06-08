@@ -42,6 +42,15 @@ This tutorial will encompass X different steps divided into X unities for which 
 
 ## Dependencies
 
+> **NOTE**: As of 2024-06-08 The version of the Workflow described in this vignette is not maintained.
+  For installing `v0.0.1` of the package and run this workflow use:
+
+```{r, eval=FALSE}
+if (requireNamespace(remotes, quietly = TRUE)) {
+  remotes::install_github("luciorq/isoformic@v0.0.1")
+}
+```
+
 ```{r, message=FALSE}
 library(isoformic)
 ```
