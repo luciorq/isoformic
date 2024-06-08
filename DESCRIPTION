@@ -1,7 +1,7 @@
 Package: isoformic
 Title: Isoformic: isoform-level biological interpretation of
     transcriptomic data
-Version: 0.0.1
+Version: 0.1.0.9000
 Authors@R: c(
     person("Lucio Rezende", "Queiroz", , "luciorqueiroz@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-6090-1834")),
@@ -26,6 +26,7 @@ Imports:
     readr,
     rlang,
     stringr,
+    SummarizedExperiment,
     tibble,
     tidyr,
     withr
