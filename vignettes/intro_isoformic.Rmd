@@ -1,5 +1,5 @@
 ---
-title: "Isoformic:  Isoform-level biological interpretation of transcriptomic data"
+title: "Isoformic: Isoform-level biological interpretation of transcriptomic data"
 date: "2023-04-07"
 output:
   rmarkdown::html_document:
@@ -65,7 +65,9 @@ library(stringr)
 
 We highly recommend the use of [Salmon][salmon-ref] for transcript-level abundance estimation and the [`swish`][swish-ref] method implemented in the [fishpond][fishpond-ref] R package for isoform-level differential expression.
 
+<!--
 For a general overview of that process follow the tutorial on ["Processing Bulk RNA-Seq data"](./processing-rna-seq-data.Rmd).
+-->
 
 The [GENCODE][gencode-ref] project offers a good annotation of isoforms for the human and mouse genomes, including isoforms of non-coding genes.
 Using other sources of annotation can render completely different results for the following analysis.
