@@ -16,6 +16,21 @@
     <loc>/index.html</loc>
   </url>
   <url>
+    <loc>/reference/check_mae_isoformic_is_list.html</loc>
+  </url>
+  <url>
+    <loc>/reference/check_mae_isoformic_tx_to_gene.html</loc>
+  </url>
+  <url>
+    <loc>/reference/check_se_metadata_level_length.html</loc>
+  </url>
+  <url>
+    <loc>/reference/check_se_metadata_level_type.html</loc>
+  </url>
+  <url>
+    <loc>/reference/create_isoformic_mae_from_se.html</loc>
+  </url>
+  <url>
     <loc>/reference/download_reference.html</loc>
   </url>
   <url>
@@ -53,5 +68,11 @@
   </url>
   <url>
     <loc>/reference/run_enrichment.html</loc>
+  </url>
+  <url>
+    <loc>/reference/se_experiment_level.html</loc>
+  </url>
+  <url>
+    <loc>/reference/validate_isoformic_mae.html</loc>
   </url>
 </urlset>
