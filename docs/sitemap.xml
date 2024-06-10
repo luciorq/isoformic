@@ -10,10 +10,25 @@
     <loc>/articles/intro_isoformic.html</loc>
   </url>
   <url>
+    <loc>/articles/isoformic_index.html</loc>
+  </url>
+  <url>
+    <loc>/articles/isoformic_intro.html</loc>
+  </url>
+  <url>
+    <loc>/articles/isoformic_pre_processing.html</loc>
+  </url>
+  <url>
+    <loc>/articles/isoformic_reference_annotation.html</loc>
+  </url>
+  <url>
     <loc>/authors.html</loc>
   </url>
   <url>
     <loc>/index.html</loc>
+  </url>
+  <url>
+    <loc>/news/index.html</loc>
   </url>
   <url>
     <loc>/reference/check_mae_isoformic_is_list.html</loc>
