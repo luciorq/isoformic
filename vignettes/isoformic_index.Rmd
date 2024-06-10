@@ -22,4 +22,3 @@ vignette: |
 1. [v0.0.1 workflow](./isoformic_intro.html)
 -->
 
-conda create -n salmon-env --platform osx-64 -y -c bioconda -c conda-forge salmon
