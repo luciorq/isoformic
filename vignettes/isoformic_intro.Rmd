@@ -6,21 +6,20 @@ output:
     highlight: tango
     toc: true
     toc_float: true
+bibliography: library.bib
 author:
   - name: Izabela Mamede Conceição
     affiliation: Laboratory of Genetics Biochemistry, Universidade Federal de Minas Gerais, Belo Horizonte, Brazil
   - name: Lucio Rezende Queiroz
     affiliation: Department of Pathology and Laboratory Medicine, Weill Cornell Medicine, New York, USA
 vignette: |
-  %\VignetteIndexEntry{intro-isoformic}
+  %\VignetteIndexEntry{isoformic-intro}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
-editor_options: 
+editor_options:
   markdown: 
     wrap: sentence
 ---
-
-<!-- run this document with rmarkdown::render("intro_isoformic.Rmd") -->
 
 ```{r setup, echo=FALSE, results="hide"}
 knitr::opts_chunk$set(
@@ -164,10 +163,10 @@ The annotation file in GFF3 format was obtained from <https://ftp.ebi.ac.uk/pub/
 
 This step may take a while depending on the speed of your internet connection
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 download_reference(version = "34", file_type = "fasta")
-download_reference(version = "34", file_type = "gff")
-# download_reference(version = "34", file_type = "gtf")
+download_reference(version = "34", file_type = "gtf")
+# download_reference(version = "34", file_type = "gff")
 ```
 
 ------------------------------------------------------------------------
@@ -194,7 +193,7 @@ The full documentation can be found at the [`tximeta` ](https://bioconductor.org
 #   source = "LocalGENCODE",
 #   organism = "Homo sapiens",
 #   release = "33",
-#   genome = "hg38",
+#   genome = "GRCh38",
 #   fasta = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_33/gencode.v33.transcripts.fa.gz",
 #   gtf = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_33/gencode.v33.chr_patch_hapl_scaff.annotation.gtf.gz",
 #   write = TRUE,
@@ -437,10 +436,10 @@ So first we choose a .gmt to be used for the enrichment, in this case we loaded 
 But any gene list in [GMT format][gmt-format-ref] works here. The gmt is loaded on the fgsea format with lists for each biological process.
 
 ```{r}
-path_package("isoformic", "extdata", "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt")
+fs::path_package("isoformic", "extdata", "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt")
 
 genesets_list <- fgsea::gmtPathways(
-  gmt.file = path_package("isoformic", "extdata", "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt")
+  gmt.file = fs::path_package("isoformic", "extdata", "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt")
 )
 
 head(str(genesets_list[1:5]))
@@ -563,12 +562,10 @@ dual_exon_df <- prepare_exon_annotation(
 )
 ```
 
-
 ```{r, fig.height=24}
 dual_exon_df |>
   plot_tx_context()
 ```
-
 
 ```{r, fig.height=3}
 dual_exon_df |>
@@ -576,8 +573,13 @@ dual_exon_df |>
   plot_tx_context()
 ```
 
+## Session Information
 
-# References
+```{r}
+sessioninfo::session_info()
+```
+
+## References
 
 [ensembl-ref]: <https://ensembl.org/>
 [gencode-ref]: <https://www.gencodegenes.org/human/>

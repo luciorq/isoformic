@@ -1,5 +1,5 @@
 ---
-title: "Isoformic:  Isoform-level biological interpretation of transcriptomic data - Non-coding RNA"
+title: "Isoformic: Isoform-level biological interpretation of transcriptomic data - Non-coding RNA"
 date: "2023-02-09"
 output:
   rmarkdown::html_document:
@@ -12,7 +12,7 @@ author:
   - name: Lucio Rezende Queiroz
     affiliation: Department of Pathology and Laboratory Medicine, Weill Cornell Medicine
 vignette: |
-  %\VignetteIndexEntry{intro-isoformic}
+  %\VignetteIndexEntry{isoformic-lncrna}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 editor_options: 

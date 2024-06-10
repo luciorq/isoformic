@@ -1,0 +1,227 @@
+---
+title: "Isoformic Pre-Processing"
+output:
+  rmarkdown::html_document:
+    highlight: tango
+    toc: true
+    toc_float: true
+bibliography: library.bib
+vignette: >
+  %\VignetteIndexEntry{isoformic_pre_processing}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(isoformic)
+```
+
+## Motivation
+
+This is a highly opinionated example of how to perform RNA-Seq pre-processing and quantification focusing on estimation o transcript abundance.
+
+For this workflow we are going to use the `{condathis}` R package.
+This package allow you to run command line tools like Salmon [@salmon].
+
+All those tools can be run from the command line directly.
+
+### Note for MacOS users
+
+As of 2024-06-09, [Bioconda][bioconda-ref] does not support the Arm64 architecture of the
+Apple Silicon CPUs.
+
+One way of bypassing that is using arguments `platform = "osx-64"` for the `condathis::create_env()`, to create the environment leveraging [Rosetta 2][rosetta2-ref] support. This option can also be added to the CLI command adding `--platform osx-64` to the `conda create` command.
+
+### Note for Windows users
+
+As of 2024-06-09 [Bioconda][bioconda-ref] does not support Windows native installations. Therefore this vignette can only be run, using a VM or container. The best approach would be running under the [Windows Subsystem for Linux][wsl2-ref], if you have it available.
+
+## Install Salmon with `{condathis}`
+
+```{r, eval=FALSE}
+# pak::pkg_install("local::~/projects/condathis")
+if (!rlang::is_installed("condathis")) {
+  pak::pkg_install("github::luciorq/condathis")
+}
+```
+
+```{r eval=FALSE}
+library("condathis")
+if (!condathis::env_exists(env_name = "salmon-env")) {
+  if (fs::dir_exists(fs::path(condathis::get_install_dir(),"envs", "salmon-env"))) {
+    fs::dir_delete(fs::path(condathis::get_install_dir(),"envs", "salmon-env"))
+  }
+}
+```
+
+```{r eval=FALSE}
+if (isTRUE(condathis::get_sys_arch())) {
+  platform_var <- "osx-64"
+} else {
+  platform_var <- NULL
+}
+
+condathis::create_env(
+  packages = "salmon",
+  env_name = "salmon-env",
+  method = "native",
+  platform = platform_var
+)
+```
+
+Check Salmon version:
+
+```{r, eval=FALSE}
+condathis::run(
+  "salmon", "--version",
+  env_name = "salmon-env"
+)
+```
+
+```
+salmon 1.10.3
+```
+
+This is equivalent to running in the CLI.
+
+```bash
+# if MacOS with arm64 CPU add `--platform osx-64`
+conda create -n salmon-env \
+  -c bioconda -c conda-forge -c defaults \
+  salmon;
+```
+
+## Running Salmon with `{condathis}`
+
+
+#### Salmon index
+
+For the CLI command.
+
+Salmon index command:
+
+```bash
+salmon index \
+  --transcripts <TRANSCRIPTME_FASTA> \
+  --index <SALMON_INDEX_DIR> \
+  --kmerLen 15 \
+  --threads 4 \
+  --keepDuplicates;
+```
+
+```{r, eval=FALSE}
+base_dir <- fs::path_temp("isoformic")
+reference_version <- "46"
+download_reference(
+  version = reference_version,
+  reference = "gencode",
+  file_type = "fasta",
+  organism = "human",
+  output_path = base_dir
+)
+```
+
+Using `{condathis}`
+
+```{r, eval=FALSE}
+txome_fasta_path <- fs::path(base_dir, paste0("gencode.v", reference_version, ".transcripts.fa.gz"))
+salmon_index_path <- fs::path(base_dir, paste0("salmon_index_gencode_v", reference_version))
+if (!fs::dir_exists(salmon_index_path) {
+  fs::dir_create(salmon_index_path)
+}
+num_threads <- 4
+condathis::run(
+  "salmon", "index",
+  "--transcripts", txome_fasta_path,
+  "--index", salmon_index_path,
+  "--kmerLen", 15,
+  "--threads", num_threads,
+  "--keepDuplicates",
+  env_name = "salmon-env"
+)
+```
+
+#### Salmon Quant
+
+Salmon quant command:
+
+```bash
+salmon \
+  quant \
+  --libType A \
+  --index <SALMON_INDEX_PATH> \
+  --mates1 <FASTQ_R1> \
+  --mates2 <FASTQ_R2> \
+  --output <SALMON_OUTPUT_PATH> \
+  --threads {threads} \
+  --softclip \
+  --softclipOverhangs \
+  --disableChainingHeuristic \
+  --dumpEq \
+  --dumpEqWeights \
+  --posBias \
+  --seqBias \
+  --gcBias \
+  --useVBOpt \
+  --rangeFactorizationBins 8 \
+  --thinningFactor 100 \
+  --validateMappings \
+  --writeMappings={output.quant_dir}/txome_align.sam \
+  --minScoreFraction 0.65 \
+  --numGibbsSamples 100 2>&1 | tee -a {log};
+```
+
+Using `{condathis}`
+
+```{r eval=FALSE}
+salmon_quant_path <- fs::path(base_dir, "salmon_quant")
+if (!fs::dir_exists(salmon_quant_path)) {
+  fs::dir_create(salmon_quant_path)
+}
+reads_path <- c(
+  fs::path("data-raw/sample_R1.fastq.gz"),
+  fs::path("data-raw/sample_R2.fastq.gz")
+)
+
+condathis::run(
+  "salmon", "quant",
+  "--libType", "A",
+  "--index", salmon_index_path,
+  "--mates1", reads_path[1],
+  "--mates2", reads_path[2],
+  "--output", salmon_quant_path,
+  "--numGibbsSamples", 20,
+  "--posBias",
+  "--seqBias",
+  "--gcBias",
+  "--threads", num_threads,
+  "--softclip",
+  "--softclipOverhangs",
+  "--disableChainingHeuristic",
+  "--dumpEq",
+  "--useVBOpt",
+  "--validateMappings",
+  "--minAssignedFrags", 1,
+  "--minScoreFraction", "0.65",
+  env_name = "salmon-env"
+)
+```
+
+## Session Information
+
+```{r}
+sessioninfo::session_info()
+```
+
+## References
+
+[bioconda-ref]: <https://bioconda.github.io/>
+[rosetta2-ref]: <https://en.wikipedia.org/wiki/Rosetta_(software)#Rosetta_2>
+[wsl2-ref]: <https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux#WSL_2>
