@@ -30,7 +30,8 @@ Imports:
     withr,
     SummarizedExperiment,
     MultiAssayExperiment,
-    fgsea
+    fgsea,
+    fishpond
 Suggests: 
     knitr,
     rmarkdown,

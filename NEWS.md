@@ -1,7 +1,14 @@
 # isoformic v0.1.0.900* Development Version
 
+## Reference and Annotation
+
 * `download_reference()`: now supports `organism = c("human", "mouse")`, with `organism = "human"` being the default.
 * `download_reference()`: argument `file_type = "gtf"` is the default.
+
+## Differential Expression Analysis
+
+* created `run_swish_pairwise()` function.
+
 
 # isoformic v0.1.0
 
