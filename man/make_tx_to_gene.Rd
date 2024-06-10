@@ -9,7 +9,9 @@ make_tx_to_gene(file_path, file_type = "fasta")
 \arguments{
 \item{file_path}{Path to file containing the reference.}
 
-\item{file_type}{One of "gff", "fasta", or "gtf". Defaults to "gff".}
+\item{file_type}{Character indicating the type of file to download.
+One of \code{"gtf"}, \code{"gff"}, or \code{"fasta"}. Defaults to \code{"gtf"}.
+\strong{NOTE:} \code{"fasta"} refers to the transcriptome FASTA.}
 }
 \description{
 This function can extract a transcript to gene relationship table

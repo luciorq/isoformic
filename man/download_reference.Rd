@@ -5,20 +5,46 @@
 \title{Download Reference Files From GENCODE}
 \usage{
 download_reference(
-  version = "43",
+  version = "46",
   reference = "gencode",
-  file_type = "gff",
+  organism = c("human", "mouse"),
+  file_type = c("gtf", "gff", "fasta"),
   output_path = "data-raw",
   timeout_limit = 3600,
   method = "auto"
 )
 }
 \arguments{
-\item{reference}{Source of the reference file
-One of "gencode" or "mane". Defaults to "gencode".}
+\item{version}{Character with the version string. For mouse references,
+the letter 'M' in the version string is mandatory.}
 
-\item{file_type}{One of "gff", "fasta", or "gtf". Defaults to "gff".}
+\item{reference}{Character indicating the source of the reference file.
+One of "gencode" or "mane". Defaults to "gencode".
+\strong{NOTE:} "mane" is not implemented yet.}
+
+\item{organism}{Character indicating the organism.
+For GENCODE, this can only \code{"human"} or \code{"mouse"}.}
+
+\item{file_type}{Character indicating the type of file to download.
+One of \code{"gtf"}, \code{"gff"}, or \code{"fasta"}. Defaults to \code{"gtf"}.
+\strong{NOTE:} \code{"fasta"} refers to the transcriptome FASTA.}
+
+\item{output_path}{Character specifying the directory where the
+downloaded file will be saved. Defaults to \code{"data-raw"}.}
+
+\item{timeout_limit}{Numeric value specifying the time in seconds for the
+download limit. This argument takes precedence over
+\code{base::options("timeout")}. Defaults to 3600 seconds (1 Hour).}
+
+\item{method}{Character specifying the method used by
+\code{utils::download.file()}. Defaults to \code{"auto"}}
+}
+\value{
+A character string with the full path to the downloaded file.
 }
 \description{
-Download Reference Files From GENCODE
+This function facilitates the downloading of reference files from the GENCODE database.
+It supports downloading GTF, GFF, and transcriptome FASTA files for human and mouse genomes.
+The function ensures that the correct version and file type are downloaded and handles directory creation
+and file existence checks to avoid redundant downloads.
 }
