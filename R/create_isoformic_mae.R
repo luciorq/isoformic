@@ -67,5 +67,59 @@ create_isoformic_mae_from_se <- function(
   rownames(tx_to_gene_df) <- tx_to_gene_df$tx_id
   mae@metadata[["isoformic"]][["tx_to_gene"]] <- S4Vectors::DataFrame(tx_to_gene_df)
   check_mae_tx_in_genes(mae)
+
+  # Add Differential Expression results
+  mae@metadata[["isoformic"]][["dea"]][["transcript"]] <- se_tx@metadata[["isoformic"]][["dea"]]
+  mae@metadata[["isoformic"]][["dea"]][["gene"]] <- se_gene@metadata[["isoformic"]][["dea"]]
+
+  check_mae_isoformic_dea_results(mae)
+  # Additional metadata
+  mae <- add_isoformic_mae_metadata_version_time(mae)
+  check_isoformic_additional_metadata(mae)
+
   return(mae)
+}
+
+add_isoformic_mae_metadata_version_time <- function(mae) {
+  mae@metadata[["isoformic"]][["date_time"]] <- base::Sys.time()
+  mae@metadata[["isoformic"]][["version"]] <- utils::packageVersion("isoformic")
+  return(mae)
+}
+
+check_mae_isoformic_dea_results <- function(mae) {
+  if (!isTRUE(all(
+    dim(mae@metadata[["isoformic"]][["dea"]][["transcript"]])[1] == nrow(mae@ExperimentList[["transcript"]]),
+
+  all(rownames(mae@metadata[["isoformic"]][["dea"]][["transcript"]]) == rownames(mae@ExperimentList[["transcript"]])),
+
+  dim(mae@metadata[["isoformic"]][["dea"]][["gene"]])[1] == nrow(mae@ExperimentList[["gene"]]),
+
+  all(rownames(mae@metadata[["isoformic"]][["dea"]][["gene"]]) == rownames(mae@ExperimentList[["gene"]]))
+  ))) {
+    cli::cli_abort(
+      message = c(
+        `x` = "Row names for the at least one of {.code transcript} or {.code gene} do {.strong not} match."
+      ),
+      class = "isoformic_mae_dae_rownames_match"
+    )
+  }
+}
+
+check_isoformic_additional_metadata <- function(mae) {
+  if (!isTRUE(base::inherits(mae@metadata[["isoformic"]][["version"]], what = "package_version"))) {
+    cli::cli_abort(
+      message = c(
+        `x` = "{.code MultiAssayExperiment} is missing {.code metadata(mae)$isoformic$version} slot."
+      ),
+      class = "isoformic_mae_metadata_version"
+    )
+  }
+  if (!isTRUE(base::inherits(mae@metadata[["isoformic"]][["date_time"]], what = "POSIXct"))) {
+    cli::cli_abort(
+      message = c(
+        `x` = "{.code MultiAssayExperiment} is missing {.code metadata(mae)$isoformic$date_time} slot."
+      ),
+      class = "isoformic_mae_metadata_date_time"
+    )
+  }
 }

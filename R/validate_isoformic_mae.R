@@ -29,5 +29,9 @@ validate_isoformic_mae <- function(mae) {
   check_mae_isoformic_is_list(mae)
   check_mae_isoformic_tx_to_gene(mae)
   check_mae_tx_in_genes(mae)
-  return(mae)
+
+  check_mae_isoformic_dea_results(mae)
+
+  check_isoformic_additional_metadata(mae)
+  # return(mae)
 }
