@@ -33,7 +33,7 @@ Imports:
     fgsea,
     fishpond,
     vroom
-Suggests: 
+Suggests:
     knitr,
     rmarkdown,
     viridis,

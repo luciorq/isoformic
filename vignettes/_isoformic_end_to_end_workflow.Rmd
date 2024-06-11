@@ -316,7 +316,7 @@ isoformic_mae@ExperimentList$transcript@assays@data$abundance
 
 ## Running `isoformic()`
 
-```{r isoformic}
+```{r running-isoformic}
 
 # isoformic(
 #   

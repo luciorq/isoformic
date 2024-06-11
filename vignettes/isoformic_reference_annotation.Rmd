@@ -88,8 +88,6 @@ fasta_file_path <- fs::path(base_dir, "gencode.v46.transcripts.fa.gz")
 fs::file_exists(gtf_file_path)
 fs::file_exists(fasta_file_path)
 
-
-
 fs::dir_create(base_dir)
 
 fs::dir_exists("/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmpW9sxel/isoformic_ref/gencode_v46")
@@ -131,3 +129,15 @@ tximeta::makeLinkedTxome(
   write = FALSE
 )
 ```
+
+
+## Using custom GTF or GFF files
+
+```{r, eval=FALSE}
+annot_list <- prepare_annotation("data-raw/gencode.v46.annotation.gtf.gz")
+
+annot_list$gene
+annot_list$transcript
+annot_list$exon
+```
+

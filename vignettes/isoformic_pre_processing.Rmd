@@ -62,6 +62,7 @@ if (!condathis::env_exists(env_name = "salmon-env")) {
 ```
 
 ```{r eval=FALSE}
+# Workaround for ARM CPU based MacOS
 if (isTRUE(condathis::get_sys_arch())) {
   platform_var <- "osx-64"
 } else {
@@ -69,7 +70,7 @@ if (isTRUE(condathis::get_sys_arch())) {
 }
 
 condathis::create_env(
-  packages = "salmon",
+  packages = "salmon=1.10.3",
   env_name = "salmon-env",
   method = "native",
   platform = platform_var
