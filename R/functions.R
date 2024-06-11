@@ -129,10 +129,12 @@ run_enrichment <- function(det_df,
     "processed_transcript",
     "nonsense_mediated_decay"
   )
+
   # TODO: @luciorq Better define the non-coding category
   # + maybe something that translates:
   # + "non-coding isoform from protein coding gene + lncRNAs"
-  # @iza editei aqui e coloquei unproductive no lugar de non-coding
+
+  # TODO: @iza editei aqui e coloquei unproductive no lugar de non-coding
   # tambem removi os lncRNAs ali em cima e aqui
   tx_type_names <- c(
     "protein_coding",

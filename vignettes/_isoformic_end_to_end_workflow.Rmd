@@ -105,7 +105,7 @@ vignette(topic = "isoformic-annotation", package = "isoformic")
 
 
 
-```{r}
+```{r, eval=FALSE}
 # library(tximeta)
 se_tx <- tximeta::tximeta(
   coldata = coldata,
@@ -114,14 +114,122 @@ se_tx <- tximeta::tximeta(
   useHub = FALSE
 )
 
+download_reference(
+  version = "46",
+  reference = "gencode",
+  file_type = "gtf",
+  organism = "human",
+  output_path = base_dir
+)
+download_reference(
+  version = "46",
+  reference = "gencode",
+  file_type = "fasta",
+  organism = "human",
+  output_path = base_dir
+)
+download_reference(
+  version = "46",
+  reference = "gencode",
+  file_type = "gff",
+  organism = "human",
+  output_path = base_dir
+)
+
+str(se_tx@metadata)
+mcols(se_tx)
+
 se_gene <- tximport::summarizeToGene(se_tx)
+```
 
-lobstr::obj_size(se_tx)
+```{r}
+gencode_gtf_path <- fs::path("data-raw", "gencode.v46.annotation.gtf.gz")
+gencode_gff_path <- fs::path("data-raw", "gencode.v46.annotation.gff3.gz")
+gencode_fasta_path <- fs::path("data-raw", "gencode.v46.transcripts.fa.gz")
+# pak::pkg_install("bioc::txdbmaker")
+txdb <- txdbmaker::makeTxDbFromGFF(
+  file = gencode_gtf_path,
+  format = "gtf",
+  organism = "Homo sapiens",
+  dataSource = "localGENCODE",
+  metadata = list(
+    Genome = "GRCh38"
+  )
+)
 
-lobstr::obj_size(se_gene)
+library(rtracklayer)
+tictoc::tic("rtracklayer::import()")
+gtf_obj <- rtracklayer::import(gencode_gtf_path)
+tictoc::toc()
+tictoc::tic("vroom GTF")
+gtf_df <- vroom::vroom(
+  gencode_gtf_path,
+  delim = "\t"
+)
+tictoc::toc()
+rm(gtf_df)
+tictoc::tic("vroom GFF")
+gff_df <- vroom::vroom(
+  gencode_gff_path,
+  delim = "\t"
+)
+tictoc::toc()
+lobstr::obj_sizes(gff_df)
+rm(gff_df)
+gtf_df[1, ]
 
-# rowRanges(se_tx)
-# rowRanges(se_gene)
+lobstr::obj_sizes(gtf_df)
+gtf_obj
+gtf_obj$type == "transcript"
+
+readr::read_lines_raw(gencode_gtf_path, n_max = 10)
+
+lobstr::obj_size(gtf_obj)
+table(gtf_obj$type)
+
+make_tx_to_gene()
+
+readr::
+txdbInfo <- metadata(txdb)$value
+names(txdbInfo) <- metadata(txdb)$name
+isoformic::make_tx_to_gene()
+
+isoformic::prepare_exon_annotation()
+
+vroom::vroom(file = gencode_gtf_path, delim = "\t", comment = "#", n_max = 10, col_names = FALSE)
+
+```
+
+
+```{r}
+head(annot_gff_df)
+```
+
+
+```{r}
+head(annot_gtf_df)
+```
+
+
+```{r}
+rowRanges(se_gene)
+columns(txdb)
+
+AnnotationDbi::select(txdb, keys = keys(txdb), columns = columns(txdb))
+select(tx)
+GenomicFeatures::genes(txdb)
+GenomicFeatures::transcripts(txdb)
+GenomicFeatures::features(txdb)
+
+AnnotationDbi::saveDb(txdb, file = "data-raw/txdb_gencode_v46.sqlite")
+
+AnnotationDbi::loadDb(file = "data-raw/txdb_gencode_v46.sqlite")
+mae@ExperimentList$transcript |> rowData() |> nrow()
+# pak::pkg_install("bioc::AnnotationForge")
+# AnnotationForge::makeOrgPackage()
+
+
+
 ```
 
 
@@ -134,80 +242,73 @@ We will rename our `SummarizedExperiment` to `y` for the statistical analysis. F
 
 > **Note on factor levels**: The `swish()` function compares expression level across factors such that log2 fold changes are reported as the non-reference level over the reference level. By default, R will choose a reference level for factors based on alphabetical order, unless levels are explicitly set. It is recommended to set the factors levels, as in the above code chunk, with the reference level coming first in the character vector, so that log2 fold changes correspond to the comparison of interest.
 
-### Differential transcript expression using `fishpond`
+### Differential transcript expression using `{fishpond}`
 
 ```{r}
 # library(fishpond)
-y <- se_tx
 # y <- y[seqnames(y) == "chr4",]
-lobstr::obj_size(y)
-y <- fishpond::scaleInfReps(y)
-y <- fishpond::labelKeep(y)
-y <- y[S4Vectors::mcols(y)$keep, ]
+se_tx <- run_swish_pairwise(se_tx, contrast_var = "condition")
+se_gene <- run_swish_pairwise(se_gene, contrast_var = "condition")
 
-set.seed(1)
-y <- fishpond::swish(
-  y = y,
-  x = "condition"
-)
-lobstr::obj_size(y)
-se_tx <- y
+# number of genes that pass
+# + `fishpond::labelKeep(se, minCount = 10, minN = 3, x = contrast_var)`
+names(se_tx@metadata)
+```
 
-# library(fishpond)
-y <- se_gene
-# y <- y[seqnames(y) == "chr4",]
-lobstr::obj_size(y)
-y <- fishpond::scaleInfReps(y)
-# filter 10 counts in at least 3 samples
-y <- fishpond::labelKeep(y)
-# y <- y[S4Vectors::mcols(y)$keep, ]
+Differential expression results can be seen at
 
-set.seed(1)
-y <- fishpond::swish(
-  y = y,
-  x = "condition"
-)
-lobstr::obj_size(y)
-se_gene <- y
+```{r}
+metadata(se_tx)$isoformic$dea
+metadata(se_gene)$isoformic$dea
+```
+
+
+```{r}
+lobstr::obj_size()
+
+se_gene |>
+  S4Vectors::mcols() |>
+  base::as.data.frame() |>
+  tibble::as_tibble(rownames = "row_names") |>
+  lobstr::obj_size()
+  
+  base::as.data.frame() |>
+  tibble::as_tibble(rownames = "row_names") #|>
+  # dplyr::select(row_names, )
+```
+
+
+```{r}
+S4Vectors::mcols(se_gene)
+
+metadata(se_tx)
+
+S4Vectors::mcols(se_tx)
+str(se_tx)
+
+sum(mcols(se_tx)$keep)
+sum(mcols(se_gene)$keep)
+```
+
+```{r}
+
+S4Vectors::mcols(se_tx)
 ```
 
 ## Merging `SummarizedExperiment` objects into `MultiAssayExperiment`
 
 ```{r}
 library(MultiAssayExperiment)
-
 isoformic_mae <- create_isoformic_mae_from_se(se_tx, se_gene)
-
-lobstr::obj_size(isoformic_mae)
-isoformic_mae
 ```
 
 ### Exploring the Isoformic `MultiAssayExperiment`
 
 ```{r}
-library(MultiAssayExperiment)
-mae <- isoformic_mae
-mae@metadata[["isoformic"]] <- list(
-  mae@metadata[["isoformic"]],
-  date_time = base::Sys.time(),
-  version = utils::packageVersion("isoformic"),
-  dea = list(
-    se_tx@metadata
-  )
-)
+metadata(isoformic_mae)[["isoformic"]]
 
-add_isoformic_metadata <- function(mae) {
-  metadata(mae)[["isoformic"]] <- list(
-    date_time = base::Sys.time(),
-    version = utils::packageVersion("isoformic")
-  )
-  return(mae)
-}
-
-class(mae)
-
-
-mae@ExperimentList$transcript@assays@data$abundance
+class(isoformic_mae)
+isoformic_mae@ExperimentList$transcript@assays@data$abundance
 ```
 
 ```{r}
@@ -223,6 +324,9 @@ mae@ExperimentList$transcript@assays@data$abundance
 #   annotation = "gencode"
 # )
 
+experiments(isoformic_mae)$transcript |>
+  rowData()
+validate_isoformic_mae(isoformic_mae)
 ```
 
 

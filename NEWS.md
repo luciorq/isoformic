@@ -4,6 +4,7 @@
 
 * `download_reference()`: now supports `organism = c("human", "mouse")`, with `organism = "human"` being the default.
 * `download_reference()`: argument `file_type = "gtf"` is the default.
+* `prepare_annotation()`: Parse both GTF and GFF file formats into required annotation data.
 
 ## Differential Expression Analysis
 
