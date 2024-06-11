@@ -33,7 +33,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0.9004</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0.9006</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -176,7 +176,7 @@ columns on the table will not be used on the main analysis. This DET
 table should be the UNFILTERED version of your table.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## <span style="color: #0000BB; font-weight: bold;">/private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprZj4yl/temp_libpath3e0425ab7663/isoformic</span></span></span></code></pre>
+<pre><code><span><span class="co">## <span style="color: #0000BB; font-weight: bold;">/private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic</span></span></span></code></pre>
 <p>Example:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">PE1_DETs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">read_csv</a></span><span class="op">(</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"DETs_fixed.csv"</span><span class="op">)</span><span class="op">)</span></span>
@@ -227,18 +227,18 @@ formatting the necessary files for running the workflow. The files can
 be found in the following path.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## <span style="color: #0000BB; font-weight: bold;">/private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprZj4yl/temp_libpath3e0425ab7663/isoformic/extdata</span></span></span></code></pre>
+<pre><code><span><span class="co">## <span style="color: #0000BB; font-weight: bold;">/private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata</span></span></span></code></pre>
 <p>And the files available can be seen with:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://fs.r-lib.org/reference/dir_ls.html" class="external-link">dir_ls</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprZj4yl/temp_libpath3e0425ab7663/isoformic/extdata/DEGs_PE_fixed2.csv</span></span>
-<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprZj4yl/temp_libpath3e0425ab7663/isoformic/extdata/DETs_fixed.csv</span></span>
-<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprZj4yl/temp_libpath3e0425ab7663/isoformic/extdata/PE_1_DETs.csv</span></span>
-<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprZj4yl/temp_libpath3e0425ab7663/isoformic/extdata/PE_1_counts.csv</span></span>
-<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprZj4yl/temp_libpath3e0425ab7663/isoformic/extdata/c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt</span></span>
-<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprZj4yl/temp_libpath3e0425ab7663/isoformic/extdata/hsapiens_REAC_subset.gmt</span></span>
-<span><span class="co">## <span style="color: #BB00BB; font-weight: bold;">/private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprZj4yl/temp_libpath3e0425ab7663/isoformic/extdata/isoformic-logo.png</span></span></span></code></pre>
+<pre><code><span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata/DEGs_PE_fixed2.csv</span></span>
+<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata/DETs_fixed.csv</span></span>
+<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata/PE_1_DETs.csv</span></span>
+<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata/PE_1_counts.csv</span></span>
+<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata/c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt</span></span>
+<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata/hsapiens_REAC_subset.gmt</span></span>
+<span><span class="co">## <span style="color: #BB00BB; font-weight: bold;">/private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata/isoformic-logo.png</span></span></span></code></pre>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">PE1_DETs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"DETs_fixed.csv"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">read_csv</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -626,7 +626,7 @@ format</a> works here. The gmt is loaded on the fgsea format with lists
 for each biological process.</p>
 <div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprZj4yl/temp_libpath3e0425ab7663/isoformic/extdata/c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt</span></span></code></pre>
+<pre><code><span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata/c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt</span></span></code></pre>
 <div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">genesets_list</span> <span class="op">&lt;-</span> <span class="fu">fgsea</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/fgsea/man/gmtPathways.html" class="external-link">gmtPathways</a></span><span class="op">(</span></span>
 <span>  gmt.file <span class="op">=</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"</span><span class="op">)</span></span>
@@ -831,7 +831,7 @@ transcriptome, in this case v34.</p>
 <span><span class="co">##  collate  en_US.UTF-8</span></span>
 <span><span class="co">##  ctype    en_US.UTF-8</span></span>
 <span><span class="co">##  tz       America/New_York</span></span>
-<span><span class="co">##  date     2024-06-10</span></span>
+<span><span class="co">##  date     2024-06-11</span></span>
 <span><span class="co">##  pandoc   3.1.13 @ /opt/homebrew/bin/ (via rmarkdown)</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## <span style="color: #00BBBB; font-weight: bold;">─ Packages ───────────────────────────────────────────────────────────────────</span></span></span>
@@ -875,7 +875,7 @@ transcriptome, in this case v34.</p>
 <span><span class="co">##  hms            1.1.3      <span style="color: #555555;">2023-03-21</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
 <span><span class="co">##  htmltools      0.5.8.1    <span style="color: #555555;">2024-04-04</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
 <span><span class="co">##  htmlwidgets    1.6.4      <span style="color: #555555;">2023-12-06</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  isoformic    * <span style="color: #BB00BB; font-weight: bold;">0.1.0.9004</span> <span style="color: #555555;">2024-06-10</span> <span style="color: #555555;">[1]</span> <span style="color: #BB00BB; font-weight: bold;">local</span></span></span>
+<span><span class="co">##  isoformic    * <span style="color: #BB00BB; font-weight: bold;">0.1.0.9006</span> <span style="color: #555555;">2024-06-11</span> <span style="color: #555555;">[1]</span> <span style="color: #BB00BB; font-weight: bold;">local</span></span></span>
 <span><span class="co">##  jquerylib      0.1.4      <span style="color: #555555;">2021-04-26</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
 <span><span class="co">##  jsonlite       1.8.8      <span style="color: #555555;">2023-12-04</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
 <span><span class="co">##  knitr          1.47       <span style="color: #555555;">2024-05-29</span> <span style="color: #555555;">[2]</span> <span style="color: #555555;">CRAN (R 4.4.0)</span></span></span>
@@ -917,7 +917,7 @@ transcriptome, in this case v34.</p>
 <span><span class="co">##  xfun           0.44       <span style="color: #555555;">2024-05-15</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
 <span><span class="co">##  yaml           2.3.8      <span style="color: #555555;">2023-12-11</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
 <span><span class="co">## </span></span>
-<span><span class="co">## <span style="color: #555555;"> [1] /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprZj4yl/temp_libpath3e0425ab7663</span></span></span>
+<span><span class="co">## <span style="color: #555555;"> [1] /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade</span></span></span>
 <span><span class="co">## <span style="color: #555555;"> [2] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library</span></span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## <span style="color: #00BBBB; font-weight: bold;">──────────────────────────────────────────────────────────────────────────────</span></span></span></code></pre>

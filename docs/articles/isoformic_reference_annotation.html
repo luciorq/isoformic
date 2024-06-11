@@ -33,7 +33,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0.9004</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0.9006</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -152,30 +152,28 @@ project, for both <em>Homo sapiens</em> and <em>Mus musculus</em>.</p>
 <span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>fs<span class="sc">::</span><span class="fu">file_exists</span>(gtf_file_path)</span>
 <span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>fs<span class="sc">::</span><span class="fu">file_exists</span>(fasta_file_path)</span>
 <span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a></span>
-<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>fs<span class="sc">::</span><span class="fu">dir_create</span>(base_dir)</span>
 <span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a></span>
-<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>fs<span class="sc">::</span><span class="fu">dir_create</span>(base_dir)</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>fs<span class="sc">::</span><span class="fu">dir_exists</span>(<span class="st">"/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmpW9sxel/isoformic_ref/gencode_v46"</span>)</span>
 <span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a></span>
-<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>fs<span class="sc">::</span><span class="fu">dir_exists</span>(<span class="st">"/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmpW9sxel/isoformic_ref/gencode_v46"</span>)</span>
-<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a></span>
-<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a>json_file_path <span class="ot">&lt;-</span> <span class="fu">paste0</span>(base_dir, <span class="st">".json"</span>)</span>
-<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>fs<span class="sc">::</span><span class="fu">file_create</span>(json_file_path)</span>
-<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a></span>
-<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>fs<span class="sc">::</span></span>
-<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>tximeta<span class="sc">::</span><span class="fu">makeLinkedTxome</span>(</span>
-<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>  <span class="at">indexDir =</span> base_dir,</span>
-<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>  <span class="at">source =</span> <span class="st">"localGENCODE"</span>,</span>
-<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>  <span class="at">organism =</span> <span class="st">"Homo sapiens"</span>,</span>
-<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a>  <span class="at">release =</span> <span class="st">"46"</span>,</span>
-<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a>  <span class="at">genome =</span> <span class="st">"GRCh38"</span>,</span>
-<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a>  <span class="at">fasta =</span> fasta_file_path,</span>
-<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a>  <span class="at">gtf =</span> gtf_file_path,</span>
-<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a>  <span class="at">write =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a>  <span class="at">jsonFile =</span> json_file_path</span>
-<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a>)</span>
-<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a></span>
-<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a></span>
-<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a>tximeta<span class="sc">::</span><span class="fu">loadLinkedTxome</span>(<span class="st">"data-raw/gencode_v33.json"</span>)</span></code></pre></div>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>json_file_path <span class="ot">&lt;-</span> <span class="fu">paste0</span>(base_dir, <span class="st">".json"</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>fs<span class="sc">::</span><span class="fu">file_create</span>(json_file_path)</span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>fs<span class="sc">::</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>tximeta<span class="sc">::</span><span class="fu">makeLinkedTxome</span>(</span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>  <span class="at">indexDir =</span> base_dir,</span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>  <span class="at">source =</span> <span class="st">"localGENCODE"</span>,</span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>  <span class="at">organism =</span> <span class="st">"Homo sapiens"</span>,</span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>  <span class="at">release =</span> <span class="st">"46"</span>,</span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>  <span class="at">genome =</span> <span class="st">"GRCh38"</span>,</span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a>  <span class="at">fasta =</span> fasta_file_path,</span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a>  <span class="at">gtf =</span> gtf_file_path,</span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a>  <span class="at">write =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a>  <span class="at">jsonFile =</span> json_file_path</span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a>)</span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a></span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a></span>
+<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a>tximeta<span class="sc">::</span><span class="fu">loadLinkedTxome</span>(<span class="st">"data-raw/gencode_v33.json"</span>)</span></code></pre></div>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/thelovelab/tximeta" class="external-link">tximeta</a></span><span class="op">)</span></span>
 <span></span>
@@ -193,7 +191,18 @@ project, for both <em>Homo sapiens</em> and <em>Mus musculus</em>.</p>
 <span>  write <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
-  </main>
+<div class="section level2">
+<h2 id="using-custom-gtf-or-gff-files">Using custom GTF or GFF files<a class="anchor" aria-label="anchor" href="#using-custom-gtf-or-gff-files"></a>
+</h2>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">annot_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_annotation.html">prepare_annotation</a></span><span class="op">(</span><span class="st">"data-raw/gencode.v46.annotation.gtf.gz"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">annot_list</span><span class="op">$</span><span class="va">gene</span></span>
+<span><span class="va">annot_list</span><span class="op">$</span><span class="va">transcript</span></span>
+<span><span class="va">annot_list</span><span class="op">$</span><span class="va">exon</span></span></code></pre></div>
+</div>
+  </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
+    </nav></aside>
 </div>
 
 

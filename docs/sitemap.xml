@@ -76,6 +76,9 @@
     <loc>/reference/plot_tx_expr.html</loc>
   </url>
   <url>
+    <loc>/reference/prepare_annotation.html</loc>
+  </url>
+  <url>
     <loc>/reference/prepare_exon_annotation.html</loc>
   </url>
   <url>
@@ -83,6 +86,9 @@
   </url>
   <url>
     <loc>/reference/run_enrichment.html</loc>
+  </url>
+  <url>
+    <loc>/reference/run_swish_pairwise.html</loc>
   </url>
   <url>
     <loc>/reference/se_experiment_level.html</loc>
