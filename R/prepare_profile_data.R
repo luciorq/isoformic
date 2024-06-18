@@ -17,6 +17,8 @@ prepare_profile_data <- function(
     use_fdr = TRUE) {
   # dependencies
   .data <- rlang::.data
+
+  txi_transcript <- convert_to_isoformic_tibble(txi_transcript)
   # Extract tx2gene from gene annotation table
   # renamed gene annotation to gene_metadata
   # TODO: should gene_metadata be renamed to transcript_metadata?
@@ -26,6 +28,14 @@ prepare_profile_data <- function(
   #   dplyr::filter(.data[[gene_col]] %in% genes_to_plot) |>
   #   dplyr::select({{ tx_col }}, {{ gene_col }}) |>
   #   dplyr::rename(TXNAME = {{ tx_col }}, GENEID = {{ gene_col }})
+
+  if (!isTRUE("tx_name" %in% colnames(txi_transcript))) {
+    txi_transcript <- txi_transcript |>
+      dplyr::left_join(
+        y = dplyr::select(tx_to_gene, "transcript_id", "transcript_name"),
+        by = "transcript_id"
+      )
+  }
 
   # Format sample metadata
   # filter only samples included in var_levels
@@ -200,4 +210,20 @@ summarize_to_gene <- function(txi_transcript, tx_to_gene) {
       values_from = "mean_expr"
     )
   return(txi_gene)
+}
+
+
+# Convert `matrix` and `data.frame`
+convert_to_isoformic_tibble <- function(txi_transcript) {
+  if (!isTRUE(inherits(x = txi_transcript, what = c("tbl_df")))) {
+    if (isTRUE(inherits(x = txi_transcript, what = c("matrix"))) | isTRUE(inherits(x = txi_transcript, what = c("data.frame")))) {
+      txi_transcript <- as.data.frame(txi_transcript)
+    }
+    if (!isTRUE("transcript_id" %in% colnames(txi_transcript))) {
+      txi_transcript <- txi_transcript |>
+      tibble::rownames_to_column(var = "transcript_id") |>
+        tibble::as_tibble()
+
+    }
+  }
 }

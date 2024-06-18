@@ -1,4 +1,4 @@
-# isoformic v0.1.0.900* Development Version
+# isoformic v0.1.1
 
 ## Reference and Annotation
 
@@ -9,6 +9,10 @@
 ## Differential Expression Analysis
 
 * created `run_swish_pairwise()` function.
+
+## Bug Fixes
+
+* `prepare_profile_data()`: accepts `matrix` and `data.frame` as input for the `txi_transcript` argument.
 
 
 # isoformic v0.1.0
