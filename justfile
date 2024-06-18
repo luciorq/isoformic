@@ -42,5 +42,5 @@ github_org := 'luciorq'
   \builtin set -euxo pipefail;
   __r_pkg_version="$(R -q --no-echo --silent -e 'suppressMessages({pkgload::load_all()});cat(as.character(utils::packageVersion("{{ package_name }}")));')";
   \builtin echo -ne "Tagging version: ${__r_pkg_version}\n";
-  git tag -a "v${__package_version}" HEAD -m "Version ${_r_pkg_version} released";
+  git tag -a "v${__r_pkg_version}" HEAD -m "Version ${__r_pkg_version} released";
   git push --tags;
