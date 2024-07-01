@@ -30,7 +30,7 @@ github_org := 'luciorq'
 
 # Check if package can be installed on a conda environment
 @check-install-conda tag_version='main':
-  #!/usr/bin/env bash -i
+  #!/usr/bin/env -vS bash -i
   \builtin set -euxo pipefail;
   conda create -n isoformic-env -y -c bioconda -c conda-forge r-base r-devtools r-readr r-rlang r-dplyr r-ggplot2 r-biocmanager r-pak bioconductor-summarizedexperiment bioconductor-multiassayexperiment;
   conda run -n isoformic-env R -q -e 'pak::pkg_install("github::{{ github_org }}/{{ package_name }}@{{ tag_version }},ask=FALSE")';

@@ -55,14 +55,17 @@ if (!rlang::is_installed("condathis")) {
 ```{r eval=FALSE}
 library("condathis")
 if (!condathis::env_exists(env_name = "salmon-env")) {
-  if (fs::dir_exists(fs::path(condathis::get_install_dir(),"envs", "salmon-env"))) {
-    fs::dir_delete(fs::path(condathis::get_install_dir(),"envs", "salmon-env"))
+  if (fs::dir_exists(fs::path(condathis::get_install_dir(), "envs", "salmon-env"))) {
+    fs::dir_delete(fs::path(condathis::get_install_dir(), "envs", "salmon-env"))
   }
 }
 ```
 
 ```{r eval=FALSE}
 # Workaround for ARM CPU based MacOS
+
+# TODO: Also check if rosetta 2 is enabled.
+
 if (isTRUE(condathis::get_sys_arch())) {
   platform_var <- "osx-64"
 } else {
@@ -137,7 +140,13 @@ salmon_index_path <- fs::path(base_dir, paste0("salmon_index_gencode_v", referen
 if (!fs::dir_exists(salmon_index_path) {
   fs::dir_create(salmon_index_path)
 }
-num_threads <- 4
+
+if (requireNamespace("parallelly", quietly = TRUE)) {
+   num_threads <- min(parallelly::availableCores(), 4)
+} else {
+  num_threads <- 1
+}
+
 condathis::run(
   "salmon", "index",
   "--transcripts", txome_fasta_path,

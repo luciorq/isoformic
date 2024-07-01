@@ -312,6 +312,7 @@ isoformic_mae@ExperimentList$transcript@assays@data$abundance
 ```
 
 ```{r}
+
 ```
 
 ## Running `isoformic()`
@@ -319,7 +320,6 @@ isoformic_mae@ExperimentList$transcript@assays@data$abundance
 ```{r running-isoformic}
 
 # isoformic(
-#   
 #   method = "fishpond",
 #   annotation = "gencode"
 # )

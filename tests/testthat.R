@@ -9,4 +9,10 @@
 library(testthat)
 library(isoformic)
 
+options(
+  warnPartialMatchArgs = TRUE,
+  warnPartialMatchAttr = TRUE,
+  warnPartialMatchDollar = TRUE
+)
+
 test_check("isoformic")
