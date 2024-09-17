@@ -11,9 +11,8 @@ github_org := 'luciorq'
 @test:
   #!/usr/bin/env bash
   \builtin set -euxo pipefail;
-  R -q -e 'devtools::load_all();';
-  R -q -e 'devtools::document();';
-  R -q -e 'devtools::test();';
+  R -q -e 'devtools::load_all();devtools::document();';
+  R -q -e 'devtools::load_all();devtools::test();';
 
 @check:
   #!/usr/bin/env bash
@@ -32,7 +31,7 @@ github_org := 'luciorq'
 @check-install-conda tag_version='main':
   #!/usr/bin/env -vS bash -i
   \builtin set -euxo pipefail;
-  conda create -n isoformic-env -y -c bioconda -c conda-forge r-base r-devtools r-readr r-rlang r-dplyr r-ggplot2 r-biocmanager r-pak bioconductor-summarizedexperiment bioconductor-multiassayexperiment;
+  conda create -n isoformic-env -y --override-channels -c bioconda -c conda-forge r-base r-devtools r-readr r-rlang r-dplyr r-ggplot2 r-biocmanager r-pak bioconductor-summarizedexperiment bioconductor-multiassayexperiment;
   conda run -n isoformic-env R -q -e 'pak::pkg_install("github::{{ github_org }}/{{ package_name }}@{{ tag_version }},ask=FALSE")';
   conda run -n isoformic-env R -q -e 'utils::packageVersion("{{ package_name }}")';
 

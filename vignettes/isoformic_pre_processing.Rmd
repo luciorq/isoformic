@@ -98,7 +98,7 @@ This is equivalent to running in the CLI.
 ```bash
 # if MacOS with arm64 CPU add `--platform osx-64`
 conda create -n salmon-env \
-  -c bioconda -c conda-forge -c defaults \
+  -c bioconda -c conda-forge -c nodefaults \
   salmon;
 ```
 
