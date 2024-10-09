@@ -21,4 +21,3 @@ check_mae_isoformic_tx_to_gene <- function(mae) {
     )
   }
 }
-

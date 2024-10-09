@@ -44,7 +44,7 @@ check_mae_tx_in_genes <- function(mae) {
   se_tx_rownames <- SummarizedExperiment::rownames(mae@ExperimentList[["transcript"]])
   se_gene_rownames <- SummarizedExperiment::rownames(mae@ExperimentList[["gene"]])
   tx_to_gene_df <- mae@metadata[["isoformic"]]$tx_to_gene
-  tx_in_genes_vector <- tx_to_gene_df[tx_to_gene_df$gene_id %in% se_gene_rownames,]$tx_id
+  tx_in_genes_vector <- tx_to_gene_df[tx_to_gene_df$gene_id %in% se_gene_rownames, ]$tx_id
   if (!isTRUE(all(se_tx_rownames %in% tx_in_genes_vector))) {
     cli::cli_abort(
       message = c(

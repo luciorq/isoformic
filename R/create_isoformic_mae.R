@@ -89,12 +89,9 @@ add_isoformic_mae_metadata_version_time <- function(mae) {
 check_mae_isoformic_dea_results <- function(mae) {
   if (!isTRUE(all(
     dim(mae@metadata[["isoformic"]][["dea"]][["transcript"]])[1] == nrow(mae@ExperimentList[["transcript"]]),
-
-  all(rownames(mae@metadata[["isoformic"]][["dea"]][["transcript"]]) == rownames(mae@ExperimentList[["transcript"]])),
-
-  dim(mae@metadata[["isoformic"]][["dea"]][["gene"]])[1] == nrow(mae@ExperimentList[["gene"]]),
-
-  all(rownames(mae@metadata[["isoformic"]][["dea"]][["gene"]]) == rownames(mae@ExperimentList[["gene"]]))
+    all(rownames(mae@metadata[["isoformic"]][["dea"]][["transcript"]]) == rownames(mae@ExperimentList[["transcript"]])),
+    dim(mae@metadata[["isoformic"]][["dea"]][["gene"]])[1] == nrow(mae@ExperimentList[["gene"]]),
+    all(rownames(mae@metadata[["isoformic"]][["dea"]][["gene"]]) == rownames(mae@ExperimentList[["gene"]]))
   ))) {
     cli::cli_abort(
       message = c(

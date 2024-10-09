@@ -9,17 +9,18 @@ mae <- MultiAssayExperiment::MultiAssayExperiment(
         c("tx1", "tx2", "tx3", "tx4"), c("txseq1", "txseq2")
       ))),
       colData = S4Vectors::DataFrame(condition = c("A", "B"))
-      ),
+    ),
     gene = SummarizedExperiment::SummarizedExperiment(
       assays = list(counts = matrix(5:8, ncol = 2, dimnames = list(
         c("gene1", "gene2"), c("geneseq1", "geneseq2")
       ))),
-      colData = S4Vectors::DataFrame(condition = c("A", "B")))
+      colData = S4Vectors::DataFrame(condition = c("A", "B"))
+    )
   ),
   colData = S4Vectors::DataFrame(
     condition = c("A", "B"),
-    row.names = c("sample1", "sample2"))
-  ,
+    row.names = c("sample1", "sample2")
+  ),
   sampleMap = S4Vectors::DataFrame(
     assay = as.factor(rep(c("transcript", "gene"), each = 2)),
     primary = c("sample1", "sample2", "sample1", "sample2"),

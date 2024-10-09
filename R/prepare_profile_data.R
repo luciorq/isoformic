@@ -221,9 +221,8 @@ convert_to_isoformic_tibble <- function(txi_transcript) {
     }
     if (!isTRUE("transcript_id" %in% colnames(txi_transcript))) {
       txi_transcript <- txi_transcript |>
-      tibble::rownames_to_column(var = "transcript_id") |>
+        tibble::rownames_to_column(var = "transcript_id") |>
         tibble::as_tibble()
-
     }
   }
 }

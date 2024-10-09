@@ -3,23 +3,33 @@ library(testthat)
 
 # Mocking required functions
 mock_has_internet <- function(value) {
-  function(...) return(value)
+  function(...) {
+    return(value)
+  }
 }
 
 mock_dir_exists <- function(value) {
-  function(...) return(value)
+  function(...) {
+    return(value)
+  }
 }
 
 mock_dir_create <- function() {
-  function(...) return(NULL)
+  function(...) {
+    return(NULL)
+  }
 }
 
 mock_file_exists <- function(value) {
-  function(...) return(value)
+  function(...) {
+    return(value)
+  }
 }
 
 mock_download_file_success <- function(return_value) {
-  function(...) return(return_value)
+  function(...) {
+    return(return_value)
+  }
 }
 
 mock_download_file_error <- function() {
@@ -27,7 +37,6 @@ mock_download_file_error <- function() {
 }
 
 test_that("download_reference handles no internet connection", {
-
   local_mocked_bindings(has_internet = mock_has_internet(FALSE), .package = "curl")
 
   expect_error(

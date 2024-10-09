@@ -39,7 +39,6 @@ download_reference <- function(version = "46",
                                output_path = "data-raw",
                                timeout_limit = 3600,
                                method = "auto") {
-
   if (requireNamespace("curl", quietly = TRUE)) {
     if (!isTRUE(curl::has_internet())) {
       cli::cli_abort(
@@ -59,13 +58,11 @@ download_reference <- function(version = "46",
   file_type <- stringr::str_to_lower(file_type)
   file_type <- rlang::arg_match(file_type)
   version <- as.character(version)
-  base_url <- switch(
-    organism,
+  base_url <- switch(organism,
     human = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_",
     mouse = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_"
   )
-  file_string <- switch(
-    file_type,
+  file_string <- switch(file_type,
     gff = ".annotation.gff3.gz",
     gtf = ".annotation.gtf.gz",
     fasta = ".transcripts.fa.gz"
