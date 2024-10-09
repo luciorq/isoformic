@@ -9,15 +9,16 @@ github_org := 'luciorq'
   just --choose
 
 @test:
-  #!/usr/bin/env bash
+  #!/usr/bin/env -vS bash -i
   \builtin set -euxo pipefail;
+  R -q -e 'devtools::load_all();styler::style_pkg();';
   R -q -e 'devtools::load_all();devtools::document();';
   R -q -e 'devtools::load_all();devtools::test();';
 
 @check:
-  #!/usr/bin/env bash
+  #!/usr/bin/env -vS bash -i
   \builtin set -euxo pipefail;
-  R -q -e 'rcmdcheck::rcmdcheck();';
+  R -q -e 'rcmdcheck::rcmdcheck(args="--as-cran");';
 
 @build-pkgdown-website:
   #!/usr/bin/env bash
@@ -35,7 +36,7 @@ github_org := 'luciorq'
   conda run -n isoformic-env R -q -e 'pak::pkg_install("github::{{ github_org }}/{{ package_name }}@{{ tag_version }},ask=FALSE")';
   conda run -n isoformic-env R -q -e 'utils::packageVersion("{{ package_name }}")';
 
-# Use R package version on the Description file to tag latest commit of the git repo
+# Use R package version on the DESCRIPTION file to tag latest commit of the git repo
 @git-tag:
   #!/usr/bin/env bash
   \builtin set -euxo pipefail;
