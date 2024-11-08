@@ -29,7 +29,7 @@ prepare_profile_data <- function(
   #   dplyr::select({{ tx_col }}, {{ gene_col }}) |>
   #   dplyr::rename(TXNAME = {{ tx_col }}, GENEID = {{ gene_col }})
 
-  if (!isTRUE("tx_name" %in% colnames(txi_transcript))) {
+  if (isFALSE("transcript_name" %in% colnames(txi_transcript))) {
     txi_transcript <- txi_transcript |>
       dplyr::left_join(
         y = dplyr::select(tx_to_gene, "transcript_id", "transcript_name"),
@@ -130,8 +130,6 @@ prepare_profile_data <- function(
     dplyr::select(gene_name) |>
     dplyr::mutate(DE = TRUE)
 
-
-
   # filter DE genes
   gene_expr_df <- gene_expr_df |>
     dplyr::mutate(transcript_type = "gene") |>
@@ -183,7 +181,6 @@ prepare_profile_data <- function(
   return(expr_df)
 }
 
-
 # Utils
 summarize_to_gene <- function(txi_transcript, tx_to_gene) {
   id_df <- tx_to_gene |>
@@ -212,17 +209,17 @@ summarize_to_gene <- function(txi_transcript, tx_to_gene) {
   return(txi_gene)
 }
 
-
-# Convert `matrix` and `data.frame`
+# Convert `matrix` and `data.frame` to `tibble`
 convert_to_isoformic_tibble <- function(txi_transcript) {
-  if (!isTRUE(inherits(x = txi_transcript, what = c("tbl_df")))) {
-    if (isTRUE(inherits(x = txi_transcript, what = c("matrix"))) | isTRUE(inherits(x = txi_transcript, what = c("data.frame")))) {
+  if (isFALSE(inherits(x = txi_transcript, what = c("tbl_df")))) {
+    if (isTRUE(inherits(x = txi_transcript, what = c("matrix"))) || isTRUE(inherits(x = txi_transcript, what = c("data.frame")))) {
       txi_transcript <- as.data.frame(txi_transcript)
     }
-    if (!isTRUE("transcript_id" %in% colnames(txi_transcript))) {
+    if (isFALSE("transcript_id" %in% colnames(txi_transcript))) {
       txi_transcript <- txi_transcript |>
         tibble::rownames_to_column(var = "transcript_id") |>
         tibble::as_tibble()
     }
   }
+  return(txi_transcript)
 }

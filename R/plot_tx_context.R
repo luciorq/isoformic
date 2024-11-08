@@ -10,8 +10,11 @@
 #'    argument is ***NOT implemented** yet.
 #'
 #' @export
-plot_tx_context <- function(exon_table, custom_colors = NULL) {
-  if (!tibble::is_tibble(exon_table)) {
+plot_tx_context <- function(
+    exon_table,
+    custom_colors = NULL
+  ) {
+  if (isFALSE(tibble::is_tibble(exon_table))) {
     exon_table <- tibble::as_tibble(exon_table)
   }
 

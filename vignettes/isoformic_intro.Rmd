@@ -37,6 +37,7 @@ Welcome to `isoformic`, a workflow for isoform-level biological interpretation o
 All data used for the examples here were extracted from the paper: ["Landscape of Dysregulated Placental RNA Editing Associated With Preeclampsia"][pe-paper-ref] in which were analyzed generated RNA-Seq datasets from preeclamptic and control placentas.
 This dataset was chosen due for having many biological replicates with high sequencing depth.
 
+<!--
 This tutorial will encompass X different steps divided into X unities for which type of analysis you want to perform.
 
 ## Dependencies
@@ -45,10 +46,11 @@ This tutorial will encompass X different steps divided into X unities for which 
   For installing `v0.0.1` of the package and run this workflow use:
 
 ```{r, eval=FALSE}
-if (requireNamespace(remotes, quietly = TRUE)) {
-  remotes::install_github("luciorq/isoformic@v0.0.1")
-}
+# if (requireNamespace(remotes, quietly = TRUE)) {
+#   remotes::install_github("luciorq/isoformic@v0.0.1")
+# }
 ```
+-->
 
 ```{r, message=FALSE}
 library(isoformic)
@@ -62,9 +64,6 @@ library(readr)
 library(dplyr)
 library(tidyr)
 library(stringr)
-# library(SummarizedExperiment)
-# library(tximeta)
-# library(fishpond)
 ```
 
 ## Setting up the data
@@ -77,7 +76,8 @@ We highly recommend the use of [Salmon][salmon-ref] for transcript-level abundan
 For a general overview of that process follow the tutorial on ["Processing Bulk RNA-Seq data"](./processing-rna-seq-data.Rmd).
 -->
 
-The [GENCODE][gencode-ref] project offers a good annotation of isoforms for the human and mouse genomes, including isoforms of non-coding genes.
+The [GENCODE][gencode-ref] project offers a good annotation of isoforms for the human and mouse genomes,
+including isoforms of non-coding genes.
 Using other sources of annotation can render completely different results for the following analysis.
 
 ### Part 1: Data input
@@ -166,7 +166,7 @@ This step may take a while depending on the speed of your internet connection
 ```{r, eval=FALSE}
 download_reference(version = "34", file_type = "fasta")
 download_reference(version = "34", file_type = "gtf")
-# download_reference(version = "34", file_type = "gff")
+download_reference(version = "34", file_type = "gff")
 ```
 
 ------------------------------------------------------------------------
@@ -519,8 +519,9 @@ This GFF file needs to be downloaded on the accurate version for your transcript
 
 ```{r}
 exon_df <- prepare_exon_annotation(
-  gene_name = "RBPJ",
-  file_path = "data-raw/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz",
+  # gene_name = "RBPJ",
+  gene_name = "FLT1",
+  file_path = "data-raw/gencode.v34.annotation.gff3.gz",
   file_type = "gff"
 )
 ```
@@ -542,7 +543,7 @@ exon_df |>
 ```{r}
 exon_df <- prepare_exon_annotation(
   gene_name = "EGFR",
-  file_path = "data-raw/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz",
+  file_path = "data-raw/gencode.v34.annotation.gff3.gz",
   file_type = "gff"
 )
 ```
@@ -557,7 +558,7 @@ Testing with XIST and EGFR for genes in dual context.
 ```{r}
 dual_exon_df <- prepare_exon_annotation(
   gene_name = c("XIST", "EGFR"),
-  file_path = "data-raw/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz",
+  file_path = "data-raw/gencode.v34.annotation.gff3.gz",
   file_type = "gff"
 )
 ```

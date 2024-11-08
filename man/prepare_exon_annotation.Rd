@@ -4,7 +4,7 @@
 \alias{prepare_exon_annotation}
 \title{Prepare Exon based Position Annotation Table}
 \usage{
-prepare_exon_annotation(gene_name, file_path, file_type = c("gff"))
+prepare_exon_annotation(gene_name, file_path, file_type = c("gff", "gtf"))
 }
 \arguments{
 \item{file_path}{Path to annotation file.}

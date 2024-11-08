@@ -1,8 +1,8 @@
 Version: 1.0
-ProjectId: 68407984-1312-4a05-83d5-5019a4b5a9da
+ProjectId: 132a9900-dbc1-4dc5-a392-bcf98aaf8603
 
-RestoreWorkspace: Default
-SaveWorkspace: Default
+RestoreWorkspace: No
+SaveWorkspace: No
 AlwaysSaveHistory: Default
 
 EnableCodeIndexing: Yes
@@ -15,7 +15,13 @@ LaTeX: pdfLaTeX
 
 AutoAppendNewline: Yes
 StripTrailingWhitespace: Yes
+LineEndingConversion: Posix
 
 BuildType: Package
 PackageUseDevtools: Yes
 PackageInstallArgs: --no-multiarch --with-keep.source
+PackageRoxygenize: rd,collate,namespace
+
+QuitChildProcessesOnExit: Yes
+
+SpellingDictionary: en_US

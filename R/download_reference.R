@@ -49,8 +49,6 @@ download_reference <- function(version = "46",
       )
     }
   }
-
-
   reference <- stringr::str_to_lower(reference)
   reference <- rlang::arg_match(reference)
   organism <- stringr::str_to_lower(organism)
