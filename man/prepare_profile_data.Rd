@@ -2,7 +2,7 @@
 % Please edit documentation in R/prepare_profile_data.R
 \name{prepare_profile_data}
 \alias{prepare_profile_data}
-\title{Prepare Data for Profile Plot}
+\title{Prepare Data for Gene and Transcript Expression Profile Plot}
 \usage{
 prepare_profile_data(
   txi_gene = NULL,
@@ -20,9 +20,77 @@ prepare_profile_data(
   use_fdr = TRUE
 )
 }
+\arguments{
+\item{txi_gene}{A \code{tibble} or \code{tximport} output containing gene-level expression abundances.
+If \code{NULL}, gene-level abundances will be summarized from \code{txi_transcript}. Default is \code{NULL}.}
+
+\item{txi_transcript}{A \code{tibble} or \code{tximport} output containing transcript-level expression abundances.}
+
+\item{sample_metadata}{A \code{data.frame} or \code{tibble} containing sample metadata. The first column
+should contain sample names matching the column names in \code{txi_gene} and \code{txi_transcript}.}
+
+\item{tx_to_gene}{A \code{data.frame} or \code{tibble} containing transcript-to-gene mapping information.
+Must include columns specified by \code{gene_col} and \code{tx_col}.}
+
+\item{de_result_gene}{A \code{data.frame} or \code{tibble} containing differential expression results at the gene level.
+Must include \code{gene_name}, \code{log2FC}, and \code{qvalue} columns.}
+
+\item{de_result_transcript}{A \code{data.frame} or \code{tibble} containing differential expression results at the transcript level.
+Must include \code{transcript_name}, \code{log2FC}, and \code{qvalue} columns.}
+
+\item{var}{A string specifying the column name in \code{sample_metadata} that indicates the grouping variable (e.g., treatment, condition).}
+
+\item{var_levels}{A character vector specifying the levels of \code{var} to include in the contrasts.}
+
+\item{gene_col}{A string specifying the column name in \code{tx_to_gene} that contains gene names. Default is \code{"gene_name"}.}
+
+\item{tx_col}{A string specifying the column name in \code{tx_to_gene} that contains transcript names. Default is \code{"transcript_name"}.}
+
+\item{pvalue_cutoff}{A numeric value specifying the p-value cutoff for determining significant differential expression. Default is \code{0.05}.}
+
+\item{lfc_cutoff}{A numeric value specifying the log2 fold-change cutoff for determining significant differential expression. Default is \code{1}.}
+
+\item{use_fdr}{A logical value indicating whether to use the false discovery rate (\code{qvalue}) instead of p-value for significance cutoff. Default is \code{TRUE}.}
+}
 \value{
-a \code{tibble} with data to plot.
+A \code{tibble} containing processed expression data and differential expression flags, ready for plotting.
 }
 \description{
-Prepare Data for Profile Plot
+This function processes gene and transcript-level expression data, along with differential
+expression results, to prepare a tidy data frame suitable for plotting expression profiles
+across different sample groups.
+}
+\details{
+The function combines gene and transcript expression data with differential expression results to generate a tidy data frame. It filters significant genes and transcripts based on specified cutoffs and prepares the data for plotting expression profiles across specified sample groups.
+}
+\examples{
+# Assuming txi_gene, txi_transcript, sample_metadata, tx_to_gene, de_result_gene,
+# and de_result_transcript are pre-loaded data frames:
+
+# Prepare data for plotting
+expr_df <- prepare_profile_data(
+  txi_gene = txi_gene,
+  txi_transcript = txi_transcript,
+  sample_metadata = sample_metadata,
+  tx_to_gene = tx_to_gene,
+  de_result_gene = de_result_gene,
+  de_result_transcript = de_result_transcript,
+  var = "condition",
+  var_levels = c("control", "treatment"),
+  gene_col = "gene_name",
+  tx_col = "transcript_name",
+  pvalue_cutoff = 0.05,
+  lfc_cutoff = 1,
+  use_fdr = TRUE
+)
+
+# View the prepared data
+head(expr_df)
+
+# Plotting example (assuming ggplot2 is installed)
+library(ggplot2)
+ggplot(expr_df, aes(x = condition, y = mean_TPM, fill = DE)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  facet_wrap(~ parent_gene + transcript_type)
+
 }

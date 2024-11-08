@@ -8,3 +8,4 @@
 ^Meta$
 ^justfile$
 ^data-raw$
+^LICENSE\.md$

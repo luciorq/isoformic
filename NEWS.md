@@ -1,4 +1,4 @@
-# isoformic (Development Version)
+# isoformic (development version)
 
 * Nothing yet
 

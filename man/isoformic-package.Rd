@@ -4,7 +4,7 @@
 \name{isoformic-package}
 \alias{isoformic}
 \alias{isoformic-package}
-\title{isoformic: Isoformic: isoform-level biological interpretation of transcriptomic data}
+\title{isoformic: Isoform-Level Biological Interpretation of Transcriptomic Data}
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 

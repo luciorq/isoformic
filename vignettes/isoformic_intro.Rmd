@@ -163,14 +163,14 @@ The annotation file in GFF3 format was obtained from <https://ftp.ebi.ac.uk/pub/
 
 This step may take a while depending on the speed of your internet connection
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 download_reference(version = "34", file_type = "fasta")
-download_reference(version = "34", file_type = "gtf")
+# download_reference(version = "34", file_type = "gtf")
 download_reference(version = "34", file_type = "gff")
 ```
 
 ------------------------------------------------------------------------
-
+ata-raw/gencode.v34.annotation.gff3.gz
 <!-- 
 
 ### Part 2: Create the `linkedTxome` object from GENCODE annotation
@@ -574,11 +574,13 @@ dual_exon_df |>
   plot_tx_context()
 ```
 
+<!--
 ## Session Information
 
 ```{r}
 sessioninfo::session_info()
 ```
+-->
 
 ## References
 
@@ -588,5 +590,5 @@ sessioninfo::session_info()
 [swish-ref]: <https://bioconductor.org/packages/release/bioc/vignettes/fishpond/inst/doc/swish.html>
 [fishpond-ref]: <https://bioconductor.org/packages/release/bioc/html/fishpond.html>
 [salmon-ref]: <https://github.com/COMBINE-lab/salmon>
-[pe-paper-ref]: <https://www.ahajournals.org/doi/10.1161/HYPERTENSIONAHA.120.14756>
+[pe-paper-ref]: <https://pubmed.ncbi.nlm.nih.gov/32306769/>
 [gmt-format-ref]: <https://software.broadinstitute.org/cancer/software/gsea/wiki/index.php/Data_formats>
