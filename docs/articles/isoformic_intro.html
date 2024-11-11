@@ -5,7 +5,6 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<meta name="description" content="isoformic">
 <title>Isoformic: Isoform-level biological interpretation of transcriptomic data • isoformic</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
@@ -15,64 +14,45 @@
 <link rel="apple-touch-icon" type="image/png" sizes="60x60" href="../apple-touch-icon-60x60.png">
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
-<!-- bootstrap-toc --><script src="https://cdn.jsdelivr.net/gh/afeld/bootstrap-toc@v1.0.1/dist/bootstrap-toc.min.js" integrity="sha256-4veVQbu7//Lk5TSmc7YV48MxtMy98e26cf5MrgZYnwo=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js" integrity="sha512-7O5pXpc0oCRrxk8RUfDYFgn0nO1t+jLuIOQdOMRp4APB7uZ4vSjspzp5y6YDtDs4VzUSTbWzBFZ/LKJhnyFOKw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- search --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Isoformic: Isoform-level biological interpretation of transcriptomic data">
-<meta property="og:description" content="isoformic">
-<meta property="og:image" content="/logo.png">
-<!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
-<script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-<![endif]-->
+<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.4.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Isoformic: Isoform-level biological interpretation of transcriptomic data">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
-    
 
-    <nav class="navbar fixed-top navbar-light navbar-expand-lg bg-light" data-bs-theme="light"><div class="container">
-    
+
+    <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
+
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0.9006</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1.9003</small>
 
-    
+
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item">
-  <a class="nav-link" href="../reference/index.html">Reference</a>
-</li>
+<li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
-  <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
-  <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/isoformic_index.html">Isoformic - Vignettes Index</a>
-    <a class="dropdown-item" href="../articles/isoformic_intro.html">Isoformic: Isoform-level biological interpretation of transcriptomic data</a>
-    <a class="dropdown-item" href="../articles/isoformic_pre_processing.html">Isoformic - Pre-Processing</a>
-    <a class="dropdown-item" href="../articles/isoformic_reference_annotation.html">Isoformic - Reference Annotation</a>
-  </div>
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="../articles/isoformic_intro.html">Isoformic: Isoform-level biological interpretation of transcriptomic data</a></li>
+  </ul>
 </li>
-<li class="nav-item">
-  <a class="nav-link" href="../news/index.html">Changelog</a>
-</li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul>
-<form class="form-inline my-2 my-lg-0" role="search">
-        <input type="search" class="form-control me-sm-2" aria-label="Toggle navigation" name="search-input" data-search-index="../search.json" id="search-input" placeholder="Search for" autocomplete="off">
-</form>
-
-      <ul class="navbar-nav">
-<li class="nav-item">
-  <a class="external-link nav-link" href="https://github.com/luciorq/isoformic/" aria-label="github">
-    <span class="fab fa fab fa-github fa-lg"></span>
-     
-  </a>
-</li>
+<ul class="navbar-nav">
+<li class="nav-item"><form class="form-inline" role="search">
+ <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
+</form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/luciorq/isoformic/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
-    
+
   </div>
 </nav><div class="container template-article">
 
@@ -109,38 +89,35 @@ biological interpretation of transcriptomic data.</p>
 <div class="section level3">
 <h3 id="information">Information<a class="anchor" aria-label="anchor" href="#information"></a>
 </h3>
-<p>All data used for the examples here were extracted from the paper: <a href="https://www.ahajournals.org/doi/10.1161/HYPERTENSIONAHA.120.14756" class="external-link">“Landscape
-of Dysregulated Placental RNA Editing Associated With Preeclampsia”</a>
-in which were analyzed generated RNA-Seq datasets from preeclamptic and
+<p>All data used for the examples here were extracted from the paper: <a href="https://pubmed.ncbi.nlm.nih.gov/32306769/" class="external-link">“Landscape of
+Dysregulated Placental RNA Editing Associated With Preeclampsia”</a> in
+which were analyzed generated RNA-Seq datasets from preeclamptic and
 control placentas. This dataset was chosen due for having many
 biological replicates with high sequencing depth.</p>
-<p>This tutorial will encompass X different steps divided into X unities
-for which type of analysis you want to perform.</p>
-</div>
-<div class="section level3">
-<h3 id="dependencies">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies"></a>
-</h3>
-<blockquote>
-<p><strong>NOTE</strong>: As of 2024-06-08 The version of the Workflow
-described in this vignette is not maintained. For installing
-<code>v0.0.1</code> of the package and run this workflow use:</p>
-</blockquote>
+<!--
+This tutorial will encompass X different steps divided into X unities for which type of analysis you want to perform.
+
+## Dependencies
+
+> **NOTE**: As of 2024-06-08 The version of the Workflow described in this vignette is not maintained.
+  For installing `v0.0.1` of the package and run this workflow use:
+
+
+``` r
+# if (requireNamespace(remotes, quietly = TRUE)) {
+#   remotes::install_github("luciorq/isoformic@v0.0.1")
+# }
+```
+-->
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="va">remotes</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"luciorq/isoformic@v0.0.1"</span><span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/luciorq/isoformic" class="external-link">isoformic</a></span><span class="op">)</span></span></code></pre></div>
 <p>Load dependency packages</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://fs.r-lib.org" class="external-link">fs</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://readr.tidyverse.org" class="external-link">readr</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyr.tidyverse.org" class="external-link">tidyr</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://stringr.tidyverse.org" class="external-link">stringr</a></span><span class="op">)</span></span>
-<span><span class="co"># library(SummarizedExperiment)</span></span>
-<span><span class="co"># library(tximeta)</span></span>
-<span><span class="co"># library(fishpond)</span></span></code></pre></div>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://stringr.tidyverse.org" class="external-link">stringr</a></span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="setting-up-the-data">Setting up the data<a class="anchor" aria-label="anchor" href="#setting-up-the-data"></a>
@@ -174,11 +151,11 @@ log2FoldChange information in a column named “log2FoldChange”. 3)
 <code>p-value</code> information in a column named “pvalue”. Any other
 columns on the table will not be used on the main analysis. This DET
 table should be the UNFILTERED version of your table.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## <span style="color: #0000BB; font-weight: bold;">/private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic</span></span></span></code></pre>
+<pre><code><span><span class="co">## <span style="color: #0000BB; font-weight: bold;">/private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprhKZ5X/temp_libpathe1576ffc2ea0/isoformic</span></span></span></code></pre>
 <p>Example:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">PE1_DETs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">read_csv</a></span><span class="op">(</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"DETs_fixed.csv"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">PE1_DETs</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 6 × 4</span></span></span>
@@ -225,21 +202,21 @@ and all the tests here mentioned were done using human data.</p>
 <p>Isoformic makes available example files that can be used as model for
 formatting the necessary files for running the workflow. The files can
 be found in the following path.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## <span style="color: #0000BB; font-weight: bold;">/private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata</span></span></span></code></pre>
+<pre><code><span><span class="co">## <span style="color: #0000BB; font-weight: bold;">/private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprhKZ5X/temp_libpathe1576ffc2ea0/isoformic/extdata</span></span></span></code></pre>
 <p>And the files available can be seen with:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://fs.r-lib.org/reference/dir_ls.html" class="external-link">dir_ls</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata/DEGs_PE_fixed2.csv</span></span>
-<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata/DETs_fixed.csv</span></span>
-<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata/PE_1_DETs.csv</span></span>
-<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata/PE_1_counts.csv</span></span>
-<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata/c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt</span></span>
-<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata/hsapiens_REAC_subset.gmt</span></span>
-<span><span class="co">## <span style="color: #BB00BB; font-weight: bold;">/private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata/isoformic-logo.png</span></span></span></code></pre>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<pre><code><span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprhKZ5X/temp_libpathe1576ffc2ea0/isoformic/extdata/DEGs_PE_fixed2.csv</span></span>
+<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprhKZ5X/temp_libpathe1576ffc2ea0/isoformic/extdata/DETs_fixed.csv</span></span>
+<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprhKZ5X/temp_libpathe1576ffc2ea0/isoformic/extdata/PE_1_DETs.csv</span></span>
+<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprhKZ5X/temp_libpathe1576ffc2ea0/isoformic/extdata/PE_1_counts.csv</span></span>
+<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprhKZ5X/temp_libpathe1576ffc2ea0/isoformic/extdata/c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt</span></span>
+<span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprhKZ5X/temp_libpathe1576ffc2ea0/isoformic/extdata/hsapiens_REAC_subset.gmt</span></span>
+<span><span class="co">## <span style="color: #BB00BB; font-weight: bold;">/private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprhKZ5X/temp_libpathe1576ffc2ea0/isoformic/extdata/isoformic-logo.png</span></span></span></code></pre>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">PE1_DETs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"DETs_fixed.csv"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">read_csv</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">PE1_DEGs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"DEGs_PE_fixed2.csv"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -251,7 +228,7 @@ be found in the following path.</p>
 our cases (treatment) and our controls. In this library, cases are the
 pregnant woman with Preeclampsia and controls matched pregnant without
 Preeclampsia.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sample_table</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  samples <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">PE1_counts</span><span class="op">)</span><span class="op">[</span><span class="fl">2</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">PE1_counts</span><span class="op">)</span><span class="op">]</span>,</span>
 <span>  condition <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"treatment"</span>, <span class="fl">8</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">PE1_counts</span><span class="op">)</span> <span class="op">-</span> <span class="fl">9</span><span class="op">)</span><span class="op">)</span></span>
@@ -272,45 +249,41 @@ Preeclampsia.</p>
 <p>The annotation file in GFF3 format was obtained from <a href="https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_34/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz" class="external-link uri">https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_34/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz</a>.</p>
 <p>This step may take a while depending on the speed of your internet
 connection</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"34"</span>, file_type <span class="op">=</span> <span class="st">"fasta"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"34"</span>, file_type <span class="op">=</span> <span class="st">"gtf"</span><span class="op">)</span></span>
-<span><span class="co"># download_reference(version = "34", file_type = "gff")</span></span></code></pre></div>
-<hr>
-<!-- 
-
-### Part 2: Create the `linkedTxome` object from GENCODE annotation
-
-`tximeta` is capable of importing most of the annotations automatically,
-but for getting the transcript types we will need to create the `linkedTxome` object manually.
-
-The full documentation can be found at the [`tximeta` ](https://bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html#What_if_checksum_isn%E2%80%99t_known)
-
-
-
-``` r
-# gtf_file_path <- "data-raw/gencode.v33.chr_patch_hapl_scaff.annotation.gtf.gz"
-# fs::file_exists(gtf_file_path)
-#
-# base_dir <- "data-raw/gencode_v33"
-# json_file_path <- paste0(base_dir, ".json")
-# fs::dir_create(base_dir)
-# tximeta::makeLinkedTxome(
-#   indexDir = base_dir,
-#   source = "LocalGENCODE",
-#   organism = "Homo sapiens",
-#   release = "33",
-#   genome = "GRCh38",
-#   fasta = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_33/gencode.v33.transcripts.fa.gz",
-#   gtf = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_33/gencode.v33.chr_patch_hapl_scaff.annotation.gtf.gz",
-#   write = TRUE,
-#   jsonFile = json_file_path
-# )
-#
-# tximeta::loadLinkedTxome("data-raw/gencode_v33.json")
-```
-
---><hr>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"34"</span>, file_type <span class="op">=</span> <span class="st">"fasta"</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## [1] "data-raw/gencode.v34.transcripts.fa.gz"</span></span></code></pre>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># download_reference(version = "34", file_type = "gtf")</span></span>
+<span><span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"34"</span>, file_type <span class="op">=</span> <span class="st">"gff"</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## [1] "data-raw/gencode.v34.annotation.gff3.gz"</span></span></code></pre>
+<table class="table">
+<colgroup><col width="100%"></colgroup>
+<tbody>
+<tr class="odd">
+<td align="left">ata-raw/gencode.v34.annotation.gff3.gz &lt;!–</td>
+</tr>
+<tr class="even">
+<td align="left">### Part 2: Create the <code>linkedTxome</code> object
+from GENCODE annotation</td>
+</tr>
+<tr class="odd">
+<td align="left">
+<code>tximeta</code> is capable of importing most of
+the annotations automatically, but for getting the transcript types we
+will need to create the <code>linkedTxome</code> object manually.</td>
+</tr>
+<tr class="even">
+<td align="left">The full documentation can be found at the <a href="https://bioconductor.org/packages/devel/bioc/vignettes/tximeta/inst/doc/tximeta.html#What_if_checksum_isn%E2%80%99t_known" class="external-link"><code>tximeta</code></a>
+</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>r # gtf_file_path &lt;- "data-raw/gencode.v33.chr_patch_hapl_scaff.annotation.gtf.gz" # fs::file_exists(gtf_file_path) # # base_dir &lt;- "data-raw/gencode_v33" # json_file_path &lt;- paste0(base_dir, ".json") # fs::dir_create(base_dir) # tximeta::makeLinkedTxome( #   indexDir = base_dir, #   source = "LocalGENCODE", #   organism = "Homo sapiens", #   release = "33", #   genome = "GRCh38", #   fasta = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_33/gencode.v33.transcripts.fa.gz", #   gtf = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_33/gencode.v33.chr_patch_hapl_scaff.annotation.gtf.gz", #   write = TRUE, #   jsonFile = json_file_path # ) # # tximeta::loadLinkedTxome("data-raw/gencode_v33.json")</code></td>
+</tr>
+<tr class="even">
+<td align="left">–&gt;</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 <div class="section level4">
@@ -326,7 +299,7 @@ consistency.</p>
 sequences and their annotation information downloaded from the GENCODE
 website with the specific version you used for the alignment. In the
 case here GENCODE v34.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fasta_path</span> <span class="op">&lt;-</span> <span class="st">"data-raw/gencode.v34.transcripts.fa.gz"</span></span>
 <span><span class="fu"><a href="https://readr.tidyverse.org/reference/read_lines.html" class="external-link">read_lines</a></span><span class="op">(</span><span class="va">fasta_path</span>, n_max <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## [1] "&gt;ENST00000456328.2|ENSG00000223972.5|OTTHUMG00000000961.2|OTTHUMT00000362751.1|DDX11L1-202|DDX11L1|1657|processed_transcript|"</span></span>
@@ -337,7 +310,7 @@ case here GENCODE v34.</p>
 <p>As that header shows the imported table is still very weird and not
 tidy, so we pass it through the <code>make_tx_to_gene</code> function
 that will make it tidy and ready for further use.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tx_to_gene</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_tx_to_gene.html">make_tx_to_gene</a></span><span class="op">(</span></span>
 <span>  file_path <span class="op">=</span> <span class="va">fasta_path</span>,</span>
 <span>  file_type <span class="op">=</span> <span class="st">"fasta"</span></span>
@@ -361,7 +334,7 @@ gene id, the Gene name and the transcript type information so we can
 convert our tables for transcript_name and add the type information and
 if the gene is a DE to the DET table.</p>
 <p>Select the columns with the gene id and the gene name info</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tx_to_gene</span> <span class="op">&lt;-</span> <span class="va">tx_to_gene</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span></span>
 <span>    <span class="va">transcript_id</span>, <span class="va">gene_id</span>,</span>
@@ -370,14 +343,14 @@ if the gene is a DE to the DET table.</p>
 <span>  <span class="op">)</span></span></code></pre></div>
 <p>First we add the <code>gene_name</code> information to the DEG
 table</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">gene_join</span> <span class="op">&lt;-</span> <span class="va">tx_to_gene</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">gene_id</span>, <span class="va">gene_name</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/distinct.html" class="external-link">distinct</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">PE1_DEGs</span> <span class="op">&lt;-</span> <span class="va">PE1_DEGs</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span><span class="va">gene_join</span>, by <span class="op">=</span> <span class="st">"gene_id"</span><span class="op">)</span></span></code></pre></div>
 <p>Now the transcript name for the TPM table</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tpm_join</span> <span class="op">&lt;-</span> <span class="va">tx_to_gene</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">transcript_id</span>, <span class="va">transcript_name</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/distinct.html" class="external-link">distinct</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -396,12 +369,12 @@ and (2) which type does that transcript belongs to.</p>
 <p>There are multiple types on the Ensembl library and some of their
 definitions superpose to one another, the ones further analyzed here can
 be seen on this figure</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/include_graphics.html" class="external-link">include_graphics</a></span><span class="op">(</span><span class="st">"https://i.imgur.com/UWoAr0k.png"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="https://i.imgur.com/UWoAr0k.png"><!-- --></p>
 <p>First we add the transcript name and type information to the DET
 table</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">transcript_joined</span> <span class="op">&lt;-</span> <span class="va">tx_to_gene</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">transcript_id</span>, <span class="va">transcript_name</span>, <span class="va">transcript_type</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/distinct.html" class="external-link">distinct</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -413,7 +386,7 @@ noise. Here we used the cutoffs of absolute log2FC higher than one and
 pvalue lower than 0.05</p>
 <p>So we first filter the DEG table for the significant ones and the add
 it as a column on our main DET table using the isDEGsig function.</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">PE1_DEGs_new_names_sig</span> <span class="op">&lt;-</span> <span class="va">PE1_DEGs</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">log2FC</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">pvalue</span> <span class="op">&lt;=</span> <span class="fl">0.05</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -424,7 +397,7 @@ it as a column on our main DET table using the isDEGsig function.</p>
 <span><span class="va">transcript_gene_join</span> <span class="op">&lt;-</span> <span class="va">tx_to_gene</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">transcript_name</span>, <span class="va">gene_name</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/distinct.html" class="external-link">distinct</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">PE1_DETs_final</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/is_deg_sig.html">is_deg_sig</a></span><span class="op">(</span><span class="va">DEGs_sig_joined</span><span class="op">$</span><span class="va">transcript_name</span>, <span class="va">PE1_DETs</span><span class="op">)</span></span>
 <span><span class="va">PE1_DETs_final</span> <span class="op">&lt;-</span> <span class="va">PE1_DETs_final</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span><span class="va">transcript_gene_join</span>, by <span class="op">=</span> <span class="st">"transcript_name"</span><span class="op">)</span></span></code></pre></div>
@@ -433,7 +406,7 @@ analyses.</p>
 <p>One detail is that the DET final table now allows us to see genes
 whose transcripts are differentially expressed but their genes are not
 with a simple dplyr filter.</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">DETs_not_DEGs</span> <span class="op">&lt;-</span> <span class="va">PE1_DETs_final</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">pvalue</span> <span class="op">&lt;</span> <span class="fl">0.05</span>, <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">log2FC</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">1</span>, <span class="va">DEG_sig</span> <span class="op">==</span> <span class="st">"NO"</span><span class="op">)</span></span></code></pre></div>
 <p>This table will represent cases which could be characterized as
@@ -451,7 +424,7 @@ used through the entire pipeline associated with a certain type of
 transcript. Here we colored all the most abundant types separately and
 the less abundant on the same grey tone and name that vector
 accordingly</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fixed_tx_biotypes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>  <span class="st">"gene"</span>, <span class="st">"protein_coding"</span>, <span class="st">"retained_intron"</span>,</span>
 <span>  <span class="st">"processed_transcript"</span>, <span class="st">"nonsense_mediated_decay"</span>,</span>
@@ -495,7 +468,7 @@ to that of its transcripts adding to that the significance
 information.</p>
 <p>For that we will make a combined version of the DEG table with the
 DET table using the function join_DEG_DET.</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">DEG_DET_table</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/join_DEG_DET.html">join_DEG_DET</a></span><span class="op">(</span><span class="va">PE1_DEGs</span>, <span class="va">PE1_DETs_final</span>, <span class="fl">1</span>, <span class="fl">0.05</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">DEG_DET_table</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 6 × 9</span></span></span>
@@ -511,10 +484,10 @@ DET table using the function join_DEG_DET.</p>
 <p>Now you just use the <code>plotLog2FC</code> for any gene you would
 like. The function also works well with a small vector of
 <code>gene_names</code>.</p>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_log2FC.html">plot_log2FC</a></span><span class="op">(</span><span class="va">DEG_DET_table</span>, <span class="st">"RBPJ"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="isoformic_intro_files/figure-html/unnamed-chunk-24-1.png" width="700"></p>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Work here to look better? or just remove for now</span></span>
 <span><span class="co"># the best would be a loop that goes over each one of a list and</span></span>
 <span><span class="co"># plots them in a folder the default could be the DET not deg table</span></span>
@@ -534,7 +507,7 @@ of the gene between the case and control conditions. For this we use a
 profile plot that in one size plots the values of TPM for the case
 conditions and in the other the value of the TPM for the control
 conditions.</p>
-<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">DEG_DET_table</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="op">!</span><span class="va">transcript_type</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="st">"gene"</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 70,870 × 9</span></span></span>
@@ -552,7 +525,7 @@ conditions.</p>
 <span><span class="co">## <span style="color: #BCBCBC;">10</span> ENST000006…  1.91  4.34<span style="color: #949494;">e</span><span style="color: #BB0000;">-1</span> 6.52<span style="color: #949494;">e</span><span style="color: #BB0000;">-1</span> DVL1… protein_coding  DVL1           1.91 </span></span>
 <span><span class="co">## <span style="color: #949494;"># ℹ 70,860 more rows</span></span></span>
 <span><span class="co">## <span style="color: #949494;"># ℹ 1 more variable: significance &lt;chr&gt;</span></span></span></code></pre>
-<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">DEG_DET_table</span><span class="op">$</span><span class="va">transcript_type</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##  [1] "gene"                               "protein_coding"                    </span></span>
 <span><span class="co">##  [3] "retained_intron"                    "processed_transcript"              </span></span>
@@ -561,7 +534,7 @@ conditions.</p>
 <span><span class="co">##  [9] "transcribed_unprocessed_pseudogene" "non_stop_decay"                    </span></span>
 <span><span class="co">## [11] "transcribed_unitary_pseudogene"     "pseudogene"                        </span></span>
 <span><span class="co">## [13] "unitary_pseudogene"</span></span></code></pre>
-<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">profile_data_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_profile_data.html">prepare_profile_data</a></span><span class="op">(</span></span>
 <span>  txi_transcript <span class="op">=</span> <span class="va">PE1_counts</span>,</span>
 <span>  tx_to_gene <span class="op">=</span> <span class="va">tx_to_gene</span>,</span>
@@ -582,7 +555,7 @@ conditions.</p>
 <span><span class="op">)</span></span>
 <span><span class="va">profile_plot</span></span></code></pre></div>
 <p><img src="isoformic_intro_files/figure-html/unnamed-chunk-26-1.png" width="700"></p>
-<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># profile_data_df</span></span>
 <span></span>
 <span><span class="co"># profile_plot &lt;- plot_tx_expr(</span></span>
@@ -624,10 +597,10 @@ we loaded a human reactome gene list from MSigDB called c2. But any gene
 list in <a href="https://software.broadinstitute.org/cancer/software/gsea/wiki/index.php/Data_formats" class="external-link">GMT
 format</a> works here. The gmt is loaded on the fgsea format with lists
 for each biological process.</p>
-<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade/isoformic/extdata/c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt</span></span></code></pre>
 <div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/RtmprhKZ5X/temp_libpathe1576ffc2ea0/isoformic/extdata/c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt</span></span></code></pre>
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">genesets_list</span> <span class="op">&lt;-</span> <span class="fu">fgsea</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/fgsea/man/gmtPathways.html" class="external-link">gmtPathways</a></span><span class="op">(</span></span>
 <span>  gmt.file <span class="op">=</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
@@ -640,11 +613,11 @@ for each biological process.</p>
 <span><span class="co">##  $ REACTOME_INTRINSIC_PATHWAY_FOR_APOPTOSIS: chr [1:55] "BAD" "BID" "BAK1" "CASP8" ...</span></span>
 <span><span class="co">##  $ REACTOME_MAPK3_ERK1_ACTIVATION          : chr [1:10] "JAK2" "MAPK3" "TYK2" "IL6ST" ...</span></span></code></pre>
 <pre><code><span><span class="co">## NULL</span></span></code></pre>
-<div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb47"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">genesets_list</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## [1] "JAK2"  "TYK2"  "CBL"   "STAT1" "IL6ST" "IL6"</span></span></code></pre>
 <p>Visualize how is our table before running</p>
-<div class="sourceCode" id="cb47"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb49"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">PE1_DETs_final</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 6 × 8</span></span></span>
 <span><span class="co">##   transcript_id   log2FC  pvalue  qvalue transcript_name transcript_type DEG_sig</span></span>
@@ -659,7 +632,7 @@ for each biological process.</p>
 <p>Then you run the run_enrichment function it needs your DETs final
 table, the genesetlist and a pvalue cutoff to be used. It will generate
 a table of enrichment but with an extra column “experiment”.</p>
-<div class="sourceCode" id="cb49"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb51"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">enrichment_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_enrichment.html">run_enrichment</a></span><span class="op">(</span></span>
 <span>  det_df <span class="op">=</span> <span class="va">PE1_DETs_final</span>,</span>
 <span>  genesets_list <span class="op">=</span> <span class="va">genesets_list</span>,</span>
@@ -675,7 +648,7 @@ a table of enrichment but with an extra column “experiment”.</p>
 <span><span class="co">## <span style="color: #BCBCBC;">4</span> REACTOME_A… 3.28<span style="color: #949494;">e</span><span style="color: #BB0000;">-10</span> 3.92<span style="color: #949494;">e</span><span style="color: #BB0000;">- 9</span>   0.814 0.690  2.29    72 <span style="color: #949494;">&lt;chr [26]&gt;</span>  protein_c…</span></span>
 <span><span class="co">## <span style="color: #BCBCBC;">5</span> REACTOME_A… 7.00<span style="color: #949494;">e</span><span style="color: #BB0000;">- 4</span> 1.98<span style="color: #949494;">e</span><span style="color: #BB0000;">- 3</span>   0.477 0.722  1.86    20 <span style="color: #949494;">&lt;chr [8]&gt;</span>   protein_c…</span></span>
 <span><span class="co">## <span style="color: #BCBCBC;">6</span> REACTOME_A… 4.54<span style="color: #949494;">e</span><span style="color: #BB0000;">- 2</span> 7.25<span style="color: #949494;">e</span><span style="color: #BB0000;">- 2</span>   0.277 0.603  1.52    17 <span style="color: #949494;">&lt;chr [11]&gt;</span>  protein_c…</span></span></code></pre>
-<div class="sourceCode" id="cb51"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb53"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">genesets_list</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## [1] "REACTOME_INTERLEUKIN_6_SIGNALING"                                                           </span></span>
 <span><span class="co">## [2] "REACTOME_APOPTOSIS"                                                                         </span></span>
@@ -683,7 +656,7 @@ a table of enrichment but with an extra column “experiment”.</p>
 <span><span class="co">## [4] "REACTOME_INTRINSIC_PATHWAY_FOR_APOPTOSIS"                                                   </span></span>
 <span><span class="co">## [5] "REACTOME_MAPK3_ERK1_ACTIVATION"                                                             </span></span>
 <span><span class="co">## [6] "REACTOME_TRANSLESION_SYNTHESIS_BY_Y_FAMILY_DNA_POLYMERASES_BYPASSES_LESIONS_ON_DNA_TEMPLATE"</span></span></code></pre>
-<div class="sourceCode" id="cb53"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb55"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">enrichment_df</span><span class="op">$</span><span class="va">experiment</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## [1] "protein_coding"          "unproductive"           </span></span>
 <span><span class="co">## [3] "retained_intron"         "processed_transcript"   </span></span>
@@ -709,7 +682,7 @@ the size of each pathway as the radius of the circles and the
 transparency is if that pathway passes on the desired cutoff. First we
 plot for only Protein_coding versus Unproductive with a very extringent
 NES cutoff.</p>
-<div class="sourceCode" id="cb55"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb57"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">enrichment_df</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="op">(</span><span class="va">experiment</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"protein_coding"</span>, <span class="st">"unproductive"</span><span class="op">)</span><span class="op">)</span> <span class="op">&amp;</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">NES</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">padj</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -721,7 +694,7 @@ NES cutoff.</p>
 <span>  <span class="fu">viridis</span><span class="fu">::</span><span class="fu"><a href="https://sjmgarnier.github.io/viridis/reference/scale_viridis.html" class="external-link">scale_color_viridis</a></span><span class="op">(</span>option <span class="op">=</span> <span class="st">"mako"</span>, direction <span class="op">=</span> <span class="op">-</span><span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 <p><img src="isoformic_intro_files/figure-html/unnamed-chunk-31-1.png" width="700"></p>
 <p>And now the specific unproductive subtypes</p>
-<div class="sourceCode" id="cb56"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb58"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">enrichment_df</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="op">!</span><span class="va">experiment</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"protein_coding"</span>, <span class="st">"unproductive"</span><span class="op">)</span> <span class="op">&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">NES</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">1.5</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">padj</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -758,59 +731,60 @@ on their genome browser.</p>
 from GENCODE to be included in the file path on next function. This GFF
 file needs to be downloaded on the accurate version for your
 transcriptome, in this case v34.</p>
-<div class="sourceCode" id="cb57"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb59"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">exon_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_exon_annotation.html">prepare_exon_annotation</a></span><span class="op">(</span></span>
-<span>  gene_name <span class="op">=</span> <span class="st">"RBPJ"</span>,</span>
-<span>  file_path <span class="op">=</span> <span class="st">"data-raw/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz"</span>,</span>
+<span>  <span class="co"># gene_name = "RBPJ",</span></span>
+<span>  gene_name <span class="op">=</span> <span class="st">"FLT1"</span>,</span>
+<span>  file_path <span class="op">=</span> <span class="st">"data-raw/gencode.v34.annotation.gff3.gz"</span>,</span>
 <span>  file_type <span class="op">=</span> <span class="st">"gff"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>This will be the table used for plotting</p>
-<div class="sourceCode" id="cb58"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb60"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">exon_df</span></span></code></pre></div>
-<pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 202 × 5</span></span></span>
+<pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 126 × 5</span></span></span>
 <span><span class="co">##    exon_left exon_right strand tx_id             tx_name</span></span>
 <span><span class="co">##    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 1</span> 26163455  26163614   +      ENST00000512351.5 RBPJ   </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 2</span> 26362446  26362628   +      ENST00000512351.5 RBPJ   </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 3</span> 26386353  26386391   +      ENST00000512351.5 RBPJ   </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 4</span> 26406175  26406270   +      ENST00000512351.5 RBPJ   </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 5</span> 26415475  26415605   +      ENST00000512351.5 RBPJ   </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 6</span> 26272607  26272761   +      ENST00000510778.6 RBPJ   </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 7</span> 26386353  26386391   +      ENST00000510778.6 RBPJ   </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 8</span> 26406175  26406270   +      ENST00000510778.6 RBPJ   </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 9</span> 26415475  26415640   +      ENST00000510778.6 RBPJ   </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">10</span> 26420551  26420725   +      ENST00000510778.6 RBPJ   </span></span>
-<span><span class="co">## <span style="color: #949494;"># ℹ 192 more rows</span></span></span></code></pre>
+<span><span class="co">## <span style="color: #BCBCBC;"> 1</span> 28494780  28495128   -      ENST00000282397.9 FLT1   </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 2</span> 28467521  28467617   -      ENST00000282397.9 FLT1   </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 3</span> 28466903  28467129   -      ENST00000282397.9 FLT1   </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 4</span> 28438221  28438345   -      ENST00000282397.9 FLT1   </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 5</span> 28434058  28434220   -      ENST00000282397.9 FLT1   </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 6</span> 28433819  28433955   -      ENST00000282397.9 FLT1   </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 7</span> 28431136  28431310   -      ENST00000282397.9 FLT1   </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 8</span> 28430050  28430167   -      ENST00000282397.9 FLT1   </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;"> 9</span> 28427752  28427921   -      ENST00000282397.9 FLT1   </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">10</span> 28427159  28427318   -      ENST00000282397.9 FLT1   </span></span>
+<span><span class="co">## <span style="color: #949494;"># ℹ 116 more rows</span></span></span></code></pre>
 <p>Plotting</p>
-<div class="sourceCode" id="cb60"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb62"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">exon_df</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/plot_tx_context.html">plot_tx_context</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="isoformic_intro_files/figure-html/unnamed-chunk-35-1.png" width="700"></p>
 <div class="section level4">
 <h4 id="protein-coding-example">Protein coding example<a class="anchor" aria-label="anchor" href="#protein-coding-example"></a>
 </h4>
-<div class="sourceCode" id="cb61"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb63"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">exon_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_exon_annotation.html">prepare_exon_annotation</a></span><span class="op">(</span></span>
 <span>  gene_name <span class="op">=</span> <span class="st">"EGFR"</span>,</span>
-<span>  file_path <span class="op">=</span> <span class="st">"data-raw/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz"</span>,</span>
+<span>  file_path <span class="op">=</span> <span class="st">"data-raw/gencode.v34.annotation.gff3.gz"</span>,</span>
 <span>  file_type <span class="op">=</span> <span class="st">"gff"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb62"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb64"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">exon_df</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/plot_tx_context.html">plot_tx_context</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="isoformic_intro_files/figure-html/unnamed-chunk-37-1.png" width="700"></p>
 <p>Testing with XIST and EGFR for genes in dual context.</p>
-<div class="sourceCode" id="cb63"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb65"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dual_exon_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_exon_annotation.html">prepare_exon_annotation</a></span><span class="op">(</span></span>
 <span>  gene_name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"XIST"</span>, <span class="st">"EGFR"</span><span class="op">)</span>,</span>
-<span>  file_path <span class="op">=</span> <span class="st">"data-raw/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz"</span>,</span>
+<span>  file_path <span class="op">=</span> <span class="st">"data-raw/gencode.v34.annotation.gff3.gz"</span>,</span>
 <span>  file_type <span class="op">=</span> <span class="st">"gff"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb64"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb66"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dual_exon_df</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/plot_tx_context.html">plot_tx_context</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="isoformic_intro_files/figure-html/unnamed-chunk-39-1.png" width="700"></p>
-<div class="sourceCode" id="cb65"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb67"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dual_exon_df</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">tx_id</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ENST00000602495.1"</span>, <span class="st">"ENST00000602863.2"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/plot_tx_context.html">plot_tx_context</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
@@ -819,115 +793,64 @@ transcriptome, in this case v34.</p>
 <div class="section level3">
 <h3 id="session-information">Session Information<a class="anchor" aria-label="anchor" href="#session-information"></a>
 </h3>
-<div class="sourceCode" id="cb66"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">sessioninfo</span><span class="fu">::</span><span class="fu"><a href="https://r-lib.github.io/sessioninfo/reference/session_info.html" class="external-link">session_info</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## <span style="color: #00BBBB; font-weight: bold;">─ Session info ───────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">##  <span style="color: #555555; font-style: italic;">setting </span> <span style="color: #555555; font-style: italic;">value</span></span></span>
-<span><span class="co">##  version  R version 4.4.0 (2024-04-24)</span></span>
-<span><span class="co">##  os       macOS Sonoma 14.1.2</span></span>
-<span><span class="co">##  system   aarch64, darwin20</span></span>
-<span><span class="co">##  ui       X11</span></span>
-<span><span class="co">##  language en</span></span>
-<span><span class="co">##  collate  en_US.UTF-8</span></span>
-<span><span class="co">##  ctype    en_US.UTF-8</span></span>
-<span><span class="co">##  tz       America/New_York</span></span>
-<span><span class="co">##  date     2024-06-11</span></span>
-<span><span class="co">##  pandoc   3.1.13 @ /opt/homebrew/bin/ (via rmarkdown)</span></span>
+<div class="sourceCode" id="cb68"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## R version 4.4.1 (2024-06-14)</span></span>
+<span><span class="co">## Platform: aarch64-apple-darwin20</span></span>
+<span><span class="co">## Running under: macOS Sonoma 14.1.2</span></span>
 <span><span class="co">## </span></span>
-<span><span class="co">## <span style="color: #00BBBB; font-weight: bold;">─ Packages ───────────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">##  <span style="color: #555555; font-style: italic;">package     </span> <span style="color: #555555; font-style: italic;">*</span> <span style="color: #555555; font-style: italic;">version   </span> <span style="color: #555555; font-style: italic;">date (UTC)</span> <span style="color: #555555; font-style: italic;">lib</span> <span style="color: #555555; font-style: italic;">source</span></span></span>
-<span><span class="co">##  abind          1.4-5      <span style="color: #555555;">2016-07-21</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  backports      1.5.0      <span style="color: #555555;">2024-05-23</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  BiocParallel   1.38.0     <span style="color: #555555;">2024-04-30</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">Bioconduc~</span></span></span>
-<span><span class="co">##  bit            4.0.5      <span style="color: #555555;">2022-11-15</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  bit64          4.0.5      <span style="color: #555555;">2020-08-30</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  broom          1.0.6      <span style="color: #555555;">2024-05-17</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  bslib          0.7.0      <span style="color: #555555;">2024-03-29</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  cachem         1.1.0      <span style="color: #555555;">2024-05-16</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  car            3.1-2      <span style="color: #555555;">2023-03-30</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  carData        3.0-5      <span style="color: #555555;">2022-01-06</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  cli            3.6.2      <span style="color: #555555;">2023-12-11</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  codetools      0.2-20     <span style="color: #555555;">2024-03-31</span> <span style="color: #555555;">[2]</span> <span style="color: #555555;">CRAN (R 4.4.0)</span></span></span>
-<span><span class="co">##  colorspace     2.1-0      <span style="color: #555555;">2023-01-23</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  cowplot        1.1.3      <span style="color: #555555;">2024-01-22</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  crayon         1.5.2      <span style="color: #555555;">2022-09-29</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  data.table     1.15.4     <span style="color: #555555;">2024-03-30</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  desc           1.4.3      <span style="color: #555555;">2023-12-10</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  digest         0.6.35     <span style="color: #555555;">2024-03-11</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  dplyr        * 1.1.4      <span style="color: #555555;">2023-11-17</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  evaluate       0.23       <span style="color: #555555;">2023-11-01</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  fansi          1.0.6      <span style="color: #555555;">2023-12-08</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  farver         2.1.2      <span style="color: #555555;">2024-05-13</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  fastmap        1.2.0      <span style="color: #555555;">2024-05-15</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  fastmatch      1.1-4      <span style="color: #555555;">2023-08-18</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  fgsea          1.30.0     <span style="color: #555555;">2024-04-30</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">bioc (@1.30.0)</span></span></span>
-<span><span class="co">##  forcats        1.0.0      <span style="color: #555555;">2023-01-29</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  fs           * 1.6.4      <span style="color: #555555;">2024-04-25</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  generics       0.1.3      <span style="color: #555555;">2022-07-05</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  ggplot2      * 3.5.1      <span style="color: #555555;">2024-04-23</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  ggpubr         0.6.0      <span style="color: #555555;">2023-02-10</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  ggrepel        0.9.5      <span style="color: #555555;">2024-01-10</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  ggsignif       0.6.4      <span style="color: #555555;">2022-10-13</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  glue           1.7.0      <span style="color: #555555;">2024-01-09</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  gridExtra      2.3        <span style="color: #555555;">2017-09-09</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  gtable         0.3.5      <span style="color: #555555;">2024-04-22</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  highr          0.11       <span style="color: #555555;">2024-05-26</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  hms            1.1.3      <span style="color: #555555;">2023-03-21</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  htmltools      0.5.8.1    <span style="color: #555555;">2024-04-04</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  htmlwidgets    1.6.4      <span style="color: #555555;">2023-12-06</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  isoformic    * <span style="color: #BB00BB; font-weight: bold;">0.1.0.9006</span> <span style="color: #555555;">2024-06-11</span> <span style="color: #555555;">[1]</span> <span style="color: #BB00BB; font-weight: bold;">local</span></span></span>
-<span><span class="co">##  jquerylib      0.1.4      <span style="color: #555555;">2021-04-26</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  jsonlite       1.8.8      <span style="color: #555555;">2023-12-04</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  knitr          1.47       <span style="color: #555555;">2024-05-29</span> <span style="color: #555555;">[2]</span> <span style="color: #555555;">CRAN (R 4.4.0)</span></span></span>
-<span><span class="co">##  labeling       0.4.3      <span style="color: #555555;">2023-08-29</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  lattice        0.22-6     <span style="color: #555555;">2024-03-20</span> <span style="color: #555555;">[2]</span> <span style="color: #555555;">CRAN (R 4.4.0)</span></span></span>
-<span><span class="co">##  lifecycle      1.0.4      <span style="color: #555555;">2023-11-07</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  magrittr       2.0.3      <span style="color: #555555;">2022-03-30</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  Matrix         1.7-0      <span style="color: #555555;">2024-03-22</span> <span style="color: #555555;">[2]</span> <span style="color: #555555;">CRAN (R 4.4.0)</span></span></span>
-<span><span class="co">##  memoise        2.0.1      <span style="color: #555555;">2021-11-26</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  munsell        0.5.1      <span style="color: #555555;">2024-04-01</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  pillar         1.9.0      <span style="color: #555555;">2023-03-22</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  pkgconfig      2.0.3      <span style="color: #555555;">2019-09-22</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  pkgdown        2.0.9      <span style="color: #555555;">2024-04-18</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  purrr          1.0.2      <span style="color: #555555;">2023-08-10</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  R6             2.5.1      <span style="color: #555555;">2021-08-19</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  ragg           1.3.2      <span style="color: #555555;">2024-05-15</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  Rcpp           1.0.12     <span style="color: #555555;">2024-01-09</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  readr        * 2.1.5      <span style="color: #555555;">2024-01-10</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  rlang          1.1.3      <span style="color: #555555;">2024-01-10</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  rmarkdown      2.27       <span style="color: #555555;">2024-05-17</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  rstatix        0.7.2      <span style="color: #555555;">2023-02-01</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  sass           0.4.9      <span style="color: #555555;">2024-03-15</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  scales         1.3.0      <span style="color: #555555;">2023-11-28</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  sessioninfo    1.2.2      <span style="color: #555555;">2021-12-06</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  stringi        1.8.4      <span style="color: #555555;">2024-05-06</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  stringr      * 1.5.1      <span style="color: #555555;">2023-11-14</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  systemfonts    1.1.0      <span style="color: #555555;">2024-05-15</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  textshaping    0.4.0      <span style="color: #555555;">2024-05-24</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  tibble         3.2.1      <span style="color: #555555;">2023-03-20</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  tidyr        * 1.3.1      <span style="color: #555555;">2024-01-24</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  tidyselect     1.2.1      <span style="color: #555555;">2024-03-11</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  tzdb           0.4.0      <span style="color: #555555;">2023-05-12</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  utf8           1.2.4      <span style="color: #555555;">2023-10-22</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  vctrs          0.6.5      <span style="color: #555555;">2023-12-01</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  viridis        0.6.5      <span style="color: #555555;">2024-01-29</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  viridisLite    0.4.2      <span style="color: #555555;">2023-05-02</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  vroom          1.6.5      <span style="color: #555555;">2023-12-05</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  withr          3.0.0      <span style="color: #555555;">2024-01-16</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  xfun           0.44       <span style="color: #555555;">2024-05-15</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
-<span><span class="co">##  yaml           2.3.8      <span style="color: #555555;">2023-12-11</span> <span style="color: #555555;">[2]</span> <span style="color: #BB00BB; font-weight: bold;">RSPM</span></span></span>
+<span><span class="co">## Matrix products: default</span></span>
+<span><span class="co">## BLAS:   /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRblas.0.dylib </span></span>
+<span><span class="co">## LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0</span></span>
 <span><span class="co">## </span></span>
-<span><span class="co">## <span style="color: #555555;"> [1] /private/var/folders/2q/937_bkg10svdwx1x00prs9nm0000gn/T/Rtmp28DMZh/temp_libpath2f624fd5eade</span></span></span>
-<span><span class="co">## <span style="color: #555555;"> [2] /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library</span></span></span>
+<span><span class="co">## locale:</span></span>
+<span><span class="co">## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8</span></span>
 <span><span class="co">## </span></span>
-<span><span class="co">## <span style="color: #00BBBB; font-weight: bold;">──────────────────────────────────────────────────────────────────────────────</span></span></span></code></pre>
+<span><span class="co">## time zone: America/New_York</span></span>
+<span><span class="co">## tzcode source: internal</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## attached base packages:</span></span>
+<span><span class="co">## [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## other attached packages:</span></span>
+<span><span class="co">## [1] ggplot2_3.5.1        stringr_1.5.1        tidyr_1.3.1         </span></span>
+<span><span class="co">## [4] dplyr_1.1.4          readr_2.1.5          fs_1.6.4            </span></span>
+<span><span class="co">## [7] isoformic_0.1.1.9003</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## loaded via a namespace (and not attached):</span></span>
+<span><span class="co">##  [1] fastmatch_1.1-4     gtable_0.3.6        xfun_0.48          </span></span>
+<span><span class="co">##  [4] bslib_0.8.0         htmlwidgets_1.6.4   ggrepel_0.9.6      </span></span>
+<span><span class="co">##  [7] rstatix_0.7.2       lattice_0.22-6      tzdb_0.4.0         </span></span>
+<span><span class="co">## [10] vctrs_0.6.5         tools_4.4.1         generics_0.1.3     </span></span>
+<span><span class="co">## [13] curl_6.0.0          parallel_4.4.1      tibble_3.2.1       </span></span>
+<span><span class="co">## [16] fansi_1.0.6         highr_0.11          pkgconfig_2.0.3    </span></span>
+<span><span class="co">## [19] Matrix_1.7-1        data.table_1.16.2   desc_1.4.3         </span></span>
+<span><span class="co">## [22] lifecycle_1.0.4     compiler_4.4.1      farver_2.1.2       </span></span>
+<span><span class="co">## [25] textshaping_0.4.0   munsell_0.5.1       fgsea_1.30.0       </span></span>
+<span><span class="co">## [28] codetools_0.2-20    carData_3.0-5       htmltools_0.5.8.1  </span></span>
+<span><span class="co">## [31] sass_0.4.9          yaml_2.3.10         Formula_1.2-5      </span></span>
+<span><span class="co">## [34] pillar_1.9.0        pkgdown_2.1.1       car_3.1-3          </span></span>
+<span><span class="co">## [37] ggpubr_0.6.0        crayon_1.5.3        jquerylib_0.1.4    </span></span>
+<span><span class="co">## [40] BiocParallel_1.38.0 cachem_1.1.0        viridis_0.6.5      </span></span>
+<span><span class="co">## [43] abind_1.4-8         tidyselect_1.2.1    digest_0.6.37      </span></span>
+<span><span class="co">## [46] stringi_1.8.4       purrr_1.0.2         labeling_0.4.3     </span></span>
+<span><span class="co">## [49] forcats_1.0.0       cowplot_1.1.3       fastmap_1.2.0      </span></span>
+<span><span class="co">## [52] grid_4.4.1          colorspace_2.1-1    cli_3.6.3          </span></span>
+<span><span class="co">## [55] magrittr_2.0.3      utf8_1.2.4          broom_1.0.7        </span></span>
+<span><span class="co">## [58] withr_3.0.2         scales_1.3.0        backports_1.5.0    </span></span>
+<span><span class="co">## [61] bit64_4.5.2         rmarkdown_2.28      bit_4.5.0          </span></span>
+<span><span class="co">## [64] gridExtra_2.3       ggsignif_0.6.4      ragg_1.3.3         </span></span>
+<span><span class="co">## [67] hms_1.1.3           evaluate_1.0.1      knitr_1.48         </span></span>
+<span><span class="co">## [70] viridisLite_0.4.2   rlang_1.1.4         Rcpp_1.0.13-1      </span></span>
+<span><span class="co">## [73] glue_1.8.0          vroom_1.6.5         jsonlite_1.8.9     </span></span>
+<span><span class="co">## [76] R6_2.5.1            systemfonts_1.1.0</span></span></code></pre>
 </div>
 <div class="section level3">
 <h3 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h3>
 </div>
 </div>
-  </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
 </div>
 
@@ -938,15 +861,15 @@ transcriptome, in this case v34.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.9.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
 </div>
 
     </footer>
 </div>
 
-  
 
-  
+
+
 
   </body>
 </html>
