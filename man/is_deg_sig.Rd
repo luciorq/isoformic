@@ -2,10 +2,37 @@
 % Please edit documentation in R/functions.R
 \name{is_deg_sig}
 \alias{is_deg_sig}
-\title{Add Differential Gene Expression Results to Transcript Table}
+\title{Annotate Transcripts with Differential Gene Expression Significance}
 \usage{
 is_deg_sig(DegsigVector, DET_table)
 }
+\arguments{
+\item{DegsigVector}{A character vector containing the names of transcripts from significantly differentially expressed genes.}
+
+\item{DET_table}{A \code{data.frame} or \code{tibble} containing transcript-level differential expression results,
+including a \code{transcript_name} column.}
+}
+\value{
+A \code{tibble} with an additional column \code{DEG_sig} indicating whether the transcript is from a significantly
+differentially expressed gene (\code{"YES"} or \code{"NO"}).
+}
 \description{
-Add Differential Gene Expression Results to Transcript Table
+Adds a column to a transcript-level differential expression table indicating whether each transcript
+originates from a gene that is significantly differentially expressed.
+}
+\examples{
+# Sample data
+significant_transcripts <- c("transcript1", "transcript3")
+DET_table <- data.frame(
+  transcript_name = c("transcript1", "transcript2", "transcript3", "transcript4"),
+  log2FC = c(2.5, -1.2, 0.8, -0.5),
+  pvalue = c(0.01, 0.2, 0.03, 0.6)
+)
+
+# Annotate transcripts with DEG significance
+DET_table_annotated <- is_deg_sig(DegsigVector = significant_transcripts, DET_table = DET_table)
+
+# View the result
+print(DET_table_annotated)
+
 }

@@ -6,6 +6,59 @@
 \usage{
 join_DEG_DET(DEG_tab, DET_final_tab, logfc_cut, pval_cut)
 }
+\arguments{
+\item{DEG_tab}{A \code{data.frame} or \code{tibble} containing gene-level differential expression results,
+including \code{gene_id}, \code{gene_name}, \code{log2FC}, and \code{pvalue} columns.}
+
+\item{DET_final_tab}{A \code{data.frame} or \code{tibble} containing transcript-level differential expression results,
+including \code{transcript_id}, \code{transcript_name}, \code{transcript_type}, \code{log2FC}, and \code{pvalue} columns.}
+
+\item{logfc_cut}{A numeric value specifying the absolute log2 fold-change cutoff for significance.}
+
+\item{pval_cut}{A numeric value specifying the p-value cutoff for significance.}
+}
+\value{
+A \code{tibble} combining gene and transcript differential expression results, with additional columns:
+\itemize{
+\item \code{id}: gene or transcript ID.
+\item \code{name}: gene or transcript name.
+\item \code{transcript_type}: type of transcript or \code{"gene"} for gene-level entries.
+\item \code{abs_log2FC}: absolute value of log2 fold-change.
+\item \code{significance}: \code{"sig"} if significant based on cutoffs, \code{"not_sig"} otherwise.
+}
+}
 \description{
-Merge Gene and Transcript Level Differential Expression Tables
+Combines gene-level and transcript-level differential expression results into a single table,
+annotates the combined data with significance labels based on specified cutoffs, and filters
+transcripts based on their types.
+}
+\examples{
+# Sample gene-level data
+DEG_tab <- data.frame(
+  gene_id = c("gene1", "gene2"),
+  gene_name = c("GeneA", "GeneB"),
+  log2FC = c(1.5, -2.0),
+  pvalue = c(0.01, 0.04)
+)
+
+# Sample transcript-level data
+DET_final_tab <- data.frame(
+  transcript_id = c("tx1", "tx2", "tx3"),
+  transcript_name = c("Transcript1", "Transcript2", "Transcript3"),
+  transcript_type = c("protein_coding", "lncRNA", "processed_transcript"),
+  log2FC = c(1.2, -1.8, 0.5),
+  pvalue = c(0.02, 0.03, 0.2)
+)
+
+# Merge and annotate differential expression results
+DEGs_DETs_table <- join_DEG_DET(
+  DEG_tab = DEG_tab,
+  DET_final_tab = DET_final_tab,
+  logfc_cut = 1,
+  pval_cut = 0.05
+)
+
+# View the result
+print(DEGs_DETs_table)
+
 }

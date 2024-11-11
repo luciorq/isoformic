@@ -56,7 +56,7 @@
 #' ggplot(expr_df, aes(x = condition, y = mean_TPM, fill = DE)) +
 #'   geom_bar(stat = "identity", position = position_dodge()) +
 #'   facet_wrap(~ parent_gene + transcript_type)
-#' 
+#'
 #' @export
 prepare_profile_data <- function(
     txi_gene = NULL, # txi abundance genes

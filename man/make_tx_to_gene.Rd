@@ -2,19 +2,41 @@
 % Please edit documentation in R/functions.R
 \name{make_tx_to_gene}
 \alias{make_tx_to_gene}
-\title{Create Transcript to Gene Relationship Table}
+\title{Create Transcript-to-Gene Relationship Table}
 \usage{
-make_tx_to_gene(file_path, file_type = "fasta")
+make_tx_to_gene(file_path, file_type = c("fasta", "gff"))
 }
 \arguments{
-\item{file_path}{Path to file containing the reference.}
+\item{file_path}{A character string specifying the path to the reference file (e.g., GENCODE FASTA file).}
 
-\item{file_type}{Character indicating the type of file to download.
-One of \code{"gtf"}, \code{"gff"}, or \code{"fasta"}. Defaults to \code{"gtf"}.
-\strong{NOTE:} \code{"fasta"} refers to the transcriptome FASTA.}
+\item{file_type}{A character string specifying the type of the reference file. Currently, only \code{"fasta"} is supported.
+Default is \code{"fasta"}.}
+}
+\value{
+A \code{tibble} containing the transcript-to-gene mapping information, including transcript IDs, gene IDs,
+transcript names, gene names, and transcript types.
 }
 \description{
-This function can extract a transcript to gene relationship table
-from GENCODE annotation files, such as the transcriptome FASTA and
-GFF3 or GTF annotation files.
+Extracts a transcript-to-gene mapping table from GENCODE annotation files, such as the transcriptome FASTA file.
+Currently, only FASTA files are supported.
+}
+\details{
+The function reads the headers of the FASTA file and extracts relevant information to create a mapping table.
+For GTF or GFF3 files, support is not yet implemented.
+}
+\examples{
+# Assuming you have downloaded the GENCODE transcriptome FASTA file:
+fasta_file <- download_reference(
+  version = "43",
+  organism = "human",
+  file_type = "fasta",
+  output_path = "data-raw"
+)
+
+# Create the transcript-to-gene mapping table
+tx_to_gene <- make_tx_to_gene(file_path = fasta_file, file_type = "fasta")
+
+# View the first few rows
+head(tx_to_gene)
+
 }

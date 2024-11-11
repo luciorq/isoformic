@@ -2,19 +2,60 @@
 % Please edit documentation in R/functions.R
 \name{run_enrichment}
 \alias{run_enrichment}
-\title{Run Functional Analysis}
+\title{Run Gene Set Enrichment Analysis for Different Transcript Types}
 \usage{
 run_enrichment(det_df, genesets_list, pval_cutoff = 0.05, lfc_cutoff = 1)
 }
 \arguments{
-\item{det_df}{data.frame with differential expression of transcripts}
+\item{det_df}{A \code{data.frame} or \code{tibble} containing transcript-level differential expression results,
+including \code{transcript_type}, \code{log2FC}, and \code{gene_name} columns.}
 
-\item{genesets_list}{list of gene sets to be used in the enrichment analysis}
+\item{genesets_list}{A list of gene sets to be used in the enrichment analysis.}
 
-\item{pval_cutoff}{p-value cutoff for the enrichment analysis}
+\item{pval_cutoff}{A numeric value specifying the p-value cutoff for the enrichment results. Default is \code{0.05}.}
 
-\item{lfc_cutoff}{log2 fold change cutoff for the enrichment analysis}
+\item{lfc_cutoff}{A numeric value specifying the log2 fold-change cutoff for filtering transcripts. Default is \code{1}.}
+}
+\value{
+A \code{tibble} containing the enrichment analysis results for each transcript type, including pathway names,
+p-values, adjusted p-values, and the transcript type (experiment).
 }
 \description{
-Run Functional Analysis
+Performs gene set enrichment analysis (GSEA) on differential expression results for various transcript types,
+using the \code{fgsea} package. The function iterates over specified transcript types, filters the data accordingly,
+and runs GSEA for each type.
+}
+\details{
+The function defines a list of transcript types and their corresponding labels.
+It then filters the input differential expression data for each transcript type, ranks the genes by log2 fold-change,
+and performs GSEA using the \code{fgsea} package.
+}
+\examples{
+# Sample differential expression data
+det_df <- data.frame(
+  gene_name = c("GeneA", "GeneB", "GeneC", "GeneD"),
+  transcript_type = c(
+    "protein_coding", "retained_intron",
+    "processed_transcript", "nonsense_mediated_decay"
+  ),
+  log2FC = c(1.5, -2.0, 0.8, -1.2)
+)
+
+# Sample gene sets
+genesets_list <- list(
+  Pathway1 = c("GeneA", "GeneC"),
+  Pathway2 = c("GeneB", "GeneD")
+)
+
+# Run enrichment analysis
+fgsea_results_df <- run_enrichment(
+  det_df = det_df,
+  genesets_list = genesets_list,
+  pval_cutoff = 0.05,
+  lfc_cutoff = 1
+)
+
+# View the results
+print(fgsea_results_df)
+
 }

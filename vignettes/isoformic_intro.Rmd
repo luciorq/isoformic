@@ -574,13 +574,11 @@ dual_exon_df |>
   plot_tx_context()
 ```
 
-<!--
 ## Session Information
 
 ```{r}
-sessioninfo::session_info()
+sessionInfo()
 ```
--->
 
 ## References
 

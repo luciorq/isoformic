@@ -2,7 +2,7 @@
 % Please edit documentation in R/download_reference.R
 \name{download_reference}
 \alias{download_reference}
-\title{Download Reference Files From GENCODE}
+\title{Download Reference Files from GENCODE}
 \usage{
 download_reference(
   version = "46",
@@ -15,36 +15,72 @@ download_reference(
 )
 }
 \arguments{
-\item{version}{Character with the version string. For mouse references,
-the letter 'M' in the version string is mandatory.}
+\item{version}{A character string specifying the GENCODE release version.
+For mouse references, include the letter 'M' in the version string (e.g., \code{"M32"}).
+Default is \code{"46"}.}
 
-\item{reference}{Character indicating the source of the reference file.
-One of "gencode" or "mane". Defaults to "gencode".
-\strong{NOTE:} "mane" is not implemented yet.}
+\item{reference}{A character string specifying the source of the reference file.
+Currently, only \code{"gencode"} is supported. Default is \code{"gencode"}.}
 
-\item{organism}{Character indicating the organism.
-For GENCODE, this can only \code{"human"} or \code{"mouse"}.}
+\item{organism}{A character string specifying the organism.
+Valid options are \code{"human"} or \code{"mouse"}.}
 
-\item{file_type}{Character indicating the type of file to download.
-One of \code{"gtf"}, \code{"gff"}, or \code{"fasta"}. Defaults to \code{"gtf"}.
-\strong{NOTE:} \code{"fasta"} refers to the transcriptome FASTA.}
+\item{file_type}{A character string specifying the type of file to download.
+Valid options are \code{"gtf"}, \code{"gff"}, or \code{"fasta"}. Defaults to \code{"gtf"}.
+\strong{Note:} \code{"fasta"} refers to the transcriptome FASTA file.}
 
-\item{output_path}{Character specifying the directory where the
+\item{output_path}{A character string specifying the directory where the
 downloaded file will be saved. Defaults to \code{"data-raw"}.}
 
-\item{timeout_limit}{Numeric value specifying the time in seconds for the
-download limit. This argument takes precedence over
-\code{base::options("timeout")}. Defaults to 3600 seconds (1 Hour).}
+\item{timeout_limit}{A numeric value specifying the maximum time in seconds for the
+download to complete. This argument takes precedence over \code{options("timeout")}.
+Defaults to \code{3600} seconds (1 hour).}
 
-\item{method}{Character specifying the method used by
-\code{utils::download.file()}. Defaults to \code{"auto"}}
+\item{method}{A character string specifying the method used by
+\code{utils::download.file()}. Defaults to \code{"auto"}.}
 }
 \value{
 A character string with the full path to the downloaded file.
 }
 \description{
-This function facilitates the downloading of reference files from the GENCODE database.
-It supports downloading GTF, GFF, and transcriptome FASTA files for human and mouse genomes.
-The function ensures that the correct version and file type are downloaded and handles directory creation
-and file existence checks to avoid redundant downloads.
+Downloads reference annotation files from the GENCODE database for human or mouse genomes.
+Supports downloading GTF, GFF, and transcriptome FASTA files. The function handles directory
+creation and checks for existing files to avoid redundant downloads.
+}
+\details{
+The function constructs the appropriate download URL based on the specified organism,
+version, and file type, and downloads the file to the specified output path.
+If the file already exists in the output directory, the function will not download it again
+and will return the existing file path. The function requires an internet connection and
+handles timeout settings to prevent download interruptions.
+}
+\note{
+Currently, only \code{"gencode"} reference files are supported.
+The \code{"mane"} reference is not implemented yet.
+}
+\examples{
+# Download human GTF file for GENCODE release 43
+gtf_file <- download_reference(
+  version = "43",
+  organism = "human",
+  file_type = "gtf",
+  output_path = "data-raw"
+)
+
+# Download mouse GTF file for GENCODE release M32
+gtf_file_mouse <- download_reference(
+  version = "M32",
+  organism = "mouse",
+  file_type = "gtf",
+  output_path = "data-raw"
+)
+
+# Download human transcriptome FASTA file for GENCODE release 43
+fasta_file <- download_reference(
+  version = "43",
+  organism = "human",
+  file_type = "fasta",
+  output_path = "data-raw"
+)
+
 }

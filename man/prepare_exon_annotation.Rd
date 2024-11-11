@@ -9,9 +9,9 @@ prepare_exon_annotation(gene_name, file_path, file_type = c("gff", "gtf"))
 \arguments{
 \item{file_path}{Path to annotation file.}
 
-\item{file_type}{Character indicating the type of file to download.
-One of \code{"gtf"}, \code{"gff"}, or \code{"fasta"}. Defaults to \code{"gtf"}.
-\strong{NOTE:} \code{"fasta"} refers to the transcriptome FASTA.}
+\item{file_type}{A character string specifying the type of file to download.
+Valid options are \code{"gtf"}, \code{"gff"}, or \code{"fasta"}. Defaults to \code{"gtf"}.
+\strong{Note:} \code{"fasta"} refers to the transcriptome FASTA file.}
 
 \item{gene_names}{String or vector of gene names to extract.}
 }

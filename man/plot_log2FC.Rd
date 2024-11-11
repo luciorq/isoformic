@@ -2,10 +2,48 @@
 % Please edit documentation in R/functions.R
 \name{plot_log2FC}
 \alias{plot_log2FC}
-\title{Plot Log2 Fold-Change Results}
+\title{Plot Log2 Fold-Change Results for Selected Genes}
 \usage{
 plot_log2FC(DEG_DET_table, selected_gene, custom_colors = NULL)
 }
+\arguments{
+\item{DEG_DET_table}{A \code{data.frame} or \code{tibble} containing combined gene and transcript differential expression results,
+including \code{name}, \code{log2FC}, \code{transcript_type}, \code{significance}, and \code{gene_name} columns.}
+
+\item{selected_gene}{A character string specifying the gene name to plot.}
+
+\item{custom_colors}{An optional named vector of colors for different transcript types.}
+}
+\value{
+A \code{ggplot2} object representing the bar plot.
+}
 \description{
-Plot Log2 Fold-Change Results
+Creates a bar plot of log2 fold-change values for transcripts of a selected gene,
+differentiating transcript types and significance levels.
+}
+\details{
+The function filters the input table for the selected gene and creates a bar plot of log2 fold-change values.
+If all transcripts are significant, it plots without adjusting alpha transparency; otherwise, it adjusts alpha
+based on significance. The function uses predefined colors for transcript types, which can be overridden
+by providing \code{custom_colors}.
+}
+\examples{
+# Sample data
+DEGs_DETs_table <- data.frame(
+  name = c("Transcript1", "Transcript2", "GeneA"),
+  log2FC = c(1.5, -2.0, 0.8),
+  transcript_type = c("protein_coding", "lncRNA", "gene"),
+  significance = c("sig", "not_sig", "sig"),
+  gene_name = c("GeneA", "GeneA", "GeneA")
+)
+
+# Plot log2 fold-change for the selected gene
+plot_obj <- plot_log2FC(
+  DEG_DET_table = DEGs_DETs_table,
+  selected_gene = "GeneA"
+)
+
+# Display the plot
+print(plot_obj)
+
 }
