@@ -21,7 +21,7 @@
 
 # isoformic v0.1.0
 
-* Initial support for `SummarizedExperiment` and `MultiAssayExperiment`. 
+* Initial support for `SummarizedExperiment` and `MultiAssayExperiment`.
 
 # isoformic v0.0.1
 
