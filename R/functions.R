@@ -288,7 +288,7 @@ plot_log2FC <- function(DEG_DET_table, selected_gene, custom_colors = NULL) {
       )
     ) +
       ggplot2::geom_bar(stat = "identity") +
-      ggplot2::scale_fill_manual(values = tx_type_color_names) +
+      ggplot2::scale_fill_manual(values = tx_type_palette()) +
       ggplot2::theme_bw()
   } else {
     plot_obj <- ggplot2::ggplot(
@@ -301,9 +301,28 @@ plot_log2FC <- function(DEG_DET_table, selected_gene, custom_colors = NULL) {
       )
     ) +
       ggplot2::geom_bar(stat = "identity") +
-      ggplot2::scale_fill_manual(values = tx_type_color_names) +
+      ggplot2::scale_fill_manual(values = tx_type_palette()) +
       ggplot2::theme_bw()
   }
   return(plot_obj)
   # ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, vjust = 0.5))
+}
+
+tx_type_palette <- function() {
+  fixed_tx_biotypes <- c(
+    "gene", "protein_coding", "retained_intron",
+    "processed_transcript", "nonsense_mediated_decay",
+    "lncRNA", "processed_pseudogene",
+    "transcribed_unprocessed_pseudogene",
+    "unprocessed_pseudogene", "non_stop_decay", "transcribed_unitary_pseudogene",
+    "pseudogene", "unitary_pseudogene"
+  )
+  tx_type_color_names <- c(
+    "#fb8072", "#a6d854", "#8da0cb", "#fc8d62",
+    "#66c2a5", "#e78ac3", "#ffd92f", "#e5c494",
+    "#d9d9d9", "#d9d9d9", "#d9d9d9", "#ffffb3",
+    "#d9d9d9"
+  )
+  names(tx_type_color_names) <- fixed_tx_biotypes
+  return(tx_type_color_names)
 }

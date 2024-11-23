@@ -77,8 +77,8 @@ plot_tx_context <- function(
       ),
       color = NA
     ) +
-    ggplot2::scale_fill_manual(values = tx_type_color_names) +
-    ggplot2::scale_color_manual(values = tx_type_color_names) +
+    ggplot2::scale_fill_manual(values = tx_type_palette()) +
+    ggplot2::scale_color_manual(values = tx_type_palette()) +
     ggplot2::geom_segment(
       mapping = ggplot2::aes(
         x = segment_start,

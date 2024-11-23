@@ -328,7 +328,8 @@ This table will represent cases which could be characterized as isoform switches
 
 Before we start plotting we will define a general set of colors to be used through the entire pipeline associated with a certain type of transcript. Here we colored all the most abundant types separately and the less abundant on the same grey tone and name that vector accordingly
 
-```{r}
+```{r, eval=FALSE}
+# TODO: @luciorq Check implementation of function `tx_type_palette()`
 fixed_tx_biotypes <- c(
   "gene", "protein_coding", "retained_intron",
   "processed_transcript", "nonsense_mediated_decay",

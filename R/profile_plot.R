@@ -95,7 +95,7 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
       size = 3, shape = 21
     ) +
     ggplot2::scale_alpha_manual(values = transparency_vector) +
-    ggplot2::scale_color_manual(values = tx_type_color_names, aesthetics = c("color", "fill")) +
+    ggplot2::scale_color_manual(values = tx_type_palette(), aesthetics = c("color", "fill")) +
     # ggplot2::theme_bw()
     ggpubr::theme_pubr() +
     ggplot2::theme(legend.position = "right") +
