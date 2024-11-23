@@ -8,44 +8,44 @@ Authors@R: c(
            comment = c(ORCID = "0000-0002-0707-5588")),
     person("Luigi", "Marchionni", , "lum4003@med.cornell.edu", role = c("aut", "ctb"),
            comment = c(ORCID = "0000-0002-7336-8071")),
-   person("Gloria", "Franco", , "gfranco@ufmg.br", role = c("aut", "ctb"),
+    person("Gloria", "Franco", , "gfranco@ufmg.br", role = c("aut", "ctb"),
            comment = c(ORCID = "0000-0001-5245-2365"))
   )
 Description: Isoform-level biological interpretation of transcriptomic
     data.
 License: MIT + file LICENSE
+URL: https://github.com/luciorq/isoformic,
+    https://luciorq.github.io/isoformic/
+BugReports: https://github.com/luciorq/isoformic/issues
 Imports:
     cli,
     dplyr,
+    fgsea,
     forcats,
     fs,
     ggplot2,
+    ggpubr,
+    ggrepel,
     glue,
+    purrr,
     readr,
     rlang,
     stringr,
     tibble,
     tidyr,
-    withr,
-    fgsea,
     vroom,
-    ggpubr,
-    ggrepel,
-    purrr
+    withr
 Suggests:
-    knitr,
-    rmarkdown,
-    viridis,
     curl,
     fishpond,
-    testthat (>= 3.0.0)
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0),
+    viridis
 VignetteBuilder:
     knitr
 BiocViews:
+Config/testthat/edition: 3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
-URL: https://github.com/luciorq/isoformic,
-    https://luciorq.github.io/isoformic/
-BugReports: https://github.com/luciorq/isoformic/issues
-Config/testthat/edition: 3
