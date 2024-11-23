@@ -145,5 +145,5 @@ download_reference <- function(version = "46",
       )
     )
   }
-  return(full_output_path)
+  invisible(full_output_path)
 }
