@@ -199,12 +199,6 @@ run_enrichment <- function(det_df,
     "nonsense_mediated_decay"
   )
 
-  # TODO: @luciorq Better define the non-coding category
-  # + maybe something that translates:
-  # + "non-coding isoform from protein coding gene + lncRNAs"
-
-  # TODO: @iza editei aqui e coloquei unproductive no lugar de non-coding
-  # tambem removi os lncRNAs ali em cima e aqui
   tx_type_names <- c(
     "protein_coding",
     "unproductive",
@@ -213,8 +207,8 @@ run_enrichment <- function(det_df,
     "nonsense_mediated_decay"
   )
   fgsea_results_df <- base::seq_along(tx_type_names) |>
-    purrr::map_dfr(
-      .f = \(x) {
+    purrr::map(
+      .f = function(x) {
         type_vec <- tx_types_list[[x]]
         type_name <- tx_type_names[x]
         res_fgsea <- det_df |>
@@ -228,10 +222,10 @@ run_enrichment <- function(det_df,
           pathways = genesets_list,
           stats = ranks,
           eps = 0
-        ) |>
-          tibble::as_tibble() |>
-          dplyr::filter(pval < 0.05) |>
-          dplyr::mutate(experiment = type_name)
+        ) # |>
+          #tibble::as_tibble() |>
+          #dplyr::filter(pval < 0.05) |>
+          #dplyr::mutate(experiment = type_name)
         return(fgsea_results)
       }
     )
@@ -314,7 +308,8 @@ tx_type_palette <- function() {
     "processed_transcript", "nonsense_mediated_decay",
     "lncRNA", "processed_pseudogene",
     "transcribed_unprocessed_pseudogene",
-    "unprocessed_pseudogene", "non_stop_decay", "transcribed_unitary_pseudogene",
+    "unprocessed_pseudogene", "non_stop_decay",
+    "transcribed_unitary_pseudogene",
     "pseudogene", "unitary_pseudogene"
   )
   tx_type_color_names <- c(

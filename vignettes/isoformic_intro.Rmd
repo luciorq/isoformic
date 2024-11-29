@@ -453,10 +453,13 @@ Visualize how is our table before running
 head(PE1_DETs_final)
 ```
 
-Then you run the run_enrichment function it needs your DETs final table, the genesetlist and a pvalue cutoff to be used.
+Then you run the `run_enrichment()` function it needs your DETs final table, the gene set list and a p-value cutoff to be used.
 It will generate a table of enrichment but with an extra column "experiment".
 
 ```{r, warning=FALSE}
+
+fgsea::fgseaSimple()
+
 enrichment_df <- run_enrichment(
   det_df = PE1_DETs_final,
   genesets_list = genesets_list,
@@ -473,7 +476,7 @@ This experiment column has five possible values: Protein-coding: which is the en
 Unproductive: This is a term that will be used moving forward to combine those three categories of alternative spliced isoforms transcribed by coding genes. The authors are aware that biologically this term is deprecated since those kind of transcripts can produce peptides from alternative translation pathways. So here unproductive should be read as virtually incapable of producing the protein that is associated with that gene.
 As interpretation, we made this category to find pathways which are not being regulated on our coding data, but by the unproductive transcripts.
 
-We also added three categories which are the individual alternative spliced types and the pathways regulated by those for specific analysis. In a very deep transcriptome the individual enrichment from those categories can also lead to promissing insights.
+We also added three categories which are the individual alternative spliced types and the pathways regulated by those for specific analysis. In a very deep transcriptome the individual enrichment from those categories can also lead to promising insights.
 
 Plotting the enrichment
 
