@@ -1,0 +1,25 @@
+{
+  // Enable linting for .md, .Rmd, and .qmd files
+  "globs": [
+    "**/*.md",
+    "**/*.Rmd",
+    "**/*.qmd"
+  ],
+  // Rule configuration scoped to this directory and below
+  "config": {
+    // Default/global rules (can be empty or customized here)
+    // This is because of `NEWS.md` MD025
+    "no-duplicate-heading": {
+      "siblings_only": true
+    },
+    // Allow lines up to 120 characters
+    "MD013": {
+      "line_length": 120
+    },
+    // Ignore first-line heading in .Rmd/.qmd (YAML header present)
+    // Uncomment if find this problem in Vignettes
+    // "MD041": false,
+    // Allow inline HTML, e.g. package logo inline HTML
+    "MD033": false
+  }
+}

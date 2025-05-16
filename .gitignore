@@ -5,3 +5,12 @@ inst/doc
 *.pdf
 /doc/
 /Meta/
+.Rhistory
+.Rdata
+.httr-oauth
+.DS_Store
+renv
+renv.lock
+revdep
+.Rprofile
+README.html

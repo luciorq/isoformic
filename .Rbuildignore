@@ -1,3 +1,11 @@
+^renv$
+^renv\.lock$
+^condathis\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^\.Rprofile$
+^justfile$
+^data-raw$
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^\.github$
@@ -8,4 +16,15 @@
 ^Meta$
 ^justfile$
 ^data-raw$
+^vignettes/*_files$
+^README\.Rmd$
+^README\.qmd$
+^README\.html$
+^cran-comments\.md$
+^CRAN-SUBMISSION$
+^revdep$
+^\.markdownlint\.json$
+^\.markdownlint\.jsonc$
+^\.markdownlint-cli2\.jsonc$
+^\.markdownlint-cli2\.yaml$
 ^LICENSE\.md$
