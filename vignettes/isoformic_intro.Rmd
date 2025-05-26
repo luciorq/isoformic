@@ -157,11 +157,9 @@ head(sample_table)
 
 #### Download reference files
 
-The references used for this project were obtained from from the [GENCODE Project][gencode-ref] version 34 for the Human genome annotation.
+The references used for this project were obtained from the [GENCODE Project][gencode-ref] version 34 for the Human genome annotation. The annotation file in GFF3 format was obtained from <https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_34/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz>.
 
-The annotation file in GFF3 format was obtained from <https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_34/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz>.
-
-This step may take a while depending on the speed of your internet connection
+This step may take a while depending on the speed of your internet connection.
 
 ```{r, eval=TRUE}
 download_reference(version = "34", file_type = "fasta")
@@ -169,9 +167,7 @@ download_reference(version = "34", file_type = "fasta")
 download_reference(version = "34", file_type = "gff")
 ```
 
-------------------------------------------------------------------------
-ata-raw/gencode.v34.annotation.gff3.gz
-<!-- 
+To download mouse references, it is necessary to include the letter 'M' in the version string (e.g., "M37").
 
 ### Part 2: Create the `linkedTxome` object from GENCODE annotation
 
@@ -230,7 +226,7 @@ tx_to_gene <- make_tx_to_gene(
 head(tx_to_gene)
 ```
 
-Now our `tx_to_gene` table has 6 columns that are in order: Ensembl transcript id, Ensembl gene id, Havanna gene id, Havanna transcript id, transcript name, gene name, entrez gene number and transcript type.
+Now our `tx_to_gene` table has 6 columns that are in order: Ensembl transcript id, Ensembl gene id, Havanna gene id, Havanna transcript id, transcript name, gene name, transcript length and transcript type.
 For the DEG, DET and TPM table we will need the Ensembl gene id, the Gene name and the transcript type information so we can convert our tables for transcript_name and add the type information and if the gene is a DE to the DET table.
 
 Select the columns with the gene id and the gene name info
@@ -331,19 +327,20 @@ Before we start plotting we will define a general set of colors to be used throu
 ```{r, eval=FALSE}
 # TODO: @luciorq Check implementation of function `tx_type_palette()`
 fixed_tx_biotypes <- c(
-  "gene", "protein_coding", "retained_intron",
-  "processed_transcript", "nonsense_mediated_decay",
-  "lncRNA", "processed_pseudogene",
-  "transcribed_unprocessed_pseudogene",
-  "unprocessed_pseudogene", "non_stop_decay", "transcribed_unitary_pseudogene",
-  "pseudogene", "unitary_pseudogene"
+    "gene", "protein_coding", "retained_intron",
+    "protein_coding_CDS_not_defined", "nonsense_mediated_decay",
+    "lncRNA", "processed_pseudogene",
+    "transcribed_unprocessed_pseudogene",
+    "unprocessed_pseudogene", "non_stop_decay",
+    "transcribed_unitary_pseudogene",
+    "pseudogene", "unitary_pseudogene", "processed_transcript"
 )
 
 tx_type_color_names <- c(
   "#fb8072", "#a6d854", "#8da0cb", "#fc8d62",
   "#66c2a5", "#e78ac3", "#ffd92f", "#e5c494",
   "#d9d9d9", "#d9d9d9", "#d9d9d9", "#ffffb3",
-  "#d9d9d9"
+  "#d9d9d9", "#d9d9d9"
 )
 
 names(tx_type_color_names) <- fixed_tx_biotypes
@@ -428,7 +425,7 @@ One of the biggest caveats for transcript level analysis is that in many times i
 The next step for gene-level DE would be functional enrichment or assigning the genes to metabolic pathways those may be regulating.
 Unfortunately are no comprehensive datasets for pathways transcripts may be regulating and the gene level analyses normally loses the difference between those transcripts which can produce proteins (protein_coding) from canonical translation pathways and those which cannot.
 To solve this problem we developed a method of expanding the known .gmts for transcript information and then separately enrich each selected category of transcript.
-Between the alternative spliced isoforms of that do not code for canonical proteins the most abundant are those classified as *Nonsense-mediated decay*, that have a premature stop codon which is subject to targeted degradation and the *Processed transcript*, which, for any reason, do not posses a complete Open Reading Frame.
+Between the alternative spliced isoforms of that do not code for canonical proteins the most abundant are those classified as *Nonsense-mediated decay*, that have a premature stop codon which is subject to targeted degradation and the *Protein coding CDS not defined* (formerly identified as "processed transcript"), which, for any reason, do not possess a complete Open Reading Frame.
 Inside the processed transcript category the one with the highest count are the *Retained introns*, sequences which retain an intronic portion after their processing.
 
 These three categories are the most abundant in those transcripts which arise from the alternative splicing of a protein coding gene and these three will be the main focus for our enrichment and further graphs.
@@ -458,11 +455,10 @@ It will generate a table of enrichment but with an extra column "experiment".
 
 ```{r, warning=FALSE}
 
-fgsea::fgseaSimple()
-
 enrichment_df <- run_enrichment(
   det_df = PE1_DETs_final,
   genesets_list = genesets_list,
+  tx_to_gene = tx_to_gene,
   pval_cutoff = 0.05
 )
 head(enrichment_df)
@@ -482,7 +478,7 @@ Plotting the enrichment
 
 We used a LollipopPlot to plot all the enrichments side by side with the size of each pathway as the radius of the circles and the transparency is if that pathway passes on the desired cutoff. First we plot for only Protein_coding versus Unproductive with a very extringent NES cutoff.
 
-```{r, fig.height=12}
+```{r, fig.height=6, fig.width=15}
 enrichment_df |>
   dplyr::filter((experiment %in% c("protein_coding", "unproductive")) & (abs(NES) > 2)) |>
   dplyr::arrange(padj) |>
@@ -496,7 +492,7 @@ enrichment_df |>
 
 And now the specific unproductive subtypes
 
-```{r}
+```{r fig.height=6, fig.width=15}
 enrichment_df |>
   dplyr::filter(!experiment %in% c("protein_coding", "unproductive") & abs(NES) > 1.5) |>
   dplyr::arrange(padj) |>
