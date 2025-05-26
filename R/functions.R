@@ -101,7 +101,7 @@ join_DEG_DET <- function(DEG_tab, DET_final_tab, logfc_cut, pval_cut) {
   DET_final_tab <- DET_final_tab |>
     dplyr::filter(
       transcript_type %in% c(
-        "retained_intron",
+        "retained_intron", "protein_coding_CDS_not_defined",
         "processed_transcript",
         "nonsense_mediated_decay",
         "lncRNA", "protein_coding",
@@ -160,7 +160,7 @@ join_DEG_DET <- function(DEG_tab, DET_final_tab, logfc_cut, pval_cut) {
 #' det_df <- data.frame(
 #'   gene_name = c("GeneA", "GeneB", "GeneC", "GeneD"),
 #'   transcript_type = c(
-#'     "protein_coding", "retained_intron",
+#'     "protein_coding", "retained_intron", "protein_coding_CDS_not_defined",
 #'     "processed_transcript", "nonsense_mediated_decay"
 #'   ),
 #'   log2FC = c(1.5, -2.0, 0.8, -1.2)
@@ -186,16 +186,20 @@ join_DEG_DET <- function(DEG_tab, DET_final_tab, logfc_cut, pval_cut) {
 #' @export
 run_enrichment <- function(det_df,
                            genesets_list,
+                           tx_to_gene,
                            pval_cutoff = 0.05,
                            lfc_cutoff = 1) {
+  processed_or_cds <- ifelse(sum(tx_to_gene$transcript_type == "processed_transcript") > 1500,
+                             "processed_transcript",
+                             "protein_coding_CDS_not_defined")
   tx_types_list <- list(
     "protein_coding",
     c(
-      "retained_intron", "processed_transcript",
+      "retained_intron", processed_or_cds,
       "nonsense_mediated_decay"
     ),
     "retained_intron",
-    "processed_transcript",
+    processed_or_cds,
     "nonsense_mediated_decay"
   )
 
@@ -203,7 +207,7 @@ run_enrichment <- function(det_df,
     "protein_coding",
     "unproductive",
     "retained_intron",
-    "processed_transcript",
+    processed_or_cds,
     "nonsense_mediated_decay"
   )
   fgsea_results_df <- base::seq_along(tx_type_names) |>
@@ -217,21 +221,29 @@ run_enrichment <- function(det_df,
           dplyr::arrange(log2FC)
         # TODO: @luciorq add option for log2FC * log10pvalue
         ranks <- res_fgsea$log2FC
-        names(ranks) <- res_fgsea$gene_name
+        names(ranks) <- res_fgsea$transcript_name
+        genesets_list <- tibble::enframe(genesets_list, name = "term", value = "gene_name") |>
+          tidyr::unnest(cols = gene_name)
+        genesets_list <- genesets_list |>
+          dplyr::left_join(tx_to_gene |> dplyr::select(transcript_name, gene_name), by="gene_name")
+        genesets_list <- split(genesets_list$transcript_name,
+                               genesets_list$term)
         fgsea_results <- fgsea::fgseaMultilevel(
           pathways = genesets_list,
           stats = ranks,
           eps = 0
-        ) # |>
+        ) |>
           #tibble::as_tibble() |>
-          #dplyr::filter(pval < 0.05) |>
-          #dplyr::mutate(experiment = type_name)
+          dplyr::filter(pval < pval_cutoff) |>
+          dplyr::mutate(experiment = type_name)
         return(fgsea_results)
       }
-    )
-  return(fgsea_results_df)
-}
+    ) |> purrr::set_names(tx_type_names)
 
+  fgsea_combined <- dplyr::bind_rows(fgsea_results_df)
+
+  return(fgsea_combined)
+}
 
 #' Plot Log2 Fold-Change Results for Selected Genes
 #'
@@ -305,18 +317,18 @@ plot_log2FC <- function(DEG_DET_table, selected_gene, custom_colors = NULL) {
 tx_type_palette <- function() {
   fixed_tx_biotypes <- c(
     "gene", "protein_coding", "retained_intron",
-    "processed_transcript", "nonsense_mediated_decay",
+    "protein_coding_CDS_not_defined", "nonsense_mediated_decay",
     "lncRNA", "processed_pseudogene",
     "transcribed_unprocessed_pseudogene",
     "unprocessed_pseudogene", "non_stop_decay",
     "transcribed_unitary_pseudogene",
-    "pseudogene", "unitary_pseudogene"
+    "pseudogene", "unitary_pseudogene", "processed_transcript"
   )
   tx_type_color_names <- c(
     "#fb8072", "#a6d854", "#8da0cb", "#fc8d62",
     "#66c2a5", "#e78ac3", "#ffd92f", "#e5c494",
     "#d9d9d9", "#d9d9d9", "#d9d9d9", "#ffffb3",
-    "#d9d9d9"
+    "#d9d9d9", "#d9d9d9"
   )
   names(tx_type_color_names) <- fixed_tx_biotypes
   return(tx_type_color_names)
