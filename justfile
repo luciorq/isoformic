@@ -14,7 +14,14 @@ github_org := 'luciorq'
   R -q -e 'devtools::load_all();styler::style_pkg();';
   R -q -e 'devtools::load_all();usethis::use_tidy_description();';
   R -q -e 'devtools::load_all();devtools::document();';
+  # R -q -e 'devtools::load_all();devtools::run_examples();';
   R -q -e 'devtools::load_all();devtools::test();';
+  # R -q -e 'devtools::load_all();rmarkdown::render("README.Rmd", encoding = "UTF-8")';
+
+@test-all-examples:
+  #!/usr/bin/env -vS bash -i
+  \builtin set -euxo pipefail;
+  R -q -e 'devtools::load_all();devtools::run_examples(run_dontrun = TRUE, run_donttest = TRUE);';
 
 @check:
   #!/usr/bin/env -vS bash -i
