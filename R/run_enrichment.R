@@ -48,18 +48,23 @@
 #' print(fgsea_results_df)
 #'
 #' @export
-run_enrichment <- function(det_df,
-                           genesets_list,
-                           tx_to_gene,
-                           pval_cutoff = 0.05,
-                           lfc_cutoff = 1) {
-  processed_or_cds <- ifelse(sum(tx_to_gene$transcript_type == "processed_transcript") > 1500,
-                             "processed_transcript",
-                             "protein_coding_CDS_not_defined")
+run_enrichment <- function(
+    det_df,
+    genesets_list,
+    tx_to_gene,
+    pval_cutoff = 0.05,
+    lfc_cutoff = 1) {
+  .data <- rlang::.data
+  processed_or_cds <- ifelse(
+    test = sum(tx_to_gene$transcript_type == "processed_transcript") > 1500,
+    yes = "processed_transcript",
+    no = "protein_coding_CDS_not_defined"
+  )
   tx_types_list <- list(
     "protein_coding",
     c(
-      "retained_intron", processed_or_cds,
+      "retained_intron",
+      processed_or_cds,
       "nonsense_mediated_decay"
     ),
     "retained_intron",

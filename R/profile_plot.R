@@ -25,16 +25,20 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
 
   dodge_value <- ggplot2::position_dodge(width = 0.008)
 
+  calculate_sd_min <- function(x, y) {
+    for (i in seq_along(x)) {
+      if (x[i] - y[i] < 0) {
+        x[i] <- 0
+        y[i] <- 0
+      }
+    }
+    return(log2((x - y) + 1))
+  }
+
   plot_df <- expr_df |>
     dplyr::filter(.data$parent_gene %in% genes_to_plot) |>
     dplyr::mutate(log2_mean_TPM = log2(.data$mean_TPM + 1)) |>
-    dplyr::mutate(
-      sd_min = dplyr::if_else(
-        .data$mean_TPM - .data$SD <= 0,
-        true = 0,
-        false = log2((.data$mean_TPM - .data$SD) + 1)
-      )
-    ) |>
+    dplyr::mutate(sd_min = calculate_sd_min(.data$mean_TPM, .data$SD)) |>
     dplyr::mutate(
       sd_max = log2((.data$mean_TPM + .data$SD) + 1)
     )
@@ -48,8 +52,9 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
       mapping = ggplot2::aes(
         x = .data[[var]], y = .data$log2_mean_TPM,
         label = dplyr::if_else(
-          DE == "Yes" & .data[[var]] == var_levels[1],
-          true = as.character(genename), false = ""
+          .data$DE %in% "Yes" & .data[[var]] %in% var_levels[1],
+          true = as.character(.data$genename),
+          false = ""
         )
       ),
       nudge_x = -0.2, segment.colour = "lightgray"
@@ -61,7 +66,9 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
         fill = .data$transcript_type,
         color = .data$transcript_type
       ),
-      size = 1.5, alpha = 0.4, shape = 24
+      size = 1.5,
+      alpha = 0.4,
+      shape = 24
     ) +
     ggplot2::geom_point(
       ggplot2::aes(
@@ -70,12 +77,14 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
         fill = .data$transcript_type,
         color = .data$transcript_type
       ),
-      size = 1.5, alpha = 0.4, shape = 25
+      size = 1.5,
+      alpha = 0.4,
+      shape = 25
     ) +
     ggplot2::geom_line(
       mapping = ggplot2::aes(
         x = .data[[var]],
-        y = log2_mean_TPM,
+        y = .data$log2_mean_TPM,
         group = .data$genename,
         color = .data$transcript_type,
         alpha = .data$DE
@@ -89,12 +98,14 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
         group = .data$genename,
         color = .data$transcript_type
       ),
-      alpha = 0.2, width = 0.01, position = dodge_value
+      alpha = 0.2,
+      width = 0.01,
+      position = dodge_value
     ) +
     ggplot2::geom_point(
       ggplot2::aes(
         x = .data[[var]],
-        y = log2_mean_TPM,
+        y = .data$log2_mean_TPM,
         color = .data$transcript_type,
         fill = .data$transcript_type,
         alpha = .data$DE
