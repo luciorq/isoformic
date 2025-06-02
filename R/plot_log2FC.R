@@ -37,10 +37,9 @@
 #'
 #' @export
 plot_log2FC <- function(
-  DEG_DET_table,
-  selected_gene,
-  custom_colors = NULL
-) {
+    DEG_DET_table,
+    selected_gene,
+    custom_colors = NULL) {
   .data <- rlang::.data
   if (
     all(

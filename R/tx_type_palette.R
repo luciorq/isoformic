@@ -1,4 +1,9 @@
-#' @internal
+#' Transcript Type Palette
+#'
+#' Get the color palette for transcript types.
+#'
+#' @keywords internal
+#' @noRd
 tx_type_palette <- function() {
   fixed_tx_biotypes <- c(
     "gene", "protein_coding", "retained_intron",

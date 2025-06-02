@@ -1,4 +1,3 @@
-
 #' Run Gene Set Enrichment Analysis for Different Transcript Types
 #'
 #' Performs gene set enrichment analysis (GSEA) on differential expression results for various transcript types,
@@ -85,29 +84,40 @@ run_enrichment <- function(
         type_vec <- tx_types_list[[x]]
         type_name <- tx_type_names[x]
         res_fgsea <- det_df |>
-          dplyr::filter(transcript_type %in% type_vec) |>
-          dplyr::filter(!is.na(log2FC)) |>
-          dplyr::arrange(log2FC)
+          dplyr::filter(.data$transcript_type %in% type_vec) |>
+          dplyr::filter(!is.na(.data$log2FC)) |>
+          dplyr::arrange(.data$log2FC)
         # TODO: @luciorq add option for log2FC * log10pvalue
         ranks <- res_fgsea$log2FC
         names(ranks) <- res_fgsea$transcript_name
-        genesets_list <- tibble::enframe(genesets_list, name = "term", value = "gene_name") |>
+        genesets_list <- tibble::enframe(
+          genesets_list,
+          name = "term",
+          value = "gene_name"
+        ) |>
           tidyr::unnest(cols = gene_name)
         genesets_list <- genesets_list |>
-          dplyr::left_join(tx_to_gene |> dplyr::select(transcript_name, gene_name), by="gene_name")
-        genesets_list <- split(genesets_list$transcript_name,
-                               genesets_list$term)
+          dplyr::left_join(
+            tx_to_gene |>
+              dplyr::select(transcript_name, gene_name),
+            by = "gene_name"
+          )
+        genesets_list <- split(
+          genesets_list$transcript_name,
+          genesets_list$term
+        )
         fgsea_results <- fgsea::fgseaMultilevel(
           pathways = genesets_list,
           stats = ranks,
           eps = 0
         ) |>
-          #tibble::as_tibble() |>
-          dplyr::filter(pval < pval_cutoff) |>
+          # tibble::as_tibble() |>
+          dplyr::filter(.data$pval <= pval_cutoff) |>
           dplyr::mutate(experiment = type_name)
         return(fgsea_results)
       }
-    ) |> purrr::set_names(tx_type_names)
+    ) |>
+    purrr::set_names(tx_type_names)
 
   fgsea_combined <- dplyr::bind_rows(fgsea_results_df)
 
