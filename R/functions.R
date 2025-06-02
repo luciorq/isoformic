@@ -283,14 +283,23 @@ run_enrichment <- function(det_df,
 #' print(plot_obj)
 #'
 #' @export
-plot_log2FC <- function(DEG_DET_table, selected_gene, custom_colors = NULL) {
-  if (all(DEG_DET_table$significance[DEG_DET_table$gene_name %in% selected_gene] == "sig")) {
+plot_log2FC <- function(
+  DEG_DET_table,
+  selected_gene,
+  custom_colors = NULL
+) {
+  .data <- rlang::.data
+  if (
+    all(
+      DEG_DET_table$significance[DEG_DET_table$gene_name %in% selected_gene] == "sig"
+    )
+  ) {
     plot_obj <- ggplot2::ggplot(
       data = DEG_DET_table[DEG_DET_table$gene_name %in% selected_gene, ],
       mapping = ggplot2::aes(
-        x = name,
-        y = log2FC,
-        fill = transcript_type
+        x = .data$name,
+        y = .data$log2FC,
+        fill = .data$transcript_type
       )
     ) +
       ggplot2::geom_bar(stat = "identity") +
@@ -300,10 +309,10 @@ plot_log2FC <- function(DEG_DET_table, selected_gene, custom_colors = NULL) {
     plot_obj <- ggplot2::ggplot(
       data = DEG_DET_table[DEG_DET_table$gene_name %in% selected_gene, ],
       mapping = ggplot2::aes(
-        x = name,
-        y = log2FC,
-        fill = transcript_type,
-        alpha = significance
+        x = .data$name,
+        y = .data$log2FC,
+        fill = .data$transcript_type,
+        alpha = .data$significance
       )
     ) +
       ggplot2::geom_bar(stat = "identity") +
