@@ -16,9 +16,6 @@ vignette: |
   %\VignetteIndexEntry{isoformic-intro}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
-editor_options:
-  markdown: 
-    wrap: sentence
 ---
 
 ```{r setup, echo=FALSE, results="hide"}
@@ -141,7 +138,8 @@ PE1_DEGs <- path_package("isoformic", "extdata", "DEGs_PE_fixed2.csv") |>
   read_csv()
 PE1_counts <- path_package("isoformic", "extdata", "PE_1_counts.csv") |>
   read_csv() |>
-  dplyr::rename(transcript_id = ...1)
+  dplyr::rename(transcript_id = `...1`)
+
 ```
 
 Here we load the table which points for the libraries that represent our cases (treatment) and our controls.
@@ -168,6 +166,8 @@ download_reference(version = "34", file_type = "gff")
 ```
 
 To download mouse references, it is necessary to include the letter 'M' in the version string (e.g., "M37").
+
+<!--
 
 ### Part 2: Create the `linkedTxome` object from GENCODE annotation
 
@@ -363,6 +363,7 @@ Now you just use the `plotLog2FC` for any gene you would like.
 The function also works well with a small vector of `gene_names`.
 
 ```{r}
+# selected_gene = "RBPJ"
 plot_log2FC(DEG_DET_table, "RBPJ")
 ```
 
