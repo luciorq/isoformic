@@ -594,4 +594,4 @@ sessionInfo()
 [fishpond-ref]: <https://bioconductor.org/packages/release/bioc/html/fishpond.html>
 [salmon-ref]: <https://github.com/COMBINE-lab/salmon>
 [pe-paper-ref]: <https://pubmed.ncbi.nlm.nih.gov/32306769/>
-[gmt-format-ref]: <https://software.broadinstitute.org/cancer/software/gsea/wiki/index.php/Data_formats>
+[gmt-format-ref]: <https://docs.gsea-msigdb.org/#GSEA/Data_Formats/>
