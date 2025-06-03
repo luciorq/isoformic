@@ -31,10 +31,10 @@ github_org := 'luciorq'
 @build-pkgdown-website:
   #!/usr/bin/env bash
   \builtin set -euxo pipefail;
-  R -q -e 'devtools::document();pkgdown::build_site();';
+  R -q -e 'devtools::load_all();devtools::document();pkgdown::build_site();';
   git add docs/;
-  git commit -m "chore: update pkgdown website";
-  git push;
+  # git commit -m "chore: update pkgdown website";
+  # git push;
 
 # Check if package can be installed on a conda environment
 @check-install-conda tag_version='main':
