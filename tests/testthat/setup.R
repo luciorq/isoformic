@@ -6,4 +6,3 @@ withr::local_options(
   ),
   .local_envir = testthat::teardown_env()
 )
-

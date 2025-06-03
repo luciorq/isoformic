@@ -50,6 +50,7 @@ This tutorial will encompass X different steps divided into X unities for which 
 -->
 
 ```{r, message=FALSE}
+# devtools::load_all()
 library(isoformic)
 ```
 
@@ -61,6 +62,7 @@ library(readr)
 library(dplyr)
 library(tidyr)
 library(stringr)
+library(ggplot2)
 ```
 
 ## Setting up the data
@@ -139,7 +141,6 @@ PE1_DEGs <- path_package("isoformic", "extdata", "DEGs_PE_fixed2.csv") |>
 PE1_counts <- path_package("isoformic", "extdata", "PE_1_counts.csv") |>
   read_csv() |>
   dplyr::rename(transcript_id = `...1`)
-
 ```
 
 Here we load the table which points for the libraries that represent our cases (treatment) and our controls.
@@ -327,13 +328,13 @@ Before we start plotting we will define a general set of colors to be used throu
 ```{r, eval=FALSE}
 # TODO: @luciorq Check implementation of function `tx_type_palette()`
 fixed_tx_biotypes <- c(
-    "gene", "protein_coding", "retained_intron",
-    "protein_coding_CDS_not_defined", "nonsense_mediated_decay",
-    "lncRNA", "processed_pseudogene",
-    "transcribed_unprocessed_pseudogene",
-    "unprocessed_pseudogene", "non_stop_decay",
-    "transcribed_unitary_pseudogene",
-    "pseudogene", "unitary_pseudogene", "processed_transcript"
+  "gene", "protein_coding", "retained_intron",
+  "protein_coding_CDS_not_defined", "nonsense_mediated_decay",
+  "lncRNA", "processed_pseudogene",
+  "transcribed_unprocessed_pseudogene",
+  "unprocessed_pseudogene", "non_stop_decay",
+  "transcribed_unitary_pseudogene",
+  "pseudogene", "unitary_pseudogene", "processed_transcript"
 )
 
 tx_type_color_names <- c(
@@ -372,7 +373,7 @@ plot_log2FC(DEG_DET_table, "RBPJ")
 # the best would be a loop that goes over each one of a list and
 # plots them in a folder the default could be the DET not deg table
 plot_obj <- plot_log2FC(DEG_DET_table, c("RBPJ", "EGFR", "PNCK"))
-library(ggplot2)
+
 plot_obj +
   theme_classic() +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
@@ -410,14 +411,14 @@ profile_plot
 ```
 
 ```{r}
-# profile_data_df
+profile_data_df |>
+  filter(genename %in% "IL2RA")
 
-# profile_plot <- plot_tx_expr(
-# genes_to_plot = "ILR2A",
-# profile_data = profile_data_df
-# )
-# profile_data_df |>
-# filter(genename == "ILR2A")
+profile_plot <- plot_tx_expr(
+  genes_to_plot = "IL2RA",
+  profile_data = profile_data_df
+)
+profile_plot
 ```
 
 # Functional Transcript Enrichment
@@ -455,7 +456,6 @@ Then you run the `run_enrichment()` function it needs your DETs final table, the
 It will generate a table of enrichment but with an extra column "experiment".
 
 ```{r, warning=FALSE}
-
 enrichment_df <- run_enrichment(
   det_df = PE1_DETs_final,
   genesets_list = genesets_list,
@@ -481,7 +481,9 @@ We used a LollipopPlot to plot all the enrichments side by side with the size of
 
 ```{r, fig.height=6, fig.width=15}
 enrichment_df |>
-  dplyr::filter((experiment %in% c("protein_coding", "unproductive")) & (abs(NES) > 2)) |>
+  dplyr::filter(
+    experiment %in% c("protein_coding", "unproductive") & abs(NES) >= 2
+  ) |>
   dplyr::arrange(padj) |>
   dplyr::slice_head(n = 30) |>
   ggplot2::ggplot(ggplot2::aes(pathway, experiment)) +
@@ -527,9 +529,10 @@ exon_df <- prepare_exon_annotation(
 )
 ```
 
-This will be the table used for plotting
+This will be the table used for plotting.
+
 ```{r}
-exon_df
+head(exon_df)
 ```
 
 Plotting
@@ -550,6 +553,7 @@ exon_df <- prepare_exon_annotation(
 ```
 
 ```{r, fig.height=11}
+# exon_table = exon_df
 exon_df |>
   plot_tx_context()
 ```
