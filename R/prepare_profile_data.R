@@ -74,7 +74,7 @@ prepare_profile_data <- function(
     use_fdr = TRUE) {
   # dependencies
   .data <- rlang::.data
-
+  .env <- rlang::.env
   txi_transcript <- convert_to_isoformic_tibble(txi_transcript)
   # Extract tx2gene from gene annotation table
   # renamed gene annotation to gene_metadata
@@ -138,7 +138,7 @@ prepare_profile_data <- function(
 
   # Format gene names and transcript names in expression tables
   geneid_col <- colnames(gene_metadata)[2]
-  txid_col <- colnames(gene_metadata)[1]
+  # txid_col <- colnames(gene_metadata)[1]
   first_col <- colnames(txi_gene)[1]
   genename_conversion_df <- tibble::as_tibble(
     dplyr::select(
@@ -146,18 +146,18 @@ prepare_profile_data <- function(
     )
   )
 
-  txname_conversion_df <- tibble::as_tibble(
-    dplyr::select(
-      gene_metadata, {{ txid_col }}, {{ tx_col }}
-    )
-  )
+  # txname_conversion_df <- tibble::as_tibble(
+  #  dplyr::select(
+  #    gene_metadata, {{ txid_col }}, {{ tx_col }}
+  #  )
+  #)
 
   txi_gene <- txi_gene |>
     dplyr::left_join(genename_conversion_df, by = c(gene_id = geneid_col)) |>
     dplyr::select(-c({{ first_col }})) |>
     dplyr::rename(genename = {{ gene_col }}) |>
-    dplyr::relocate(genename) |>
-    dplyr::filter(!is.na(genename)) |>
+    dplyr::relocate("genename") |>
+    dplyr::filter(!is.na(.data$genename)) |>
     dplyr::distinct()
 
   first_col <- colnames(txi_transcript)[1]
@@ -166,26 +166,33 @@ prepare_profile_data <- function(
   #   dplyr::left_join(txi_transcript, by = c("transcript_id")) |>
   txi_transcript <- txi_transcript |>
     dplyr::select(-c({{ first_col }})) |>
-    dplyr::rename(genename = transcript_name) |>
-    dplyr::relocate(genename) |>
-    dplyr::filter(!is.na(genename)) |>
+    dplyr::rename(genename = "transcript_name") |>
+    dplyr::relocate("genename") |>
+    dplyr::filter(!is.na(.data$genename)) |>
     dplyr::distinct()
 
   # Prepare data to plot
   gene_expr_df <- txi_gene |>
-    tidyr::pivot_longer(-genename, names_to = "sample", values_to = "TPM") |>
+    tidyr::pivot_longer(
+      -c("genename"),
+      names_to = "sample",
+      values_to = "TPM"
+    ) |>
     dplyr::left_join(condition_df, by = c("sample" = sample_col)) |>
     dplyr::group_by(genename, .data[[var]]) |>
-    dplyr::summarise(mean_TPM = base::mean(TPM), SD = stats::sd(TPM)) |>
+    dplyr::summarise(
+      mean_TPM = base::mean(.data$TPM),
+      SD = stats::sd(.data$TPM)
+    ) |>
     dplyr::ungroup()
 
   # Add differential expression information
   de_genes_df <- de_result_gene |>
     tibble::as_tibble() |>
-    dplyr::filter(qvalue <= pvalue_cutoff) |>
-    dplyr::filter(abs(log2FC) >= lfc_cutoff) |>
-    dplyr::select(gene_name) |>
-    dplyr::mutate(DE = TRUE)
+    dplyr::filter(.data$qvalue <= .env$pvalue_cutoff) |>
+    dplyr::filter(abs(.data$log2FC) >= .env$lfc_cutoff) |>
+    dplyr::select("gene_name") |>
+    dplyr::mutate(`DE` = TRUE)
 
   # filter DE genes
   gene_expr_df <- gene_expr_df |>
@@ -194,26 +201,40 @@ prepare_profile_data <- function(
     dplyr::distinct()
 
   gene_expr_df <- gene_expr_df |>
-    dplyr::mutate(parent_gene = genename)
+    dplyr::mutate(parent_gene = "genename")
 
   # Add differential expression information for tx
   transcript_expr_df <- txi_transcript |>
-    tidyr::pivot_longer(-genename, names_to = "sample", values_to = "TPM") |>
+    tidyr::pivot_longer(
+      -c("genename"),
+      names_to = "sample",
+      values_to = "TPM"
+    ) |>
     dplyr::left_join(condition_df, by = c("sample" = sample_col)) |>
-    dplyr::group_by(genename, .data[[var]]) |>
-    dplyr::summarise(mean_TPM = base::mean(TPM), SD = stats::sd(TPM)) |>
+    dplyr::group_by(.data$genename, .data[[var]]) |>
+    dplyr::summarise(
+      mean_TPM = base::mean(.data$TPM),
+      SD = stats::sd(.data$TPM)
+    ) |>
     dplyr::ungroup()
 
   de_tx_df <- de_result_transcript |>
     tibble::as_tibble() |>
-    dplyr::select(transcript_name, qvalue, log2FC) |>
-    dplyr::filter(qvalue <= pvalue_cutoff) |>
-    dplyr::filter(abs(log2FC) >= lfc_cutoff) |>
+    dplyr::select("transcript_name", "qvalue", "log2FC") |>
+    dplyr::filter(.data$qvalue <= .env$pvalue_cutoff) |>
+    dplyr::filter(abs(.data$log2FC) >= .env$lfc_cutoff) |>
     dplyr::select(1) |>
     dplyr::mutate(DE = TRUE)
 
   ## Add transcript type information
-  tx_type_df <- tibble::as_tibble(dplyr::select(gene_metadata, {{ gene_col }}, {{ tx_col }}, transcript_type))
+  tx_type_df <- tibble::as_tibble(
+    dplyr::select(
+      gene_metadata,
+      {{ gene_col }},
+      {{ tx_col }},
+      "transcript_type"
+    )
+  )
 
   transcript_expr_df <- transcript_expr_df |>
     dplyr::left_join(tx_type_df, by = c(genename = tx_col))
@@ -233,60 +254,7 @@ prepare_profile_data <- function(
     dplyr::mutate({{ var }} := forcats::fct_relevel(.data[[var]], var_levels))
 
   expr_df <- expr_df |>
-    dplyr::mutate(DE = dplyr::if_else(is.na(DE), "No", "Yes")) |>
-    dplyr::mutate(DE = factor(DE, levels = c("Yes", "No")))
+    dplyr::mutate(DE = dplyr::if_else(is.na(.data$DE), "No", "Yes")) |>
+    dplyr::mutate(DE = factor(.data$DE, levels = c("Yes", "No")))
   return(expr_df)
-}
-
-# Utils
-summarize_to_gene <- function(txi_transcript, tx_to_gene) {
-  id_df <- tx_to_gene |>
-    dplyr::select(transcript_id, gene_id) |>
-    dplyr::distinct()
-
-  txi_gene <- id_df |>
-    dplyr::left_join(txi_transcript, by = "transcript_id") |>
-    dplyr::select(-c(transcript_id, transcript_name)) |>
-    tidyr::pivot_longer(
-      -gene_id,
-      names_to = "samples",
-      values_to = "expr"
-    ) |>
-    dplyr::group_by(gene_id, samples) |>
-    dplyr::summarise(
-      mean_expr = base::mean(expr, na.rm = TRUE)
-    ) |>
-    dplyr::ungroup() |>
-    dplyr::filter(!is.na(mean_expr))
-  txi_gene <- txi_gene |>
-    tidyr::pivot_wider(
-      names_from = "samples",
-      values_from = "mean_expr"
-    )
-  return(txi_gene)
-}
-
-
-#' Summarize Transcript-level Expression to Gene-level
-#'
-#' This function aggregates transcript-level expression data to gene-level by calculating the mean expression of transcripts belonging to the same gene.
-#'
-#' @param txi_transcript A `tibble` containing transcript-level expression abundances.
-#' @param tx_to_gene A `data.frame` or `tibble` containing transcript-to-gene mapping information, including `transcript_id` and `gene_id` columns.
-#'
-#' @return A `tibble` containing gene-level expression abundances.
-#'
-#' @keywords internal
-convert_to_isoformic_tibble <- function(txi_transcript) {
-  if (isFALSE(inherits(x = txi_transcript, what = c("tbl_df")))) {
-    if (isTRUE(inherits(x = txi_transcript, what = c("matrix"))) || isTRUE(inherits(x = txi_transcript, what = c("data.frame")))) {
-      txi_transcript <- as.data.frame(txi_transcript)
-    }
-    if (isFALSE("transcript_id" %in% colnames(txi_transcript))) {
-      txi_transcript <- txi_transcript |>
-        tibble::rownames_to_column(var = "transcript_id") |>
-        tibble::as_tibble()
-    }
-  }
-  return(txi_transcript)
 }

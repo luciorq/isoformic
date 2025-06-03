@@ -27,11 +27,12 @@
 #'
 #' @export
 is_deg_sig <- function(DegsigVector, DET_table) {
+  .data <- rlang::.data
   DETs_DEGs <- DET_table |>
-    dplyr::filter(transcript_name %in% DegsigVector)
+    dplyr::filter(.data$transcript_name %in% DegsigVector)
   DETs_DEGs$DEG_sig <- "YES"
   DETs_notDEGs <- DET_table |>
-    dplyr::filter(!transcript_name %in% DegsigVector)
+    dplyr::filter(!(.data$transcript_name %in% DegsigVector))
   DETs_notDEGs$DEG_sig <- "NO"
   DET_table_final <- dplyr::bind_rows(DETs_DEGs, DETs_notDEGs)
   return(DET_table_final)

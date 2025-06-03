@@ -48,12 +48,14 @@
 #'
 #' @export
 run_enrichment <- function(
-    det_df,
-    genesets_list,
-    tx_to_gene,
-    pval_cutoff = 0.05,
-    lfc_cutoff = 1) {
+  det_df,
+  genesets_list,
+  tx_to_gene,
+  pval_cutoff = 0.05,
+  lfc_cutoff = 1
+) {
   .data <- rlang::.data
+  .env <- rlang::.env
   processed_or_cds <- ifelse(
     test = sum(tx_to_gene$transcript_type == "processed_transcript") > 1500,
     yes = "processed_transcript",
@@ -99,7 +101,7 @@ run_enrichment <- function(
         genesets_list <- genesets_list |>
           dplyr::left_join(
             tx_to_gene |>
-              dplyr::select(transcript_name, gene_name),
+              dplyr::select("transcript_name", "gene_name"),
             by = "gene_name"
           )
         genesets_list <- split(
@@ -112,7 +114,7 @@ run_enrichment <- function(
           eps = 0
         ) |>
           # tibble::as_tibble() |>
-          dplyr::filter(.data$pval <= pval_cutoff) |>
+          dplyr::filter(.data$pval <= .env$pval_cutoff) |>
           dplyr::mutate(experiment = type_name)
         return(fgsea_results)
       }
