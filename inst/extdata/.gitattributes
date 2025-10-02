@@ -1,1 +1,5 @@
 inst/extdata/** filter=lfs diff=lfs merge=lfs -text
+inst/extdata/mini_quants/** filter=lfs diff=lfs merge=lfs -text
+inst/extdata/sub_fastq/** filter=lfs diff=lfs merge=lfs -text
+*.fastq filter=lfs diff=lfs merge=lfs -text
+*.fastq.gz filter=lfs diff=lfs merge=lfs -text
