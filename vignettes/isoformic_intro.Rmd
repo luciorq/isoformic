@@ -281,9 +281,9 @@ First we add the transcript name and type information to the DET table
 ```{r}
 transcript_joined <- tx_to_gene |>
   dplyr::select(transcript_id, transcript_name, transcript_type) |>
-  distinct()
+  dplyr::distinct()
 PE1_DETs <- PE1_DETs |>
-  left_join(transcript_joined, by = "transcript_id")
+  dplyr::left_join(transcript_joined, by = "transcript_id")
 ```
 
 For the gene expression level we have to convert the DEG table and do some cutting to get the genes which present as DE and exclude possible noise.
@@ -296,12 +296,12 @@ PE1_DEGs_new_names_sig <- PE1_DEGs |>
   filter(abs(log2FC) >= 1) |>
   filter(pvalue <= 0.05) |>
   dplyr::select(gene_name) |>
-  drop_na()
+  tidyr::drop_na()
 DEGs_sig_joined <- PE1_DEGs_new_names_sig |>
   left_join(tx_to_gene, by = "gene_name")
 transcript_gene_join <- tx_to_gene |>
   dplyr::select(transcript_name, gene_name) |>
-  distinct()
+  dplyr::distinct()
 ```
 
 ```{r}
@@ -328,19 +328,22 @@ Before we start plotting we will define a general set of colors to be used throu
 ```{r, eval=FALSE}
 # TODO: @luciorq Check implementation of function `tx_type_palette()`
 fixed_tx_biotypes <- c(
-  "gene", "protein_coding", "retained_intron",
-  "protein_coding_CDS_not_defined", "nonsense_mediated_decay",
-  "lncRNA", "processed_pseudogene",
-  "transcribed_unprocessed_pseudogene",
+  "gene", "protein_coding",
+  "retained_intron", "protein_coding_CDS_not_defined",
+  "nonsense_mediated_decay", "lncRNA",
+  "processed_pseudogene", "transcribed_unprocessed_pseudogene",
   "unprocessed_pseudogene", "non_stop_decay",
-  "transcribed_unitary_pseudogene",
-  "pseudogene", "unitary_pseudogene", "processed_transcript"
+  "transcribed_unitary_pseudogene", "pseudogene",
+  "unitary_pseudogene", "processed_transcript"
 )
 
 tx_type_color_names <- c(
-  "#fb8072", "#a6d854", "#8da0cb", "#fc8d62",
-  "#66c2a5", "#e78ac3", "#ffd92f", "#e5c494",
-  "#d9d9d9", "#d9d9d9", "#d9d9d9", "#ffffb3",
+  "#fb8072", "#a6d854",
+  "#8da0cb", "#fc8d62",
+  "#66c2a5", "#e78ac3",
+  "#ffd92f", "#e5c494",
+  "#d9d9d9", "#d9d9d9",
+  "#d9d9d9", "#ffffb3",
   "#d9d9d9", "#d9d9d9"
 )
 
@@ -521,62 +524,54 @@ This specific plot requires a GFF file that can also be downloaded from GENCODE 
 This GFF file needs to be downloaded on the accurate version for your transcriptome, in this case v34.
 
 ```{r}
-exon_df <- prepare_exon_annotation(
-  # gene_name = "RBPJ",
-  gene_name = "FLT1",
-  file_path = "data-raw/gencode.v34.annotation.gff3.gz",
-  file_type = "gff"
+context_data <- create_context_data(
+  gff_file = "data-raw/gencode.v34.annotation.gff3.gz",
+  organism = "Homo sapiens",
+  orgdb_package = "org.Hs.eg.db",
+  bsgenome_package = "BSgenome.Hsapiens.NCBI.GRCh38"
 )
 ```
 
-This will be the table used for plotting.
+Plotting the context of the FLT1 isoforms.
 
 ```{r}
-head(exon_df)
-```
-
-Plotting
-
-```{r, fig.height=17}
-exon_df |>
-  plot_tx_context()
+plot_genomic_context(
+  gene_name = "FLT1",
+  context_data = context_data
+)
 ```
 
 ### Protein coding example
 
 ```{r}
-exon_df <- prepare_exon_annotation(
+plot_genomic_context(
   gene_name = "EGFR",
-  file_path = "data-raw/gencode.v34.annotation.gff3.gz",
-  file_type = "gff"
+  context_data = context_data,
+  y_offset = 4.5,
+  height_offset = 1
 )
 ```
 
-```{r, fig.height=11}
-# exon_table = exon_df
-exon_df |>
-  plot_tx_context()
-```
-
-Testing with XIST and EGFR for genes in dual context.
+Expanding the context around the genomic region of interest.
 
 ```{r}
-dual_exon_df <- prepare_exon_annotation(
-  gene_name = c("XIST", "EGFR"),
-  file_path = "data-raw/gencode.v34.annotation.gff3.gz",
-  file_type = "gff"
+plot_genomic_context(
+  gene_name = "XIST",
+  context_data = context_data,
+  y_offset = 0,
+  height_offset = 1.5,
+  upstream_offset = 100000
 )
 ```
 
-```{r, fig.height=24}
-dual_exon_df |>
-  plot_tx_context()
-```
-
-```{r, fig.height=3}
-dual_exon_df |>
-  dplyr::filter(tx_id %in% c("ENST00000602495.1", "ENST00000602863.2")) |>
-  plot_tx_context()
+```{r}
+plot_genomic_context(
+  gene_name = "TSIX",
+  context_data = context_data,
+  y_offset = 0,
+  height_offset = 0.5,
+  downstream_offset = 100000
+)
 ```
 
 ## Session Information
