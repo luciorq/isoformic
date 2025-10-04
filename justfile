@@ -74,3 +74,9 @@ github_org := 'luciorq'
   git add docs/;
   git commit -m "chore: update pkgdown website";
   git push;
+
+@release-github:
+  #!/usr/bin/env bash
+  \builtin set -euxo pipefail;
+  # gh release create v0.1.2 --title "v0.1.2 (beta)" --notes "First Zenodo archiving release"
+  \builtin echo "Not implemented yet";

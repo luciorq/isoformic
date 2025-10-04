@@ -1,8 +1,10 @@
 Package: isoformic
 Title: Isoform-Level Biological Interpretation of Transcriptomic Data
-Version: 0.1.1.9005
+Version: 0.1.1.9006
 Authors@R: c(
     person("Lucio Rezende", "Queiroz", , "luciorqueiroz@gmail.com", role = c("aut", "cre", "cph"),
+           comment = c(ORCID = "0000-0002-6090-1834")),
+    person("Lucio Rezende", "Queiroz", , "lrq4001@med.cornell.edu", role = c("aut", "ctb"),
            comment = c(ORCID = "0000-0002-6090-1834")),
     person("Izabela Mamede", "Conceicao", , "iza.mamede@gmail.com", role = c("aut", "ctb"),
            comment = c(ORCID = "0000-0002-0707-5588")),

@@ -14,3 +14,5 @@ renv.lock
 revdep
 .Rprofile
 README.html
+data-raw/
+!data-raw/.gitkeep
