@@ -11,11 +11,13 @@
 <url><loc>https://luciorq.github.io/isoformic/authors.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/index.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/news/index.html</loc></url>
+<url><loc>https://luciorq.github.io/isoformic/reference/ContextData.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/check_mae_isoformic_is_list.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/check_mae_isoformic_tx_to_gene.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/check_se_metadata_level_length.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/check_se_metadata_level_type.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/convert_to_isoformic_tibble.html</loc></url>
+<url><loc>https://luciorq.github.io/isoformic/reference/create_context_data.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/create_isoformic_mae_from_se.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/download_reference.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/index.html</loc></url>
