@@ -30,3 +30,5 @@
 ^\.markdownlint-cli2\.jsonc$
 ^\.markdownlint-cli2\.yaml$
 ^Rplots\.pdf$
+^\.Rhistory$
+^\.RData$
