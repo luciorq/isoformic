@@ -1,0 +1,336 @@
+---
+title: "The Isoformic method applied to long reads datasets"
+date: "2025-08-17"
+output:
+  rmarkdown::html_document:
+    highlight: tango
+    toc: true
+    toc_float: true
+author:
+  - name: Carlos Augusto da Mata-Machado
+    affiliation: Laboratory of Genetics Biochemistry, Universidade Federal de Minas Gerais, Belo Horizonte, Brazil
+  - name: Izabela Mamede Conceição
+    affiliation: Laboratory of Genetics Biochemistry, Universidade Federal de Minas Gerais, Belo Horizonte, Brazil
+  - name: Lucio Rezende Queiroz
+    affiliation: Department of Pathology and Laboratory Medicine, Weill Cornell Medicine, New York, USA
+vignette: |
+  %\VignetteIndexEntry{isoformic-example}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+```{r setup, include=FALSE}
+# knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Information
+
+Although Isoformic was mainly developed as a package to visualize and interpret isoform-level data from short reads, it works just as well for differential expression performed with long reads. To achieve Isoformic's inputs, we recommend the use of [`oarfish`](https://github.com/COMBINE-lab/oarfish/) for transcript-level abundance estimation for long reads data (Jousheghani et al., 2025), using the [GENCODE](https://www.gencodegenes.org) annotation of isoforms as reference. In this vignette we use as example a dataset comparing prostate cancer cells treated with lorecivivint (LOR) to DMSO controls, originated from the paper "*Targeting the CLK2/SRSF9 splicing axis in prostate cancer leads to decreased ARV7 expression*" (GEO: [GSE259334](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE259334)). All of the demonstrations replicated here for long reads are thoroughly showcased and explained in the [introduction vignette](https://luciorq.github.io/isoformic/articles/isoformic_intro.html), albeit applied to short reads data.
+
+In advanced prostate cancer (PC), resistance to androgen receptor signaling inhibitors (ARSI) is frequently driven by the androgen receptor splice variant ARV7. Its expression is promoted by the CLK2/SRSF9 splicing axis, and inhibition of CLK kinases with small molecules such as lorecivivint (LOR) suppresses ARV7 levels and reduces tumor cell proliferation. To characterize the broader transcriptional effects of this pathway inhibition, we performed the differential expression analysis comparing prostate cancer cells treated with 50 nM LOR to DMSO vehicle controls (Van Goubergen et al., 2024).
+
+## Setting up inputs
+
+Load dependency packages:
+
+```{r, echo = T, results = 'hide', message = FALSE, warning=FALSE}
+library(isoformic)
+library(tidyverse)
+library(fs)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(stringr)
+```
+
+We need to properly input some tables to use Isoformic's functions. These are:
+
+### DET table
+
+The differentially expressed transcripts (DET) table will be our main table. It must include: (1) Ensembl Transcript ID per line, (2) a column labeled `log2FC`, and (3) a column labeled `pvalue` with the corresponding p-values. Additional columns may be present in the table but will not be used in the core analysis. Ensure that the log2(FoldChange) column is called "`log2FC`". Also ensure the table is the complete, *unfiltered* output (i.e. no `log2FC` or `pvalue` cutoff beforehand)! Example:
+
+```{r, message = FALSE, warning=FALSE}
+DET_table <- read_csv("rds/DET_table.csv") # TODO: add path_package() instead of local read_csv? (.csv's are in /data/mendel/carlosaugustodmm/isoformic_longreads/rds/)
+head(DET_table)
+```
+
+Then, we merge it with `txtogene_hv48`, a dictionary built using Isoformic's function `make_tx_to_gene()` on GENCODE human reference transcriptome (in this example, v48), to map transcript IDs to names.
+
+```{r, message = FALSE, warning=FALSE}
+txtogene_hv48 <- isoformic::make_tx_to_gene("ref/gencode.v48.transcripts.fa.gz", 
+                                            file_type = "fasta"
+                                            )
+
+txtogene_hv48 <- txtogene_hv48 |>
+  dplyr::select(
+    transcript_id, gene_id,
+    transcript_name, gene_name,
+    transcript_type
+    )
+
+head(txtogene_hv48)
+
+DET_table <- DET_table |>
+  dplyr::left_join(txtogene_hv48 |> dplyr::select(transcript_id, transcript_name, transcript_type),
+                   by = "transcript_id"
+                   )
+```
+
+### DEG table
+
+We then import the differentially expressed genes (DEG) table and also merge it with `txtogene_hv48`.
+
+```{r, message = FALSE, warning=FALSE}
+DEG_table <- read_csv("rds/DEG_table.csv") # TODO: add path_package() instead of local read_csv?
+
+DEG_table <- DEG_table |>
+  dplyr::left_join(unique(txtogene_hv48 |> dplyr::select(gene_id, gene_name)), 
+                   by = "gene_id"
+                   )
+
+head(DEG_table)
+```
+
+### TPM table
+
+At last, we read in a data frame containing the TPM for each transcript.
+
+```{r, message = FALSE, warning=FALSE}
+TPM_table <- read_csv("rds/TPM_table.csv")  # TODO: add path_package() instead of local read_csv?
+
+TPM_table <- TPM_table |>
+  dplyr::left_join(unique(txtogene_hv48 |> dplyr::select(transcript_id, transcript_name)), 
+                   by = "transcript_id"
+                   )
+```
+
+## Further wrangling
+
+### Final DETs table
+
+The DET table needs further wrangling: we will make a cutoff to define the differentially expressed genes, then add a column to the DET table to identify if the parent gene of each transcript passes this cutoff value, using the function `is_deg_sig()`.
+
+```{r, message = FALSE, warning=FALSE}
+DEG_table_new_names_sig <- DEG_table |>
+  filter(abs(log2FC) >= 1) |>
+  filter(pvalue <= 0.05) |>
+  dplyr::select(gene_name) |>
+  drop_na()
+
+DEGs_sig_joined <- DEG_table_new_names_sig |>
+  left_join(txtogene_hv48, by = "gene_name")
+transcript_gene_join <- txtogene_hv48 |>
+  dplyr::select(transcript_name, gene_name) |>
+  distinct()
+
+DET_table_final <- isoformic::is_deg_sig(DEGs_sig_joined$transcript_name, DET_table)
+DET_table_final <- DET_table_final |>
+  left_join(transcript_gene_join, by = "transcript_name")
+
+```
+
+### DETs_not_DEGs
+
+Another very informative table we can make, through a simple filter, is `DETs_not_DEGs`, which contain the transcripts that are differentially expressed, while their parent genes are not. This table contains, therefore, cases of isoform switches - i.e. when two transcripts of the same gene are regulated in opposite directions, resulting in no significant overall change in the gene’s total expression.
+
+```{r, message = FALSE, warning=FALSE}
+DETs_not_DEGs <- DET_table_final |>
+  filter(pvalue < 0.05, 
+         abs(log2FC) > 1, 
+         DEG_sig == "NO"
+         )
+```
+
+------------------------------------------------------------------------
+
+## Colors
+
+Before we create the plots, we'll define the color scheme for each transcript type, to be used throughout this vignette.
+
+```{r, message = FALSE, warning=FALSE}
+fixed_tx_biotypes <- c(
+  "gene", "protein_coding", "retained_intron","protein_coding_CDS_not_defined", 
+  "nonsense_mediated_decay","lncRNA", "processed_pseudogene", "transcribed_unprocessed_pseudogene",
+  "unprocessed_pseudogene", "non_stop_decay", "transcribed_unitary_pseudogene", "pseudogene",
+  "unitary_pseudogene"
+  )
+
+tx_type_color_names <- c(
+  "#fb8072", "#a6d854", "#8da0cb", "#fc8d62",
+  "#66c2a5", "#e78ac3", "#ffd92f", "#e5c494",
+  "#d9d9d9", "#d9d9d9", "#d9d9d9", "#ffffb3",
+  "#d9d9d9"
+  )
+
+names(tx_type_color_names) <- fixed_tx_biotypes
+
+tx_type_color_names
+```
+
+------------------------------------------------------------------------
+
+## Plotting
+
+### Log2FC Plot
+
+This simple plot shows the log2FC values of a gene and its transcripts when comparing case versus control. To generate it, we first build a unified table that merges gene-level and transcript-level differential expression results using the Isoformic function `join_DEG_DET()`.
+
+```{r, message = FALSE, warning=FALSE}
+DEG_DET_table <- isoformic::join_DEG_DET(DEG_table, DET_table_final, 
+                                         logfc_cut = 1, 
+                                         pval_cut = 0.05
+                                         )
+head(DEG_DET_table)
+```
+
+We can then use `plot_Log2FC()` qwith any gene (or small vector of `gene_name`s) to visualize.
+
+```{r, message = FALSE, warning=FALSE, fig.width=10, fig.height=4}
+plot_obj <- isoformic::plot_log2FC(DEG_DET_table, 
+                                   "SCN8A"
+                                   ) 
+
+plot_obj + ggplot2::theme(
+  axis.text.x = element_text(angle = 45,  hjust = 1)
+  )
+```
+
+### Profile Plot
+
+We can also visualize this isoform switch using the Transcripts per Million (TPM) counts instead of fold change, plotting each transcript's TPM between the conditions. We need to provide, among many inputs, the sample sheet that identify each sample's condition (and each sample being a column in the TPM table). First, the `prepare_profile_data()` function is used to create the data frame `profile_data_df`.
+
+```{r, message = FALSE}
+samplesheet <- read_delim(file = "/data/mendel/carlosaugustodmm/isoformic_longreads/rds/longreads_samplesheet.csv", 
+                          delim  = ";", 
+                          col_names = TRUE) # TODO: add path_package() instead of local read_csv?
+samplesheet$condition <- as.factor(samplesheet$condition)
+samplesheet <- samplesheet |> 
+  dplyr::select(names, condition)
+
+profile_data_df <- isoformic::prepare_profile_data(
+  txi_transcript = TPM_table,
+  tx_to_gene = txtogene_hv48,
+  sample_metadata = samplesheet,
+  de_result_gene = DEG_table,
+  de_result_transcript = DET_table_final,
+  var = "condition",
+  var_levels = c("DMSO_vehicle", "lorecivivint_50nM")
+)
+
+head(profile_data_df)
+```
+
+Subsequently, to create the plot, we use the function `plot_tx_expr()` with the gene of interest.
+
+```{r, message = FALSE, warning=FALSE, fig.width=10, fig.height=4}
+profile_plot <- isoformic::plot_tx_expr(
+  genes_to_plot = "SCN8A",
+  profile_data = profile_data_df
+)
+
+profile_plot
+```
+
+### Functional Transcript Enrichment
+
+Performing functional enrichment for isoform-level data is one of the biggest caveats, as there is no annotation for gene sets in transcript-level. To bypass this, our strategy is expanding a known `.gmt` for transcript information and enrich each transcript type separately. We chose the C2 (curated gene sets) gene set from [MSigDB](https://www.gsea-msigdb.org/gsea/msigdb/collections.jsp) and loaded it using `fgsea::gmtPathways()`.
+
+```{r}
+genesets_list <- fgsea::gmtPathways(
+  gmt.file = "ref/c2.all.v2024.1.Hs.symbols.gmt"
+)
+
+head(str(genesets_list[1:5]))
+```
+
+The final DET table can then be enriched using `genesets_list` through the function `run_enrichment()`, which also uses the previously created `txtogene_hv48`. The function expands the gene sets and performs GSEA enrichment. We also have a flag for an arbitrary p-value cutoff (a threshold applied to the *resulting* enrichment table).
+
+```{r, message=FALSE, warning=FALSE}
+enrichment_df <- isoformic::run_enrichment(
+  det_df = DET_table_final,
+  genesets_list = genesets_list,
+  tx_to_gene = txtogene_hv48,
+  pval_cutoff = 0.05
+)
+
+head(enrichment_df)
+```
+
+We can plot the resulting enrichment for the productive transcripts, in the form of a lollipop plot:
+
+```{r, fig.width = 12, fig.height = 6}
+enrichment_df |>
+  dplyr::filter((experiment %in% c("protein_coding")) & (abs(NES) > 1.75)) |>
+  dplyr::arrange(padj) |>
+  dplyr::slice_head(n = 25) |>
+  ggplot2::ggplot(ggplot2::aes(pathway, experiment)) +
+  ggplot2::geom_point(ggplot2::aes(col = NES, size = size)) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_minimal() +
+  ggplot2::scale_colour_gradient2(low = "#d8b365", mid = "#f5f5f5", high = "#5ab4ac", midpoint = 0)
+```
+
+```{r, include=FALSE}
+# cowplot::ggsave2("plots/lolipop_enrichment_coding.pdf", width = 12, height = 6)
+```
+
+By simply filtering, we can also plot the enrichment for the unproductive transcript types:
+
+```{r, fig.width = 12, fig.height = 6}
+enrichment_df |>
+  dplyr::filter((!experiment %in% c("protein_coding", "unproductive")) & abs(NES) > 2) |>
+  dplyr::arrange(padj) |>
+  dplyr::slice_head(n = 25) |>
+  ggplot2::ggplot(ggplot2::aes(pathway, experiment)) +
+  ggplot2::geom_point(ggplot2::aes(col = NES, size = size)) +
+  ggplot2::coord_flip() +
+  ggplot2::theme_minimal() +
+  ggplot2::scale_colour_gradient2(low = "#d8b365", mid = "#f5f5f5", high = "#5ab4ac", midpoint = 0)
+```
+
+```{r, include=FALSE}
+# cowplot::ggsave2("plots/lolipop_enrichment_RI.pdf", width = 8, height = 4)
+```
+
+### Genomic Context Plot
+
+Finally, we can use a `.gff` file, that can also be downloaded from GENCODE, to plot the interval of transcripts. This allows us to see differences in exon/intron compositions between different isoforms of a given gene. The `.gff` need to be of the same version as your reference transcriptome.
+
+```{r, message=FALSE, warning=FALSE}
+exon_df <- isoformic::prepare_exon_annotation(
+  gene_name = "SCN8A",
+  file_path = "ref/gencode.v48.annotation.gff3.gz", # TODO: add path_package() instead of local read_csv?
+  file_type = "gff"
+  )
+```
+
+The plot can be created using the function `plot_tx_context()`. Inspired by the Ensembl genome browser visualization, here exons are represented by the rectangles, and introns by the lines. The transcript type color scheme is also applied.
+
+```{r, message = FALSE, warning=FALSE, fig.width=10, fig.height=12}
+tx_to_gene <- txtogene_hv48
+
+exon_df |>
+  isoformic::plot_tx_context()
+```
+
+------------------------------------------------------------------------
+
+As mentioned before, all of these functions are covered in depth, with additional demonstrations, in the [main vignette](https://luciorq.github.io/isoformic/articles/isoformic_intro.html).
+
+## References
+
+Jousheghani, Z. Z., Singh, N. P., & Patro, R. (2025). Oarfish: enhanced probabilistic modeling leads to improved accuracy in long read transcriptome quantification. Bioinformatics, 41(Supplement_1), i304–i313. <https://doi.org/10.1093/bioinformatics/btaf240>
+
+Van Goubergen, J., Peřina, M., Handle, F., Morales, E., Kremer, A., Schmidt, O., Kristiansen, G., Cronauer, M. V., & Santer, F. R. (2024). Targeting the CLK2/SRSF9 splicing axis in prostate cancer leads to decreased ARV7 expression. Molecular Oncology. <https://doi.org/10.1002/1878-0261.13728>
+
+------------------------------------------------------------------------
+
+# Session information
+
+```{r}
+sessionInfo()
+```
+
+```{r, include=FALSE}
+# saveRDS()
+```
