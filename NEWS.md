@@ -2,6 +2,7 @@
 
 ### Added
 
+* New DuckDB based `parse_annotation()`.
 * New `plot_genomic_context()` function to visualize the genomic context of a
   gene with its transcripts.
 * New `tx_type_palette()` function to provide a color palette for transcript types.

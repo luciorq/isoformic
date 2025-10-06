@@ -8,20 +8,7 @@ ContextData(
   gene_name = character(0),
   gff_file = character(0),
   txdb = NULL,
-  annotation_table = (function (.data = list(), row.names = NULL) 
- {
-     if
-    (is.null(row.names)) {
-         list2DF(.data)
-     }
-     else {
-         out <-
-    list2DF(.data, length(row.names))
-         attr(out, "row.names") <- row.names
-      
-      out
-     }
- })(),
+  annotation_table = NULL,
   annotation_name = character(0),
   assembly_name = character(0),
   ideogram_assembly = character(0),

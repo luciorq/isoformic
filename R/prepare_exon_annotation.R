@@ -4,10 +4,9 @@
 #' @inheritParams download_reference
 #' @export
 prepare_exon_annotation <- function(
-  gene_name,
-  file_path,
-  file_type = c("gff", "gtf")
-) {
+    gene_name,
+    file_path,
+    file_type = c("gff", "gtf")) {
   file_type <- stringr::str_to_lower(file_type)
   file_type <- rlang::arg_match(file_type)
   .data <- rlang::.data

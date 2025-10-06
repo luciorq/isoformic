@@ -18,6 +18,8 @@ including \code{transcript_type}, \code{log2FC}, and \code{gene_name} columns.}
 
 \item{genesets_list}{A list of gene sets to be used in the enrichment analysis.}
 
+\item{tx_to_gene}{A \code{data.frame} or \code{tibble} mapping transcript names to gene names, including \code{transcript_name} and \code{gene_name} columns.}
+
 \item{pval_cutoff}{A numeric value specifying the p-value cutoff for the enrichment results. Default is \code{0.05}.}
 
 \item{lfc_cutoff}{A numeric value specifying the log2 fold-change cutoff for filtering transcripts. Default is \code{1}.}
@@ -39,24 +41,50 @@ and performs GSEA using the \code{fgsea} package.
 \examples{
 # Sample differential expression data
 det_df <- data.frame(
-  gene_name = c("GeneA", "GeneB", "GeneC", "GeneD"),
-  transcript_type = c(
-    "protein_coding", "retained_intron", "protein_coding_CDS_not_defined",
-    "processed_transcript", "nonsense_mediated_decay"
+  gene_name = c(
+    "GeneA", "GeneB", "GeneC", "GeneD",
+    "GeneA", "GeneA", "GeneB", "GeneC",
+    "GeneD", "GeneE", "GeneB", "GeneA"
   ),
-  log2FC = c(1.5, -2.0, 0.8, -1.2)
+  transcript_type = c(
+    "protein_coding", "retained_intron",
+    "protein_coding_CDS_not_defined", "processed_transcript",
+    "protein_coding", "protein_coding",
+    "retained_intron", "protein_coding_CDS_not_defined",
+    "processed_transcript", "nonsense_mediated_decay",
+    "protein_coding", "retained_intron"
+  ),
+  transcript_name = c(
+    "Transcript1", "Transcript2",
+    "Transcript3", "Transcript4",
+    "Transcript5", "Transcript6",
+    "Transcript7", "Transcript8",
+    "Transcript9", "Transcript10",
+    "Transcript11", "Transcript12"
+  ),
+  log2FC = c(
+    1.5, -2.0, 0.8, -1.2, 2.3, -0.5,
+    1.0, -1.5, 0.3, -2.5, 1.8, -0.7
+  )
 )
 
 # Sample gene sets
 genesets_list <- list(
-  Pathway1 = c("GeneA", "GeneC"),
-  Pathway2 = c("GeneB", "GeneD")
+  Pathway1 = c("GeneA", "GeneC", "GeneF"),
+  Pathway2 = c("GeneB", "GeneD", "GeneE", "GeneX")
+)
+
+# Sample transcript to gene mapping
+tx_to_gene <- data.frame(
+  transcript_name = det_df$transcript_name,
+  gene_name = det_df$gene_name
 )
 
 # Run enrichment analysis
 fgsea_results_df <- run_enrichment(
   det_df = det_df,
   genesets_list = genesets_list,
+  tx_to_gene = tx_to_gene,
   pval_cutoff = 0.05,
   lfc_cutoff = 1
 )

@@ -35,6 +35,7 @@
 #'   The `"mane"` reference is not implemented yet.
 #'
 #' @examples
+#' \dontrun{
 #' # Download human GTF file for GENCODE release 43
 #' gtf_file <- download_reference(
 #'   version = "43",
@@ -58,6 +59,7 @@
 #'   file_type = "fasta",
 #'   output_path = "data-raw"
 #' )
+#' }
 #'
 #' @export
 download_reference <- function(version = "46",

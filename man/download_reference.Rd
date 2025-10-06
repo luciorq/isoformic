@@ -59,6 +59,7 @@ Currently, only \code{"gencode"} reference files are supported.
 The \code{"mane"} reference is not implemented yet.
 }
 \examples{
+\dontrun{
 # Download human GTF file for GENCODE release 43
 gtf_file <- download_reference(
   version = "43",
@@ -82,5 +83,6 @@ fasta_file <- download_reference(
   file_type = "fasta",
   output_path = "data-raw"
 )
+}
 
 }

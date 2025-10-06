@@ -66,12 +66,14 @@ plot_tx_context <- function(
   }
 
   # TODO: @luciorq tx_to_gene should be passed as an argument?
-  tx_id_to_name <- tx_to_gene |>
-    dplyr::select(transcript_id, transcript_name, transcript_type)
+  # tx_id_to_name <- tx_to_gene |>
+  #  dplyr::select(
+  #    "transcript_id", "transcript_name", "transcript_type"
+  #  )
 
   plot_data |>
     dplyr::arrange(tx_id) |>
-    dplyr::left_join(tx_id_to_name, by = c("tx_id" = "transcript_id")) |>
+    # dplyr::left_join(tx_id_to_name, by = c("tx_id" = "transcript_id")) |>
     ggplot2::ggplot() +
     ggplot2::geom_rect(
       mapping = ggplot2::aes(

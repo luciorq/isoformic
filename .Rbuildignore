@@ -16,6 +16,7 @@
 ^doc$
 ^Meta$
 ^vignettes/*_files$
+^vignettes/data-raw$
 ^README\.Rmd$
 ^README\.qmd$
 ^README\.html$
@@ -28,3 +29,6 @@
 ^\.markdownlint\.jsonc$
 ^\.markdownlint-cli2\.jsonc$
 ^\.markdownlint-cli2\.yaml$
+^Rplots\.pdf$
+^\.Rhistory$
+^\.RData$
