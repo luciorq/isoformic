@@ -34,7 +34,7 @@ Imports:
     ggrepel,
     glue,
     IRanges,
-    plotgardener (>= 1.14.0),
+    plotgardener (>= 1.6.4),
     purrr,
     readr,
     rlang,
