@@ -25,6 +25,7 @@ The function reads the headers of the FASTA file and extracts relevant informati
 For GTF or GFF3 files, support is not yet implemented.
 }
 \examples{
+\dontrun{
 # Assuming you have downloaded the GENCODE transcriptome FASTA file:
 fasta_file <- download_reference(
   version = "43",
@@ -38,5 +39,6 @@ tx_to_gene <- make_tx_to_gene(file_path = fasta_file, file_type = "fasta")
 
 # View the first few rows
 head(tx_to_gene)
+}
 
 }
