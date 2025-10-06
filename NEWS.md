@@ -1,3 +1,9 @@
+## Isoformic [Unreleased]
+
+### Added
+
+* New `IsoformicExperiment` class to encapsulate transcriptomic data and annotations.
+
 ## Isoformic [0.1.2] - 2025-10-06
 
 ### Added
@@ -35,6 +41,7 @@
 
 * Original workflow style code added.
 
+[unreleased]: https://github.com/luciorq/isoformic/compare/v0.1.2...HEAD
 [0.1.2]: <https://github.com/luciorq/isoformic/compare/v0.1.1...v0.1.2>
 [0.1.1]: <https://github.com/luciorq/isoformic/compare/v0.1.0...v0.1.1>
 [0.1.0]: <https://github.com/luciorq/isoformic/compare/v0.0.1...v0.1.0>
