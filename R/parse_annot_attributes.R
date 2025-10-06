@@ -5,10 +5,9 @@
 #' @keywords internal
 #' @noRd
 parse_annot_attributes <- function(
-  column_vector,
-  feature_type = c("gene", "transcript", "exon"),
-  file_type = c("gtf", "gff")
-) {
+    column_vector,
+    feature_type = c("gene", "transcript", "exon"),
+    file_type = c("gtf", "gff")) {
   feature_type <- rlang::arg_match(feature_type)
   file_type <- rlang::arg_match(file_type)
 

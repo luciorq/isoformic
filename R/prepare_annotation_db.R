@@ -1,16 +1,29 @@
 #' Write Parquet File from GFF
+#'
+#' This function reads a GFF file and writes its contents to a Parquet file
+#' using DuckDB.
+#'
+#' @param input_path Character string specifying the path to the input GFF file.
+#' @param output_path Character string specifying the path to the output Parquet file.
+#' If `NULL` or an empty string, a temporary file will be created.
+#' @param file_type Character string specifying the type of the input file.
+#' Currently, only "gff" is supported (default is "gff").
+#'
+#' @return Invisible path to the created Parquet file.
+#'
+#' @export
 prepare_annotation_db <- function(
-  input_path,
-  output_path = NULL,
-  file_type = c("gff")
-) {
+    input_path,
+    output_path = NULL,
+    file_type = c("gff")) {
   file_type <- stringr::str_to_lower(file_type)
   file_type <- rlang::arg_match(file_type)
   if (isTRUE(rlang::is_null(output_path) || identical(output_path, ""))) {
     parquet_file_path <- "none"
   } else {
     parquet_file_path <- fs::path(
-      fs::path_ext_remove(output_path), ext = "parquet"
+      fs::path_ext_remove(output_path),
+      ext = "parquet"
     )
   }
 

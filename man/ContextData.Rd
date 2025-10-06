@@ -22,7 +22,7 @@ ContextData(
       out
      }
  })(),
-  annotation_name = character(0),
+  annotation_name = NULL,
   assembly_name = character(0),
   ideogram_assembly = character(0),
   organism = character(0),

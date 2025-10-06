@@ -28,6 +28,7 @@
 #' @details The function combines gene and transcript expression data with differential expression results to generate a tidy data frame. It filters significant genes and transcripts based on specified cutoffs and prepares the data for plotting expression profiles across specified sample groups.
 #'
 #' @examples
+#' \dontrun{
 #' # Assuming txi_gene, txi_transcript, sample_metadata, tx_to_gene, de_result_gene,
 #' # and de_result_transcript are pre-loaded data frames:
 #'
@@ -56,6 +57,7 @@
 #' ggplot(expr_df, aes(x = condition, y = mean_TPM, fill = DE)) +
 #'   geom_bar(stat = "identity", position = position_dodge()) +
 #'   facet_wrap(~ parent_gene + transcript_type)
+#' }
 #'
 #' @export
 prepare_profile_data <- function(
@@ -75,6 +77,7 @@ prepare_profile_data <- function(
   # dependencies
   .data <- rlang::.data
   .env <- rlang::.env
+  `:=` <- rlang::`:=`
   txi_transcript <- convert_to_isoformic_tibble(txi_transcript)
   # Extract tx2gene from gene annotation table
   # renamed gene annotation to gene_metadata
@@ -150,7 +153,7 @@ prepare_profile_data <- function(
   #  dplyr::select(
   #    gene_metadata, {{ txid_col }}, {{ tx_col }}
   #  )
-  #)
+  # )
 
   txi_gene <- txi_gene |>
     dplyr::left_join(genename_conversion_df, by = c(gene_id = geneid_col)) |>
@@ -179,7 +182,7 @@ prepare_profile_data <- function(
       values_to = "TPM"
     ) |>
     dplyr::left_join(condition_df, by = c("sample" = sample_col)) |>
-    dplyr::group_by(genename, .data[[var]]) |>
+    dplyr::group_by(.data$genename, .data[[var]]) |>
     dplyr::summarise(
       mean_TPM = base::mean(.data$TPM),
       SD = stats::sd(.data$TPM)

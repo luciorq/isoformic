@@ -10,7 +10,9 @@
 #' @keywords internal
 #'
 #' @noRd
-summarize_to_gene <- function(txi_transcript, tx_to_gene) {
+summarize_to_gene <- function(
+    txi_transcript,
+    tx_to_gene) {
   .data <- rlang::.data
   id_df <- tx_to_gene |>
     dplyr::select("transcript_id", "gene_id") |>
@@ -24,7 +26,7 @@ summarize_to_gene <- function(txi_transcript, tx_to_gene) {
       names_to = "samples",
       values_to = "expr"
     ) |>
-    dplyr::group_by(gene_id, samples) |>
+    dplyr::group_by(.data$gene_id, .data$samples) |>
     dplyr::summarise(
       mean_expr = base::mean(.data$expr, na.rm = TRUE)
     ) |>

@@ -48,19 +48,24 @@
 #' print(DEGs_DETs_table)
 #'
 #' @export
-join_DEG_DET <- function(DEG_tab, DET_final_tab, logfc_cut, pval_cut) {
+join_DEG_DET <- function(
+    DEG_tab,
+    DET_final_tab,
+    logfc_cut,
+    pval_cut) {
+  .data <- rlang::.data
   DEG_tab_mod <- DEG_tab |>
-    dplyr::rename(id = gene_id)
+    dplyr::rename(id = "gene_id")
   DEG_tab_mod <- DEG_tab_mod |>
-    dplyr::rename(name = gene_name)
+    dplyr::rename(name = "gene_name")
   DEG_tab_mod <- DEG_tab_mod |>
     dplyr::mutate(transcript_type = "gene")
   DEG_tab_mod <- DEG_tab_mod |>
-    dplyr::mutate(gene_name = DEG_tab_mod$name)
-  drop_columns <- c("DEG_sig")
+    dplyr::mutate(gene_name = .data[["name"]])
+
   DET_final_tab <- DET_final_tab |>
     dplyr::filter(
-      transcript_type %in% c(
+      .data[["transcript_type"]] %in% c(
         "retained_intron", "protein_coding_CDS_not_defined",
         "processed_transcript",
         "nonsense_mediated_decay",
@@ -73,21 +78,32 @@ join_DEG_DET <- function(DEG_tab, DET_final_tab, logfc_cut, pval_cut) {
         "unitary_pseudogene"
       )
     )
-  DET_final_tab_mod <- DET_final_tab |>
-    dplyr::select(-dplyr::one_of(drop_columns))
+
+  drop_columns <- c("DEG_sig")
+  if (any(colnames(DET_final_tab) %in% drop_columns)) {
+    DET_final_tab_mod <- DET_final_tab |>
+      dplyr::select(-dplyr::one_of(drop_columns))
+  } else {
+    DET_final_tab_mod <- DET_final_tab
+  }
+
   DET_final_tab_mod <- DET_final_tab_mod |>
-    dplyr::rename(id = transcript_id)
+    dplyr::rename(id = "transcript_id")
   DET_final_tab_mod <- DET_final_tab_mod |>
-    dplyr::rename(name = transcript_name)
+    dplyr::rename(name = "transcript_name")
   DEG_tab_mod <- DEG_tab_mod[
     colnames(DEG_tab_mod)[colnames(DEG_tab_mod)
     %in% colnames(DET_final_tab_mod)]
   ]
+
   DEGs_DETs_table <- dplyr::bind_rows(DEG_tab_mod, DET_final_tab_mod)
   DEGs_DETs_table$significance <- c()
   DEGs_DETs_table$abs_log2FC <- base::abs(DEGs_DETs_table$log2FC)
   DEGs_DETs_table$significance <- "not_sig"
+  DEGs_DETs_table$DEG_sig <- "NO"
   DEGs_DETs_table$significance[DEGs_DETs_table$abs_log2FC > logfc_cut &
     DEGs_DETs_table$pvalue < pval_cut] <- "sig"
+  DEGs_DETs_table$DEG_sig[DEGs_DETs_table$abs_log2FC > logfc_cut &
+    DEGs_DETs_table$pvalue < pval_cut] <- "YES"
   return(DEGs_DETs_table)
 }

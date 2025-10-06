@@ -1,11 +1,12 @@
-# Run DuckDB queries
+#' Run DuckDB queries
+#' @keywords internal
+#' @noRd
 duckdb_run <- function(
-  sql_string,
-  db_type = c("duckdb_memory", "duckdb_tempfile", "duckdb_file"),
-  db_file_path = NULL,
-  read_only = FALSE,
-  envir = parent.frame()
-) {
+    sql_string,
+    db_type = c("duckdb_memory", "duckdb_tempfile", "duckdb_file"),
+    db_file_path = NULL,
+    read_only = FALSE,
+    envir = parent.frame()) {
   db_type <- rlang::arg_match(db_type)
   if (!isTRUE(rlang::is_scalar_logical(read_only))) {
     cli::cli_abort(
@@ -29,7 +30,8 @@ duckdb_run <- function(
     identical(db_type, "duckdb_file") && !identical(db_file_path, "none")
   ) {
     db_storage_str <- fs::path(
-      fs::path_ext_remove(db_file_path), ext = "duckdb"
+      fs::path_ext_remove(db_file_path),
+      ext = "duckdb"
     )
   } else {
     db_storage_str <- fs::path("_isoformic_annot_db", ext = "duckdb")

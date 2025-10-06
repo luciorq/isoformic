@@ -7,6 +7,7 @@
 #' @param det_df A `data.frame` or `tibble` containing transcript-level differential expression results,
 #'   including `transcript_type`, `log2FC`, and `gene_name` columns.
 #' @param genesets_list A list of gene sets to be used in the enrichment analysis.
+#' @param tx_to_gene A `data.frame` or `tibble` mapping transcript names to gene names, including `transcript_name` and `gene_name` columns.
 #' @param pval_cutoff A numeric value specifying the p-value cutoff for the enrichment results. Default is `0.05`.
 #' @param lfc_cutoff A numeric value specifying the log2 fold-change cutoff for filtering transcripts. Default is `1`.
 #'
@@ -23,8 +24,11 @@
 #' det_df <- data.frame(
 #'   gene_name = c("GeneA", "GeneB", "GeneC", "GeneD"),
 #'   transcript_type = c(
-#'     "protein_coding", "retained_intron", "protein_coding_CDS_not_defined",
-#'     "processed_transcript", "nonsense_mediated_decay"
+#'     "protein_coding", "retained_intron",
+#'     "protein_coding_CDS_not_defined", "processed_transcript"
+#'   ),
+#'   transcript_name = c(
+#'     "Transcript1", "Transcript2", "Transcript3", "Transcript4"
 #'   ),
 #'   log2FC = c(1.5, -2.0, 0.8, -1.2)
 #' )
@@ -35,10 +39,23 @@
 #'   Pathway2 = c("GeneB", "GeneD")
 #' )
 #'
+#' # Sample transcript to gene mapping
+#' tx_to_gene <- data.frame(
+#'   transcript_name = c(
+#'     "Transcript1", "Transcript2", "Transcript3", "Transcript4"
+#'   ),
+#'   gene_name = c("GeneA", "GeneB", "GeneC", "GeneD"),
+#'   transcript_type = c(
+#'     "protein_coding", "retained_intron", "protein_coding_CDS_not_defined",
+#'     "processed_transcript"
+#'   )
+#' )
+#'
 #' # Run enrichment analysis
 #' fgsea_results_df <- run_enrichment(
 #'   det_df = det_df,
 #'   genesets_list = genesets_list,
+#'   tx_to_gene = tx_to_gene,
 #'   pval_cutoff = 0.05,
 #'   lfc_cutoff = 1
 #' )
@@ -48,12 +65,11 @@
 #'
 #' @export
 run_enrichment <- function(
-  det_df,
-  genesets_list,
-  tx_to_gene,
-  pval_cutoff = 0.05,
-  lfc_cutoff = 1
-) {
+    det_df,
+    genesets_list,
+    tx_to_gene,
+    pval_cutoff = 0.05,
+    lfc_cutoff = 1) {
   .data <- rlang::.data
   .env <- rlang::.env
   processed_or_cds <- ifelse(
@@ -83,6 +99,8 @@ run_enrichment <- function(
   fgsea_results_df <- base::seq_along(tx_type_names) |>
     purrr::map(
       .f = function(x) {
+        .data <- rlang::.data
+        .env <- rlang::.env
         type_vec <- tx_types_list[[x]]
         type_name <- tx_type_names[x]
         res_fgsea <- det_df |>
@@ -97,11 +115,13 @@ run_enrichment <- function(
           name = "term",
           value = "gene_name"
         ) |>
-          tidyr::unnest(cols = gene_name)
+          tidyr::unnest(cols = .data$gene_name)
         genesets_list <- genesets_list |>
           dplyr::left_join(
             tx_to_gene |>
-              dplyr::select("transcript_name", "gene_name"),
+              dplyr::select(
+                "transcript_name", "gene_name"
+              ),
             by = "gene_name"
           )
         genesets_list <- split(

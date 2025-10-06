@@ -14,7 +14,7 @@ github_org := 'luciorq'
   R -q -e 'devtools::load_all();styler::style_pkg();';
   R -q -e 'devtools::load_all();usethis::use_tidy_description();';
   R -q -e 'devtools::load_all();devtools::document();';
-  # R -q -e 'devtools::load_all();devtools::run_examples();';
+  R -q -e 'devtools::load_all();devtools::run_examples();';
   R -q -e 'devtools::load_all();devtools::test();';
   # R -q -e 'devtools::load_all();rmarkdown::render("README.Rmd", encoding = "UTF-8")';
 
@@ -26,7 +26,7 @@ github_org := 'luciorq'
 @check:
   #!/usr/bin/env bash
   \builtin set -euxo pipefail;
-  R -q -e 'rcmdcheck::rcmdcheck(args="--as-cran");';
+  R -q -e 'rcmdcheck::rcmdcheck(args = c("--as-cran"), repos = c(CRAN = "https://cloud.r-project.org"));';
 
 # Check if package can be installed on a conda environment
 @check-install-conda tag_version='main':
