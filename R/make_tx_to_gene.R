@@ -15,6 +15,7 @@
 #' For GTF or GFF3 files, support is not yet implemented.
 #'
 #' @examples
+#' \dontrun{
 #' # Assuming you have downloaded the GENCODE transcriptome FASTA file:
 #' fasta_file <- download_reference(
 #'   version = "43",
@@ -28,6 +29,7 @@
 #'
 #' # View the first few rows
 #' head(tx_to_gene)
+#' }
 #'
 #' @export
 make_tx_to_gene <- function(
