@@ -2,6 +2,7 @@
 # isoformic <img src="man/figures/logo.png" align="right" height="136" />
 
 <!-- badges: start -->
+[![R-CMD-check](https://github.com/luciorq/isoformic/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/luciorq/isoformic/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 Welcome to `isoformic`, a workflow for isoform-level biological interpretation of transcriptomic data.
