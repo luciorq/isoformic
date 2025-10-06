@@ -11,7 +11,7 @@ transcripts based on their types."><meta property="og:image" content="https://lu
 
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1.9005</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -114,7 +114,6 @@ including <code>transcript_id</code>, <code>transcript_name</code>, <code>transc
 <span class="r-in"><span>  logfc_cut <span class="op">=</span> <span class="fl">1</span>,</span></span>
 <span class="r-in"><span>  pval_cut <span class="op">=</span> <span class="fl">0.05</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Unknown columns: `DEG_sig`</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># View the result</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">DEGs_DETs_table</span><span class="op">)</span></span></span>
@@ -124,6 +123,12 @@ including <code>transcript_id</code>, <code>transcript_name</code>, <code>transc
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3   tx1 Transcript1    1.2   0.02       protein_coding        1.2          sig</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4   tx2 Transcript2   -1.8   0.03               lncRNA        1.8          sig</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5   tx3 Transcript3    0.5   0.20 processed_transcript        0.5      not_sig</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   DEG_sig</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1     YES</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2     YES</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3     YES</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4     YES</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      NO</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
@@ -132,7 +137,7 @@ including <code>transcript_id</code>, <code>transcript_name</code>, <code>transc
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Lucio Rezende Queiroz, Izabela Mamede Conceicao, Luigi Marchionni, Gloria Franco.</p>
+  <p>Developed by Lucio Rezende Queiroz, Lucio Rezende Queiroz, Izabela Mamede Conceicao, Luigi Marchionni, Gloria Franco.</p>
 </div>
 
 <div class="pkgdown-footer-right">

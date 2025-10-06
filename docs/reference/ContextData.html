@@ -9,7 +9,7 @@ transcripts and their annotation in a IsoformicExperiment analysis."><meta prope
 
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1.9005</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -55,20 +55,7 @@ transcripts and their annotation in a <code>IsoformicExperiment</code> analysis.
 <span>  gene_name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
 <span>  gff_file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
 <span>  txdb <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  annotation_table <span class="op">=</span> <span class="op">(</span><span class="kw">function</span> <span class="op">(</span><span class="va">.data</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">row.names</span> <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> </span>
-<span> <span class="op">{</span></span>
-<span>     <span class="kw">if</span></span>
-<span>    <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">row.names</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>         <span class="fu"><a href="https://rdrr.io/r/base/list2DF.html" class="external-link">list2DF</a></span><span class="op">(</span><span class="va">.data</span><span class="op">)</span></span>
-<span>     <span class="op">}</span></span>
-<span>     <span class="kw">else</span> <span class="op">{</span></span>
-<span>         <span class="va">out</span> <span class="op">&lt;-</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/list2DF.html" class="external-link">list2DF</a></span><span class="op">(</span><span class="va">.data</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">row.names</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">out</span>, <span class="st">"row.names"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">row.names</span></span>
-<span>      </span>
-<span>      <span class="va">out</span></span>
-<span>     <span class="op">}</span></span>
-<span> <span class="op">}</span><span class="op">)</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  annotation_table <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  annotation_name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
 <span>  assembly_name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
 <span>  ideogram_assembly <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
@@ -146,7 +133,7 @@ for transcript types.</p></dd>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Lucio Rezende Queiroz, Izabela Mamede Conceicao, Luigi Marchionni, Gloria Franco.</p>
+  <p>Developed by Lucio Rezende Queiroz, Lucio Rezende Queiroz, Izabela Mamede Conceicao, Luigi Marchionni, Gloria Franco.</p>
 </div>
 
 <div class="pkgdown-footer-right">

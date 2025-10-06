@@ -3,7 +3,7 @@ pkgdown: 2.1.3
 pkgdown_sha: ~
 articles:
   isoformic_intro: isoformic_intro.html
-last_built: 2025-10-04T18:18Z
+last_built: 2025-10-06T22:34Z
 urls:
   reference: https://luciorq.github.io/isoformic/reference
   article: https://luciorq.github.io/isoformic/articles

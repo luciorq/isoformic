@@ -26,10 +26,12 @@
 <url><loc>https://luciorq.github.io/isoformic/reference/join_DEG_DET.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/make_tx_to_gene.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/modify_lnc_ranges.html</loc></url>
+<url><loc>https://luciorq.github.io/isoformic/reference/plot_genomic_context.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/plot_log2FC.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/plot_tx_context.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/plot_tx_expr.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/prepare_annotation.html</loc></url>
+<url><loc>https://luciorq.github.io/isoformic/reference/prepare_annotation_db.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/prepare_exon_annotation.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/prepare_profile_data.html</loc></url>
 <url><loc>https://luciorq.github.io/isoformic/reference/run_enrichment.html</loc></url>
