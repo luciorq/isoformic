@@ -1,0 +1,149 @@
+---
+title: "1.Making_Isoformic_inputs"
+author: "Iza"
+date: "2025-10-02"
+output: html_document
+---
+Salmon: command anatomy (single sample)
+Below is a single-sample invocation (to run in bash) showing the typical arguments we used when making the mini dataset. Replace the paths with yours if you want to reproduce.
+
+More through information on : https://combine-lab.github.io/salmon/
+
+```{r}
+# not run
+salmon quant \
+  --libType A \             # A = autodetect library type from the reads
+  --index /path/to/index \  # transcriptome index (here:  index built fr)
+  --mates1 /path/SRR..._1.fastq \   # R1 fastq
+  --mates2 /path/SRR..._2.fastq \   # R2 fastq
+  --output /path/SRR..._quant \     # output folder (contains quant.sf, aux_info/)
+  --threads 7 \                      # parallel threads
+  --validateMappings \               # selective-alignment (more specific, recommended)
+  --d \          # Add Terminus needed outputs
+  --posBias --seqBias --gcBias \     # bias corrections (positional, sequence, GC)
+  --numGibbsSamples 100              # draw inferential replicates; required for fishpond/Swish
+
+```
+
+Now to run and get the isoformic tables
+```{r}
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(readr)
+  library(SummarizedExperiment)
+  library(tximeta)
+  library(isoformic)
+  library(fishpond)
+  library(tximport)
+  library(DESeq2)
+})
+
+# Where extdata lives
+ext_base <- system.file("extdata", package = "isoformic")
+if (ext_base == "") {
+  ext_base <- file.path("inst", "extdata")
+}
+
+quants_dir <- file.path(ext_base, "mini_quants")
+isoformic::download_reference(version = "34", file_type = "gff")
+
+fasta_path <- "data-raw/gencode.v34.transcripts.fa.gz"
+
+tx_to_gene <- make_tx_to_gene(
+  file_path = fasta_path,
+  file_type = "fasta"
+)
+head(tx_to_gene)
+
+tx2gene<-tx_to_gene %>% dplyr::select(transcript_id, gene_name)
+
+```
+
+Point to the quant files
+```{r}
+# discover sample folders like SRR11498039_quant, etc.
+sample_dirs <- list.dirs(quants_dir, full.names = FALSE, recursive = FALSE)
+# keep only *_quant and strip the suffix for sample names
+samples <- sub("_quant$", "", sample_dirs)
+stopifnot(length(samples) == 6)
+
+# define groups: "control" = first 3, "case" = last 3 (sorted by sample ID)
+samples <- sort(samples)
+condition <- c(rep("control", 3), rep("case", 3))
+
+files <- file.path(quants_dir, paste0(samples, "_quant"), "quant.sf")
+names(files) <- samples
+stopifnot(all(file.exists(files)))
+
+coldata <- tibble::tibble(
+  files    = files,
+  names    = samples,
+  condition = factor(condition, levels = c("control", "case"))
+)
+coldata
+
+```
+
+import with tximeta
+```{r}
+se_tx <- tximeta::tximeta(coldata, skipMeta = TRUE)
+se_tx
+```
+
+Save the counts table
+```{r}
+
+tx_counts <- as.data.frame(SummarizedExperiment::assay(se_tx, "counts"))
+rownames_to_column <- function(df, col = "transcript_id") {
+  tibble::tibble(!!col := rownames(df)) %>% dplyr::bind_cols(tibble::as_tibble(df))
+}
+counts_tbl <- rownames_to_column(tx_counts, "transcript_id")
+
+```
+
+DETs with fishpond
+```{r}
+y <- se_tx
+y <- fishpond::scaleInfReps(y)
+
+y <- fishpond::labelKeep(y, minCount = 10, minN = 3)
+y <- y[mcols(y)$keep, ]
+
+y$condition <- factor(y$condition, levels = c("control", "case"))
+
+# run Swish
+y <- fishpond::swish(y, x = "condition")
+
+# collect results
+DET_all <- S4Vectors::mcols(y) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("transcript_id") %>%
+  as_tibble() %>%
+  dplyr::left_join(tx2gene, by = "transcript_id")
+
+DET_all
+
+```
+
+Gene level with Deseq2
+```{r}
+se_gene <- tximeta::summarizeToGene(se_tx, tx2gene = dplyr::select(tx2gene, transcript_id, gene_id))
+colData(se_gene)$condition <- factor(colData(se_gene)$condition, levels = c("control", "case"))
+
+dds <- DESeq2::DESeqDataSet(se_gene, design = ~ condition)
+dds <- dds[rowSums(DESeq2::counts(dds) >= 10) >= 3, ]   
+dds <- DESeq2::DESeq(dds)
+
+res <- DESeq2::results(dds, contrast = c("condition","case","control"))
+# shrink for stability on small example
+res_shr <- DESeq2::lfcShrink(dds, coef = "condition_case_vs_control", res = res, type = "apeglm")
+
+DEG_all <- as.data.frame(res_shr) %>%
+  tibble::rownames_to_column("gene_id") %>%
+  as_tibble()
+
+
+```
+
+
+
