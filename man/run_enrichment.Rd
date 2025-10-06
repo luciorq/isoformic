@@ -18,6 +18,8 @@ including \code{transcript_type}, \code{log2FC}, and \code{gene_name} columns.}
 
 \item{genesets_list}{A list of gene sets to be used in the enrichment analysis.}
 
+\item{tx_to_gene}{A \code{data.frame} or \code{tibble} mapping transcript names to gene names, including \code{transcript_name} and \code{gene_name} columns.}
+
 \item{pval_cutoff}{A numeric value specifying the p-value cutoff for the enrichment results. Default is \code{0.05}.}
 
 \item{lfc_cutoff}{A numeric value specifying the log2 fold-change cutoff for filtering transcripts. Default is \code{1}.}
@@ -41,8 +43,11 @@ and performs GSEA using the \code{fgsea} package.
 det_df <- data.frame(
   gene_name = c("GeneA", "GeneB", "GeneC", "GeneD"),
   transcript_type = c(
-    "protein_coding", "retained_intron", "protein_coding_CDS_not_defined",
-    "processed_transcript", "nonsense_mediated_decay"
+    "protein_coding", "retained_intron",
+    "protein_coding_CDS_not_defined", "processed_transcript"
+  ),
+  transcript_name = c(
+    "Transcript1", "Transcript2", "Transcript3", "Transcript4"
   ),
   log2FC = c(1.5, -2.0, 0.8, -1.2)
 )
@@ -53,10 +58,23 @@ genesets_list <- list(
   Pathway2 = c("GeneB", "GeneD")
 )
 
+# Sample transcript to gene mapping
+tx_to_gene <- data.frame(
+  transcript_name = c(
+    "Transcript1", "Transcript2", "Transcript3", "Transcript4"
+  ),
+  gene_name = c("GeneA", "GeneB", "GeneC", "GeneD"),
+  transcript_type = c(
+    "protein_coding", "retained_intron", "protein_coding_CDS_not_defined",
+    "processed_transcript"
+  )
+)
+
 # Run enrichment analysis
 fgsea_results_df <- run_enrichment(
   det_df = det_df,
   genesets_list = genesets_list,
+  tx_to_gene = tx_to_gene,
   pval_cutoff = 0.05,
   lfc_cutoff = 1
 )

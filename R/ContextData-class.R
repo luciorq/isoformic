@@ -39,7 +39,7 @@ ContextData <- S7::new_class(
     gff_file = S7::class_character,
     txdb = S7::class_any,
     annotation_table = S7::class_data.frame,
-    annotation_name = S7::class_character,
+    annotation_name = S7::class_any,
     assembly_name = S7::class_character,
     ideogram_assembly = S7::class_character,
     organism = S7::class_character,

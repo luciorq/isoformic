@@ -64,6 +64,7 @@ across different sample groups.
 The function combines gene and transcript expression data with differential expression results to generate a tidy data frame. It filters significant genes and transcripts based on specified cutoffs and prepares the data for plotting expression profiles across specified sample groups.
 }
 \examples{
+\dontrun{
 # Assuming txi_gene, txi_transcript, sample_metadata, tx_to_gene, de_result_gene,
 # and de_result_transcript are pre-loaded data frames:
 
@@ -92,5 +93,6 @@ library(ggplot2)
 ggplot(expr_df, aes(x = condition, y = mean_TPM, fill = DE)) +
   geom_bar(stat = "identity", position = position_dodge()) +
   facet_wrap(~ parent_gene + transcript_type)
+}
 
 }

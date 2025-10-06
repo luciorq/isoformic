@@ -1,11 +1,10 @@
 Package: isoformic
 Title: Isoform-Level Biological Interpretation of Transcriptomic Data
-Version: 0.1.1.9006
+Version: 0.1.1.9007
 Authors@R: c(
     person("Lucio Rezende", "Queiroz", , "luciorqueiroz@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0002-6090-1834")),
-    person("Lucio Rezende", "Queiroz", , "lrq4001@med.cornell.edu", role = c("aut", "ctb"),
-           comment = c(ORCID = "0000-0002-6090-1834")),
+    person("Lucio Rezende", "Queiroz", , "lrq4001@med.cornell.edu", role = c("aut", "ctb")),
     person("Izabela Mamede", "Conceicao", , "iza.mamede@gmail.com", role = c("aut", "ctb"),
            comment = c(ORCID = "0000-0002-0707-5588")),
     person("Luigi", "Marchionni", , "lum4003@med.cornell.edu", role = c("aut", "ctb"),
@@ -23,32 +22,35 @@ Depends:
     R (>= 4.3)
 Imports:
     cli,
+    DBI,
     dplyr,
+    duckdb,
     fgsea,
     forcats,
     fs,
+    GenomicFeatures,
     ggplot2 (>= 4.0.0),
     ggpubr,
     ggrepel,
     glue,
+    IRanges,
     plotgardener (>= 1.14.0),
     purrr,
     readr,
     rlang,
+    S7 (>= 0.2.0),
     stringr,
     tibble,
     tidyr,
+    txdbmaker,
     vroom,
-    withr,
-    S7 (>= 0.2.0),
-    DBI,
-    IRanges,
-    GenomicFeatures,
-    txdbmaker
+    withr
 Suggests:
     curl,
     fishpond,
+    GenomeInfoDbData,
     knitr,
+    org.Hs.eg.db,
     rmarkdown,
     testthat (>= 3.0.0),
     viridis

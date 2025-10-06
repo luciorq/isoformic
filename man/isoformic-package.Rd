@@ -24,6 +24,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Lucio Rezende Queiroz \email{lrq4001@med.cornell.edu} [contributor]
   \item Izabela Mamede Conceicao \email{iza.mamede@gmail.com} (\href{https://orcid.org/0000-0002-0707-5588}{ORCID}) [contributor]
   \item Luigi Marchionni \email{lum4003@med.cornell.edu} (\href{https://orcid.org/0000-0002-7336-8071}{ORCID}) [contributor]
   \item Gloria Franco \email{gfranco@ufmg.br} (\href{https://orcid.org/0000-0001-5245-2365}{ORCID}) [contributor]
