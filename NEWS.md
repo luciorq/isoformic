@@ -8,6 +8,7 @@
 ### Changed
 
 * Argument `file_type` in `download_reference()` is now "gff" by default.
+* Default GENCODE `version` in `download_reference()` is now "49" by default.
 
 ## Isoformic [0.1.2] - 2025-10-06
 

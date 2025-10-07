@@ -63,14 +63,13 @@
 #'
 #' @export
 download_reference <- function(
-  version = "46",
-                               reference = "gencode",
-                               organism = c("human", "mouse"),
-                               file_type = c("gff", "gtf", "fasta"),
-                               output_path = "data-raw",
-                               timeout_limit = 3600,
-                               method = "auto"
-) {
+    version = "49",
+    reference = "gencode",
+    organism = c("human", "mouse"),
+    file_type = c("gff", "gtf", "fasta"),
+    output_path = "data-raw",
+    timeout_limit = 3600,
+    method = "auto") {
   if (requireNamespace("curl", quietly = TRUE)) {
     if (!isTRUE(curl::has_internet())) {
       cli::cli_abort(
