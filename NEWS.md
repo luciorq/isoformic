@@ -2,7 +2,12 @@
 
 ### Added
 
-* New `IsoformicExperiment` class to encapsulate transcriptomic data and annotations.
+* New `IsoformicExperiment` class to encapsulate all workflow inputs with a
+  disk-based backend and tidy analytic interface.
+
+### Changed
+
+* Argument `file_type` in `download_reference()` is now "gff" by default.
 
 ## Isoformic [0.1.2] - 2025-10-06
 

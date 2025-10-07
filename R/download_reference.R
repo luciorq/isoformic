@@ -1,7 +1,7 @@
 #' Download Reference Files from GENCODE
 #'
 #' Downloads reference annotation files from the GENCODE database for human or mouse genomes.
-#' Supports downloading GTF, GFF, and transcriptome FASTA files. The function handles directory
+#' Supports downloading GFF, GTF, and transcriptome FASTA files. The function handles directory
 #' creation and checks for existing files to avoid redundant downloads.
 #'
 #' @param version A character string specifying the GENCODE release version.
@@ -12,7 +12,7 @@
 #' @param organism A character string specifying the organism.
 #'   Valid options are `"human"` or `"mouse"`.
 #' @param file_type A character string specifying the type of file to download.
-#'   Valid options are `"gtf"`, `"gff"`, or `"fasta"`. Defaults to `"gtf"`.
+#'   Valid options are `"gff"`, `"gtf"`, or `"fasta"`. Defaults to `"gff"`.
 #'   **Note:** `"fasta"` refers to the transcriptome FASTA file.
 #' @param output_path A character string specifying the directory where the
 #'   downloaded file will be saved. Defaults to `"data-raw"`.
@@ -40,7 +40,7 @@
 #' gtf_file <- download_reference(
 #'   version = "43",
 #'   organism = "human",
-#'   file_type = "gtf",
+#'   file_type = "gff",
 #'   output_path = "data-raw"
 #' )
 #'
@@ -48,7 +48,7 @@
 #' gtf_file_mouse <- download_reference(
 #'   version = "M32",
 #'   organism = "mouse",
-#'   file_type = "gtf",
+#'   file_type = "gff",
 #'   output_path = "data-raw"
 #' )
 #'
@@ -62,13 +62,15 @@
 #' }
 #'
 #' @export
-download_reference <- function(version = "46",
+download_reference <- function(
+  version = "46",
                                reference = "gencode",
                                organism = c("human", "mouse"),
-                               file_type = c("gtf", "gff", "fasta"),
+                               file_type = c("gff", "gtf", "fasta"),
                                output_path = "data-raw",
                                timeout_limit = 3600,
-                               method = "auto") {
+                               method = "auto"
+) {
   if (requireNamespace("curl", quietly = TRUE)) {
     if (!isTRUE(curl::has_internet())) {
       cli::cli_abort(
