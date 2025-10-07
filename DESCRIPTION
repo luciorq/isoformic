@@ -1,6 +1,6 @@
 Package: isoformic
 Title: Isoform-Level Biological Interpretation of Transcriptomic Data
-Version: 0.1.2.9001
+Version: 0.1.2.9002
 Authors@R: c(
     person("Lucio Rezende", "Queiroz", , "luciorqueiroz@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0002-6090-1834")),
@@ -21,7 +21,9 @@ BugReports: https://github.com/luciorq/isoformic/issues
 Depends:
     R (>= 4.3)
 Imports:
-    cli,
+    arrow (>= 21.0.0),
+    carrier,
+    cli (>= 3.6.0),
     DBI,
     dplyr,
     duckdb,
@@ -34,8 +36,10 @@ Imports:
     ggrepel,
     glue,
     IRanges,
+    mirai,
     plotgardener (>= 1.6.4),
     purrr,
+    purrr (>= 1.1.0),
     readr,
     rlang,
     S7 (>= 0.2.0),

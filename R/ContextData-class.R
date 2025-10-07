@@ -1,6 +1,5 @@
 # ContextData-class
 
-
 #' ContextData Class
 #'
 #' The `ContextData` class holds information on the genomic context of
