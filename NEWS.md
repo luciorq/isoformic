@@ -4,11 +4,16 @@
 
 * New `IsoformicExperiment` class to encapsulate all workflow inputs with a
   disk-based backend and tidy analytic interface.
+* New `output_path = ":cache:"` to store downloaded reference files in a
+  dedicated cache folder.
+  This is the new default behavior for `download_reference()`.
+* New `get_isoformic_cache()` function to retrieve the path to the cache folder.
 
 ### Changed
 
-* Argument `file_type` in `download_reference()` is now "gff" by default.
-* Default GENCODE `version` in `download_reference()` is now "49" by default.
+* Argument `file_type` in `download_reference()` is now `"gff"` by default.
+* Default GENCODE `version` in `download_reference()` is now `"49"` by default.
+* Argument `output_path` in `download_reference()` is now `":cache:"`.
 
 ## Isoformic [0.1.2] - 2025-10-06
 
