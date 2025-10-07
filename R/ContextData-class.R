@@ -66,7 +66,7 @@ ContextData <- S7::new_class(
 #' organism database package (e.g., "org.Hs.eg.db").
 #' @param bsgenome_package Character string specifying the name of the
 #' BSgenome package (e.g., "BSgenome.Hsapiens.UCSC.hg38").
-#' @param tx_type_palette Named Character vector specifying the color palette
+#' @param tx_type_palette Named character vector specifying the color palette
 #' for transcript types.
 #'
 #' @inheritParams rlang::args_dots_empty

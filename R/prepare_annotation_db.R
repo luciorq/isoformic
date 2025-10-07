@@ -4,8 +4,8 @@
 #' using DuckDB.
 #'
 #' @param input_path Character string specifying the path to the input GFF file.
-#' @param output_path Character string specifying the path to the output Parquet file.
-#' If `NULL` or an empty string, a temporary file will be created.
+#' @param output_path Character string specifying the path to the output
+#' Parquet file. If `NULL` or an empty string, a temporary file will be created.
 #' @param file_type Character string specifying the type of the input file.
 #' Currently, only "gff" is supported (default is "gff").
 #'
@@ -34,6 +34,9 @@ prepare_annotation_db <- function(
       ),
       class = "isoformic_annot_file_dont_exist"
     )
+  }
+  if (!isTRUE(fs::dir_exists(fs::path_dir(parquet_file_path)))) {
+    fs::dir_create(fs::path_dir(parquet_file_path), recurse = TRUE)
   }
 
   sql_str <- r"---(SET enable_progress_bar = false;
