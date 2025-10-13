@@ -41,12 +41,16 @@ prepare_annotation_db <- function(
 
   sql_str <- r"---(SET enable_progress_bar = false;
 COPY (
-SELECT t.seqid, t.source, t.type, t.start_pos,
+SELECT
+  t.seqid, t.source, t.type, t.start_pos,
   t.end_pos, t.score, t.strand, t.phase,
-  split_part(regexp_split_to_table(t.attributes, ';'), '=', 1) AS key,
-  split_part(regexp_split_to_table(t.attributes, ';'), '=', 2) AS value
+  regexp_extract(t.attributes, 'ID=(.*?);', 1) AS id,
+  t.attributes
+  -- split_part(regexp_split_to_table(t.attributes, ';'), '=', 1) AS key,
+  -- split_part(regexp_split_to_table(t.attributes, ';'), '=', 2) AS value
 FROM (
-  SELECT *
+  SELECT
+    *
   FROM read_csv(
     {`input_path`},
     delim = '\t', comment = '#',

@@ -1,6 +1,16 @@
 get_annot_metadata <- function(gff_file) {
   .data <- rlang::.data
   metadata_list <- list()
+  metadata_list[["annot_name"]] <- gff_file |>
+    fs::path_ext_remove() |>
+    fs::path_file() |>
+    stringr::str_to_lower() |>
+    stringr::str_replace_all(
+      pattern = stringr::fixed("."),
+      replacement = "_"
+    )
+
+  metadata_list[["annot_path"]] <- gff_file
 
   line_schema <- arrow::schema(
     arrow::field("linestr", arrow::string(), nullable = TRUE)
@@ -9,7 +19,7 @@ get_annot_metadata <- function(gff_file) {
   metadata_df <- arrow::read_delim_arrow(
     gff_file,
     schema = line_schema,
-    delim = "°",
+    delim = "\\",
     as_data_frame = FALSE
   ) |>
     dplyr::filter(stringr::str_detect(.data$linestr, "^#")) |>

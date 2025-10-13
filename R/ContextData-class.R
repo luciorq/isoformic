@@ -101,6 +101,7 @@ create_context_data <- function(
     organism = context_data@organism
   )
 
+  # TODO: @luciorq Replace prepare_annotation with the duckdb method.
   context_data@annotation_table <- prepare_annotation(
     context_data@gff_file,
     file_type = "gff"

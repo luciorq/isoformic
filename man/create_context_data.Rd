@@ -28,7 +28,7 @@ organism database package (e.g., "org.Hs.eg.db").}
 \item{bsgenome_package}{Character string specifying the name of the
 BSgenome package (e.g., "BSgenome.Hsapiens.UCSC.hg38").}
 
-\item{tx_type_palette}{Named Character vector specifying the color palette
+\item{tx_type_palette}{Named character vector specifying the color palette
 for transcript types.}
 }
 \description{
