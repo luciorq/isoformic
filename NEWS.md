@@ -2,12 +2,23 @@
 
 ### Added
 
-* New `IsoformicExperiment` class to encapsulate all workflow inputs with a
-  disk-based backend and tidy analytic interface.
 * New `output_path = ":cache:"` to store downloaded reference files in a
   dedicated cache folder.
   This is the new default behavior for `download_reference()`.
 * New `get_isoformic_cache()` function to retrieve the path to the cache folder.
+
+* New `IsoformicExperiment` class to encapsulate all workflow inputs with a
+  disk-based backend and tidy interface.
+
+* New generics and methods for the `IsoformicExperiment` class:
+  * `row_data_transcripts()`
+  * `row_data_genes()`
+  * `row_data_exons()`
+  * `col_data()`
+  * `assay()`
+  * `tx_to_gene()`
+  * `de_tx()`
+  * `de_gene()`
 
 ### Changed
 

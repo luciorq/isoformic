@@ -19,7 +19,7 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
   facet_num <- length(genes_to_plot)
   facet_row_num <- round(sqrt(facet_num))
 
-  # FIXME: this should be removed after integration with S4 object
+  # TODO: @luciorq this should be removed after integration with S7 object
   var <- colnames(expr_df)[2]
   var_levels <- levels(dplyr::pull(expr_df, {{ var }}))
 
@@ -50,7 +50,8 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
     ggplot2::ggplot() +
     ggrepel::geom_text_repel(
       mapping = ggplot2::aes(
-        x = .data[[var]], y = .data$log2_mean_TPM,
+        x = .data[[var]],
+        y = .data$log2_mean_TPM,
         label = dplyr::if_else(
           .data$DE %in% "Yes" & .data[[var]] %in% var_levels[1],
           true = as.character(.data$genename),
