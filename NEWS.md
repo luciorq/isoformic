@@ -11,20 +11,30 @@
   disk-based backend and tidy interface.
 
 * New generics and methods for the `IsoformicExperiment` class:
+  * `col_data()`
   * `row_data_transcripts()`
   * `row_data_genes()`
   * `row_data_exons()`
-  * `col_data()`
   * `assay()`
   * `tx_to_gene()`
+  * `tx_annot()`
   * `de_tx()`
   * `de_gene()`
+
+* New interface for `plot_log2fc()` function to visualize log2 fold changes of
+  transcripts within a gene.
+
+* New `feature_column` argument in `plot_log2FC()` to specify the column
+  name in the DE results table that contains the feature names (e.g., gene or
+  transcript names).
 
 ### Changed
 
 * Argument `file_type` in `download_reference()` is now `"gff"` by default.
 * Default GENCODE `version` in `download_reference()` is now `"49"` by default.
 * Argument `output_path` in `download_reference()` is now `":cache:"`.
+* Arguments `DEG_DET_table` and `selected_genes` in `plot_log2FC()` are now
+  `de_data` and `feature`.
 
 ## Isoformic [0.1.2] - 2025-10-06
 
@@ -33,7 +43,8 @@
 * New DuckDB based `parse_annotation()`.
 * New `plot_genomic_context()` function to visualize the genomic context of a
   gene with its transcripts.
-* New `tx_type_palette()` function to provide a color palette for transcript types.
+* New `tx_type_palette()` function to provide a default color palette for
+  transcript types.
 
 ### Fixed
 
@@ -43,9 +54,11 @@
 
 ### Added
 
-* `download_reference()`: now supports `organism = c("human", "mouse")`, with `organism = "human"` being the default.
+* `download_reference()`: now supports `organism = c("human", "mouse")`,
+  with `organism = "human"` being the default.
 * `download_reference()`: argument `file_type = "gtf"` is the default.
-* `prepare_annotation()`: Parse both GTF and GFF file formats into required annotation data.
+* `prepare_annotation()`: Parse both GTF and GFF file formats into
+  required annotation data.
 
 ### Fixed
 

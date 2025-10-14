@@ -105,5 +105,18 @@ join_DEG_DET <- function(
     DEGs_DETs_table$pvalue < pval_cut] <- "sig"
   DEGs_DETs_table$DEG_sig[DEGs_DETs_table$abs_log2FC > logfc_cut &
     DEGs_DETs_table$pvalue < pval_cut] <- "YES"
+
+  DEGs_DETs_table <- DEGs_DETs_table |>
+    dplyr::mutate(
+      is_de = dplyr::if_else(.data$significance == "sig", "yes", "no")
+    ) |>
+    dplyr::rename(
+      feature_id = "id",
+      feature_name = "name",
+      feature_type = "transcript_type"
+    ) |>
+    dplyr::select(
+      -dplyr::any_of(c("abs_log2FC", "DEG_sig"))
+    )
   return(DEGs_DETs_table)
 }

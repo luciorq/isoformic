@@ -1,12 +1,15 @@
-#' Plot Log2 Fold-Change Results for Selected Genes
+#' Plot Log2 Fold-Change Results for Transcripts of Selected Genes
 #'
 #' Creates a bar plot of log2 fold-change values for transcripts of a selected gene,
 #' differentiating transcript types and significance levels.
 #'
-#' @param DEG_DET_table A `data.frame` or `tibble` containing combined gene and transcript differential expression results,
-#'   including `name`, `log2FC`, `transcript_type`, `significance`, and `gene_name` columns.
-#' @param selected_gene A character string specifying the gene name to plot.
-#' @param custom_colors An optional named vector of colors for different transcript types.
+#' @param de_data A `data.frame` or `tibble` containing combined gene and transcript differential expression results.
+#'  Should contain columns for log2 fold-change, transcript type, significance, and feature symbols.
+#' @param feature A character string specifying the gene name to plot.
+#' @param feature_column A character string specifying the column name in `de_data` that contains gene names.
+#'  Default is `"gene_name"`.
+#' @param color_palette A named character vector specifying colors for different transcript types.
+#'  If `NULL`, a default palette will be used.
 #'
 #' @return A `ggplot2` object representing the bar plot.
 #'
@@ -18,18 +21,20 @@
 #'
 #' @examples
 #' # Sample data
-#' DEGs_DETs_table <- data.frame(
-#'   name = c("Transcript1", "Transcript2", "GeneA"),
-#'   log2FC = c(1.5, -2.0, 0.8),
-#'   transcript_type = c("protein_coding", "lncRNA", "gene"),
-#'   significance = c("sig", "not_sig", "sig"),
-#'   gene_name = c("GeneA", "GeneA", "GeneA")
+#' de_table_long <- data.frame(
+#'   feature_name = c("Transcript1", "Transcript2", "Transcript3", "GeneA"),
+#'   feature_id = c("TX1", "TX2", "TX3", "GENEA"),
+#'   gene_name = c("GeneA", "GeneA", "GeneA", "GeneA"),
+#'   log2FC = c(1.5, -0.5, -2.0, 0.8),
+#'   feature_type = c("protein_coding", "lncRNA", "retained_intron", "gene"),
+#'   is_de = c("yes", "no", "yes", "yes")
 #' )
 #'
 #' # Plot log2 fold-change for the selected gene
 #' plot_obj <- plot_log2FC(
-#'   DEG_DET_table = DEGs_DETs_table,
-#'   selected_gene = "GeneA"
+#'   de_data = de_table_long,
+#'   feature = "GeneA",
+#'   feature_column = "gene_name"
 #' )
 #'
 #' # Display the plot
@@ -42,15 +47,6 @@ plot_log2FC <- function(
     feature_column = "gene_name",
     color_palette = NULL) {
   .data <- rlang::.data
-  if (!feature_column %in% colnames(de_data)) {
-    cli::cli_abort(
-      message = c(
-        x = "The specified {.var feature_column} '{feature_column}' is not found in the provided data.",
-        i = "Please ensure the column name is correct and exists in the data."
-      ),
-      class = "isoformic_plot_log2fc_invalid_feature_column"
-    )
-  }
   if (isFALSE(feature_column %in% colnames(de_data))) {
     cli::cli_abort(
       message = c(
@@ -63,14 +59,32 @@ plot_log2FC <- function(
   if (rlang::is_null(color_palette)) {
     color_palette <- tx_type_palette()
   }
-
   x_axis_label_column <- stringr::str_replace(
     string = feature_column,
     pattern = stringr::regex("^gene_|^transcript_"),
     replacement = "feature_"
   )
-  all_features_de <- de_data$is_de[de_data[[x_axis_label_column]] %in% feature]
 
+
+  all_feature_names <- de_data[[x_axis_label_column]][de_data[[feature_column]] %in% feature] |>
+    unique()
+
+  selected_feature_types <- de_data |>
+    dplyr::filter(.data[[x_axis_label_column]] %in% all_feature_names) |>
+    dplyr::pull("feature_type") |>
+    unique()
+
+  missing_types <- selected_feature_types[!selected_feature_types %in% unique(names(color_palette))]
+
+  if (isTRUE(length(missing_types) > 0)) {
+    cli::cli_abort(
+      message = c(
+        x = "The provided {.var color_palette} is missing colors for the following transcript types: {paste(missing_types, collapse = ', ')}.",
+        i = "Please provide colors for all transcript types present in the data."
+      ),
+      class = "isoformic_plot_log2fc_incomplete_color_palette"
+    )
+  }
 
   plot_obj <- ggplot2::ggplot(
     data = de_data[de_data[[feature_column]] %in% feature, ],
@@ -81,6 +95,7 @@ plot_log2FC <- function(
     )
   )
 
+  all_features_de <- de_data$is_de[de_data[[x_axis_label_column]] %in% feature]
   if (all(all_features_de == "yes")) {
     plot_obj <- plot_obj +
       ggplot2::geom_bar(stat = "identity")
@@ -101,12 +116,13 @@ plot_log2FC <- function(
       ggplot2::scale_alpha_manual(
         values = c(0.2, 1),
         labels = c("No", "Yes")
-      )
+      ) +
+      ggplot2::labs(alpha = "Differentially Expressed")
   }
 
   plot_obj <- plot_obj +
+    ggplot2::geom_hline(yintercept = 0, linetype = "solid", color = "grey") +
     ggplot2::scale_fill_manual(values = color_palette) +
-    ggplot2::labs(alpha = "Differentially Expressed") +
     ggplot2::labs(fill = "Feature Type") +
     ggplot2::xlab(stringr::str_to_title(stringr::str_replace(
       string = x_axis_label_column,
@@ -115,13 +131,28 @@ plot_log2FC <- function(
     ))) +
     ggplot2::ylab(expression(~ log[2](Fold ~ Change))) +
     ggplot2::theme_bw()
-  # ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, vjust = 0.5))
+
   return(plot_obj)
 }
 
 # S7 Methods
 
 plot_log2fc <- S7::new_generic("plot_log2fc", "self")
+
+S7::method(plot_log2fc, S7::class_data.frame) <- function(
+    self,
+    feature,
+    feature_column = "gene_name",
+    color_palette = NULL) {
+  plot_obj <- plot_log2FC(
+    de_data = self,
+    feature = feature,
+    feature_column = feature_column,
+    color_palette = color_palette
+  )
+  return(plot_obj)
+}
+
 S7::method(plot_log2fc, IsoformicExperiment) <- function(
     self,
     feature,

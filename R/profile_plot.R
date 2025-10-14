@@ -89,7 +89,7 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
         group = .data$genename,
         color = .data$transcript_type,
         alpha = .data$DE
-      ), size = 1.5
+      ), linewidth = 1.5
     ) +
     ggplot2::geom_errorbar(
       ggplot2::aes(
@@ -128,13 +128,14 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
       scales = "free_y"
     )
 
+  # TODO: @luciorq Change X label to refer to comparison variable
   plot_object <- plot_object +
     ggplot2::labs(
       x = "Condition",
-      y = "log2(mean(TPM) + 1)",
-      color = "Transcript Biotype",
-      fill = "Transcript Biotype",
-      alpha = "Differentially expressed"
+      y = expression(~ log[2](mean(TPM) + 1)),
+      color = "Transcript Type",
+      fill = "Transcript Type",
+      alpha = "Differentially Expressed"
     )
   return(plot_object)
 }

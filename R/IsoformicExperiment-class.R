@@ -7,11 +7,22 @@
 #' It holds the path to the dataset, sample metadata, and provides
 #' access to transcript, gene, and exon annotations through properties.
 #' The preferred way to construct an object of this class is through the
-#' [`isoformic_experiment()`] function.
+#' [`IsoformicExperiment()`].
 #'
-#' @param path Character string specifying the path to the data directory.
+#' @param experiment_name Character string specifying the name of the experiment.
+#' @param data_path Character string specifying the path to the data directory.
 #' @param annot_path Character string specifying the path to the annotation
 #' database directory.
+#' @param assay A list of matrices or data frames containing assay data,
+#' with transcript IDs as row names and sample IDs as column names.
+#' Each element of the list represents a different assay (e.g., TPM, counts).
+#' @param annot_metadata A list containing metadata about the annotation,
+#' such as source, version, and date.
+#' @param dea A list containing differential expression analysis results
+#' for transcripts and genes.
+#' @param gsea A list containing gene set enrichment analysis results.
+#' @param tx_type_palette A named character vector specifying the color
+#' palette for different transcript types.
 #' @param col_data A data frame containing sample metadata.
 #' @param row_data_transcripts A property that retrieves transcript
 #' annotation data.
@@ -170,7 +181,8 @@ S7::method(row_data, IsoformicExperiment) <- function(self, compute = FALSE) {
 # Other Methods
 # =========================================================================
 
-#' Print IsoformicExperiment Object Summary
+# Print IsoformicExperiment Object Summary
+
 S7::method(print, IsoformicExperiment) <- function(x, ...) {
   cat("<IsoformicExperiment>\n")
   cat(" Experiment Name: ", x@experiment_name, "\n", sep = "")
@@ -440,21 +452,21 @@ validate_dea <- function(self) {
 
 # write_rds | save
 
-#' Instantiate an IsoformicExperiment Object
-#'
-#' This function creates an instance of the IsoformicExperiment class,
-#' which is used to manage and analyze transcriptomic data.
-#'
-#' It requires the path to a dataset that contains the necessary
-#' data files, including sample metadata and annotation tables.
-#'
-#' @param db_path Character string specifying the path to the dataset.
-#'
-#' @rdname isoformic_experiment
-#'
-#' @export
-isoformic_experiment <- function(db_path) {
-  IsoformicExperiment(
-    path = db_path
-  )
-}
+# #' Instantiate an IsoformicExperiment Object
+# #'
+# #' This function creates an instance of the IsoformicExperiment class,
+# #' which is used to manage and analyze transcriptomic data.
+# #'
+# #' It requires the path to a dataset that contains the necessary
+# #' data files, including sample metadata and annotation tables.
+# #'
+# #' @param db_path Character string specifying the path to the dataset.
+# #'
+# #' @rdname isoformic_experiment
+# #'
+# #' @export
+# isoformic_experiment <- function(db_path) {
+#   IsoformicExperiment(
+#     path = db_path
+#   )
+# }
