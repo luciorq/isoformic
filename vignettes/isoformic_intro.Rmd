@@ -156,14 +156,15 @@ head(sample_table)
 
 #### Download reference files
 
-The references used for this project were obtained from the [GENCODE Project][gencode-ref] version 34 for the Human genome annotation. The annotation file in GFF3 format was obtained from <https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_34/gencode.v34.chr_patch_hapl_scaff.annotation.gff3.gz>.
+The references used for this project were obtained from the [GENCODE Project][gencode-ref] version 33 for the Human genome annotation.
+The annotation file in GFF3 format was obtained from <'https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_33/gencode.v33.annotation.gff3.gz>.
 
 This step may take a while depending on the speed of your internet connection.
 
 ```{r, eval=TRUE}
-download_reference(version = "34", file_type = "fasta")
-# download_reference(version = "34", file_type = "gtf")
-download_reference(version = "34", file_type = "gff")
+gff_file_path <- download_reference(version = "33", file_type = "gff")
+# download_reference(version = "33", file_type = "fasta")
+# download_reference(version = "33", file_type = "gtf")
 ```
 
 To download mouse references, it is necessary to include the letter 'M' in the version string (e.g., "M37").
@@ -210,10 +211,10 @@ Using the FASTA file from GENCODE we will construct a transcript per gene dictio
 This step will depend a lot on the names of the columns on your tables so in the Vignette we decided to change names to keep consistency.
 
 The input used here is a FASTA file containing the transcript sequences and their annotation information downloaded from the GENCODE website with the specific version you used for the alignment.
-In the case here GENCODE v34.
+In the case here GENCODE v33.
 
 ```{r, warning = FALSE, message = FALSE}
-fasta_path <- "data-raw/gencode.v34.transcripts.fa.gz"
+fasta_path <- download_reference(version = "33", file_type = "fasta")
 read_lines(fasta_path, n_max = 5)
 ```
 
@@ -239,6 +240,7 @@ tx_to_gene <- tx_to_gene |>
     transcript_name, gene_name,
     transcript_type
   )
+head(tx_to_gene)
 ```
 
 First we add the `gene_name` information to the DEG table
@@ -248,7 +250,8 @@ gene_join <- tx_to_gene |>
   dplyr::select(gene_id, gene_name) |>
   distinct()
 PE1_DEGs <- PE1_DEGs |>
-  left_join(gene_join, by = "gene_id")
+  left_join(gene_join, by = "gene_id") |>
+  dplyr::relocate("gene_name", .after = "gene_id")
 ```
 
 Now the transcript name for the TPM table
@@ -258,7 +261,8 @@ tpm_join <- tx_to_gene |>
   dplyr::select(transcript_id, transcript_name) |>
   distinct()
 PE1_counts <- PE1_counts |>
-  left_join(tpm_join, by = c("transcript_id"))
+  left_join(tpm_join, by = c("transcript_id")) |>
+  dplyr::relocate("transcript_name", .after = "transcript_id")
 ```
 
 The DET table will be our main table for analysis.
@@ -283,7 +287,8 @@ transcript_joined <- tx_to_gene |>
   dplyr::select(transcript_id, transcript_name, transcript_type) |>
   dplyr::distinct()
 PE1_DETs <- PE1_DETs |>
-  dplyr::left_join(transcript_joined, by = "transcript_id")
+  dplyr::left_join(transcript_joined, by = "transcript_id") |>
+  dplyr::relocate("transcript_name", "transcript_type", .after = "transcript_id")
 ```
 
 For the gene expression level we have to convert the DEG table and do some cutting to get the genes which present as DE and exclude possible noise.
@@ -317,6 +322,16 @@ One detail is that the DET final table now allows us to see genes whose transcri
 ```{r}
 DETs_not_DEGs <- PE1_DETs_final |>
   filter(pvalue < 0.05, abs(log2FC) > 1, DEG_sig == "NO")
+
+DETs_not_DEGs |>
+  dplyr::arrange(qvalue)
+
+PE1_DETs_final |>
+  dplyr::arrange(qvalue) |>
+  dplyr::arrange(-abs(log2FC)) |>
+  # dplyr::slice_head(n = 30) |>
+  dplyr::filter(stringr::str_detect(transcript_name, "^EGFR")) |>
+  print(n = 30)
 ```
 
 This table will represent cases which could be characterized as isoform switches, when two transcripts of the same gene are expressed in opposite directions what makes the total expression of that gene not be significant either up or down-regulated.
@@ -326,8 +341,7 @@ This table will represent cases which could be characterized as isoform switches
 Before we start plotting we will define a general set of colors to be used through the entire pipeline associated with a certain type of transcript. Here we colored all the most abundant types separately and the less abundant on the same grey tone and name that vector accordingly
 
 ```{r, eval=FALSE}
-# TODO: @luciorq Check implementation of function `tx_type_palette()`
-fixed_tx_biotypes <- c(
+tx_biotypes <- c(
   "gene", "protein_coding",
   "retained_intron", "protein_coding_CDS_not_defined",
   "nonsense_mediated_decay", "lncRNA",
@@ -337,7 +351,7 @@ fixed_tx_biotypes <- c(
   "unitary_pseudogene", "processed_transcript"
 )
 
-tx_type_color_names <- c(
+tx_biotype_color_names <- c(
   "#fb8072", "#a6d854",
   "#8da0cb", "#fc8d62",
   "#66c2a5", "#e78ac3",
@@ -347,9 +361,13 @@ tx_type_color_names <- c(
   "#d9d9d9", "#d9d9d9"
 )
 
-names(tx_type_color_names) <- fixed_tx_biotypes
+names(tx_biotype_color_names) <- tx_biotypes
 
-tx_type_color_names
+tx_biotype_color_names
+```
+
+```{r}
+print(tx_type_palette())
 ```
 
 # Log2FC Plot
@@ -359,7 +377,8 @@ The simplest and first plot on this tutorial will be a log2FC plot, this plot wi
 For that we will make a combined version of the DEG table with the DET table using the function join_DEG_DET.
 
 ```{r}
-DEG_DET_table <- join_DEG_DET(PE1_DEGs, PE1_DETs_final, 1, 0.05)
+DEG_DET_table <- join_DEG_DET(PE1_DEGs, PE1_DETs_final, logfc_cut = 1, pval_cut = 0.05)
+
 head(DEG_DET_table)
 ```
 
@@ -382,16 +401,26 @@ plot_obj +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
 ```
 
+Multiple panels.
+
+```{r}
+c("RBPJ", "EGFR", "PNCK") |>
+  purrr::map(function(gene) {
+    DEG_DET_table |>
+      plot_log2FC(gene) +
+      ggplot2::theme_classic() +
+      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, vjust = 1, hjust = 1)) +
+      ggplot2::ggtitle(gene)
+  }) |>
+  patchwork::wrap_plots(ncol = 1, guides = "collect")
+```
+
 # Profile Plot
 
 Another good more quantifiable way to visualize this switch is using the Transcript per Million Count of each transcript, compared to those of the gene between the case and control conditions.
 For this we use a profile plot that in one size plots the values of TPM for the case conditions and in the other the value of the TPM for the control conditions.
 
 ```{r}
-DEG_DET_table |>
-  filter(!transcript_type %in% "gene")
-unique(DEG_DET_table$transcript_type)
-
 profile_data_df <- prepare_profile_data(
   txi_transcript = PE1_counts,
   tx_to_gene = tx_to_gene,
@@ -401,10 +430,6 @@ profile_data_df <- prepare_profile_data(
   var = "condition",
   var_levels = c("control", "treatment")
 )
-#
-# # Create output directory if don't exist yet
-# path_to_save <- "results/profile_plot"
-# fs::dir_create(path_to_save)
 
 profile_plot <- plot_tx_expr(
   genes_to_plot = "RBPJ",
@@ -414,11 +439,26 @@ profile_plot
 ```
 
 ```{r}
+head(profile_data_df)
+```
+
+```{r}
 profile_data_df |>
   filter(genename %in% "IL2RA")
 
 profile_plot <- plot_tx_expr(
   genes_to_plot = "IL2RA",
+  profile_data = profile_data_df
+)
+profile_plot
+```
+
+```{r}
+profile_data_df |>
+  filter(genename %in% "EGFR")
+
+profile_plot <- plot_tx_expr(
+  genes_to_plot = "EGFR",
   profile_data = profile_data_df
 )
 profile_plot
@@ -521,11 +561,12 @@ This alignment count unfortunately requires running alignment softwares and deal
 We called this plot the genomic context plot and it takes inspiration from the way Ensembl shows it transcripts on their genome browser.
 
 This specific plot requires a GFF file that can also be downloaded from GENCODE to be included in the file path on next function.
-This GFF file needs to be downloaded on the accurate version for your transcriptome, in this case v34.
+This GFF file needs to be downloaded on the accurate version for your transcriptome, in this case v33.
 
 ```{r}
+gff_file <- download_reference(version = "33", file_type = "gff")
 context_data <- create_context_data(
-  gff_file = "data-raw/gencode.v34.annotation.gff3.gz",
+  gff_file = gff_file,
   organism = "Homo sapiens",
   orgdb_package = "org.Hs.eg.db",
   bsgenome_package = "BSgenome.Hsapiens.NCBI.GRCh38"
