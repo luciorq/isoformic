@@ -9,8 +9,8 @@ prepare_annotation_db(input_path, output_path = NULL, file_type = c("gff"))
 \arguments{
 \item{input_path}{Character string specifying the path to the input GFF file.}
 
-\item{output_path}{Character string specifying the path to the output Parquet file.
-If \code{NULL} or an empty string, a temporary file will be created.}
+\item{output_path}{Character string specifying the path to the output
+Parquet file. If \code{NULL} or an empty string, a temporary file will be created.}
 
 \item{file_type}{Character string specifying the type of the input file.
 Currently, only "gff" is supported (default is "gff").}

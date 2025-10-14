@@ -1,6 +1,5 @@
 # ContextData-class
 
-
 #' ContextData Class
 #'
 #' The `ContextData` class holds information on the genomic context of
@@ -67,7 +66,7 @@ ContextData <- S7::new_class(
 #' organism database package (e.g., "org.Hs.eg.db").
 #' @param bsgenome_package Character string specifying the name of the
 #' BSgenome package (e.g., "BSgenome.Hsapiens.UCSC.hg38").
-#' @param tx_type_palette Named Character vector specifying the color palette
+#' @param tx_type_palette Named character vector specifying the color palette
 #' for transcript types.
 #'
 #' @inheritParams rlang::args_dots_empty
@@ -102,6 +101,7 @@ create_context_data <- function(
     organism = context_data@organism
   )
 
+  # TODO: @luciorq Replace prepare_annotation with the duckdb method.
   context_data@annotation_table <- prepare_annotation(
     context_data@gff_file,
     file_type = "gff"

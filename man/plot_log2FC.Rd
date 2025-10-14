@@ -2,17 +2,26 @@
 % Please edit documentation in R/plot_log2FC.R
 \name{plot_log2FC}
 \alias{plot_log2FC}
-\title{Plot Log2 Fold-Change Results for Selected Genes}
+\title{Plot Log2 Fold-Change Results for Transcripts of Selected Genes}
 \usage{
-plot_log2FC(DEG_DET_table, selected_gene, custom_colors = NULL)
+plot_log2FC(
+  de_data,
+  feature,
+  feature_column = "gene_name",
+  color_palette = NULL
+)
 }
 \arguments{
-\item{DEG_DET_table}{A \code{data.frame} or \code{tibble} containing combined gene and transcript differential expression results,
-including \code{name}, \code{log2FC}, \code{transcript_type}, \code{significance}, and \code{gene_name} columns.}
+\item{de_data}{A \code{data.frame} or \code{tibble} containing combined gene and transcript differential expression results.
+Should contain columns for log2 fold-change, transcript type, significance, and feature symbols.}
 
-\item{selected_gene}{A character string specifying the gene name to plot.}
+\item{feature}{A character string specifying the gene name to plot.}
 
-\item{custom_colors}{An optional named vector of colors for different transcript types.}
+\item{feature_column}{A character string specifying the column name in \code{de_data} that contains gene names.
+Default is \code{"gene_name"}.}
+
+\item{color_palette}{A named character vector specifying colors for different transcript types.
+If \code{NULL}, a default palette will be used.}
 }
 \value{
 A \code{ggplot2} object representing the bar plot.
@@ -29,18 +38,20 @@ by providing \code{custom_colors}.
 }
 \examples{
 # Sample data
-DEGs_DETs_table <- data.frame(
-  name = c("Transcript1", "Transcript2", "GeneA"),
-  log2FC = c(1.5, -2.0, 0.8),
-  transcript_type = c("protein_coding", "lncRNA", "gene"),
-  significance = c("sig", "not_sig", "sig"),
-  gene_name = c("GeneA", "GeneA", "GeneA")
+de_table_long <- data.frame(
+  feature_name = c("Transcript1", "Transcript2", "Transcript3", "GeneA"),
+  feature_id = c("TX1", "TX2", "TX3", "GENEA"),
+  gene_name = c("GeneA", "GeneA", "GeneA", "GeneA"),
+  log2FC = c(1.5, -0.5, -2.0, 0.8),
+  feature_type = c("protein_coding", "lncRNA", "retained_intron", "gene"),
+  is_de = c("yes", "no", "yes", "yes")
 )
 
 # Plot log2 fold-change for the selected gene
 plot_obj <- plot_log2FC(
-  DEG_DET_table = DEGs_DETs_table,
-  selected_gene = "GeneA"
+  de_data = de_table_long,
+  feature = "GeneA",
+  feature_column = "gene_name"
 )
 
 # Display the plot

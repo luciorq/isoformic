@@ -28,7 +28,7 @@
 #' tx_to_gene <- make_tx_to_gene(file_path = fasta_file, file_type = "fasta")
 #'
 #' # View the first few rows
-#' head(tx_to_gene)
+#' utils::head(tx_to_gene)
 #' }
 #'
 #' @export

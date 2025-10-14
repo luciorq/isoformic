@@ -19,7 +19,7 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
   facet_num <- length(genes_to_plot)
   facet_row_num <- round(sqrt(facet_num))
 
-  # FIXME: this should be removed after integration with S4 object
+  # TODO: @luciorq this should be removed after integration with S7 object
   var <- colnames(expr_df)[2]
   var_levels <- levels(dplyr::pull(expr_df, {{ var }}))
 
@@ -50,7 +50,8 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
     ggplot2::ggplot() +
     ggrepel::geom_text_repel(
       mapping = ggplot2::aes(
-        x = .data[[var]], y = .data$log2_mean_TPM,
+        x = .data[[var]],
+        y = .data$log2_mean_TPM,
         label = dplyr::if_else(
           .data$DE %in% "Yes" & .data[[var]] %in% var_levels[1],
           true = as.character(.data$genename),
@@ -88,7 +89,7 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
         group = .data$genename,
         color = .data$transcript_type,
         alpha = .data$DE
-      ), size = 1.5
+      ), linewidth = 1.5
     ) +
     ggplot2::geom_errorbar(
       ggplot2::aes(
@@ -127,13 +128,14 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
       scales = "free_y"
     )
 
+  # TODO: @luciorq Change X label to refer to comparison variable
   plot_object <- plot_object +
     ggplot2::labs(
       x = "Condition",
-      y = "log2(mean(TPM) + 1)",
-      color = "Transcript Biotype",
-      fill = "Transcript Biotype",
-      alpha = "Differentially expressed"
+      y = expression(~ log[2](mean(TPM) + 1)),
+      color = "Transcript Type",
+      fill = "Transcript Type",
+      alpha = "Differentially Expressed"
     )
   return(plot_object)
 }

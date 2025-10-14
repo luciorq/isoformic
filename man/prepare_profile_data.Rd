@@ -86,7 +86,7 @@ expr_df <- prepare_profile_data(
 )
 
 # View the prepared data
-head(expr_df)
+utils::head(expr_df)
 
 # Plotting example (assuming ggplot2 is installed)
 library(ggplot2)

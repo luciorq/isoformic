@@ -12,7 +12,7 @@ prepare_exon_annotation(gene_name, file_path, file_type = c("gff", "gtf"))
 \item{file_path}{Path to annotation file.}
 
 \item{file_type}{A character string specifying the type of file to download.
-Valid options are \code{"gtf"}, \code{"gff"}, or \code{"fasta"}. Defaults to \code{"gtf"}.
+Valid options are \code{"gff"}, \code{"gtf"}, or \code{"fasta"}. Defaults to \code{"gff"}.
 \strong{Note:} \code{"fasta"} refers to the transcriptome FASTA file.}
 }
 \description{
