@@ -9,6 +9,10 @@
 #' This function uses the `[tools::R_user_dir()]` function to determine the
 #' user cache directory.
 #'
+#' @param ... Additional path components to append to the cache directory.
+#' @param ext An optional file extension (e.g., "rds", "csv") to append to
+#' the final path.
+#'
 #' @return
 #' A path character string representing the path to the user cache
 #' directory for the `isoformic` package.

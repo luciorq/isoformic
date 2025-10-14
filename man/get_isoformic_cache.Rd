@@ -6,6 +6,12 @@
 \usage{
 get_isoformic_cache(..., ext = NULL)
 }
+\arguments{
+\item{...}{Additional path components to append to the cache directory.}
+
+\item{ext}{An optional file extension (e.g., "rds", "csv") to append to
+the final path.}
+}
 \value{
 A path character string representing the path to the user cache
 directory for the \code{isoformic} package.

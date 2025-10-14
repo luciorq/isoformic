@@ -15,7 +15,6 @@
   * `row_data_transcripts()`
   * `row_data_genes()`
   * `row_data_exons()`
-  * `assay()`
   * `tx_to_gene()`
   * `tx_annot()`
   * `de_tx()`
