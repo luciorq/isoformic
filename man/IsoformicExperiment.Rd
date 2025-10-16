@@ -7,6 +7,9 @@
 \alias{row_data_genes}
 \alias{row_data_exons}
 \alias{row_data}
+\alias{annot_row_names}
+\alias{col_names}
+\alias{row_names}
 \alias{tx_to_gene}
 \alias{tx_annot}
 \alias{de_tx}
@@ -34,6 +37,12 @@ row_data_genes(self, ...)
 row_data_exons(self, ...)
 
 row_data(self, ...)
+
+annot_row_names(self, ...)
+
+col_names(self, ...)
+
+row_names(self, ...)
 
 tx_to_gene(self, ...)
 

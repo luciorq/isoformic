@@ -191,22 +191,63 @@ S7::method(row_data, IsoformicExperiment) <- function(self, compute = FALSE) {
   return(get_row_data(self, compute))
 }
 
+
+#' Return Row Names for Transcript Level Annotation
+#' @rdname IsoformicExperiment
+annot_row_names <- S7::new_generic("annot_row_names", "self")
+
+S7::method(annot_row_names, IsoformicExperiment) <- function(self) {
+  self@row_data_transcripts |>
+    dplyr::pull("transcript_id", as_vector = TRUE)
+}
+
+#' Return Column Names for Transcript Level Assays
+#' @rdname IsoformicExperiment
+col_names <- S7::new_generic("col_names", "self")
+
+S7::method(col_names, IsoformicExperiment) <- function(self) {
+  self@col_data |>
+    dplyr::pull("sample_id")
+}
+
+#' Return Row Names for Transcript Level Assays
+#' @rdname IsoformicExperiment
+row_names <- S7::new_generic("row_names", "self")
+S7::method(row_names, IsoformicExperiment) <- function(self) {
+  if (length(self@assay) == 0L) {
+    return(0L)
+  }
+  assay_name <- names(self@assay)[1]
+  attr(self@assay[[assay_name]], "dimnames")[[1]]
+}
+
 # =========================================================================
 # Other Methods
 # =========================================================================
 
 # Print IsoformicExperiment Object Summary
-
 S7::method(print, IsoformicExperiment) <- function(x, ...) {
+  # Main Print
   cat("<IsoformicExperiment>\n")
   cat(" Experiment Name: ", x@experiment_name, "\n", sep = "")
   cat(" Data Path: ", x@data_path, "\n", sep = "")
+
+  # Assay Block
   cat(" Assays: ", paste(names(x@assay), collapse = ", "), "\n", sep = "")
-  cat(" Annotation Name: ", fs::path_file(x@annot_path), "\n", sep = "")
   cat(" Samples: ", nrow(x@col_data), "\n", sep = "")
-  cat(" Transcripts: ", nrow(x@row_data_transcripts), "\n", sep = "")
-  cat(" Genes: ", nrow(x@row_data_genes), "\n", sep = "")
-  cat(" Exons: ", nrow(x@row_data_exons), "\n", sep = "")
+  cat(" Transcripts in Assay: ", length(rownames(x)), "\n", sep = "")
+
+  # Annotation Block
+  cat(" Annotation Name: ", fs::path_file(x@annot_path), "\n", sep = "")
+  cat(" Annotation Path: ", x@annot_path, "\n", sep = "")
+  cat(
+    " Transcripts in Annotation: ",
+    nrow(x@row_data_transcripts),
+    "\n",
+    sep = ""
+  )
+  cat(" Genes in Annotation: ", nrow(x@row_data_genes), "\n", sep = "")
+  cat(" Exons in Annotation: ", nrow(x@row_data_exons), "\n", sep = "")
   cat(" Annotation Metadata: ", length(x@annot_metadata), " slots\n", sep = "")
 }
 
@@ -367,10 +408,10 @@ get_row_data <- function(self, compute = FALSE) {
 }
 
 validate_assay_rownames <- function(self, assay_name) {
-  annot_tx_rownames <- row_data_transcripts(self) |>
-    dplyr::collect() |>
-    dplyr::pull("transcript_id")
-  assay_rownames <- rownames(self@assay[[assay_name]])
+  annot_tx_rownames <- self@row_data_transcripts |>
+    # dplyr::collect() |>
+    dplyr::pull("transcript_id", as_vector = TRUE)
+  assay_rownames <- attr(self@assay[[assay_name]], "dimnames")[[1]]
 
   if (!all(assay_rownames %in% annot_tx_rownames)) {
     cli::cli_abort(
@@ -381,13 +422,13 @@ validate_assay_rownames <- function(self, assay_name) {
       class = "isoformic_invalid_assay_rownames"
     )
   }
+
   return(invisible(TRUE))
 }
 
 validate_assay_colnames <- function(self, assay_name) {
   col_data_ids <- self@col_data$sample_id
-  assay_colnames <- colnames(self@assay[[assay_name]])
-
+  assay_colnames <- attr(self@assay[[assay_name]], "dimnames")[[2]]
   if (!all(assay_colnames %in% col_data_ids)) {
     cli::cli_abort(
       c(
