@@ -1,6 +1,6 @@
 Package: isoformic
 Title: Isoform-Level Biological Interpretation of Transcriptomic Data
-Version: 0.1.2.9009
+Version: 0.1.2.9010
 Authors@R: c(
     person("Lucio Rezende", "Queiroz", , "luciorqueiroz@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0002-6090-1834")),
@@ -24,18 +24,13 @@ Imports:
     arrow (>= 21.0.0),
     cli (>= 3.6.0),
     DBI,
-    dplyr,
+    dplyr (>= 0.7.8),
     duckdb,
-    fgsea,
-    forcats,
     fs,
-    GenomicFeatures,
     ggplot2 (>= 4.0.0),
     ggpubr,
     ggrepel,
     glue,
-    IRanges,
-    plotgardener (>= 1.6.4),
     purrr (>= 1.1.0),
     readr,
     rlang,
@@ -43,25 +38,35 @@ Imports:
     stringr,
     tibble,
     tidyr,
-    txdbmaker,
     utils,
     vroom,
     withr
 Suggests:
-    carrier,
+    apeglm,
+    carrier (>= 0.3.0),
+    condathis (>= 1.2.0),
     curl,
+    DESeq2,
     fishpond,
     GenomeInfoDbData,
+    GenomicFeatures,
+    IRanges,
     knitr,
-    mirai,
+    mirai (>= 2.5.1),
     org.Hs.eg.db,
     patchwork,
+    plotgardener (>= 1.6.4),
+    quarto,
     rmarkdown,
     testthat (>= 3.0.0),
+    txdbmaker,
+    tximeta,
     viridis
 VignetteBuilder:
-    knitr
+    knitr,
+    quarto
 BiocViews:
+Config/Needs/website: rmarkdown, quarto
 Config/testthat/edition: 3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

@@ -69,13 +69,14 @@
 #'
 #' @export
 download_reference <- function(
-    version = "49",
-    reference = "gencode",
-    organism = c("human", "mouse"),
-    file_type = c("gff", "gtf", "fasta"),
-    output_path = ":cache:",
-    timeout_limit = 3600,
-    method = "auto") {
+  version = "49",
+  reference = "gencode",
+  organism = c("human", "mouse"),
+  file_type = c("gff", "gtf", "fasta"),
+  output_path = ":cache:",
+  timeout_limit = 3600,
+  method = "auto"
+) {
   if (requireNamespace("curl", quietly = TRUE)) {
     if (!isTRUE(curl::has_internet())) {
       cli::cli_abort(
@@ -96,20 +97,29 @@ download_reference <- function(
   if (identical(output_path, ":cache:")) {
     output_path <- get_isoformic_cache()
   }
-  base_url <- switch(organism,
+  base_url <- switch(
+    organism,
     human = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_",
     mouse = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_"
   )
-  file_string <- switch(file_type,
+  file_string <- switch(
+    file_type,
     gff = ".annotation.gff3.gz",
     gtf = ".annotation.gtf.gz",
     fasta = ".transcripts.fa.gz"
   )
   download_url <- paste0(
-    base_url, version, "/gencode.v", version, file_string
+    base_url,
+    version,
+    "/gencode.v",
+    version,
+    file_string
   )
   full_output_path <- paste0(
-    output_path, "/gencode.v", version, file_string
+    output_path,
+    "/gencode.v",
+    version,
+    file_string
   )
   if (!isTRUE(fs::dir_exists(output_path))) {
     fs::dir_create(output_path)

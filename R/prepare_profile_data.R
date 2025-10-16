@@ -61,19 +61,20 @@
 #'
 #' @export
 prepare_profile_data <- function(
-    txi_gene = NULL, # txi abundance genes
-    txi_transcript, # txi abundance transcripts
-    sample_metadata, # metadata
-    tx_to_gene, # tx2gene table (id_dictionary)
-    de_result_gene, # gene level DE analysis results
-    de_result_transcript, # transcript level DE analysis results
-    var, # column name in sample metadata to differ groups
-    var_levels, # vector of the contrasts
-    gene_col = "gene_name",
-    tx_col = "transcript_name",
-    pvalue_cutoff = 0.05,
-    lfc_cutoff = 1,
-    use_fdr = TRUE) {
+  txi_gene = NULL, # txi abundance genes
+  txi_transcript, # txi abundance transcripts
+  sample_metadata, # metadata
+  tx_to_gene, # tx2gene table (id_dictionary)
+  de_result_gene, # gene level DE analysis results
+  de_result_transcript, # transcript level DE analysis results
+  var, # column name in sample metadata to differ groups
+  var_levels, # vector of the contrasts
+  gene_col = "gene_name",
+  tx_col = "transcript_name",
+  pvalue_cutoff = 0.05,
+  lfc_cutoff = 1,
+  use_fdr = TRUE
+) {
   # dependencies
   .data <- rlang::.data
   .env <- rlang::.env
@@ -137,15 +138,15 @@ prepare_profile_data <- function(
       tibble::as_tibble()
   }
 
-
-
   # Format gene names and transcript names in expression tables
   geneid_col <- colnames(gene_metadata)[2]
   # txid_col <- colnames(gene_metadata)[1]
   first_col <- colnames(txi_gene)[1]
   genename_conversion_df <- tibble::as_tibble(
     dplyr::select(
-      gene_metadata, {{ geneid_col }}, {{ gene_col }}
+      gene_metadata,
+      {{ geneid_col }},
+      {{ gene_col }}
     )
   )
 
@@ -253,8 +254,8 @@ prepare_profile_data <- function(
 
   # relevel for x axis Plot order
   expr_df <- expr_df |>
-    dplyr::mutate({{ var }} := forcats::as_factor(.data[[var]])) |>
-    dplyr::mutate({{ var }} := forcats::fct_relevel(.data[[var]], var_levels))
+    dplyr::mutate({{ var }} := factor(.data[[var]], levels = var_levels)) # |>
+  # dplyr::mutate({{ var }} := forcats::fct_relevel(.data[[var]], var_levels))
 
   expr_df <- expr_df |>
     dplyr::mutate(DE = dplyr::if_else(is.na(.data$DE), "No", "Yes")) |>

@@ -49,10 +49,11 @@
 #'
 #' @export
 join_DEG_DET <- function(
-    DEG_tab,
-    DET_final_tab,
-    logfc_cut,
-    pval_cut) {
+  DEG_tab,
+  DET_final_tab,
+  logfc_cut,
+  pval_cut
+) {
   .data <- rlang::.data
   DEG_tab_mod <- DEG_tab |>
     dplyr::rename(id = "gene_id")
@@ -65,18 +66,22 @@ join_DEG_DET <- function(
 
   DET_final_tab <- DET_final_tab |>
     dplyr::filter(
-      .data[["transcript_type"]] %in% c(
-        "retained_intron", "protein_coding_CDS_not_defined",
-        "processed_transcript",
-        "nonsense_mediated_decay",
-        "lncRNA", "protein_coding",
-        "pseudogene", "non_stop_decay",
-        "processed_pseudogene",
-        "transcribed_unprocessed_pseudogene",
-        "transcribed_unitary_pseudogene",
-        "unprocessed_pseudogene",
-        "unitary_pseudogene"
-      )
+      .data[["transcript_type"]] %in%
+        c(
+          "retained_intron",
+          "protein_coding_CDS_not_defined",
+          "processed_transcript",
+          "nonsense_mediated_decay",
+          "lncRNA",
+          "protein_coding",
+          "pseudogene",
+          "non_stop_decay",
+          "processed_pseudogene",
+          "transcribed_unprocessed_pseudogene",
+          "transcribed_unitary_pseudogene",
+          "unprocessed_pseudogene",
+          "unitary_pseudogene"
+        )
     )
 
   drop_columns <- c("DEG_sig")
@@ -92,8 +97,9 @@ join_DEG_DET <- function(
   DET_final_tab_mod <- DET_final_tab_mod |>
     dplyr::rename(name = "transcript_name")
   DEG_tab_mod <- DEG_tab_mod[
-    colnames(DEG_tab_mod)[colnames(DEG_tab_mod)
-    %in% colnames(DET_final_tab_mod)]
+    colnames(DEG_tab_mod)[
+      colnames(DEG_tab_mod) %in% colnames(DET_final_tab_mod)
+    ]
   ]
 
   DEGs_DETs_table <- dplyr::bind_rows(DEG_tab_mod, DET_final_tab_mod)
@@ -101,10 +107,14 @@ join_DEG_DET <- function(
   DEGs_DETs_table$abs_log2FC <- base::abs(DEGs_DETs_table$log2FC)
   DEGs_DETs_table$significance <- "not_sig"
   DEGs_DETs_table$DEG_sig <- "NO"
-  DEGs_DETs_table$significance[DEGs_DETs_table$abs_log2FC > logfc_cut &
-    DEGs_DETs_table$pvalue < pval_cut] <- "sig"
-  DEGs_DETs_table$DEG_sig[DEGs_DETs_table$abs_log2FC > logfc_cut &
-    DEGs_DETs_table$pvalue < pval_cut] <- "YES"
+  DEGs_DETs_table$significance[
+    DEGs_DETs_table$abs_log2FC > logfc_cut &
+      DEGs_DETs_table$pvalue < pval_cut
+  ] <- "sig"
+  DEGs_DETs_table$DEG_sig[
+    DEGs_DETs_table$abs_log2FC > logfc_cut &
+      DEGs_DETs_table$pvalue < pval_cut
+  ] <- "YES"
 
   DEGs_DETs_table <- DEGs_DETs_table |>
     dplyr::mutate(

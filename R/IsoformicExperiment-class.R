@@ -227,7 +227,10 @@ tx_annot <- S7::new_generic("tx_annot", "self")
 
 S7::method(tx_annot, IsoformicExperiment) <- function(self) {
   cols_to_remove <- c(
-    "seqid", "start_pos", "end_pos", "strand"
+    "seqid",
+    "start_pos",
+    "end_pos",
+    "strand"
   )
   self@row_data_transcripts |>
     dplyr::select(-dplyr::any_of(cols_to_remove)) |>
@@ -297,7 +300,8 @@ get_dea_results <- function(self, de_type = c("det", "deg")) {
     dplyr::mutate(
       "{de_type}_sig" := dplyr::case_when(
         abs(.data$log2FC) >= .env$log2fc_cutoff &
-          .data[[pvalue_col_to_use]] <= .env$pvalue_cutoff ~ "yes",
+          .data[[pvalue_col_to_use]] <= .env$pvalue_cutoff ~
+          "yes",
         TRUE ~ "no"
       )
     ) |>
@@ -332,7 +336,8 @@ get_row_data_type <- function(self, type) {
 
   arrow::read_parquet(
     file = fs::path(
-      self@annot_path, paste0("row_data_", type),
+      self@annot_path,
+      paste0("row_data_", type),
       ext = "parquet"
     ),
     as_data_frame = FALSE
@@ -421,7 +426,10 @@ validate_dea <- function(self) {
     if (length(missing_cols) > 0) {
       cli::cli_abort(
         c(
-          `x` = paste("The following required columns are missing in the DET results:", paste(missing_cols, collapse = ", "))
+          `x` = paste(
+            "The following required columns are missing in the DET results:",
+            paste(missing_cols, collapse = ", ")
+          )
         ),
         class = "isoformic_dea_invalid_det"
       )
@@ -433,7 +441,11 @@ validate_dea <- function(self) {
       missing_tx <- det$transcript_id[!det$transcript_id %in% annot_tx_ids]
       cli::cli_abort(
         c(
-          `x` = paste("There are missing transcript_ids in the DET results that are not present in the annotation:", paste(utils::head(missing_tx, 10), collapse = ", "), ifelse(length(missing_tx) > 10, " ...", ""))
+          `x` = paste(
+            "There are missing transcript_ids in the DET results that are not present in the annotation:",
+            paste(utils::head(missing_tx, 10), collapse = ", "),
+            ifelse(length(missing_tx) > 10, " ...", "")
+          )
         ),
         class = "isoformic_dea_invalid_det"
       )
@@ -447,7 +459,10 @@ validate_dea <- function(self) {
     if (length(missing_cols) > 0) {
       cli::cli_abort(
         c(
-          `x` = paste("The following required columns are missing in the DEG results:", paste(missing_cols, collapse = ", "))
+          `x` = paste(
+            "The following required columns are missing in the DEG results:",
+            paste(missing_cols, collapse = ", ")
+          )
         ),
         class = "isoformic_dea_invalid_deg"
       )
@@ -459,7 +474,11 @@ validate_dea <- function(self) {
       missing_genes <- deg$gene_id[!deg$gene_id %in% annot_gene_ids]
       cli::cli_abort(
         c(
-          `x` = paste("There are missing gene_ids in the DEG results that are not present in the annotation:", paste(utils::head(missing_genes, 10), collapse = ", "), ifelse(length(missing_genes) > 10, " ...", ""))
+          `x` = paste(
+            "There are missing gene_ids in the DEG results that are not present in the annotation:",
+            paste(utils::head(missing_genes, 10), collapse = ", "),
+            ifelse(length(missing_genes) > 10, " ...", "")
+          )
         ),
         class = "isoformic_dea_invalid_deg"
       )
@@ -467,7 +486,6 @@ validate_dea <- function(self) {
   }
   return(invisible(TRUE))
 }
-
 
 # read_rds | load
 

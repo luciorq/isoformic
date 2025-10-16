@@ -15,9 +15,10 @@
 #'
 #' @export
 prepare_isoformic_annotation <- function(
-    input_path,
-    output_path = NULL,
-    file_type = c("gff")) {
+  input_path,
+  output_path = NULL,
+  file_type = c("gff")
+) {
   file_type <- stringr::str_to_lower(file_type)
   file_type <- rlang::arg_match(file_type)
 
@@ -52,7 +53,8 @@ prepare_isoformic_annotation <- function(
 
   parquet_gene_file_path <- fs::path(parquet_dir, "row_data_genes.parquet")
   parquet_transcript_file_path <- fs::path(
-    parquet_dir, "row_data_transcripts.parquet"
+    parquet_dir,
+    "row_data_transcripts.parquet"
   )
   parquet_exon_file_path <- fs::path(parquet_dir, "row_data_exons.parquet")
 

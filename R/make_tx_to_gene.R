@@ -33,8 +33,9 @@
 #'
 #' @export
 make_tx_to_gene <- function(
-    file_path,
-    file_type = c("fasta", "gff", "gtf")) {
+  file_path,
+  file_type = c("fasta", "gff", "gtf")
+) {
   .data <- rlang::.data
   file_type <- rlang::arg_match(file_type)
   if (!isTRUE(fs::file_exists(file_path))) {
@@ -65,9 +66,14 @@ make_tx_to_gene <- function(
     )
   }
   names(header_table) <- c(
-    "transcript_id", "gene_id", "havanna_gene_id",
-    "havanna_transcript_id", "transcript_name",
-    "gene_name", "tx_length", "transcript_type"
+    "transcript_id",
+    "gene_id",
+    "havanna_gene_id",
+    "havanna_transcript_id",
+    "transcript_name",
+    "gene_name",
+    "tx_length",
+    "transcript_type"
   )
   return(header_table)
 }

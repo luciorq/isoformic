@@ -75,11 +75,12 @@
 #'
 #' @export
 run_enrichment <- function(
-    det_df,
-    genesets_list,
-    tx_to_gene,
-    pval_cutoff = 0.05,
-    lfc_cutoff = 1) {
+  det_df,
+  genesets_list,
+  tx_to_gene,
+  pval_cutoff = 0.05,
+  lfc_cutoff = 1
+) {
   .data <- rlang::.data
   .env <- rlang::.env
   processed_or_cds <- ifelse(
@@ -130,7 +131,8 @@ run_enrichment <- function(
           dplyr::left_join(
             tx_to_gene |>
               dplyr::select(
-                "transcript_name", "gene_name"
+                "transcript_name",
+                "gene_name"
               ),
             by = "gene_name"
           )

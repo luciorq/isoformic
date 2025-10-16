@@ -13,9 +13,10 @@
 #'
 #' @export
 prepare_annotation_db <- function(
-    input_path,
-    output_path = NULL,
-    file_type = c("gff")) {
+  input_path,
+  output_path = NULL,
+  file_type = c("gff")
+) {
   file_type <- stringr::str_to_lower(file_type)
   file_type <- rlang::arg_match(file_type)
   if (isTRUE(rlang::is_null(output_path) || identical(output_path, ""))) {

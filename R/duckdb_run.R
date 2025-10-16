@@ -2,11 +2,12 @@
 #' @keywords internal
 #' @noRd
 duckdb_run <- function(
-    sql_string,
-    db_type = c("duckdb_memory", "duckdb_tempfile", "duckdb_file"),
-    db_file_path = NULL,
-    read_only = FALSE,
-    envir = parent.frame()) {
+  sql_string,
+  db_type = c("duckdb_memory", "duckdb_tempfile", "duckdb_file"),
+  db_file_path = NULL,
+  read_only = FALSE,
+  envir = parent.frame()
+) {
   db_type <- rlang::arg_match(db_type)
   if (!isTRUE(rlang::is_scalar_logical(read_only))) {
     cli::cli_abort(

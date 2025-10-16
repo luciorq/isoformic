@@ -30,15 +30,16 @@
 #' @return A `plotgardener` object representing the genomic context plot.
 #' @export
 plot_genomic_context <- function(
-    gene_name,
-    context_data,
-    limit_label = TRUE,
-    show_guides = FALSE,
-    y_offset = 0,
-    height_offset = 0,
-    downstream_offset = 0,
-    upstream_offset = 0,
-    ideogram_reference = c("hg38", "hg19", "mm11", "mm10", "none")) {
+  gene_name,
+  context_data,
+  limit_label = TRUE,
+  show_guides = FALSE,
+  y_offset = 0,
+  height_offset = 0,
+  downstream_offset = 0,
+  upstream_offset = 0,
+  ideogram_reference = c("hg38", "hg19", "mm11", "mm10", "none")
+) {
   .data <- rlang::.data
 
   rlang::check_required(gene_name)
@@ -50,6 +51,8 @@ plot_genomic_context <- function(
   } else {
     cli::cli_abort("`gene_name` must be a character vector.")
   }
+
+  rlang::check_installed("plotgardener")
 
   custom_assembly <- plotgardener::assembly(
     # Genome = "hg38_GENCODE34",
