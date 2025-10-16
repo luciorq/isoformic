@@ -13,7 +13,7 @@ author:
   - name: Lucio Rezende Queiroz
     affiliation: Department of Pathology and Laboratory Medicine, Weill Cornell Medicine, New York, USA
 vignette: |
-  %\VignetteIndexEntry{isoformic-intro}
+  %\VignetteIndexEntry{Introduction}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 ---

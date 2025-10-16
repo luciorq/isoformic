@@ -2,7 +2,8 @@
 # isoformic <img src="man/figures/logo.png" align="right" height="136" />
 
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/luciorq/isoformic/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/luciorq/isoformic/actions/workflows/R-CMD-check.yaml)
+[![r-cmd-check](https://github.com/luciorq/isoformic/actions/workflows/r-cmd-check/badge.svg)](https://github.com/luciorq/isoformic/actions/workflows/r-cmd-check)
+<!--[![CRAN status](https://www.r-pkg.org/badges/version/isoformic)](https://CRAN.R-project.org/package=isoformic)-->
 <!-- badges: end -->
 
 Welcome to `isoformic`, a workflow for isoform-level biological interpretation of transcriptomic data.
@@ -32,10 +33,12 @@ remotes::install_github("luciorq/isoformic")
 
 Performing differential expression analysis at the isoform level, rather than at the gene level,
 is important for gaining a more detailed understanding of gene regulation and functional differences in biological systems.
+
 While gene-level analysis provides insights into the overall expression changes of genes, it fails to capture the complex dynamics occurring at the isoform level.
 Isoforms, resulting from alternative splicing or alternative transcription start sites, can possess distinct structural features and functional properties.
 
 By examining isoform-level expression changes, researchers can identify and characterize specific isoforms that may have unique roles in cellular processes, such as isoform-specific protein-protein interactions or protein functions.
+
 This granularity enables a more accurate interpretation of complex biological phenomena, such as tissue-specific expression patterns, cell differentiation, or disease progression.
 
 Additionally, isoform-level analysis can help uncover regulatory mechanisms and identify potential biomarkers or therapeutic targets that may be missed when solely relying on gene-level analysis.
