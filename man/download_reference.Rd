@@ -8,7 +8,7 @@ download_reference(
   version = "49",
   reference = "gencode",
   organism = c("human", "mouse"),
-  file_type = c("gff", "gtf", "fasta"),
+  file_type = c("gff", "gtf", "fasta", "genome_fasta"),
   output_path = ":cache:",
   timeout_limit = 3600,
   method = "auto"
@@ -27,8 +27,10 @@ Currently, only \code{"gencode"} is supported. Default is \code{"gencode"}.}
 Valid options are \code{"human"} or \code{"mouse"}.}
 
 \item{file_type}{A character string specifying the type of file to download.
-Valid options are \code{"gff"}, \code{"gtf"}, or \code{"fasta"}. Defaults to \code{"gff"}.
-\strong{Note:} \code{"fasta"} refers to the transcriptome FASTA file.}
+Valid options are \code{"gff"}, \code{"gtf"}, \code{"fasta"} or \code{"genome_fasta"}.
+Defaults to \code{"gff"}.
+\strong{Note:} \code{"fasta"} refers to the transcriptome FASTA file.
+\code{"genome_fasta"} refers to the whole genome sequence FASTA file.}
 
 \item{output_path}{A character string specifying the directory where the
 downloaded file will be saved. Defaults to \code{":cache:"}.
@@ -47,7 +49,8 @@ A character string with the full path to the downloaded file.
 \description{
 Downloads reference annotation files from the GENCODE database
 for human or mouse genomes.
-Supports downloading GFF, GTF, and transcriptome FASTA files.
+Supports downloading GFF, GTF, transcriptome FASTA,
+and genome FASTA files.
 The function handles directory creation and checks for existing files
 to avoid redundant downloads.
 }
@@ -66,16 +69,16 @@ The \code{"mane"} reference is not implemented yet.
 }
 \examples{
 \dontrun{
-# Download human GTF file for GENCODE release 49
-gtf_file <- download_reference(
+# Download human GFF file for GENCODE release 49
+gff_file <- download_reference(
   version = "49",
   organism = "human",
   file_type = "gff",
   output_path = ":cache:"
 )
 
-# Download mouse GTF file for GENCODE release M38
-gtf_file_mouse <- download_reference(
+# Download mouse GFF file for GENCODE release M38
+gff_file_mouse <- download_reference(
   version = "M38",
   organism = "mouse",
   file_type = "gff",

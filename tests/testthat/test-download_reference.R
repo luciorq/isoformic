@@ -41,7 +41,7 @@ test_that("download_reference handles no internet connection", {
 
   expect_error(
     download_reference(),
-    class = "isoformic_download_reference_no_internet"
+    class = "isoformic_download_reference_no_internet_error"
   )
 })
 

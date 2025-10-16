@@ -25,13 +25,15 @@ Development Changelog: [dev](https://github.com/luciorq/isoformic/compare/v0.1.2
   * `de_tx()`
   * `de_gene()`
 
-
 * New interface for `plot_log2fc()` function to visualize log2 fold changes of
   transcripts within a gene.
 
 * New `feature_column` argument in `plot_log2FC()` to specify the column
   name in the DE results table that contains the feature names (e.g., gene or
   transcript names).
+
+* New `file_type = "genome_fasta"` option in `download_reference()` to
+  download the genome FASTA file from GENCODE.
 
 ### Changed
 
