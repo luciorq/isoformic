@@ -17,9 +17,9 @@
 \title{IsoformicExperiment Class}
 \usage{
 IsoformicExperiment(
-  experiment_name = character(0),
-  data_path = character(0),
-  annot_path = character(0),
+  experiment_name = NA_character_,
+  data_path = NULL,
+  annot_path = NULL,
   assay = NULL,
   col_data = NULL,
   annot_metadata = NULL,

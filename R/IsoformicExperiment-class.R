@@ -48,6 +48,34 @@ IsoformicExperiment <- S7::new_class(
     experiment_name = S7::new_property(
       class = S7::class_character,
       default = NA_character_
+      # getter = function(self) {
+      #   if (
+      #     isTRUE(rlang::is_na(self@experiment_name)) ||
+      #       isTRUE(identical(self@experiment_name, "")) ||
+      #       isTRUE(rlang::is_null(self@experiment_name))
+      #   ) {
+      #     self@experiment_name <- set_random_experiment_name(
+      #       data_path = self@data_path
+      #     )
+      #   }
+      #   # return(self@experiment_name)
+      # },
+      # setter = function(self, value) {
+      #   if (
+      #     isFALSE(is.character(value)) ||
+      #       isTRUE(rlang::is_null(value)) ||
+      #       isTRUE(length(value) != 1)
+      #   ) {
+      #     cli::cli_abort(
+      #       message = c(
+      #         x = "{.var experiment_name} must be a single character string."
+      #       ),
+      #       class = "isoformic_invalid_experiment_name"
+      #     )
+      #   }
+      #   self@experiment_name <- value
+      #   return(self)
+      # }
     ),
     data_path = S7::new_property(
       class = S7::class_any,
@@ -139,7 +167,10 @@ IsoformicExperiment <- S7::new_class(
     }
 
     if (isFALSE(rlang::is_null(self@data_path))) {
-      if (isFALSE(is.character(self@data_path)) || isTRUE(length(self@data_path) != 1)) {
+      if (
+        isFALSE(is.character(self@data_path)) ||
+          isTRUE(length(self@data_path) != 1)
+      ) {
         cli::cli_abort(
           message = c(
             x = "{.var data_path} must be a single character string."
@@ -169,7 +200,6 @@ IsoformicExperiment <- S7::new_class(
         )
       }
     }
-
 
     if (isTRUE(length(self@assay) > 0)) {
       for (assay_name in names(self@assay)) {
@@ -289,6 +319,12 @@ S7::method(row_names, IsoformicExperiment) <- function(self) {
 # save - write_rds
 # + Compress cache files and serialize properly.
 
+# S4 / S7 methods to implement:
+# counts - retrieve tx counts assay
+# tpm - retrieve tx tpm assay
+# counts_gene - retrieve gene counts assay
+# tpm_gene - retrieve gene tpm assay
+
 # Print IsoformicExperiment Object Summary
 S7::method(print, IsoformicExperiment) <- function(x, ...) {
   # Main Print
@@ -344,6 +380,41 @@ tx_to_gene <- S7::new_generic("tx_to_gene", "self")
 S7::method(tx_to_gene, IsoformicExperiment) <- function(self) {
   self@annot_data_transcripts |>
     dplyr::select("transcript_id", "gene_id") |>
+    dplyr::distinct() |>
+    dplyr::collect()
+}
+
+# Retrieve Transcript Annotation for Transcripts in Assay
+row_data <- S7::new_generic("row_data", "self")
+
+S7::method(row_data, IsoformicExperiment) <- function(self) {
+  .data <- rlang::.data
+  if (isTRUE(length(rownames(self)) == 0L)) {
+    return(tibble::tibble())
+  }
+
+  cols_to_remove <- c(
+    "seqid",
+    "start_pos",
+    "end_pos",
+    "strand"
+  )
+
+  self@annot_data_transcripts |>
+    dplyr::select(-dplyr::any_of(cols_to_remove)) |>
+    # dplyr::select("transcript_id", "gene_id") |>
+    dplyr::distinct() |>
+    dplyr::left_join(
+      y = self@annot_data_genes |>
+        dplyr::select(
+          dplyr::any_of(c("gene_id", "gene_name", "gene_type"))
+        ) |>
+        dplyr::distinct(),
+      by = "gene_id"
+    ) |>
+    dplyr::filter(
+      .data$transcript_id %in% rownames(self)
+    ) |>
     dplyr::distinct() |>
     dplyr::collect()
 }
@@ -510,8 +581,18 @@ get_annot_data <- function(self, compute = FALSE) {
 #' @keywords internal
 #' @noRd
 set_random_experiment_name <- function(
-    data_path = get_isoformic_cache(),
-    experiment_name = NULL) {
+  data_path = get_isoformic_cache(),
+  experiment_name = NULL
+) {
+  base::force(experiment_name)
+  base::force(data_path)
+
+  if (
+    isTRUE(rlang::is_null(data_path)) ||
+      isTRUE(identical(data_path, ""))
+  ) {
+    data_path <- get_isoformic_cache()
+  }
   rlang::try_fetch(
     expr = {
       if (isFALSE(fs::dir_exists(data_path))) {
@@ -547,7 +628,6 @@ set_random_experiment_name <- function(
     }
   }
 }
-
 
 
 # ==============================================================================

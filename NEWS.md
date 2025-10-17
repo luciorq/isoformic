@@ -16,14 +16,17 @@ Development Changelog: [dev](https://github.com/luciorq/isoformic/compare/v0.1.2
 
 * New generics and methods for the `IsoformicExperiment` class:
 
-  * `col_data()`
-  * `row_data_transcripts()`
-  * `row_data_genes()`
-  * `row_data_exons()`
-  * `tx_to_gene()`
-  * `tx_annot()`
-  * `de_tx()`
-  * `de_gene()`
+  * `col_data()` - Retrieve Sample Metadata
+  * `row_data()` - Retrieve Metadata for Transcripts in the Assay Data
+  * `annot_data()` - Retrieve Aggregated Annotation Data (transcript-centric)
+  * `annot_data_transcripts()` - Retrieve Transcript Annotation Data
+  * `annot_data_genes()` - Retrieve Gene Annotation Data
+  * `annot_data_exons()` - Retrieve Exon Annotation Data
+  * `tx_to_gene()` - Retrieve Transcript to Gene Mapping from the Annotation
+  * `summarize_to_gene()` - Summarize Transcript-level Expression to Gene-level
+
+  * `de_tx()` - Retrieve Differential Expression Results for Transcripts
+  * `de_gene()` - Retrieve Differential Expression Results for Genes
 
 * New interface for `plot_log2fc()` function to visualize log2 fold changes of
   transcripts within a gene.
