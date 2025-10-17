@@ -45,11 +45,26 @@
 IsoformicExperiment <- S7::new_class(
   "IsoformicExperiment",
   properties = list(
-    experiment_name = S7::class_character,
-    data_path = S7::class_character,
-    annot_path = S7::class_character,
-    assay = S7::class_any,
-    col_data = S7::class_any,
+    experiment_name = S7::new_property(
+      class = S7::class_character,
+      default = NA_character_
+    ),
+    data_path = S7::new_property(
+      class = S7::class_any,
+      default = NULL
+    ),
+    annot_path = S7::new_property(
+      class = S7::class_any,
+      default = NULL
+    ),
+    assay = S7::new_property(
+      class = S7::class_any,
+      default = NULL
+    ),
+    col_data = S7::new_property(
+      class = S7::class_any,
+      default = NULL
+    ),
     annot_data_transcripts = S7::new_property(
       class = S7::class_any,
       default = NULL,
@@ -114,30 +129,48 @@ IsoformicExperiment <- S7::new_class(
     )
   ),
   validator = function(self) {
-    if (!is.character(self@data_path) || length(self@data_path) != 1) {
+    if (isTRUE(length(self@experiment_name) > 1)) {
       cli::cli_abort(
         message = c(
-          x = "{.var data_path} must be a single character string."
+          x = "{.var experiment_name} must be a single character string."
         ),
-        class = "isoformic_invalid_data_path"
+        class = "isoformic_invalid_experiment_name"
       )
     }
-    if (!isTRUE(fs::dir_exists(self@data_path))) {
-      cli::cli_abort(
-        message = c(
-          x = "The data path {.path {self@data_path}} does {.strong not} exist."
-        ),
-        class = "isoformic_data_path_dont_exist"
-      )
+
+    if (isFALSE(rlang::is_null(self@data_path))) {
+      if (isFALSE(is.character(self@data_path)) || isTRUE(length(self@data_path) != 1)) {
+        cli::cli_abort(
+          message = c(
+            x = "{.var data_path} must be a single character string."
+          ),
+          class = "isoformic_invalid_data_path"
+        )
+      }
+      if (isFALSE(rlang::is_null(self@data_path))) {
+        if (isFALSE(fs::dir_exists(self@data_path))) {
+          cli::cli_abort(
+            message = c(
+              x = "The data path {.path {self@data_path}} does {.strong not} exist."
+            ),
+            class = "isoformic_data_path_dont_exist"
+          )
+        }
+      }
     }
-    if (!isTRUE(fs::dir_exists(self@annot_path))) {
-      cli::cli_abort(
-        message = c(
-          x = "The annotation path {.path {self@annot_path}} does {.strong not} exist."
-        ),
-        class = "isoformic_annot_path_dont_exist"
-      )
+
+    if (isFALSE(rlang::is_null(self@annot_path))) {
+      if (isFALSE(fs::dir_exists(self@annot_path))) {
+        cli::cli_abort(
+          message = c(
+            x = "The annotation path {.path {self@annot_path}} does {.strong not} exist."
+          ),
+          class = "isoformic_annot_path_dont_exist"
+        )
+      }
     }
+
+
     if (isTRUE(length(self@assay) > 0)) {
       for (assay_name in names(self@assay)) {
         validate_assay_rownames(self, assay_name)
@@ -247,6 +280,15 @@ S7::method(row_names, IsoformicExperiment) <- function(self) {
 # =============================================================================
 # S7 Methods for common S3 Generics
 # =============================================================================
+
+# S3 Methods to implement:
+# load - read_rds
+# + Check if unique name already exists in cache/path, and warn / ask about
+#  + overwriting.
+# + potential arguments data_path, experiment_name, overwrite, etc.
+# save - write_rds
+# + Compress cache files and serialize properly.
+
 # Print IsoformicExperiment Object Summary
 S7::method(print, IsoformicExperiment) <- function(x, ...) {
   # Main Print
@@ -395,9 +437,10 @@ get_dea_results <- function(self, de_type = c("det", "deg")) {
 }
 
 
-# =========================================================================
+# ==============================================================================
+# Utility Getter and Setter Functions for IsoformicExperiment Class
+# ==============================================================================
 
-# Utils
 #' Retrieve Annotation Data by Feature Type
 #' @keywords internal
 #' @noRd
@@ -429,6 +472,9 @@ get_annot_data_type <- function(iso_obj, type) {
   )
 }
 
+#' Retrieve Comprehensive Annotation Data for Transcript Level Annotation
+#' @keywords internal
+#' @noRd
 get_annot_data <- function(self, compute = FALSE) {
   query_res <- self@annot_data_transcripts |>
     dplyr::left_join(
@@ -451,6 +497,62 @@ get_annot_data <- function(self, compute = FALSE) {
   }
 }
 
+# TODO: @luciorq Check list of scientist names from moby for random names.
+#' Set a Random Experiment Name
+#'
+#' This function generates a random experiment name for the IsoformicExperiment
+#' class if `@experiment_name` is not already set.
+#'
+#' @param data_path Character string specifying the data path where the
+#'   experiment data is stored.
+#' @param experiment_name Character string specifying the name of the experiment.
+#'
+#' @keywords internal
+#' @noRd
+set_random_experiment_name <- function(
+    data_path = get_isoformic_cache(),
+    experiment_name = NULL) {
+  rlang::try_fetch(
+    expr = {
+      if (isFALSE(fs::dir_exists(data_path))) {
+        fs::dir_create(data_path, recurse = TRUE)
+      }
+    },
+    error = function(e) {
+      cli::cli_abort(
+        message = c(
+          `x` = "Could not create or access the data path {.path {data_path}}.",
+          `!` = "Please check your file permissions and disk space.",
+          `i` = c(
+            "If the problem persists, consider using a {.field @data_path} directory on a different filesystem."
+          )
+        ),
+        class = "isoformic_data_path_access_error"
+      )
+    }
+  )
+  if (
+    isFALSE(rlang::is_null(experiment_name)) &&
+      isFALSE(identical(experiment_name, ""))
+  ) {
+    return(experiment_name)
+  }
+
+  repeat {
+    random_name <- rlang::hash(base::as.character(base::Sys.time()))
+    experiment_dir <- fs::path(data_path, random_name)
+    if (!isTRUE(fs::dir_exists(experiment_dir))) {
+      fs::dir_create(experiment_dir, recurse = TRUE)
+      return(random_name)
+    }
+  }
+}
+
+
+
+# ==============================================================================
+# Validation Functions for IsoformicExperiment Class
+# ==============================================================================
 validate_assay_rownames <- function(self, assay_name) {
   annot_tx_rownames <- self@annot_data_transcripts |>
     # dplyr::collect() |>
@@ -571,26 +673,3 @@ validate_dea <- function(self) {
   }
   return(invisible(TRUE))
 }
-
-# read_rds | load
-
-# write_rds | save
-
-# #' Instantiate an IsoformicExperiment Object
-# #'
-# #' This function creates an instance of the IsoformicExperiment class,
-# #' which is used to manage and analyze transcriptomic data.
-# #'
-# #' It requires the path to a dataset that contains the necessary
-# #' data files, including sample metadata and annotation tables.
-# #'
-# #' @param db_path Character string specifying the path to the dataset.
-# #'
-# #' @rdname isoformic_experiment
-# #'
-# #' @export
-# isoformic_experiment <- function(db_path) {
-#   IsoformicExperiment(
-#     path = db_path
-#   )
-# }
