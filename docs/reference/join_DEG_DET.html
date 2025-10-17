@@ -11,7 +11,7 @@ transcripts based on their types."><meta property="og:image" content="https://lu
 
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9013</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -22,7 +22,8 @@ transcripts based on their types."><meta property="og:image" content="https://lu
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/isoformic_intro.html">Isoformic: Isoform-level biological interpretation of transcriptomic data</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/isoformic-intro.html">Isoformic: Isoform-level biological interpretation of transcriptomic data</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-preprocess.html">isoformic-preprocess</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -117,18 +118,12 @@ including <code>transcript_id</code>, <code>transcript_name</code>, <code>transc
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># View the result</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">DEGs_DETs_table</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      id        name log2FC pvalue      transcript_type abs_log2FC significance</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 gene1       GeneA    1.5   0.01                 gene        1.5          sig</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 gene2       GeneB   -2.0   0.04                 gene        2.0          sig</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3   tx1 Transcript1    1.2   0.02       protein_coding        1.2          sig</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4   tx2 Transcript2   -1.8   0.03               lncRNA        1.8          sig</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5   tx3 Transcript3    0.5   0.20 processed_transcript        0.5      not_sig</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   DEG_sig</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1     YES</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2     YES</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3     YES</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4     YES</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5      NO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   feature_id feature_name log2FC pvalue         feature_type significance is_de</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      gene1        GeneA    1.5   0.01                 gene          sig   yes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      gene2        GeneB   -2.0   0.04                 gene          sig   yes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3        tx1  Transcript1    1.2   0.02       protein_coding          sig   yes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4        tx2  Transcript2   -1.8   0.03               lncRNA          sig   yes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5        tx3  Transcript3    0.5   0.20 processed_transcript      not_sig    no</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
