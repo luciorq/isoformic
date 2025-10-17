@@ -42,10 +42,11 @@
 #'
 #' @export
 plot_log2FC <- function(
-    de_data,
-    feature,
-    feature_column = "gene_name",
-    color_palette = NULL) {
+  de_data,
+  feature,
+  feature_column = "gene_name",
+  color_palette = NULL
+) {
   .data <- rlang::.data
   if (isFALSE(feature_column %in% colnames(de_data))) {
     cli::cli_abort(
@@ -65,8 +66,9 @@ plot_log2FC <- function(
     replacement = "feature_"
   )
 
-
-  all_feature_names <- de_data[[x_axis_label_column]][de_data[[feature_column]] %in% feature] |>
+  all_feature_names <- de_data[[x_axis_label_column]][
+    de_data[[feature_column]] %in% feature
+  ] |>
     unique()
 
   selected_feature_types <- de_data |>
@@ -74,7 +76,9 @@ plot_log2FC <- function(
     dplyr::pull("feature_type") |>
     unique()
 
-  missing_types <- selected_feature_types[!selected_feature_types %in% unique(names(color_palette))]
+  missing_types <- selected_feature_types[
+    !selected_feature_types %in% unique(names(color_palette))
+  ]
 
   if (isTRUE(length(missing_types) > 0)) {
     cli::cli_abort(
@@ -140,10 +144,11 @@ plot_log2FC <- function(
 plot_log2fc <- S7::new_generic("plot_log2fc", "self")
 
 S7::method(plot_log2fc, S7::class_data.frame) <- function(
-    self,
-    feature,
-    feature_column = "gene_name",
-    color_palette = NULL) {
+  self,
+  feature,
+  feature_column = "gene_name",
+  color_palette = NULL
+) {
   plot_obj <- plot_log2FC(
     de_data = self,
     feature = feature,
@@ -154,9 +159,10 @@ S7::method(plot_log2fc, S7::class_data.frame) <- function(
 }
 
 S7::method(plot_log2fc, IsoformicExperiment) <- function(
-    self,
-    feature,
-    feature_column = "gene_name") {
+  self,
+  feature,
+  feature_column = "gene_name"
+) {
   if (
     isTRUE(rlang::is_null(self@dea[["deg"]])) ||
       isTRUE(rlang::is_null(self@dea[["det"]]))
@@ -198,7 +204,7 @@ combine_deg_det_longer <- function(isoformic_obj) {
   .data <- rlang::.data
   deg_df <- de_gene(isoformic_obj) |>
     dplyr::left_join(
-      isoformic_obj@row_data_genes |>
+      isoformic_obj@annot_data_genes |>
         dplyr::select(
           dplyr::any_of(c("gene_id", "gene_name"))
         ) |>
@@ -215,16 +221,20 @@ combine_deg_det_longer <- function(isoformic_obj) {
     dplyr::mutate(feature_type = "gene") |>
     dplyr::select(
       dplyr::any_of(c(
-        "feature_id", "feature_name",
-        "gene_id", "gene_name",
-        "feature_type", "log2FC",
-        "pvalue", "qvalue",
+        "feature_id",
+        "feature_name",
+        "gene_id",
+        "gene_name",
+        "feature_type",
+        "log2FC",
+        "pvalue",
+        "qvalue",
         "is_de"
       ))
     )
   det_df <- de_tx(isoformic_obj) |>
     dplyr::left_join(
-      isoformic_obj@row_data_transcripts |>
+      isoformic_obj@annot_data_transcripts |>
         dplyr::select(
           dplyr::any_of(
             c("transcript_id", "transcript_name", "transcript_type", "gene_id")
@@ -236,7 +246,7 @@ combine_deg_det_longer <- function(isoformic_obj) {
     ) |>
     dplyr::distinct() |>
     dplyr::left_join(
-      isoformic_obj@row_data_genes |>
+      isoformic_obj@annot_data_genes |>
         dplyr::select(
           dplyr::any_of(c("gene_id", "gene_name"))
         ) |>
@@ -257,10 +267,14 @@ combine_deg_det_longer <- function(isoformic_obj) {
     ) |>
     dplyr::select(
       dplyr::any_of(c(
-        "feature_id", "feature_name",
-        "gene_id", "gene_name",
-        "feature_type", "log2FC",
-        "pvalue", "qvalue",
+        "feature_id",
+        "feature_name",
+        "gene_id",
+        "gene_name",
+        "feature_type",
+        "log2FC",
+        "pvalue",
+        "qvalue",
         "is_de"
       ))
     )

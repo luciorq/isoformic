@@ -32,3 +32,7 @@
 ^Rplots\.pdf$
 ^\.Rhistory$
 ^\.RData$
+^vignettes/articles$
+^vignettes/articles/\.quarto$
+^vignettes/articles/*_files$
+^vignettes/\.quarto$

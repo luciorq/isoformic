@@ -2,6 +2,7 @@
 
 export(ContextData)
 export(IsoformicExperiment)
+export(as_isoformic)
 export(create_context_data)
 export(download_reference)
 export(get_isoformic_cache)

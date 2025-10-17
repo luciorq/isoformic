@@ -12,8 +12,10 @@ prepare_exon_annotation(gene_name, file_path, file_type = c("gff", "gtf"))
 \item{file_path}{Path to annotation file.}
 
 \item{file_type}{A character string specifying the type of file to download.
-Valid options are \code{"gff"}, \code{"gtf"}, or \code{"fasta"}. Defaults to \code{"gff"}.
-\strong{Note:} \code{"fasta"} refers to the transcriptome FASTA file.}
+Valid options are \code{"gff"}, \code{"gtf"}, \code{"fasta"} or \code{"genome_fasta"}.
+Defaults to \code{"gff"}.
+\strong{Note:} \code{"fasta"} refers to the transcriptome FASTA file.
+\code{"genome_fasta"} refers to the whole genome sequence FASTA file.}
 }
 \description{
 Prepare Exon based Position Annotation Table

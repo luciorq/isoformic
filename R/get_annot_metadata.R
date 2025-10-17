@@ -10,7 +10,7 @@ get_annot_metadata <- function(gff_file) {
       replacement = "_"
     )
 
-  metadata_list[["annot_path"]] <- gff_file
+  metadata_list[["original_annot_path"]] <- gff_file
 
   line_schema <- arrow::schema(
     arrow::field("linestr", arrow::string(), nullable = TRUE)

@@ -6,6 +6,7 @@
 NULL
 
 .onLoad <- function(...) {
+  # S7::S4_register(IsoformicExperiment)
   S7::methods_register()
 }
 

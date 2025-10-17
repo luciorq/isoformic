@@ -16,3 +16,4 @@ revdep
 README.html
 data-raw/
 !data-raw/.gitkeep
+**/.quarto/

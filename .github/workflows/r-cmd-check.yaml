@@ -1,19 +1,43 @@
-# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
-# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+# Workflow derived from <https://github.com/r-lib/actions/tree/v2/examples>
+# + Need help debugging build failures? Start at <https://github.com/r-lib/actions#where-to-find-help>
+
+# Modification by @luciorq
+# + Add ignored paths in the `.github` dir
+# + Add CronJob to run every Sunday
+# + Add `workflow_dispatch`
+# + Add cancel on concurrency
+# Check <https://github.com/luciorq/condathis/blob/main/.github/workflows/R-CMD-check.yaml> for the source of truth
+---
 on:
   push:
     branches: [main, master]
-  pull_request:
-  schedule:
-    # Runs every Friday at 10AM ET - 14:00 UTC
-    - cron: '0 14 * * 5'
+    paths:
+      - '**'
+      - '!.github/**'
+      - '.github/workflows/r-cmd-check.yaml'
 
-name: R-CMD-check.yaml
+  pull_request:
+    paths:
+      - '**'
+      - '!.github/**'
+      - '.github/workflows/r-cmd-check.yaml'
+
+  schedule:
+    # Runs every Sunday at 01 AM ET - 5:00 UTC
+    - cron: '0 5 * * 0'
+
+  workflow_dispatch:
+
+name: r-cmd-check.yaml
 
 permissions: read-all
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
-  R-CMD-check:
+  r-cmd-check:
     runs-on: ${{ matrix.config.os }}
 
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})

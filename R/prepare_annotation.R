@@ -10,8 +10,7 @@
 #'   One of `"gtf"` or `"gff"`. Defaults to `"gtf"`.
 #'
 #' @export
-prepare_annotation <- function(file_path,
-                               file_type = c("gtf", "gff")) {
+prepare_annotation <- function(file_path, file_type = c("gtf", "gff")) {
   file_type <- stringr::str_to_lower(file_type)
   file_type <- rlang::arg_match(file_type)
   .data <- rlang::.data
@@ -44,7 +43,12 @@ prepare_annotation <- function(file_path,
   )
 
   colnames(annot_df) <- c(
-    "chr", "type", "start", "stop", "strand", "attributes"
+    "chr",
+    "type",
+    "start",
+    "stop",
+    "strand",
+    "attributes"
   )
 
   annot_list <- list()

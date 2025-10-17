@@ -75,12 +75,13 @@ ContextData <- S7::new_class(
 #'
 #' @export
 create_context_data <- function(
-    gff_file,
-    ...,
-    organism,
-    orgdb_package,
-    bsgenome_package,
-    tx_type_palette = NULL) {
+  gff_file,
+  ...,
+  organism,
+  orgdb_package,
+  bsgenome_package,
+  tx_type_palette = NULL
+) {
   rlang::check_dots_empty()
   .data <- rlang::.data
   context_data <- ContextData()
@@ -94,7 +95,7 @@ create_context_data <- function(
   } else {
     context_data@tx_type_palette <- tx_type_palette
   }
-
+  rlang::check_installed("txdbmaker")
   context_data@txdb <- txdbmaker::makeTxDbFromGFF(
     file = context_data@gff_file,
     dataSource = "Custom Isoformic TxDb",
@@ -119,7 +120,8 @@ create_context_data <- function(
       tx_symbol = "transcript_name"
     )
   tx_replace_df <- DBI::dbGetQuery(
-    context_data@txdb$conn, "SELECT * FROM transcript;"
+    context_data@txdb$conn,
+    "SELECT * FROM transcript;"
   ) |>
     tibble::as_tibble() |>
     dplyr::left_join(

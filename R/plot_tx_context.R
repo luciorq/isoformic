@@ -11,8 +11,9 @@
 #'
 #' @export
 plot_tx_context <- function(
-    exon_table,
-    custom_colors = NULL) {
+  exon_table,
+  custom_colors = NULL
+) {
   if (isFALSE(tibble::is_tibble(exon_table))) {
     exon_table <- tibble::as_tibble(exon_table)
   }
@@ -60,9 +61,18 @@ plot_tx_context <- function(
   for (tx_id in tx_id_vector) {
     tx_id_data <- plot_data[plot_data$tx_id %in% tx_id, ]
     exon_right_max <- base::max(tx_id_data$exon_right, na.rm = TRUE)
-    plot_data[plot_data$tx_id %in% tx_id & plot_data$exon_right == exon_right_max, "segment_start"] <- NA_integer_
-    plot_data[plot_data$tx_id %in% tx_id & plot_data$exon_right == exon_right_max, "segment_middle"] <- NA_integer_
-    plot_data[plot_data$tx_id %in% tx_id & plot_data$exon_right == exon_right_max, "segment_end"] <- NA_integer_
+    plot_data[
+      plot_data$tx_id %in% tx_id & plot_data$exon_right == exon_right_max,
+      "segment_start"
+    ] <- NA_integer_
+    plot_data[
+      plot_data$tx_id %in% tx_id & plot_data$exon_right == exon_right_max,
+      "segment_middle"
+    ] <- NA_integer_
+    plot_data[
+      plot_data$tx_id %in% tx_id & plot_data$exon_right == exon_right_max,
+      "segment_end"
+    ] <- NA_integer_
   }
 
   # TODO: @luciorq tx_to_gene should be passed as an argument?

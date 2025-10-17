@@ -43,7 +43,6 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
       sd_max = log2((.data$mean_TPM + .data$SD) + 1)
     )
 
-
   transparency_vector <- c(1, 0.2)
   names(transparency_vector) <- c("Yes", "No")
   plot_object <- plot_df |>
@@ -58,7 +57,8 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
           false = ""
         )
       ),
-      nudge_x = -0.2, segment.colour = "lightgray"
+      nudge_x = -0.2,
+      segment.colour = "lightgray"
     ) +
     ggplot2::geom_point(
       ggplot2::aes(
@@ -89,7 +89,8 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
         group = .data$genename,
         color = .data$transcript_type,
         alpha = .data$DE
-      ), linewidth = 1.5
+      ),
+      linewidth = 1.5
     ) +
     ggplot2::geom_errorbar(
       ggplot2::aes(
@@ -111,7 +112,8 @@ plot_tx_expr <- function(genes_to_plot, profile_data) {
         fill = .data$transcript_type,
         alpha = .data$DE
       ),
-      size = 3, shape = 21
+      size = 3,
+      shape = 21
     ) +
     ggplot2::scale_alpha_manual(values = transparency_vector) +
     ggplot2::scale_color_manual(
