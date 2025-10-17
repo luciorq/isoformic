@@ -28,7 +28,7 @@ on:
 
   workflow_dispatch:
 
-name: r-cmd-check.yaml
+name: r-cmd-check
 
 permissions: read-all
 
