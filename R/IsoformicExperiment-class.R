@@ -10,6 +10,8 @@
 #' [`IsoformicExperiment()`] constructor.
 #'
 #' @param experiment_name Character string specifying the name of the experiment.
+#' This name is used for caching the assays experiment.
+#' If a name is not provided a random identifier is used.
 #' @param data_path Character string specifying the path to the data directory.
 #' @param annot_path Character string specifying the path to the annotation
 #' database directory.
@@ -24,11 +26,13 @@
 #' @param tx_type_palette A named character vector specifying the color
 #' palette for different transcript types.
 #' @param col_data A data frame containing sample metadata.
-#' @param row_data_transcripts A property that retrieves transcript
+#' First column must be `sample_id` matching the column names of the assays.
+#'
+#' @param annot_data_transcripts A property that retrieves transcript
 #' annotation data.
-#' @param row_data_genes A property that retrieves gene annotation data.
-#' @param row_data_exons A property that retrieves exon annotation data.
-#' @param row_data A property that aggregates transcript, gene,
+#' @param annot_data_genes A property that retrieves gene annotation data.
+#' @param annot_data_exons A property that retrieves exon annotation data.
+#' @param annot_data A property that aggregates transcript, gene,
 #' and exon annotation data.
 #'
 #' @param self An `IsoformicExperiment` object.
@@ -46,32 +50,32 @@ IsoformicExperiment <- S7::new_class(
     annot_path = S7::class_character,
     assay = S7::class_any,
     col_data = S7::class_any,
-    row_data_transcripts = S7::new_property(
+    annot_data_transcripts = S7::new_property(
       class = S7::class_any,
       default = NULL,
       getter = function(self) {
-        get_row_data_type(self, "transcripts")
+        get_annot_data_type(self, "transcripts")
       }
     ),
-    row_data_genes = S7::new_property(
+    annot_data_genes = S7::new_property(
       class = S7::class_any,
       default = NULL,
       getter = function(self) {
-        get_row_data_type(self, "genes")
+        get_annot_data_type(self, "genes")
       }
     ),
-    row_data_exons = S7::new_property(
+    annot_data_exons = S7::new_property(
       class = S7::class_any,
       default = NULL,
       getter = function(self) {
-        get_row_data_type(self, "exons")
+        get_annot_data_type(self, "exons")
       }
     ),
-    row_data = S7::new_property(
+    annot_data = S7::new_property(
       class = S7::class_any,
       default = NULL,
       getter = function(self) {
-        get_row_data(self)
+        get_annot_data(self)
       }
     ),
     annot_metadata = S7::class_any,
@@ -140,16 +144,17 @@ IsoformicExperiment <- S7::new_class(
         validate_assay_colnames(self, assay_name)
       }
     }
-    if ((!rlang::is_null(self@dea)) && isTRUE(length(self@dea) > 0)) {
+    if (isFALSE(rlang::is_null(self@dea)) && isTRUE(length(self@dea) > 0)) {
       validate_dea(self)
     }
     return(NULL)
   }
 )
 
-# =========================================================================
-# Accessors
-# =========================================================================
+# =============================================================================
+# IsoformicExperiment Accessors - New S7 Generics with S7 Methods
+# + Each one of those should correspond to one property in the class definition
+# =============================================================================
 
 #' Read Sample Metadata
 #' @rdname IsoformicExperiment
@@ -161,43 +166,42 @@ S7::method(col_data, IsoformicExperiment) <- function(self) {
 
 #' Read Transcript Annotation
 #' @rdname IsoformicExperiment
-row_data_transcripts <- S7::new_generic("row_data_transcripts", "self")
+annot_data_transcripts <- S7::new_generic("annot_data_transcripts", "self")
 
-S7::method(row_data_transcripts, IsoformicExperiment) <- function(self) {
-  return(self@row_data_transcripts)
+S7::method(annot_data_transcripts, IsoformicExperiment) <- function(self) {
+  return(self@annot_data_transcripts)
 }
 
 #' Read Gene Annotation
 #' @rdname IsoformicExperiment
-row_data_genes <- S7::new_generic("row_data_genes", "self")
+annot_data_genes <- S7::new_generic("annot_data_genes", "self")
 
-S7::method(row_data_genes, IsoformicExperiment) <- function(self) {
-  return(self@row_data_genes)
+S7::method(annot_data_genes, IsoformicExperiment) <- function(self) {
+  return(self@annot_data_genes)
 }
 
 #' Read Exon Annotation
 #' @rdname IsoformicExperiment
-row_data_exons <- S7::new_generic("row_data_exons", "self")
+annot_data_exons <- S7::new_generic("annot_data_exons", "self")
 
-S7::method(row_data_exons, IsoformicExperiment) <- function(self) {
-  return(self@row_data_exons)
+S7::method(annot_data_exons, IsoformicExperiment) <- function(self) {
+  return(self@annot_data_exons)
 }
 
 #' Aggregate Whole Annotation Table
 #' @rdname IsoformicExperiment
-row_data <- S7::new_generic("row_data", "self")
+annot_data <- S7::new_generic("annot_data", "self")
 
-S7::method(row_data, IsoformicExperiment) <- function(self, compute = FALSE) {
-  return(get_row_data(self, compute))
+S7::method(annot_data, IsoformicExperiment) <- function(self, compute = FALSE) {
+  return(get_annot_data(self, compute))
 }
-
 
 #' Return Row Names for Transcript Level Annotation
 #' @rdname IsoformicExperiment
 annot_row_names <- S7::new_generic("annot_row_names", "self")
 
 S7::method(annot_row_names, IsoformicExperiment) <- function(self) {
-  self@row_data_transcripts |>
+  self@annot_data_transcripts |>
     dplyr::pull("transcript_id", as_vector = TRUE)
 }
 
@@ -220,11 +224,29 @@ S7::method(row_names, IsoformicExperiment) <- function(self) {
   assay_name <- names(self@assay)[1]
   attr(self@assay[[assay_name]], "dimnames")[[1]]
 }
-
 # =========================================================================
-# Other Methods
+# S7 Methods for S4 Generics - Any really needed?
+# + If S4 generics are needed, add `S7::S4_register(IsoformicExperiment)`
+# + to the `.onLoad` function in `R/isoformic-package.R` file.
 # =========================================================================
 
+# #' Return Row Names for Transcript Level Assays
+# #' @rdname IsoformicExperiment
+# S7::new_generic("rownames", "x")
+
+# S7::method(rownames, IsoformicExperiment) <- function(x, do.NULL, prefix) {
+# rownames.IsoformicExperiment <- function(x, do.NULL, prefix) {
+#  rlang::check_required(x)
+#  if (length(x@assay) == 0L) {
+#    return(0L)
+#  }
+#  assay_name <- names(x@assay)[1]
+#  return(attr(x@assay[[assay_name]], "dimnames")[[1]])
+# }
+
+# =============================================================================
+# S7 Methods for common S3 Generics
+# =============================================================================
 # Print IsoformicExperiment Object Summary
 S7::method(print, IsoformicExperiment) <- function(x, ...) {
   # Main Print
@@ -242,21 +264,43 @@ S7::method(print, IsoformicExperiment) <- function(x, ...) {
   cat(" Annotation Path: ", x@annot_path, "\n", sep = "")
   cat(
     " Transcripts in Annotation: ",
-    nrow(x@row_data_transcripts),
+    nrow(x@annot_data_transcripts),
     "\n",
     sep = ""
   )
-  cat(" Genes in Annotation: ", nrow(x@row_data_genes), "\n", sep = "")
-  cat(" Exons in Annotation: ", nrow(x@row_data_exons), "\n", sep = "")
+  cat(" Genes in Annotation: ", nrow(x@annot_data_genes), "\n", sep = "")
+  cat(" Exons in Annotation: ", nrow(x@annot_data_exons), "\n", sep = "")
   cat(" Annotation Metadata: ", length(x@annot_metadata), " slots\n", sep = "")
 }
 
-#' Retrieve Transcript to Gene Mapping Table
+S7::method(dimnames, IsoformicExperiment) <- function(x) {
+  if (length(x@assay) == 0L) {
+    return(list(NULL, NULL))
+  }
+  assay_name <- names(x@assay)[1]
+  # message("Using assay: ", assay_name)
+  return(dimnames(x@assay[[assay_name]]))
+}
+
+S7::method(dim, IsoformicExperiment) <- function(x) {
+  if (length(x@assay) == 0L) {
+    return(c(0L, 0L))
+  }
+  assay_name <- names(x@assay)[1]
+  # message("Using assay: ", assay_name)
+  return(dim(x@assay[[assay_name]]))
+}
+
+# =============================================================================
+# New S7 Generics and S7 Methods - Convenience Functions to Access Common Data
+# =============================================================================
+
+#' Retrieve Transcript to Gene Mapping Table from Annotation
 #' @rdname IsoformicExperiment
 tx_to_gene <- S7::new_generic("tx_to_gene", "self")
 
 S7::method(tx_to_gene, IsoformicExperiment) <- function(self) {
-  self@row_data_transcripts |>
+  self@annot_data_transcripts |>
     dplyr::select("transcript_id", "gene_id") |>
     dplyr::distinct() |>
     dplyr::collect()
@@ -273,12 +317,12 @@ S7::method(tx_annot, IsoformicExperiment) <- function(self) {
     "end_pos",
     "strand"
   )
-  self@row_data_transcripts |>
+  self@annot_data_transcripts |>
     dplyr::select(-dplyr::any_of(cols_to_remove)) |>
     # dplyr::select("transcript_id", "gene_id") |>
     dplyr::distinct() |>
     dplyr::left_join(
-      y = self@row_data_genes |>
+      y = self@annot_data_genes |>
         dplyr::select(
           dplyr::any_of(c("gene_id", "gene_name", "gene_type"))
         ) |>
@@ -354,10 +398,10 @@ get_dea_results <- function(self, de_type = c("det", "deg")) {
 # =========================================================================
 
 # Utils
-#' Get Row Data Annotation by Type
+#' Retrieve Annotation Data by Feature Type
 #' @keywords internal
 #' @noRd
-get_row_data_type <- function(self, type) {
+get_annot_data_type <- function(iso_obj, type) {
   if (!(type %in% c("transcripts", "genes", "exons"))) {
     cli::cli_abort(
       message = c(
@@ -366,10 +410,10 @@ get_row_data_type <- function(self, type) {
       class = "isoformic_annot_invalid_type"
     )
   }
-  if (!isTRUE(fs::dir_exists(self@annot_path))) {
+  if (!isTRUE(fs::dir_exists(iso_obj@annot_path))) {
     cli::cli_abort(
       message = c(
-        x = "The annotation path {.path {self@annot_path}} does {.strong not} exist."
+        x = "The annotation path {.path {iso_obj@annot_path}} does {.strong not} exist."
       ),
       class = "isoformic_annot_path_dont_exist"
     )
@@ -377,23 +421,23 @@ get_row_data_type <- function(self, type) {
 
   arrow::read_parquet(
     file = fs::path(
-      self@annot_path,
-      paste0("row_data_", type),
+      iso_obj@annot_path,
+      paste0("annot_data_", type),
       ext = "parquet"
     ),
     as_data_frame = FALSE
   )
 }
 
-get_row_data <- function(self, compute = FALSE) {
-  query_res <- self@row_data_transcripts |>
+get_annot_data <- function(self, compute = FALSE) {
+  query_res <- self@annot_data_transcripts |>
     dplyr::left_join(
-      self@row_data_genes,
+      self@annot_data_genes,
       by = "gene_id",
       suffix = c("_tx", "_gene")
     ) |>
     dplyr::left_join(
-      self@row_data_exons,
+      self@annot_data_exons,
       by = "transcript_id",
       suffix = c("", "_exon")
     ) |>
@@ -408,7 +452,7 @@ get_row_data <- function(self, compute = FALSE) {
 }
 
 validate_assay_rownames <- function(self, assay_name) {
-  annot_tx_rownames <- self@row_data_transcripts |>
+  annot_tx_rownames <- self@annot_data_transcripts |>
     # dplyr::collect() |>
     dplyr::pull("transcript_id", as_vector = TRUE)
   assay_rownames <- attr(self@assay[[assay_name]], "dimnames")[[1]]
@@ -475,7 +519,7 @@ validate_dea <- function(self) {
         class = "isoformic_dea_invalid_det"
       )
     }
-    annot_tx_ids <- self@row_data_transcripts |>
+    annot_tx_ids <- self@annot_data_transcripts |>
       dplyr::collect() |>
       dplyr::pull("transcript_id")
     if (!all(det$transcript_id %in% annot_tx_ids)) {
@@ -508,7 +552,7 @@ validate_dea <- function(self) {
         class = "isoformic_dea_invalid_deg"
       )
     }
-    annot_gene_ids <- self@row_data_genes |>
+    annot_gene_ids <- self@annot_data_genes |>
       dplyr::collect() |>
       dplyr::pull("gene_id")
     if (!all(deg$gene_id %in% annot_gene_ids)) {

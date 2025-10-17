@@ -3,10 +3,10 @@
 \name{IsoformicExperiment}
 \alias{IsoformicExperiment}
 \alias{col_data}
-\alias{row_data_transcripts}
-\alias{row_data_genes}
-\alias{row_data_exons}
-\alias{row_data}
+\alias{annot_data_transcripts}
+\alias{annot_data_genes}
+\alias{annot_data_exons}
+\alias{annot_data}
 \alias{annot_row_names}
 \alias{col_names}
 \alias{row_names}
@@ -30,13 +30,13 @@ IsoformicExperiment(
 
 col_data(self, ...)
 
-row_data_transcripts(self, ...)
+annot_data_transcripts(self, ...)
 
-row_data_genes(self, ...)
+annot_data_genes(self, ...)
 
-row_data_exons(self, ...)
+annot_data_exons(self, ...)
 
-row_data(self, ...)
+annot_data(self, ...)
 
 annot_row_names(self, ...)
 
@@ -53,7 +53,9 @@ de_tx(self, ...)
 de_gene(self, ...)
 }
 \arguments{
-\item{experiment_name}{Character string specifying the name of the experiment.}
+\item{experiment_name}{Character string specifying the name of the experiment.
+This name is used for caching the assays experiment.
+If a name is not provided a random identifier is used.}
 
 \item{data_path}{Character string specifying the path to the data directory.}
 
@@ -64,7 +66,8 @@ database directory.}
 with transcript IDs as row names and sample IDs as column names.
 Each element of the list represents a different assay (e.g., TPM, counts).}
 
-\item{col_data}{A data frame containing sample metadata.}
+\item{col_data}{A data frame containing sample metadata.
+First column must be \code{sample_id} matching the column names of the assays.}
 
 \item{annot_metadata}{A list containing metadata about the annotation,
 such as source, version, and date.}
@@ -81,14 +84,14 @@ palette for different transcript types.}
 
 \item{...}{Additional arguments passed to methods.}
 
-\item{row_data_transcripts}{A property that retrieves transcript
+\item{annot_data_transcripts}{A property that retrieves transcript
 annotation data.}
 
-\item{row_data_genes}{A property that retrieves gene annotation data.}
+\item{annot_data_genes}{A property that retrieves gene annotation data.}
 
-\item{row_data_exons}{A property that retrieves exon annotation data.}
+\item{annot_data_exons}{A property that retrieves exon annotation data.}
 
-\item{row_data}{A property that aggregates transcript, gene,
+\item{annot_data}{A property that aggregates transcript, gene,
 and exon annotation data.}
 }
 \description{

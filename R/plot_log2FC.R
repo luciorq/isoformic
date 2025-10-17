@@ -204,7 +204,7 @@ combine_deg_det_longer <- function(isoformic_obj) {
   .data <- rlang::.data
   deg_df <- de_gene(isoformic_obj) |>
     dplyr::left_join(
-      isoformic_obj@row_data_genes |>
+      isoformic_obj@annot_data_genes |>
         dplyr::select(
           dplyr::any_of(c("gene_id", "gene_name"))
         ) |>
@@ -234,7 +234,7 @@ combine_deg_det_longer <- function(isoformic_obj) {
     )
   det_df <- de_tx(isoformic_obj) |>
     dplyr::left_join(
-      isoformic_obj@row_data_transcripts |>
+      isoformic_obj@annot_data_transcripts |>
         dplyr::select(
           dplyr::any_of(
             c("transcript_id", "transcript_name", "transcript_type", "gene_id")
@@ -246,7 +246,7 @@ combine_deg_det_longer <- function(isoformic_obj) {
     ) |>
     dplyr::distinct() |>
     dplyr::left_join(
-      isoformic_obj@row_data_genes |>
+      isoformic_obj@annot_data_genes |>
         dplyr::select(
           dplyr::any_of(c("gene_id", "gene_name"))
         ) |>

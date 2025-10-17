@@ -51,12 +51,12 @@ prepare_isoformic_annotation <- function(
     fs::dir_create(parquet_dir, recurse = TRUE)
   }
 
-  parquet_gene_file_path <- fs::path(parquet_dir, "row_data_genes.parquet")
+  parquet_gene_file_path <- fs::path(parquet_dir, "annot_data_genes.parquet")
   parquet_transcript_file_path <- fs::path(
     parquet_dir,
-    "row_data_transcripts.parquet"
+    "annot_data_transcripts.parquet"
   )
-  parquet_exon_file_path <- fs::path(parquet_dir, "row_data_exons.parquet")
+  parquet_exon_file_path <- fs::path(parquet_dir, "annot_data_exons.parquet")
 
   sql_str <- r"---(SET enable_progress_bar = false;
 CREATE TEMPORARY TABLE parsed_annotations AS
