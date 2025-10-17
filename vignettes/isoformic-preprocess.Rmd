@@ -3,7 +3,8 @@ title: "Preparing Isoformic Inputs"
 author:
   - name: "Izabela Mamede Conceição"
   - name: "Lucio Rezende Queiroz"
-date: "2025-10-02"
+date: "2025-10-01"
+modified: "2025-10-17"
 vignette: >
   %\VignetteIndexEntry{Preprocessing}
   %\VignetteEngine{knitr::rmarkdown}
@@ -42,7 +43,7 @@ salmon quant \
   --numGibbsSamples 100              # draw inferential replicates; required for fishpond/Swish
 ```
 
-### From R - Condathis wrapper for Salmon
+### From R - `condathis` wrapper for Salmon
 
 Caveats: currently Salmon is only available for MacOS and Linux on the [Bioconda](https://bioconda.github.io/) channel.
 
@@ -50,47 +51,17 @@ Therefore, this example will not work natively on Windows.
 But you can use WSL2 (Windows Subsystem for Linux) on Windows 10/11 to run it.
 
 ```{r, eval=FALSE}
-library(condathis)
-condathis::create_env(
-  package = "salmon",
-  env_name = "salmon-env",
-  additional_channels = "bioconda"
+library(isoformic)
+tx_fasta_path <- download_reference(version = "34", file_type = "fasta")
+genome_fasta_path <- download_reference(version = "34", file_type = "genome_fasta")
+gff_path <- download_reference(version = "34", file_type = "gff")
+
+salmon_index(
+  fasta_path = "/path/to/tx_fasta.fa",
+  index_path = "/path/to/index",
+  kmer_len = 31,
+  num_threads = 8
 )
-
-salmon_index <- function(fasta_path, index_path = "salmon_index", kmer_len = 31, num_threads = 8) {
-  rlang::check_installed("condathis")
-  condathis::run(
-    "salmon", "index",
-    "--transcripts", fasta_path,
-    "--index", index_path,
-    "--type", "quasi",
-    "--kmerLen", 31,
-    "--threads", 8,
-    env_name = "salmon-env",
-    verbose = "output"
-  )
-}
-
-salmon_quant <- function(index_path, input_r1, input_r2, output_dir = "quant_output", num_threads = 8, num_gibbs = 100) {
-  rlang::check_installed("condathis")
-  condathis::run(
-    "salmon", "quant",
-    "--libType", "A",
-    "--index", index_path,
-    "--mates1", input_r1,
-    "--mates2", input_r2,
-    "--output", output_dir,
-    "--threads", num_threads,
-    "--validateMappings",
-    "--d",
-    "--posBias",
-    "--seqBias",
-    "--gcBias",
-    "--numGibbsSamples", num_gibbs,
-    env_name = "salmon-env",
-    verbose = "output"
-  )
-}
 
 salmon_quant(
   index_path = "/path/to/index",
@@ -104,47 +75,27 @@ Now to run and get the isoformic tables.
 
 ```{r}
 suppressPackageStartupMessages({
-  library(tidyverse)
-  library(readr)
-  library(SummarizedExperiment)
-  library(tximeta)
-  library(isoformic)
-  library(fishpond)
   library(tximport)
+  library(SummarizedExperiment)
+  library(fishpond)
   library(DESeq2)
 })
 
+# devtools::load_all()
 library(isoformic)
 
 # Where extdata lives
-ext_base <- system.file("extdata", package = "isoformic")
-if (ext_base == "") {
-  ext_base <- file.path("inst", "extdata")
-}
+extdata_dir <- system.file("extdata", package = "isoformic")
+# if (ext_base == "") {
+#  ext_base <- file.path("inst", "extdata")
+# }
 
-ext_base <- "data-raw/mini_data"
+quants_dir <- file.path(extdata_dir, "mini_quants")
 
-# TODO: @luciorq This step requires the git LFS command
-# + Run `git lfs pull`
-quants_dir <- file.path(ext_base, "mini_quants")
-
-gff_path <- isoformic::download_reference(version = "34", file_type = "gff")
-
-fasta_path <- isoformic::download_reference(version = "34", file_type = "fasta")
-
-tx_to_gene <- make_tx_to_gene(
-  file_path = fasta_path,
-  file_type = "fasta"
-)
-
-head(tx_to_gene)
-
-tx2gene <- tx_to_gene |>
-  dplyr::select(transcript_id, gene_name)
-head(tx2gene)
+gff_path <- isoformic::download_reference(version = "49", file_type = "gff")
 ```
 
-## Load Salmon Quantification with tximeta
+## Load Salmon Quantification with tximport
 
 Point to Salmon's `quant.sf` output files.
 
@@ -164,58 +115,63 @@ files <- file.path(quants_dir, paste0(samples, "_quant"), "quant.sf")
 names(files) <- samples
 stopifnot(all(file.exists(files)))
 
-coldata <- tibble::tibble(
+col_data <- tibble::tibble(
   files = files,
   names = samples,
   condition = factor(condition, levels = c("control", "treatment"))
 )
-coldata
+col_data
 ```
 
-Import transcriptomics data with tximeta.
+Import transcriptomics data with tximport.
 
 ```{r}
-str(se_tx)
-se_tx <- tximeta::tximeta(coldata, skipMeta = TRUE)
+txi_tx <- tximport::tximport(
+  files = files,
+  type = "salmon",
+  txIn = TRUE,
+  txOut = TRUE,
+  countsFromAbundance = "no",
+  dropInfReps = FALSE,
+  ignoreAfterBar = TRUE
+)
+
+se_tx <- SummarizedExperiment(
+  assays = list(
+    counts = txi_tx$counts,
+    abundance = txi_tx$abundance,
+    length = txi_tx$length
+  ),
+  colData = col_data,
+  metadata = list(
+    txi = list(
+      countsFromAbundance = txi_tx$countsFromAbundance
+    )
+  )
+)
 ```
 
-```{r, eval=FALSE}
-# write_rds(se_tx, "data-raw/se_tx.rds")
-# se_tx <- readr::read_rds("data-raw/se_tx.rds")
+Convert to IsoformicExperiment object.
 
-lobstr::obj_sizes(se_tx)
-se_tx2 <- se_tx
-rownames(se_tx2) <- stringr::str_remove(rownames(se_tx), "\\|.*")
-lobstr::obj_sizes(se_tx2)
-
-class(rownames(se_tx))
-class(rownames(se_tx2))
-head(rownames(se_tx))
-head(rownames(se_tx2))
-write_rds(se_tx, "data-raw/se_tx.rds", compress = "xz")
-write_rds(se_tx2, "data-raw/se_tx2.rds", compress = "xz")
-
-waldo::compare(se_tx, se_tx2)
-se_tx <- se_tx2
+```{r}
+iso <- as_isoformic(se_tx, gff_path)
 ```
+
 
 Save the counts table.
 
 ```{r}
-tx_counts_df <- se_tx |>
-  assay("counts") |>
-  as.data.frame() |>
-  tibble::rownames_to_column("transcript_id") |>
-  as_tibble() |>
-  dplyr::left_join(tx2gene, by = "transcript_id") |>
-  dplyr::relocate("gene_name", .after = "transcript_id")
+tx_to_gene_df <- tx_to_gene(iso)
+head(tx_to_gene_df)
 
-tx_counts_df
+rowData(se_tx) <- row_data(iso)
+
+iso
 ```
 
 Perform transcript-level Differential Expression Analysis with fishpond.
 
-```{r}
+```{r, eval=FALSE}
 y <- se_tx
 y <- fishpond::scaleInfReps(y)
 
@@ -233,31 +189,30 @@ str(y)
 ```{r}
 # collect results
 DET_all <- S4Vectors::mcols(y) |>
-  as.data.frame() |>
+  base::as.data.frame() |>
   tibble::rownames_to_column("transcript_id") |>
-  as_tibble() |>
-  dplyr::left_join(tx2gene, by = "transcript_id")
+  tibble::as_tibble() |>
+  dplyr::left_join(tx_to_gene_df, by = "transcript_id")
 
 DET_all
 ```
 
-Perform Gene level Differential Expression with DESeq2.
+Summarize Transcript SummarizedExperiment to Gene level.
 
 ```{r}
-# colData(se_tx)
+se_gene <- tximeta::summarizeToGene(
+  se_tx,
+  tx2gene = dplyr::select(row_data(iso), transcript_id, gene_id),
+  skipRanges = TRUE
+)
+```
 
-# colData(se_gene)
+Perform Gene level Differential Expression with DESeq2.
 
-if (rlang::is_installed("apeglm")) {
-  message("apeglm is installed")
-} else {
-  message("apeglm is NOT installed")
-}
-rlang::check_installed("apeglm")
-# library(apeglm)
-
-se_gene <- tximeta::summarizeToGene(se_tx, tx2gene = dplyr::select(tx2gene, transcript_id, gene_name), skipRanges = TRUE)
+```{r, eval=TRUE}
 colData(se_gene)$condition <- factor(colData(se_gene)$condition, levels = c("control", "treatment"))
+
+assays(se_gene)$counts <- round(assays(se_gene)$counts)
 
 dds <- DESeq2::DESeqDataSet(se_gene, design = ~condition)
 dds <- dds[rowSums(DESeq2::counts(dds) >= 10) >= 3, ]
@@ -266,11 +221,34 @@ dds <- DESeq2::DESeq(dds)
 res <- DESeq2::results(dds, contrast = c("condition", "treatment", "control"))
 
 # shrink for stability on small example
-res_shr <- DESeq2::lfcShrink(dds, coef = "condition_treatment_vs_control", res = res, type = "apeglm")
+if (rlang::is_installed("apeglm")) {
+  message("apeglm is installed")
+  shrink_type <- "apeglm"
+} else {
+  message("apeglm is NOT installed")
+  shrink_type <- "normal"
+}
 
-DEG_all <- as.data.frame(res_shr) |>
+res_shr <- DESeq2::lfcShrink(
+  dds,
+  coef = "condition_treatment_vs_control",
+  res = res,
+  type = shrink_type
+)
+
+res
+res_shr
+dea_gene_res <- base::as.data.frame(res_shr) |>
   tibble::rownames_to_column("gene_id") |>
-  as_tibble()
+  tibble::as_tibble() |>
+  dplyr::rename(
+    log2FC = log2FoldChange,
+    pvalue = pvalue,
+    qvalue = padj
+  )
 
-DEG_all
+
+iso@dea$deg <- dea_gene_res
+
+de_gene(iso)
 ```
