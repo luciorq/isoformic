@@ -83,6 +83,7 @@ run_enrichment <- function(
 ) {
   .data <- rlang::.data
   .env <- rlang::.env
+  rlang::check_installed("fgsea")
   processed_or_cds <- ifelse(
     test = sum(tx_to_gene$transcript_type == "processed_transcript") > 1500,
     yes = "processed_transcript",

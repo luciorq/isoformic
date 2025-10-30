@@ -32,7 +32,11 @@
 ^Rplots\.pdf$
 ^\.Rhistory$
 ^\.RData$
+^vignettes$
 ^vignettes/articles$
 ^vignettes/articles/\.quarto$
 ^vignettes/articles/*_files$
 ^vignettes/\.quarto$
+^vignettes/*_files$
+^README_files/$
+^readme_cache/$

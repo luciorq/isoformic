@@ -54,6 +54,24 @@ plot_genomic_context <- function(
 
   rlang::check_installed("plotgardener")
 
+  if (identical(ideogram_reference, "hg38")) {
+    hg38_deps <- c(
+      # "BSgenome.Hsapiens.NCBI.GRCh38",
+      "TxDb.Hsapiens.UCSC.hg38.knownGene",
+      "AnnotationHub",
+      "org.Hs.eg.db"
+    )
+    has_deps <- check_installed(pkgs = hg38_deps)
+
+    if (isFALSE(has_deps)) {
+      cli::cli_inform(c(
+        `i` = "To use {.code ideogram_reference = 'hg38'}, please install the following packages: {.code {hg38_deps}}",
+        `*` = "falling back to {.code ideogram_reference = 'none'}."
+      ))
+      ideogram_reference <- "none"
+    }
+  }
+
   custom_assembly <- plotgardener::assembly(
     # Genome = "hg38_GENCODE34",
     Genome = paste0(
@@ -135,7 +153,7 @@ plot_genomic_context <- function(
     just = "right"
   )
 
-  if (end_value - start_value < 100000) {
+  if (isTRUE((end_value - start_value) < 100000)) {
     end_value_highlight <- start_value + 150000
   } else {
     end_value_highlight <- end_value
@@ -148,7 +166,7 @@ plot_genomic_context <- function(
 
   # TODO: @luciorq - Check which other assemblies would be supported
   # + by plotgardener
-  if (ideogram_reference == "none") {
+  if (identical(ideogram_reference, "none")) {
     chr_length <- context_data@txdb$conn |>
       dplyr::tbl("chrominfo") |>
       dplyr::filter(.data$chrom == chr_string) |>
@@ -186,6 +204,7 @@ plot_genomic_context <- function(
       default.units = "inches"
     )
   }
+
   plotgardener::annoHighlight(
     plot = chrom_plot,
     params = region_param,
@@ -204,28 +223,6 @@ plot_genomic_context <- function(
     y1 = 1.6,
     default.units = "inches",
     just = c("left", "top")
-  )
-
-  transcripts_res <- plotgardener::plotTranscripts(
-    chrom = chr_string,
-    chromstart = start_value,
-    chromend = end_value,
-    assembly = custom_assembly,
-    labels = "transcript",
-    just = c("center", "center"),
-    x = 7.5 / 2,
-    y = ((4.5 + y_offset) / 2),
-    width = 6.5,
-    height = 3.6 + (height_offset * 2),
-    draw = TRUE,
-    limitLabel = limit_label,
-    fill = "grey",
-    colorbyStrand = FALSE,
-    transcriptHighlights = transcript_highlights,
-    strandSplit = TRUE,
-    fontsize = 10,
-    boxHeight = grid::unit(3.5, "mm"),
-    stroke = 0.05
   )
 
   plotgardener::plotLegend(
@@ -249,6 +246,28 @@ plot_genomic_context <- function(
     y = 4.5 + height_offset,
     length = 6.5,
     default.units = "inches"
+  )
+
+  transcripts_res <- plotgardener::plotTranscripts(
+    chrom = chr_string,
+    chromstart = start_value,
+    chromend = end_value,
+    assembly = custom_assembly,
+    labels = "transcript",
+    just = c("center", "center"),
+    x = 7.5 / 2,
+    y = ((4.5 + y_offset) / 2),
+    width = 6.5,
+    height = 3.6 + (height_offset * 2),
+    draw = TRUE,
+    limitLabel = limit_label,
+    fill = "grey",
+    colorbyStrand = FALSE,
+    transcriptHighlights = transcript_highlights,
+    strandSplit = TRUE,
+    fontsize = 10,
+    boxHeight = grid::unit(3.5, "mm"),
+    stroke = 0.05
   )
 
   return(invisible(transcripts_res))
