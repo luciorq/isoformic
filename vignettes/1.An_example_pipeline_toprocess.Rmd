@@ -37,7 +37,7 @@ salmon quant \
   --output /path/SRR..._quant \      # Output folder (contains quant.sf, aux_info/)
   --threads 8 \                      # Number of parallel threads used
   --validateMappings \               # selective-alignment (more specific, recommended)
-  --d \                              # Add Terminus needed outputs
+  --d \                              # Add Terminus needed output
   --posBias --seqBias --gcBias \     # bias corrections (positional, sequence, GC)
   --numGibbsSamples 100              # draw inferential replicates; required for fishpond/Swish
 ```
@@ -51,47 +51,14 @@ But you can use WSL2 (Windows Subsystem for Linux) on Windows 10/11 to run it.
 
 ```{r, eval=FALSE}
 library(condathis)
-condathis::create_env(
-  package = "salmon",
-  env_name = "salmon-env",
-  additional_channels = "bioconda"
+# devtools::load_all()
+
+fasta_path <- download_reference(version = "49", file_type = "fasta")
+gff_path <- download_reference(version = "49", file_type = "gff")
+salmon_index(
+  fasta_path = fasta_path,
+  index_path = "/path"
 )
-
-salmon_index <- function(fasta_path, index_path = "salmon_index", kmer_len = 31, num_threads = 8) {
-  rlang::check_installed("condathis")
-  condathis::run(
-    "salmon", "index",
-    "--transcripts", fasta_path,
-    "--index", index_path,
-    "--type", "quasi",
-    "--kmerLen", 31,
-    "--threads", 8,
-    env_name = "salmon-env",
-    verbose = "output"
-  )
-}
-
-salmon_quant <- function(index_path, input_r1, input_r2, output_dir = "quant_output", num_threads = 8, num_gibbs = 100) {
-  rlang::check_installed("condathis")
-  condathis::run(
-    "salmon", "quant",
-    "--libType", "A",
-    "--index", index_path,
-    "--mates1", input_r1,
-    "--mates2", input_r2,
-    "--output", output_dir,
-    "--threads", num_threads,
-    "--validateMappings",
-    "--d",
-    "--posBias",
-    "--seqBias",
-    "--gcBias",
-    "--numGibbsSamples", num_gibbs,
-    env_name = "salmon-env",
-    verbose = "output"
-  )
-}
-
 salmon_quant(
   index_path = "/path/to/index",
   input_r1 = "/path/SRR..._1.fastq",
@@ -104,33 +71,35 @@ Now to run and get the isoformic tables.
 
 ```{r}
 suppressPackageStartupMessages({
-  library(tidyverse)
-  library(readr)
   library(SummarizedExperiment)
-  library(tximeta)
-  library(isoformic)
   library(fishpond)
   library(tximport)
+  library(readr)
   library(DESeq2)
 })
 
+# Load Isoformic
+
+devtools::load_all()
 library(isoformic)
 
 # Where extdata lives
-ext_base <- system.file("extdata", package = "isoformic")
-if (ext_base == "") {
-  ext_base <- file.path("inst", "extdata")
-}
+# ext_base <- system.file("extdata", package = "isoformic")
+# if (ext_base == "") {
+#   ext_base <- file.path("inst", "extdata")
+# }
 
+system.system.file()
+ext_base <- system.file("extdata", package = "isoformic")
 ext_base <- "data-raw/mini_data"
 
 # TODO: @luciorq This step requires the git LFS command
 # + Run `git lfs pull`
 quants_dir <- file.path(ext_base, "mini_quants")
 
-gff_path <- isoformic::download_reference(version = "34", file_type = "gff")
+gff_path <- isoformic::download_reference(version = "49", file_type = "gff")
 
-fasta_path <- isoformic::download_reference(version = "34", file_type = "fasta")
+fasta_path <- isoformic::download_reference(version = "49", file_type = "fasta")
 
 tx_to_gene <- make_tx_to_gene(
   file_path = fasta_path,

@@ -60,7 +60,7 @@ Suggests:
     quarto,
     rmarkdown,
     testthat (>= 3.0.0),
-    tximeta,
+    tximport,
     viridis
 VignetteBuilder:
     knitr

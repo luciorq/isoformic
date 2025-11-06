@@ -134,7 +134,6 @@ testthat::test_that("IsoformicExperiment - generics are defined", {
   testthat::expect_s3_class(row_data(iso), "data.frame")
   testthat::expect_s3_class(row_data(iso), "tbl_df")
 
-
   testthat::expect_equal(iso@experiment_name, "test_experiment")
   testthat::expect_equal(iso@data_path, data_path)
   testthat::expect_equal(iso@annot_path, annot_path)

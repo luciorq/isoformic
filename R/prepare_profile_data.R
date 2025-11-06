@@ -33,30 +33,32 @@
 #' # and de_result_transcript are pre-loaded data frames:
 #'
 #' # Prepare data for plotting
-#' expr_df <- prepare_profile_data(
-#'   txi_gene = txi_gene,
-#'   txi_transcript = txi_transcript,
-#'   sample_metadata = sample_metadata,
-#'   tx_to_gene = tx_to_gene,
-#'   de_result_gene = de_result_gene,
-#'   de_result_transcript = de_result_transcript,
-#'   var = "condition",
-#'   var_levels = c("control", "treatment"),
-#'   gene_col = "gene_name",
-#'   tx_col = "transcript_name",
-#'   pvalue_cutoff = 0.05,
-#'   lfc_cutoff = 1,
-#'   use_fdr = TRUE
-#' )
+#' if (FALSE) {
+#'   expr_df <- prepare_profile_data(
+#'     txi_gene = txi_gene,
+#'     txi_transcript = txi_transcript,
+#'     sample_metadata = sample_metadata,
+#'     tx_to_gene = tx_to_gene,
+#'     de_result_gene = de_result_gene,
+#'     de_result_transcript = de_result_transcript,
+#'     var = "condition",
+#'     var_levels = c("control", "treatment"),
+#'     gene_col = "gene_name",
+#'     tx_col = "transcript_name",
+#'     pvalue_cutoff = 0.05,
+#'     lfc_cutoff = 1,
+#'     use_fdr = TRUE
+#'   )
 #'
-#' # View the prepared data
-#' utils::head(expr_df)
+#'   # View the prepared data
+#'   utils::head(expr_df)
 #'
-#' # Plotting example (assuming ggplot2 is installed)
-#' library(ggplot2)
-#' ggplot(expr_df, aes(x = condition, y = mean_TPM, fill = DE)) +
-#'   geom_bar(stat = "identity", position = position_dodge()) +
-#'   facet_wrap(~ parent_gene + transcript_type)
+#'   # Plotting example (assuming ggplot2 is installed)
+#'   library(ggplot2)
+#'   ggplot(expr_df, aes(x = condition, y = mean_TPM, fill = DE)) +
+#'     geom_bar(stat = "identity", position = position_dodge()) +
+#'     facet_wrap(~ parent_gene + transcript_type)
+#' }
 #' }
 #'
 #' @export

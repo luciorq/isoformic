@@ -225,18 +225,6 @@ plot_genomic_context <- function(
     just = c("left", "top")
   )
 
-  plotgardener::plotLegend(
-    legend = unique(tx_color_df$tx_biotype),
-    fill = unique(tx_color_df$color),
-    border = FALSE,
-    x = 0.6,
-    y = 4.0 + height_offset,
-    width = 1.3 * length(unique(tx_color_df$tx_biotype)),
-    height = 0.5,
-    just = c("left", "top"),
-    orientation = "h"
-  )
-
   plotgardener::plotGenomeLabel(
     chrom = chr_string,
     chromstart = start_value,
@@ -259,7 +247,7 @@ plot_genomic_context <- function(
     y = ((4.5 + y_offset) / 2),
     width = 6.5,
     height = 3.6 + (height_offset * 2),
-    draw = TRUE,
+    # draw = TRUE,
     limitLabel = limit_label,
     fill = "grey",
     colorbyStrand = FALSE,
@@ -268,6 +256,19 @@ plot_genomic_context <- function(
     fontsize = 10,
     boxHeight = grid::unit(3.5, "mm"),
     stroke = 0.05
+  )
+
+  plotgardener::plotLegend(
+    legend = unique(tx_color_df$tx_biotype),
+    fill = unique(tx_color_df$color),
+    border = FALSE,
+    x = 0.6,
+    y = 4.0 + height_offset,
+    width = 1.3 * length(unique(tx_color_df$tx_biotype)),
+    height = 0.5,
+    just = c("left", "top"),
+    orientation = "h",
+    draw = TRUE
   )
 
   return(invisible(transcripts_res))
