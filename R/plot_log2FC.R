@@ -141,6 +141,8 @@ plot_log2FC <- function(
 
 # S7 Methods
 #' @rdname plot_log2FC
+#' @param self Input object, either a `data.frame` or an `IsoformicExperiment`.
+#' @param ... Additional arguments passed to the method.
 #' @export
 plot_log2fc <- S7::new_generic("plot_log2fc", "self")
 

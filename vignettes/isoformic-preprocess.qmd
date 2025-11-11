@@ -203,7 +203,7 @@ colData(y)
 # run Swish
 y <- fishpond::swish(y, x = "condition")
 
-dea_tx_res <- S4Vectors::mcols(y) |>
+dea_tx_res <- mcols(y) |>
   base::as.data.frame() |>
   tibble::rownames_to_column("transcript_id") |>
   tibble::as_tibble()

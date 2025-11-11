@@ -15,6 +15,32 @@ salmon_quant(
   env_name = "salmon-env"
 )
 }
+\arguments{
+\item{input_r1}{Path to the FASTQ file for read 1 (or single-end reads).}
+
+\item{input_r2}{Optional path to the FASTQ file for read 2
+(paired-end reads).}
+
+\item{index_path}{Path to the Salmon index directory (default is
+"salmon_index").}
+
+\item{output_dir}{Directory to save the quantification output
+(default is "quant_output").}
+
+\item{num_threads}{Number of threads to use (default is 8).}
+
+\item{num_gibbs}{Number of Gibbs samples for uncertainty estimation
+(default is 100).}
+
+\item{min_score_fraction}{Minimum score fraction for alignments
+(default is "0.65").}
+
+\item{env_name}{Name of the conda environment with Salmon installed
+(default is "salmon-env").}
+}
+\value{
+processx style output list.
+}
 \description{
 Perform transcript quantification using Salmon's
 selective-alignment-based mode from raw RNA-seq reads.

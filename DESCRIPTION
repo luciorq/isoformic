@@ -44,7 +44,9 @@ Imports:
     vroom,
     withr
 Suggests:
+    AnnotationHub,
     apeglm,
+    BSgenome.Hsapiens.NCBI.GRCh38,
     carrier (>= 0.3.0),
     condathis,
     curl,
@@ -56,9 +58,12 @@ Suggests:
     IRanges,
     knitr,
     mirai (>= 2.5.1),
+    org.Hs.eg.db,
     patchwork,
     quarto,
+    SummarizedExperiment,
     testthat (>= 3.0.0),
+    TxDb.Hsapiens.UCSC.hg38.knownGene,
     tximeta,
     tximport,
     viridis

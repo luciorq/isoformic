@@ -25,6 +25,10 @@ Default is \code{"gene_name"}.}
 
 \item{color_palette}{A named character vector specifying colors for different transcript types.
 If \code{NULL}, a default palette will be used.}
+
+\item{self}{Input object, either a \code{data.frame} or an \code{IsoformicExperiment}.}
+
+\item{...}{Additional arguments passed to the method.}
 }
 \value{
 A \code{ggplot2} object representing the bar plot.
