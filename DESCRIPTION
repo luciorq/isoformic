@@ -1,6 +1,6 @@
 Package: isoformic
 Title: Isoform-Level Biological Interpretation of Transcriptomic Data
-Version: 0.1.2.9016
+Version: 0.1.2.9017
 Authors@R: c(
     person("Lucio Rezende", "Queiroz", , "luciorqueiroz@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0002-6090-1834")),
@@ -56,12 +56,12 @@ Suggests:
     IRanges,
     knitr,
     mirai (>= 2.5.1),
+    patchwork,
     quarto,
     testthat (>= 3.0.0),
     tximeta,
     tximport,
-    viridis,
-    patchwork
+    viridis
 VignetteBuilder:
     quarto
 BiocViews:

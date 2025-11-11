@@ -221,6 +221,7 @@ IsoformicExperiment <- S7::new_class(
 
 #' Read Sample Metadata
 #' @rdname IsoformicExperiment
+#' @export
 col_data <- S7::new_generic("col_data", "self")
 
 S7::method(col_data, IsoformicExperiment) <- function(self) {
@@ -229,6 +230,7 @@ S7::method(col_data, IsoformicExperiment) <- function(self) {
 
 #' Read Transcript Annotation
 #' @rdname IsoformicExperiment
+#' @export
 annot_data_transcripts <- S7::new_generic("annot_data_transcripts", "self")
 
 S7::method(annot_data_transcripts, IsoformicExperiment) <- function(self) {
@@ -237,6 +239,7 @@ S7::method(annot_data_transcripts, IsoformicExperiment) <- function(self) {
 
 #' Read Gene Annotation
 #' @rdname IsoformicExperiment
+#' @export
 annot_data_genes <- S7::new_generic("annot_data_genes", "self")
 
 S7::method(annot_data_genes, IsoformicExperiment) <- function(self) {
@@ -245,6 +248,7 @@ S7::method(annot_data_genes, IsoformicExperiment) <- function(self) {
 
 #' Read Exon Annotation
 #' @rdname IsoformicExperiment
+#' @export
 annot_data_exons <- S7::new_generic("annot_data_exons", "self")
 
 S7::method(annot_data_exons, IsoformicExperiment) <- function(self) {
@@ -253,6 +257,7 @@ S7::method(annot_data_exons, IsoformicExperiment) <- function(self) {
 
 #' Aggregate Whole Annotation Table
 #' @rdname IsoformicExperiment
+#' @export
 annot_data <- S7::new_generic("annot_data", "self")
 
 S7::method(annot_data, IsoformicExperiment) <- function(self, compute = FALSE) {
@@ -261,6 +266,7 @@ S7::method(annot_data, IsoformicExperiment) <- function(self, compute = FALSE) {
 
 #' Return Row Names for Transcript Level Annotation
 #' @rdname IsoformicExperiment
+#' @export
 annot_row_names <- S7::new_generic("annot_row_names", "self")
 
 S7::method(annot_row_names, IsoformicExperiment) <- function(self) {
@@ -270,6 +276,7 @@ S7::method(annot_row_names, IsoformicExperiment) <- function(self) {
 
 #' Return Column Names for Transcript Level Assays
 #' @rdname IsoformicExperiment
+#' @export
 col_names <- S7::new_generic("col_names", "self")
 
 S7::method(col_names, IsoformicExperiment) <- function(self) {
@@ -279,6 +286,7 @@ S7::method(col_names, IsoformicExperiment) <- function(self) {
 
 #' Return Row Names for Transcript Level Assays
 #' @rdname IsoformicExperiment
+#' @export
 row_names <- S7::new_generic("row_names", "self")
 S7::method(row_names, IsoformicExperiment) <- function(self) {
   if (length(self@assay) == 0L) {
@@ -375,6 +383,7 @@ S7::method(dim, IsoformicExperiment) <- function(x) {
 
 #' Retrieve Transcript to Gene Mapping Table from Annotation
 #' @rdname IsoformicExperiment
+#' @export
 tx_to_gene <- S7::new_generic("tx_to_gene", "self")
 
 S7::method(tx_to_gene, IsoformicExperiment) <- function(self) {
@@ -384,7 +393,9 @@ S7::method(tx_to_gene, IsoformicExperiment) <- function(self) {
     dplyr::collect()
 }
 
-# Retrieve Transcript Annotation for Transcripts in Assay
+#' Retrieve Transcript Annotation for Transcripts in Assay
+#' @rdname IsoformicExperiment
+#' @export
 row_data <- S7::new_generic("row_data", "self")
 
 S7::method(row_data, IsoformicExperiment) <- function(self) {
@@ -421,6 +432,7 @@ S7::method(row_data, IsoformicExperiment) <- function(self) {
 
 #' Retrieve Transcript Annotation Table
 #' @rdname IsoformicExperiment
+#' @export
 tx_annot <- S7::new_generic("tx_annot", "self")
 
 S7::method(tx_annot, IsoformicExperiment) <- function(self) {
@@ -448,6 +460,7 @@ S7::method(tx_annot, IsoformicExperiment) <- function(self) {
 
 #' Retrieve Differential Expression Results for Transcripts
 #' @rdname IsoformicExperiment
+#' @export
 de_tx <- S7::new_generic("de_tx", "self")
 
 S7::method(de_tx, IsoformicExperiment) <- function(self, de_type = "det") {
@@ -456,12 +469,12 @@ S7::method(de_tx, IsoformicExperiment) <- function(self, de_type = "det") {
 
 #' Retrieve Differential Expression Results for Genes
 #' @rdname IsoformicExperiment
+#' @export
 de_gene <- S7::new_generic("de_gene", "self")
 
 S7::method(de_gene, IsoformicExperiment) <- function(self, de_type = "deg") {
   get_dea_results(self, de_type = de_type)
 }
-
 
 get_dea_results <- function(self, de_type = c("det", "deg")) {
   .data <- rlang::.data
@@ -506,7 +519,6 @@ get_dea_results <- function(self, de_type = c("det", "deg")) {
     dplyr::arrange(dplyr::desc(abs(.data$log2FC))) |>
     dplyr::collect()
 }
-
 
 # ==============================================================================
 # Utility Getter and Setter Functions for IsoformicExperiment Class

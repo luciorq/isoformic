@@ -11,6 +11,7 @@
 \alias{col_names}
 \alias{row_names}
 \alias{tx_to_gene}
+\alias{row_data}
 \alias{tx_annot}
 \alias{de_tx}
 \alias{de_gene}
@@ -45,6 +46,8 @@ col_names(self, ...)
 row_names(self, ...)
 
 tx_to_gene(self, ...)
+
+row_data(self, ...)
 
 tx_annot(self, ...)
 
