@@ -59,6 +59,7 @@ Suggests:
     quarto,
     testthat (>= 3.0.0),
     tximport,
+    tximeta,
     viridis
 VignetteBuilder:
     quarto
