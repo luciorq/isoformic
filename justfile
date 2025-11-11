@@ -159,7 +159,7 @@ github_org := 'luciorq'
   # Check your email! Click the link, and check all boxes!
   \builtin echo "Pre-release checks done!";
 
-# >>> rstats-package-dev-tasks >>>
+# <<< rstats-package-dev-tasks <<<
 
 # =============================================================================
 # Isoformic Specific Tasks

@@ -2,6 +2,7 @@
 % Please edit documentation in R/plot_log2FC.R
 \name{plot_log2FC}
 \alias{plot_log2FC}
+\alias{plot_log2fc}
 \title{Plot Log2 Fold-Change Results for Transcripts of Selected Genes}
 \usage{
 plot_log2FC(
@@ -10,6 +11,8 @@ plot_log2FC(
   feature_column = "gene_name",
   color_palette = NULL
 )
+
+plot_log2fc(self, ...)
 }
 \arguments{
 \item{de_data}{A \code{data.frame} or \code{tibble} containing combined gene and transcript differential expression results.

@@ -6,7 +6,7 @@ date-format: long
 author:
   - name: Lucio Rezende Queiroz
   - name: Izabela Mamede Conceição
-vignette: >
+vignette: |
   %\VignetteIndexEntry{Preprocessing Sequencing Files}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
@@ -44,11 +44,11 @@ salmon quant \
   --mates2 /path/SRR..._2.fastq \    # R2 FASTQ
   --output /path/SRR..._quant \      # Output folder (contains quant.sf, aux_info/)
   --threads 8 \                      # Number of parallel threads used
-  --disableChainingHeuristic \  # improve mapping sensitivity, but slower
-  --allowDovetail \               # allow dovetailed alignments
-  --softclipOverhangs \          # softclip reads that overhang transcripts start and end
+  --disableChainingHeuristic \       # improve mapping sensitivity, but slower
+  --allowDovetail \
+  --softclipOverhangs \              # softclip reads that overhang transcripts start and end
   --dumpEq \
-  --dumpEqWeights \               # dump equivalent class information, needed by Terminus
+  --dumpEqWeights \                  # dump equivalent class information, needed by Terminus
   --posBias --seqBias --gcBias \     # bias corrections (positional, sequence, GC)
   --numGibbsSamples 100              # draw inferential replicates; required for fishpond/Swish
 ```
@@ -64,17 +64,10 @@ But you can use WSL2 (Windows Subsystem for Linux) on Windows 10/11 to run it.
 #| eval: false
 library(isoformic)
 tx_fasta_path <- download_reference(version = "49", file_type = "fasta")
-# TODO: @luciorq Use genome fasta to add decoy sequences
-# genome_fasta_path <- download_reference(version = "49", file_type = "genome_fasta")
+genome_fasta_path <- download_reference(version = "49", file_type = "genome_fasta")
 gff_path <- download_reference(version = "49", file_type = "gff")
 
 base_dir <- fs::path("data-raw", "vignette_data")
-# fs::dir_create(base_dir)
-# TODO: @luciorq trim reads? `fastp -i SRRxxxx.fastq.gz -o SRRxxxx_trimmed.fastq.gz -q 10 -w 8`
-
-# condathis::get_env_dir("salmon-env")
-# micromamba run -p /Users/luciorq/.local/share/R/condathis/envs/salmon-env salmon index --help
-# micromamba run -p /Users/luciorq/.local/share/R/condathis/envs/salmon-env salmon quant --help-reads
 
 index_path <- fs::path(base_dir, "salmon_index_k15")
 salmon_index(
@@ -82,8 +75,8 @@ salmon_index(
   index_path = index_path,
   kmer_len = 15,
   num_threads = 8,
-  is_gencode = TRUE # to handle transcript names properly,
-  # decoy_fasta = genome_fasta_path
+  is_gencode = TRUE,
+  decoy_fasta = genome_fasta_path
 )
 
 fastq_files <- fs::dir_ls("data-raw/mini_data/sub_fastq/")
@@ -109,115 +102,12 @@ for (i in seq_along(sample_names)) {
     output_dir = salmon_output,
     num_threads = 8,
     num_gibbs = 20,
-    min_score_fraction = "0.30"
+    min_score_fraction = "0.65"
   )
 }
 ```
 
-Now to run and get the isoformic tables.
-
-```{r}
-#| eval: false
-base_dir <- fs::path("data-raw", "vignette_data")
-quants_dir <- fs::path(base_dir, "salmon_quants")
-sample_dirs <- list.dirs(quants_dir, full.names = FALSE, recursive = FALSE)
-sample_names <- sub("_quant$", "", sample_dirs)
-quant_files <- file.path(quants_dir, paste0(sample_names, "_quant"), "quant.sf")
-names(quant_files) <- sample_names
-condition <- c(rep("control", 3), rep("treatment", 3))
-
-col_data <- tibble::tibble(
-  files = quant_files,
-  names = sample_names,
-  condition = factor(condition, levels = c("control", "treatment"))
-)
-col_data
-
-txi_tx <- tximport::tximport(
-  files = col_data$files,
-  type = "salmon",
-  txIn = TRUE,
-  txOut = TRUE,
-  countsFromAbundance = "no",
-  dropInfReps = FALSE,
-  ignoreAfterBar = TRUE
-)
-
-
-# lobstr::obj_sizes(txi_tx)
-#> 636.22 MB
-
-class(txi_tx$infReps$SRR11498039)
-# tx_ids_to_keep <- rownames(se_tx)
-tx_ids_to_keep <- c("ENST00000367468.10", "ENST00000681605.1", "ENST00000680451.1",
-"ENST00000490885.6", "ENST00000559627.1", "ENST00000466691.1",
-"ENST00000263341.7", "ENST00000491056.5", "ENST00000487639.1",
-"ENST00000418817.5", "ENST00000432018.5", "ENST00000416750.1",
-"ENST00000496280.5", "ENST00000477398.1", "ENST00000673816.1",
-"ENST00000673847.1", "ENST00000415035.2", "ENST00000698141.1",
-"ENST00000698142.1", "ENST00000698143.1", "ENST00000361099.8",
-"ENST00000673762.1", "ENST00000540176.6", "ENST00000698144.1",
-"ENST00000698145.1", "ENST00000698146.1", "ENST00000698147.1",
-"ENST00000698148.1", "ENST00000698149.1", "ENST00000674081.1",
-"ENST00000673832.1", "ENST00000673863.1", "ENST00000423282.2",
-"ENST00000673858.1", "ENST00000674028.1", "ENST00000673777.1",
-"ENST00000673942.1", "ENST00000673734.1", "ENST00000409465.5",
-"ENST00000674080.1", "ENST00000698150.1", "ENST00000673952.1",
-"ENST00000674153.1", "ENST00000392322.7", "ENST00000673841.1",
-"ENST00000452281.6", "ENST00000673885.1", "ENST00000392323.6",
-"ENST00000464072.1", "ENST00000673859.1", "ENST00000698151.1",
-"ENST00000424722.6", "ENST00000673638.1", "ENST00000454414.5",
-"ENST00000432058.1", "ENST00000696131.1", "ENST00000401931.2",
-"ENST00000696132.1", "ENST00000483500.1", "ENST00000307407.8",
-"ENST00000306602.3", "ENST00000449264.3", "ENST00000699334.1",
-"ENST00000404625.5", "ENST00000426291.5", "ENST00000401651.5",
-"ENST00000464710.2", "ENST00000485300.1", "ENST00000258743.10",
-"ENST00000407492.5", "ENST00000401630.7", "ENST00000406575.1",
-"ENST00000697954.1", "ENST00000697955.1", "ENST00000697956.1",
-"ENST00000697957.1", "ENST00000553342.2", "ENST00000216797.10",
-"ENST00000554001.5", "ENST00000697958.1", "ENST00000557140.5",
-"ENST00000697959.1", "ENST00000557389.1", "ENST00000697960.1",
-"ENST00000697961.1", "ENST00000557459.2", "ENST00000697965.1",
-"ENST00000555371.1", "ENST00000697962.1", "ENST00000697966.1",
-"ENST00000557100.5", "ENST00000556664.1", "ENST00000555629.1",
-"ENST00000580907.6", "ENST00000225831.4", "ENST00000624362.2",
-"ENST00000605140.6", "ENST00000651122.1", "ENST00000605509.2",
-"ENST00000330871.3", "ENST00000587578.1", "ENST00000423829.2",
-"ENST00000588645.1", "ENST00000264832.8", "ENST00000585443.1",
-"ENST00000592686.1", "ENST00000613606.2", "ENST00000618639.4",
-"ENST00000632752.1", "ENST00000445232.2", "ENST00000376122.3"
-)
-
-# se_tx <- SummarizedExperiment(
-#   assays = list(
-#     counts = txi_tx$counts,
-#     abundance = txi_tx$abundance,
-#     length = txi_tx$length
-#   ),
-#   colData = col_data,
-#   metadata = list(
-#     txi = list(
-#       countsFromAbundance = txi_tx$countsFromAbundance
-#     )
-#   )
-# )
-
-se_tx_all <- tximeta::tximeta(
-  coldata = col_data,
-  type = "salmon",
-  txOut = TRUE,
-  skipMeta = TRUE,
-  useHub = FALSE,
-  ignoreAfterBar = TRUE,
-  skipSeqinfo = TRUE
-)
-se_tx_with_inf <- se_tx_all[tx_ids_to_keep, ]
-inf_assay_list <- assays(se_tx_with_inf)[4:23]
-inf_assay_list |>
-  readr::write_rds("inst/extdata/mini_inf_reps.rds", compress = "xz")
-```
-
-## Actual Vignette Starts Here
+## Load Data and Create IsoformicExperiment Object
 
 ```{r}
 suppressPackageStartupMessages({

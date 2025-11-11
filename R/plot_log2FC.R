@@ -140,6 +140,8 @@ plot_log2FC <- function(
 }
 
 # S7 Methods
+#' @rdname plot_log2FC
+#' @export
 plot_log2fc <- S7::new_generic("plot_log2fc", "self")
 
 S7::method(plot_log2fc, S7::class_data.frame) <- function(

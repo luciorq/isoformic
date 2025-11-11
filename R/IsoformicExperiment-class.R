@@ -7,7 +7,7 @@
 #' It holds the path to the dataset, sample metadata, and provides
 #' access to transcript, gene, and exon annotations through properties.
 #' The preferred way to construct an object of this class is through the
-#' [`IsoformicExperiment()`] constructor.
+#' [IsoformicExperiment()] constructor.
 #'
 #' @param experiment_name Character string specifying the name of the experiment.
 #' This name is used for caching the assays experiment.
