@@ -7,6 +7,9 @@
 #' @param se A `SummarizedExperiment` object to be converted.
 #' @param annot_path Path to the annotation file. This can be a GFF file or the
 #' path pre-built annotation database created with `[prepare_isoformic_annotation()]`.
+#' @param annot_type Type of the annotation file provided.
+#' Options are "gff" for GFF files and "annot_db" for pre-built annotation
+#' databases.
 #'
 #'
 #' @export

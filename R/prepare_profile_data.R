@@ -23,7 +23,7 @@
 #' @param lfc_cutoff A numeric value specifying the log2 fold-change cutoff for determining significant differential expression. Default is `1`.
 #' @param use_fdr A logical value indicating whether to use the false discovery rate (`qvalue`) instead of p-value for significance cutoff. Default is `TRUE`.
 #'
-#' @return A `tibble` containing processed expression data and differential expression flags, ready for plotting.
+#' @returns A `tibble` containing processed expression data and differential expression flags, ready for plotting.
 #'
 #' @details The function combines gene and transcript expression data with differential expression results to generate a tidy data frame. It filters significant genes and transcripts based on specified cutoffs and prepares the data for plotting expression profiles across specified sample groups.
 #'

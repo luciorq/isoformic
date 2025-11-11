@@ -5,7 +5,7 @@
 #' @param txi_transcript A `tibble` containing transcript-level expression abundances.
 #' @param tx_to_gene A `data.frame` or `tibble` containing transcript-to-gene mapping information, including `transcript_id` and `gene_id` columns.
 #'
-#' @return A `tibble` containing gene-level expression abundances.
+#' @returns A `tibble` containing gene-level expression abundances.
 #'
 #' @keywords internal
 #'

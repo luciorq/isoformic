@@ -11,7 +11,7 @@
 #' @param pval_cutoff A numeric value specifying the p-value cutoff for the enrichment results. Default is `0.05`.
 #' @param lfc_cutoff A numeric value specifying the log2 fold-change cutoff for filtering transcripts. Default is `1`.
 #'
-#' @return A `tibble` containing the enrichment analysis results for each transcript type, including pathway names,
+#' @returns A `tibble` containing the enrichment analysis results for each transcript type, including pathway names,
 #'   p-values, adjusted p-values, and the transcript type (experiment).
 #'
 #' @details

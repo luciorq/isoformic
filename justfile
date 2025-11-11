@@ -8,6 +8,8 @@ github_org := 'luciorq'
 @default:
   just --choose
 
+# >>> rstats-package-dev-tasks >>>
+
 # =============================================================================
 # General R Package Development Tasks
 # =============================================================================
@@ -24,6 +26,7 @@ github_org := 'luciorq'
   R -q -e 'devtools::load_all();styler::style_pkg();';
   air format ./R/ || true;
   air format ./tests/ || true;
+  find ./R/ -type f -name "*.R" -exec sed -i -e "s|^#' \@return |#' \@returns |g" {} +
   just document;
   \builtin echo "Linting done!";
 
@@ -38,12 +41,17 @@ github_org := 'luciorq'
   #!/usr/bin/env bash
   \builtin set -euxo pipefail;
   # Lint markdown files
-  [[ -f ./README.Rmd ]] && cat ./README.Rmd | rumdl check --stdin || true;
-  [[ -f ./README.qmd ]] && cat ./README.qmd | rumdl check --stdin || true;
-  R -q -e 'devtools::install(pkg = ".", build_vignettes = TRUE, dependencies = c("Imports", "Suggests", "Depends"), upgrade = "always");';
+  [[ -f ./README.Rmd ]] && cat ./README.Rmd | rumdl check --stdin --disable 'MD046' || true;
+  [[ -f ./README.qmd ]] && cat ./README.qmd | rumdl check --stdin --disable 'MD046' || true;
+  just install-deps;
+  R -q -e 'pak::local_install(upgrade=TRUE, dependencies=TRUE);';
+  # R -q -e 'devtools::install(pkg = ".", build_vignettes = TRUE, dependencies = c("Imports", "Suggests", "Depends"), upgrade = "always");';
   [[ -f ./README.Rmd ]] && R -q -e 'devtools::load_all();if(file.exists("README.Rmd"))rmarkdown::render("README.Rmd", encoding = "UTF-8")' || true;
   [[ -f ./README.qmd ]] && quarto render README.qmd --to gfm || true;
   # Lint Final README.md
+  sed -i -e 's|[[:blank:]]*$||g' README.md;
+  sed -i -e '/./,$!d' README.md;
+  sed -i '/<!-- badges: start -->/{n; /^\s*$/d}' README.md;
   rumdl check README.md || true;
   markdownlint README.md || true;
   \builtin echo "README built and linted!";
@@ -85,41 +93,70 @@ github_org := 'luciorq'
   # git pull upstream --tags;
   # git push upstream --tags;
 
-# Things to run before releasing a new version
-@pre-release:
-  #!/usr/bin/env bash
-  \builtin set -euxo pipefail;
-  R -q -e 'urlchecker::url_check()';
-  R -q -e 'devtools::build_readme()';
-  R -q -e 'withr::with_options(list(repos = c(CRAN = "https://cloud.r-project.org")), {devtools::check(remote = TRUE, manual = TRUE)})';
-  R -q -e 'devtools::check_win_devel()';
-  # revdepcheck::revdep_check(num_workers = 4)
-  # Update CRAN comments
-  # usethis::use_version('patch')
-  # devtools::build_rmd("vignettes/my-vignette.Rmd")
-  # devtools::submit_cran()
-  \builtin echo "Pre-release checks done!";
-
 @build-vignettes:
   #!/usr/bin/env bash
   \builtin set -euxo pipefail;
   R -q -e 'devtools::load_all();devtools::document();';
+  just install-deps;
+  R -q -e 'pak::local_install(upgrade=TRUE, dependencies=TRUE);';
   R -q -e 'devtools::install(pkg = ".", build_vignettes = TRUE, dependencies = c("Imports", "Suggests", "Depends"), upgrade = "always");';
   R -q -e 'print(vignette(package = "{{ package_name }}"));';
 
-@build-pkgdown-website:
+@install-deps:
   #!/usr/bin/env bash
   \builtin set -euxo pipefail;
-  R -q -e 'devtools::load_all();devtools::document();pkgdown::build_site();';
+  R -q -e 'if(!requireNamespace("pak", quietly=TRUE)) {install.packages("pak")};';
+  R -q -e 'pak::local_install_dev_deps(upgrade=TRUE, dependencies=TRUE);';
+
+@build-pkgdown-website: install-deps
+  #!/usr/bin/env bash
+  \builtin set -euxo pipefail;
+  R -q -e 'pak::pak("pkgdown", upgrade=TRUE, dependencies=TRUE);';
+  R -q -e 'pkgdown::build_favicons(overwrite=FALSE);';
+  R -q -e 'devtools::document();devtools::load_all();pkgdown::build_site();';
+  # Steps for manually deploying the pkgdown website,
+  # + not necessary if using GitHub Actions.
   # git add docs/;
+  # git add pkgdown/;
+  # git add _pkgdown.yml;
   # git commit -m "chore: update pkgdown website";
   # git push;
 
 @release-github:
   #!/usr/bin/env bash
   \builtin set -euxo pipefail;
+  # Using `gh` cli to create a new release
   # gh release create v0.1.0 --title "v0.1.0" --notes "First Zenodo archiving release"
-  \builtin echo "Not implemented yet";
+  # Using `usethis` to create a new release
+  # First, change the NEWS.md header temporarily to make usethis happy
+  # + Check: <https://github.com/r-lib/pkgdown/issues/2897>
+  # + <https://github.com/r-lib/usethis/issues/2130>
+  # + <https://github.com/tidyverse/style/issues/245#issuecomment-2959459898>
+  sed -i -e "s|^## {{ package_name }}|# {{ package_name }}|g" NEWS.md;
+  R -q -e 'devtools::load_all();usethis::use_github_release();';
+  sed -i -e "s|^# {{ package_name }}|## {{ package_name }}|g" NEWS.md;
+  \builtin echo "Check the GH Releases!";
+
+# Things to run before releasing a new version
+@pre-release:
+  #!/usr/bin/env bash
+  \builtin set -euxo pipefail;
+  R -q -e 'urlchecker::url_check()';
+  # R -q -e 'devtools::build_readme()';
+  just build-readme;
+  R -q -e 'withr::with_options(list(repos = c(CRAN = "https://cloud.r-project.org")), {devtools::check(remote = TRUE, manual = TRUE)})';
+  R -q -e 'devtools::check_win_devel()';
+  # R -q -e 'if(!requireNamespace("revdepcheck", quietly=TRUE)) pak::pak("r-lib/revdepcheck");';
+  # R -q -e 'revdepcheck::revdep_check(num_workers = 4);';
+  # Update CRAN comments
+  # usethis::use_version('patch')
+  # devtools::build_rmd("vignettes/my-vignette.Rmd")
+  # just build-vignettes;
+  # devtools::submit_cran()
+  # Check your email! Click the link, and check all boxes!
+  \builtin echo "Pre-release checks done!";
+
+# >>> rstats-package-dev-tasks >>>
 
 # =============================================================================
 # Isoformic Specific Tasks

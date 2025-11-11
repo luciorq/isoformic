@@ -9,7 +9,7 @@
 #' @param file_type Character string specifying the type of the input file.
 #' Currently, only "gff" is supported (default is "gff").
 #'
-#' @return Invisible path to the created Parquet file.
+#' @returns Invisible path to the created Parquet file.
 #'
 #' @export
 prepare_annotation_db <- function(

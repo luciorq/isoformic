@@ -27,7 +27,7 @@
 #' @param ideogram_reference Character string specifying the reference genome
 #' for the ideogram. Options include "hg38", "hg19", "mm11",
 #' "mm10", or "none" (default is "hg38").
-#' @return A `plotgardener` object representing the genomic context plot.
+#' @returns A `plotgardener` object representing the genomic context plot.
 #' @export
 plot_genomic_context <- function(
   gene_name,

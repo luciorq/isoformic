@@ -4,7 +4,7 @@
 #'
 #' @param profile_data tibble output from `prepare_profile_data`
 #'
-#' @return a `ggplot` object
+#' @returns a `ggplot` object
 #'
 #' @export
 plot_tx_expr <- function(genes_to_plot, profile_data) {

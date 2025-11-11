@@ -15,8 +15,6 @@
 ^pkgdown$
 ^doc$
 ^Meta$
-^vignettes/*_files$
-^vignettes/data-raw$
 ^README\.Rmd$
 ^README\.qmd$
 ^README\.html$
@@ -32,11 +30,11 @@
 ^Rplots\.pdf$
 ^\.Rhistory$
 ^\.RData$
-^vignettes$
+^vignettes/*_files$
+^vignettes/data-raw$
+^vignettes/\.quarto$
 ^vignettes/articles$
 ^vignettes/articles/\.quarto$
 ^vignettes/articles/*_files$
-^vignettes/\.quarto$
-^vignettes/*_files$
 ^README_files/$
 ^readme_cache/$
