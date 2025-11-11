@@ -1,20 +1,25 @@
 ---
-title: "Preparing Isoformic Inputs"
+title: "Preprocessing Short-Read Sequencing Files for Isoformic"
+date: 2025-10-02
+date-modified: 2025-11-11
+date-format: long
 author:
-  - name: "Izabela Mamede Conceição"
-  - name: "Lucio Rezende Queiroz"
-date: "2025-10-02"
+  - name: Lucio Rezende Queiroz
+  - name: Izabela Mamede Conceição
 vignette: >
-  %\VignetteIndexEntry{Preprocessing}
-  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Preprocessing Sequencing Files}
+  %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: "#>"
 ---
 
-```{r setup, echo=FALSE, results="hide"}
-knitr::opts_chunk$set(
-  tidy = FALSE, cache = FALSE, dev = "png",
-  message = FALSE, error = FALSE, warning = FALSE
-)
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ##  Salmon: command command line interface anatomy
@@ -49,7 +54,8 @@ Caveats: currently Salmon is only available for MacOS and Linux on the [Bioconda
 Therefore, this example will not work natively on Windows.
 But you can use WSL2 (Windows Subsystem for Linux) on Windows 10/11 to run it.
 
-```{r, eval=FALSE}
+```{r}
+#| eval: false
 library(condathis)
 # devtools::load_all()
 
@@ -148,7 +154,8 @@ str(se_tx)
 se_tx <- tximeta::tximeta(coldata, skipMeta = TRUE)
 ```
 
-```{r, eval=FALSE}
+```{r}
+#| eval: false
 # write_rds(se_tx, "data-raw/se_tx.rds")
 # se_tx <- readr::read_rds("data-raw/se_tx.rds")
 

@@ -36,5 +36,6 @@
 ^vignettes/articles$
 ^vignettes/articles/\.quarto$
 ^vignettes/articles/*_files$
+^vignettes/articles/data-raw$
 ^README_files/$
 ^readme_cache/$

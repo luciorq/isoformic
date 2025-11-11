@@ -1,28 +1,28 @@
 ---
 title: "Isoformic: Isoform-level biological interpretation of transcriptomic data"
-date: "2023-04-07"
-output:
-  rmarkdown::html_document:
-    highlight: tango
-    toc: true
-    toc_float: true
-bibliography: library.bib
+date: 2023-04-07
+date-modified: 2025-11-11
+date-format: long
 author:
   - name: Izabela Mamede Conceição
-    affiliation: Laboratory of Genetics Biochemistry, Universidade Federal de Minas Gerais, Belo Horizonte, Brazil
   - name: Lucio Rezende Queiroz
-    affiliation: Department of Pathology and Laboratory Medicine, Weill Cornell Medicine, New York, USA
-vignette: |
-  %\VignetteIndexEntry{Introduction}
+format:
+  html:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Introduction to Isoformic}
+  %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
-  %\VignetteEngine{knitr::rmarkdown}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: "#>"
 ---
 
-```{r setup, echo=FALSE, results="hide"}
-knitr::opts_chunk$set(
-  tidy = FALSE, cache = FALSE, dev = "png",
-  message = FALSE, error = FALSE, warning = FALSE
-)
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # The Isoformic method
@@ -42,21 +42,22 @@ This tutorial will encompass X different steps divided into X unities for which 
 > **NOTE**: As of 2024-06-08 The version of the Workflow described in this vignette is not maintained.
   For installing `v0.0.1` of the package and run this workflow use:
 
-```{r, eval=FALSE}
+```{r}
+#| eval: false
 # if (requireNamespace(remotes, quietly = TRUE)) {
 #   remotes::install_github("luciorq/isoformic@v0.0.1")
 # }
 ```
 -->
 
-```{r, message=FALSE}
-# devtools::load_all()
+```{r}
 library(isoformic)
 ```
 
 Load dependency packages
 
-```{r, message=FALSE}
+```{r}
+#| message: false
 library(fs)
 library(readr)
 library(dplyr)
@@ -95,7 +96,7 @@ path_package("isoformic")
 
 Example:
 
-```{r, warning=FALSE, message=FALSE}
+```{r}
 PE1_DETs <- read_csv(path_package("isoformic", "extdata", "DETs_fixed.csv"))
 head(PE1_DETs)
 ```
@@ -110,14 +111,13 @@ The statistics can be 'pvalue', 'svalue' or 'qvalue' but a 'log2FoldChange' betw
 
 **Optional inputs:** 1) A Transcript per million (TPM) table matching the transcripts in the differential expression table 2) a GFF3 file of the transcriptome version which corresponds to your FASTA and 3) a table of differentially expressed genes of that data to also use as comparison.
 
-------------------------------------------------------------------------
+---
 
 Any differential expression table can be used here but the pipeline authors, after multiple testing, reached the conclusion that the swish implementation for a differential transcript expression analysis using inferential replicate counts from Salmon is the one that performs the best for medium to high depth transcriptome libraries when looking at number of transcripts and significant values.
 
 Not well annotated transcriptomes will not output results as these and all the tests here mentioned were done using human data.
 
-------------------------------------------------------------------------
-
+---
 
 Isoformic makes available example files that can be used as model for formatting the necessary files for running the workflow.
 The files can be found in the following path.
@@ -133,7 +133,8 @@ path_package("isoformic", "extdata") |>
   dir_ls()
 ```
 
-```{r, message=FALSE}
+```{r}
+#| message: false
 PE1_DETs <- path_package("isoformic", "extdata", "DETs_fixed.csv") |>
   read_csv()
 PE1_DEGs <- path_package("isoformic", "extdata", "DEGs_PE_fixed2.csv") |>
@@ -161,7 +162,7 @@ The annotation file in GFF3 format was obtained from <'https://ftp.ebi.ac.uk/pub
 
 This step may take a while depending on the speed of your internet connection.
 
-```{r, eval=TRUE}
+```{r}
 gff_file_path <- download_reference(version = "33", file_type = "gff")
 # download_reference(version = "33", file_type = "fasta")
 # download_reference(version = "33", file_type = "gtf")
@@ -213,14 +214,17 @@ This step will depend a lot on the names of the columns on your tables so in the
 The input used here is a FASTA file containing the transcript sequences and their annotation information downloaded from the GENCODE website with the specific version you used for the alignment.
 In the case here GENCODE v33.
 
-```{r, warning = FALSE, message = FALSE}
+```{r}
+#| warning: false
+#| message: false
 fasta_path <- download_reference(version = "33", file_type = "fasta")
 read_lines(fasta_path, n_max = 5)
 ```
 
 As that header shows the imported table is still very weird and not tidy, so we pass it through the `make_tx_to_gene` function that will make it tidy and ready for further use.
 
-```{r, warning=FALSE}
+```{r}
+#| warning: false
 tx_to_gene <- make_tx_to_gene(
   file_path = fasta_path,
   file_type = "fasta"
@@ -340,7 +344,8 @@ This table will represent cases which could be characterized as isoform switches
 
 Before we start plotting we will define a general set of colors to be used through the entire pipeline associated with a certain type of transcript. Here we colored all the most abundant types separately and the less abundant on the same grey tone and name that vector accordingly
 
-```{r, eval=FALSE}
+```{r}
+#| eval: false
 tx_biotypes <- c(
   "gene", "protein_coding",
   "retained_intron", "protein_coding_CDS_not_defined",
@@ -498,7 +503,8 @@ head(PE1_DETs_final)
 Then you run the `run_enrichment()` function it needs your DETs final table, the gene set list and a p-value cutoff to be used.
 It will generate a table of enrichment but with an extra column "experiment".
 
-```{r, warning=FALSE}
+```{r}
+#| warning: false
 enrichment_df <- run_enrichment(
   det_df = PE1_DETs_final,
   genesets_list = genesets_list,
@@ -522,7 +528,10 @@ Plotting the enrichment
 
 We used a LollipopPlot to plot all the enrichments side by side with the size of each pathway as the radius of the circles and the transparency is if that pathway passes on the desired cutoff. First we plot for only Protein_coding versus Unproductive with a very extringent NES cutoff.
 
-```{r, fig.height=6, fig.width=15}
+```{r}
+#| label: enrichment-plot
+#| fig-height: 6
+#| fig-width: 15
 enrichment_df |>
   dplyr::filter(
     experiment %in% c("protein_coding", "unproductive") & abs(NES) >= 2
@@ -538,7 +547,10 @@ enrichment_df |>
 
 And now the specific unproductive subtypes
 
-```{r fig.height=6, fig.width=15}
+```{r}
+#| label: enrichment-plot-2
+#| fig-height: 6
+#| fig-width: 15
 enrichment_df |>
   dplyr::filter(!experiment %in% c("protein_coding", "unproductive") & abs(NES) > 1.5) |>
   dplyr::arrange(padj) |>
@@ -619,6 +631,7 @@ plot_genomic_context(
 ## Session Information
 
 ```{r}
+#| label: session-info
 sessionInfo()
 ```
 
