@@ -29,7 +29,7 @@
 #' @param method A character string specifying the method used by
 #' `utils::download.file()`. Defaults to `"auto"`.
 #'
-#' @return A character string with the full path to the downloaded file.
+#' @returns A character string with the full path to the downloaded file.
 #'
 #' @details
 #' The function constructs the appropriate download URL based on the

@@ -1,8 +1,7 @@
-
 # isoformic <img src="man/figures/logo.png" align="right" height="136" />
 
 <!-- badges: start -->
-[![r-cmd-check](https://github.com/luciorq/isoformic/actions/workflows/r-cmd-check/badge.svg)](https://github.com/luciorq/isoformic/actions/workflows/r-cmd-check)
+[![r-cmd-check](https://github.com/luciorq/isoformic/actions/workflows/r-cmd-check.yaml/badge.svg)](https://github.com/luciorq/isoformic/actions/workflows/r-cmd-check.yaml)
 <!--[![CRAN status](https://www.r-pkg.org/badges/version/isoformic)](https://CRAN.R-project.org/package=isoformic)-->
 <!-- badges: end -->
 

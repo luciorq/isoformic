@@ -11,6 +11,10 @@ as_isoformic(se, annot_path, annot_type = c("gff", "annot_db"))
 
 \item{annot_path}{Path to the annotation file. This can be a GFF file or the
 path pre-built annotation database created with \verb{[prepare_isoformic_annotation()]}.}
+
+\item{annot_type}{Type of the annotation file provided.
+Options are "gff" for GFF files and "annot_db" for pre-built annotation
+databases.}
 }
 \description{
 This function converts a \code{SummarizedExperiment} object to an \code{IsoformicExperiment} object.

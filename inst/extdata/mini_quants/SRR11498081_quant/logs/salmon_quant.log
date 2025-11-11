@@ -1,0 +1,41 @@
+[2025-10-01 11:26:47.653] [jointLog] [info] setting maxHashResizeThreads to 7
+[2025-10-01 11:26:47.653] [jointLog] [info] Fragment incompatibility prior below threshold.  Incompatible fragments will be ignored.
+[2025-10-01 11:26:47.653] [jointLog] [info] Usage of --validateMappings implies use of minScoreFraction. Since not explicitly specified, it is being set to 0.65
+[2025-10-01 11:26:47.653] [jointLog] [info] Setting consensusSlack to selective-alignment default of 0.35.
+[2025-10-01 11:26:47.653] [jointLog] [info] parsing read library format
+[2025-10-01 11:26:47.653] [jointLog] [info] There is 1 library.
+[2025-10-01 11:26:47.655] [jointLog] [info] Loading pufferfish index
+[2025-10-01 11:26:47.656] [jointLog] [info] Loading dense pufferfish index.
+[2025-10-01 11:26:47.669] [jointLog] [info] done
+[2025-10-01 11:26:47.796] [jointLog] [info] Index contained 111 targets
+[2025-10-01 11:26:47.796] [jointLog] [info] Number of decoys : 0
+[2025-10-01 11:26:48.528] [fileLog] [info] 
+At end of round 0
+==================
+Observed 9106 total fragments (9106 in most recent round)
+
+[2025-10-01 11:26:48.527] [jointLog] [info] Computed 223 rich equivalence classes for further processing
+[2025-10-01 11:26:48.527] [jointLog] [info] Counted 9106 total reads in the equivalence classes 
+[2025-10-01 11:26:48.531] [jointLog] [info] Number of mappings discarded because of alignment score : 3393
+[2025-10-01 11:26:48.531] [jointLog] [info] Number of fragments entirely discarded because of alignment score : 0
+[2025-10-01 11:26:48.531] [jointLog] [info] Number of fragments discarded because they are best-mapped to decoys : 0
+[2025-10-01 11:26:48.531] [jointLog] [info] Number of fragments discarded because they have only dovetail (discordant) mappings to valid targets : 47
+[2025-10-01 11:26:48.532] [jointLog] [warning] Only 9106 fragments were mapped, but the number of burn-in fragments was set to 5000000.
+The effective lengths have been computed using the observed mappings.
+
+[2025-10-01 11:26:48.532] [jointLog] [info] Mapping rate = 100%
+
+[2025-10-01 11:26:48.532] [jointLog] [info] finished quantifyLibrary()
+[2025-10-01 11:26:48.536] [jointLog] [info] Starting optimizer
+[2025-10-01 11:26:48.538] [jointLog] [info] Marked 0 weighted equivalence classes as degenerate
+[2025-10-01 11:26:48.538] [jointLog] [info] iteration = 0 | max rel diff. = 418.324
+[2025-10-01 11:26:48.550] [jointLog] [info] iteration = 100 | max rel diff. = 0.112492
+[2025-10-01 11:26:48.561] [jointLog] [info] iteration = 200 | max rel diff. = 0.020891
+[2025-10-01 11:26:48.572] [jointLog] [info] iteration = 299 | max rel diff. = 0.00362821
+[2025-10-01 11:26:48.572] [jointLog] [info] Finished optimizer
+[2025-10-01 11:26:48.572] [jointLog] [info] writing output 
+
+[2025-10-01 11:26:48.578] [jointLog] [warning] NOTE: Read Lib [[ /work/sub_fastq/SRR11498081_sub_1.fastq.gz, /work/sub_fastq/SRR11498081_sub_2.fastq.gz]] :
+
+Detected a *potential* strand bias > 1% in an unstranded protocol check the file: /work/mini_quants/SRR11498081_quant/lib_format_counts.json for details
+

@@ -27,7 +27,7 @@
 #' @param ideogram_reference Character string specifying the reference genome
 #' for the ideogram. Options include "hg38", "hg19", "mm11",
 #' "mm10", or "none" (default is "hg38").
-#' @return A `plotgardener` object representing the genomic context plot.
+#' @returns A `plotgardener` object representing the genomic context plot.
 #' @export
 plot_genomic_context <- function(
   gene_name,
@@ -53,6 +53,24 @@ plot_genomic_context <- function(
   }
 
   rlang::check_installed("plotgardener")
+
+  if (identical(ideogram_reference, "hg38")) {
+    hg38_deps <- c(
+      # "BSgenome.Hsapiens.NCBI.GRCh38",
+      "TxDb.Hsapiens.UCSC.hg38.knownGene",
+      "AnnotationHub",
+      "org.Hs.eg.db"
+    )
+    has_deps <- check_installed(pkgs = hg38_deps)
+
+    if (isFALSE(has_deps)) {
+      cli::cli_inform(c(
+        `i` = "To use {.code ideogram_reference = 'hg38'}, please install the following packages: {.code {hg38_deps}}",
+        `*` = "falling back to {.code ideogram_reference = 'none'}."
+      ))
+      ideogram_reference <- "none"
+    }
+  }
 
   custom_assembly <- plotgardener::assembly(
     # Genome = "hg38_GENCODE34",
@@ -135,7 +153,7 @@ plot_genomic_context <- function(
     just = "right"
   )
 
-  if (end_value - start_value < 100000) {
+  if (isTRUE((end_value - start_value) < 100000)) {
     end_value_highlight <- start_value + 150000
   } else {
     end_value_highlight <- end_value
@@ -148,7 +166,7 @@ plot_genomic_context <- function(
 
   # TODO: @luciorq - Check which other assemblies would be supported
   # + by plotgardener
-  if (ideogram_reference == "none") {
+  if (identical(ideogram_reference, "none")) {
     chr_length <- context_data@txdb$conn |>
       dplyr::tbl("chrominfo") |>
       dplyr::filter(.data$chrom == chr_string) |>
@@ -186,6 +204,7 @@ plot_genomic_context <- function(
       default.units = "inches"
     )
   }
+
   plotgardener::annoHighlight(
     plot = chrom_plot,
     params = region_param,
@@ -206,6 +225,17 @@ plot_genomic_context <- function(
     just = c("left", "top")
   )
 
+  plotgardener::plotGenomeLabel(
+    chrom = chr_string,
+    chromstart = start_value,
+    chromend = end_value,
+    assembly = custom_assembly,
+    x = 0.5,
+    y = 4.5 + height_offset,
+    length = 6.5,
+    default.units = "inches"
+  )
+
   transcripts_res <- plotgardener::plotTranscripts(
     chrom = chr_string,
     chromstart = start_value,
@@ -217,7 +247,7 @@ plot_genomic_context <- function(
     y = ((4.5 + y_offset) / 2),
     width = 6.5,
     height = 3.6 + (height_offset * 2),
-    draw = TRUE,
+    # draw = TRUE,
     limitLabel = limit_label,
     fill = "grey",
     colorbyStrand = FALSE,
@@ -237,18 +267,8 @@ plot_genomic_context <- function(
     width = 1.3 * length(unique(tx_color_df$tx_biotype)),
     height = 0.5,
     just = c("left", "top"),
-    orientation = "h"
-  )
-
-  plotgardener::plotGenomeLabel(
-    chrom = chr_string,
-    chromstart = start_value,
-    chromend = end_value,
-    assembly = custom_assembly,
-    x = 0.5,
-    y = 4.5 + height_offset,
-    length = 6.5,
-    default.units = "inches"
+    orientation = "h",
+    draw = TRUE
   )
 
   return(invisible(transcripts_res))

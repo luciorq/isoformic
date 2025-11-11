@@ -11,7 +11,7 @@
 #' @param color_palette A named character vector specifying colors for different transcript types.
 #'  If `NULL`, a default palette will be used.
 #'
-#' @return A `ggplot2` object representing the bar plot.
+#' @returns A `ggplot2` object representing the bar plot.
 #'
 #' @details
 #' The function filters the input table for the selected gene and creates a bar plot of log2 fold-change values.
@@ -140,7 +140,6 @@ plot_log2FC <- function(
 }
 
 # S7 Methods
-
 plot_log2fc <- S7::new_generic("plot_log2fc", "self")
 
 S7::method(plot_log2fc, S7::class_data.frame) <- function(

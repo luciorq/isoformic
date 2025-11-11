@@ -1,4 +1,6 @@
 *.html
 *.R
-data-raw
+/data-raw/
 *_files
+/.quarto/
+**/*.quarto_ipynb

@@ -7,7 +7,7 @@
 #' @param file_type A character string specifying the type of the reference file. Currently, only `"fasta"` is supported.
 #'   Default is `"fasta"`.
 #'
-#' @return A `tibble` containing the transcript-to-gene mapping information, including transcript IDs, gene IDs,
+#' @returns A `tibble` containing the transcript-to-gene mapping information, including transcript IDs, gene IDs,
 #'   transcript names, gene names, and transcript types.
 #'
 #' @details

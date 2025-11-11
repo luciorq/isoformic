@@ -1,0 +1,11 @@
+{
+    "salmon_version": "1.10.1",
+    "index": "/work/mini_idx",
+    "libType": "A",
+    "mates1": "/work/sub_fastq/SRR11498039_sub_1.fastq.gz",
+    "mates2": "/work/sub_fastq/SRR11498039_sub_2.fastq.gz",
+    "validateMappings": [],
+    "threads": "7",
+    "output": "/work/mini_quants/SRR11498039_quant",
+    "auxDir": "aux_info"
+}

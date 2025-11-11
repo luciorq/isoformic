@@ -11,7 +11,7 @@
 #' @param logfc_cut A numeric value specifying the absolute log2 fold-change cutoff for significance.
 #' @param pval_cut A numeric value specifying the p-value cutoff for significance.
 #'
-#' @return A `tibble` combining gene and transcript differential expression results, with additional columns:
+#' @returns A `tibble` combining gene and transcript differential expression results, with additional columns:
 #'   - `id`: gene or transcript ID.
 #'   - `name`: gene or transcript name.
 #'   - `transcript_type`: type of transcript or `"gene"` for gene-level entries.

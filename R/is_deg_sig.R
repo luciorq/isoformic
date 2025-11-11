@@ -7,7 +7,7 @@
 #' @param DET_table A `data.frame` or `tibble` containing transcript-level differential expression results,
 #'   including a `transcript_name` column.
 #'
-#' @return A `tibble` with an additional column `DEG_sig` indicating whether the transcript is from a significantly
+#' @returns A `tibble` with an additional column `DEG_sig` indicating whether the transcript is from a significantly
 #'   differentially expressed gene (`"YES"` or `"NO"`).
 #'
 #' @examples
