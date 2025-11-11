@@ -11,7 +11,6 @@
 #' Options are "gff" for GFF files and "annot_db" for pre-built annotation
 #' databases.
 #'
-#'
 #' @export
 as_isoformic <- function(se, annot_path, annot_type = c("gff", "annot_db")) {
   # rlang::check_installed("SummarizedExperiment")

@@ -58,9 +58,10 @@ Suggests:
     mirai (>= 2.5.1),
     quarto,
     testthat (>= 3.0.0),
-    tximport,
     tximeta,
-    viridis
+    tximport,
+    viridis,
+    patchwork
 VignetteBuilder:
     quarto
 BiocViews:
