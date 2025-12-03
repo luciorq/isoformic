@@ -29,6 +29,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Welcome to `isoformic`, a workflow for isoform-level biological interpretation of transcriptomic data.
 
+If you use `isoformic` in publications, please cite:
+
+> Izabela Mamede, Lucio R Queiroz, Carlos Mata-Machado, Júlia Teixeira Rodrigues, Thomaz Luscher-Dias, Nayara E de Toledo, Paulo P Amaral, Luigi Marchionni, Gloria R Franco, **Isoformic**: a workflow for transcript-level RNA-seq interpretation, *NAR Genomics and Bioinformatics*, Volume 7, Issue 4, December 2025, lqaf176, <https://doi.org/10.1093/nargab/lqaf176>
+
 ## Information
 
 All data used for the examples here were extracted from the paper: ["Landscape of Dysregulated Placental RNA Editing Associated With Preeclampsia"][pe-paper-ref] in which were analyzed generated RNA-Seq datasets from preeclamptic and control placentas.
