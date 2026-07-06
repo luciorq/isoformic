@@ -19,6 +19,9 @@ Useful links:
 
 Authors:
 
+- Lucio Rezende Queiroz <luciorqueiroz@gmail.com>
+  ([ORCID](https://orcid.org/0000-0002-6090-1834)) \[copyright holder\]
+
 - Lucio Rezende Queiroz <lrq4001@med.cornell.edu> \[contributor\]
 
 - Izabela Mamede Conceicao <iza.mamede@gmail.com>

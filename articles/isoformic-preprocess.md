@@ -43,6 +43,7 @@ Therefore, this example will not work natively on Windows. But you can
 use WSL2 (Windows Subsystem for Linux) on Windows 10/11 to run it.
 
 ``` r
+
 library(isoformic)
 tx_fasta_path <- download_reference(version = "49", file_type = "fasta")
 genome_fasta_path <- download_reference(version = "49", file_type = "genome_fasta")
@@ -91,6 +92,7 @@ for (i in seq_along(sample_names)) {
 ## Load Data and Create IsoformicExperiment Object
 
 ``` r
+
 suppressPackageStartupMessages({
   library(tximeta)
   library(SummarizedExperiment)
@@ -115,6 +117,7 @@ gff_path <- download_reference(version = "49", file_type = "gff")
 Point to Salmon’s `quant.sf` output files.
 
 ``` r
+
 # discover sample folders like SRR11498039_quant, etc.
 sample_dirs <- list.dirs(quants_dir, full.names = FALSE, recursive = FALSE)
 
@@ -150,6 +153,7 @@ col_data
 Import transcriptomics data with tximport.
 
 ``` r
+
 se_tx <- tximeta::tximeta(
   coldata = col_data,
   type = "salmon",
@@ -170,11 +174,15 @@ assays(se_tx) <- c(assays(se_tx), mini_inf_reps)
 Convert to IsoformicExperiment object.
 
 ``` r
+
 iso <- as_isoformic(se_tx, gff_path)
+#> duckdb: caching downloaded extensions in the package library:
+#> ℹ /home/runner/work/_temp/Library/duckdb/extensions
+#> ℹ This is removed when the package is re-installed; see `?duckdb_storage` to choose a different location.
 iso
 #> <IsoformicExperiment>
-#>  Experiment Name: 778d392d53b1394c97b69c3aec6ba177
-#>  Data Path: /home/runner/.cache/R/isoformic/778d392d53b1394c97b69c3aec6ba177
+#>  Experiment Name: 884d42dacfa2621d9c9f6407b58516a8
+#>  Data Path: /home/runner/.cache/R/isoformic/884d42dacfa2621d9c9f6407b58516a8
 #>  Assays: counts, abundance, length, infRep1, infRep2, infRep3, infRep4, infRep5, infRep6, infRep7, infRep8, infRep9, infRep10, infRep11, infRep12, infRep13, infRep14, infRep15, infRep16, infRep17, infRep18, infRep19, infRep20
 #>  Samples: 6
 #>  Transcripts in Assay: 111
@@ -187,6 +195,7 @@ iso
 ```
 
 ``` r
+
 tx_to_gene_df <- tx_to_gene(iso)
 head(tx_to_gene_df)
 #> # A tibble: 6 × 2
@@ -202,8 +211,8 @@ head(tx_to_gene_df)
 # rowData(se_tx) <- row_data(iso)
 iso
 #> <IsoformicExperiment>
-#>  Experiment Name: 778d392d53b1394c97b69c3aec6ba177
-#>  Data Path: /home/runner/.cache/R/isoformic/778d392d53b1394c97b69c3aec6ba177
+#>  Experiment Name: 884d42dacfa2621d9c9f6407b58516a8
+#>  Data Path: /home/runner/.cache/R/isoformic/884d42dacfa2621d9c9f6407b58516a8
 #>  Assays: counts, abundance, length, infRep1, infRep2, infRep3, infRep4, infRep5, infRep6, infRep7, infRep8, infRep9, infRep10, infRep11, infRep12, infRep13, infRep14, infRep15, infRep16, infRep17, infRep18, infRep19, infRep20
 #>  Samples: 6
 #>  Transcripts in Assay: 111
@@ -218,6 +227,7 @@ iso
 Perform transcript-level Differential Expression Analysis with fishpond.
 
 ``` r
+
 y <- se_tx
 y <- fishpond::scaleInfReps(y)
 
@@ -251,22 +261,23 @@ de_tx(iso)
 #> # A tibble: 111 × 9
 #>    transcript_id      log10mean keep   stat log2FC pvalue locfdr qvalue det_sig
 #>    <chr>                  <dbl> <lgl> <dbl>  <dbl>  <dbl>  <dbl>  <dbl> <chr>  
-#>  1 ENST00000263341.7       3.59 TRUE   3.25   6.63 0.0804  0.574  0.258 no     
-#>  2 ENST00000651122.1       2.72 TRUE   3.5    4.91 0.0627  0.498  0.258 no     
-#>  3 ENST00000306602.3       2.44 TRUE  -3.3   -3.75 0.0754  0.553  0.258 no     
-#>  4 ENST00000392322.7       2.61 TRUE   2.45   2.62 0.179   0.912  0.466 no     
-#>  5 ENST00000698141.1       2.45 TRUE   2      2.24 0.287   1      0.575 no     
-#>  6 ENST00000697958.1       2.52 TRUE  -3.65  -2.01 0.0488  0.434  0.258 no     
-#>  7 ENST00000673858.1       2.18 TRUE   2.1    1.98 0.266   1      0.575 no     
-#>  8 ENST00000367468.10      2.92 TRUE   1.85   1.82 0.342   1      0.634 no     
-#>  9 ENST00000557389.1       2.75 TRUE  -3.85  -1.67 0.0438  0.410  0.258 no     
-#> 10 ENST00000330871.3       3.57 TRUE   1.5    1.63 0.423   1      0.648 no     
+#>  1 ENST00000263341.7       3.59 TRUE   3.25   6.63 0.0696  0.541  0.222 no     
+#>  2 ENST00000651122.1       2.72 TRUE   3.5    4.91 0.0542  0.467  0.222 no     
+#>  3 ENST00000306602.3       2.44 TRUE  -3.3   -3.75 0.0665  0.527  0.222 no     
+#>  4 ENST00000392322.7       2.61 TRUE   2.45   2.62 0.174   0.936  0.453 no     
+#>  5 ENST00000698141.1       2.45 TRUE   2      2.24 0.295   1      0.59  no     
+#>  6 ENST00000697958.1       2.52 TRUE  -3.65  -2.01 0.0438  0.414  0.222 no     
+#>  7 ENST00000673858.1       2.18 TRUE   2.1    1.98 0.275   1      0.59  no     
+#>  8 ENST00000367468.10      2.92 TRUE   1.85   1.82 0.343   1      0.638 no     
+#>  9 ENST00000557389.1       2.75 TRUE  -3.85  -1.67 0.0408  0.397  0.222 no     
+#> 10 ENST00000330871.3       3.57 TRUE   1.5    1.63 0.423   1      0.646 no     
 #> # ℹ 101 more rows
 ```
 
 Summarize Transcript SummarizedExperiment to Gene level.
 
 ``` r
+
 se_gene <- tximeta::summarizeToGene(
   se_tx,
   tx2gene = dplyr::select(row_data(iso), transcript_id, gene_id),
@@ -281,6 +292,7 @@ se_gene <- tximeta::summarizeToGene(
 Perform Gene level Differential Expression with DESeq2.
 
 ``` r
+
 colData(se_gene)$condition <- factor(colData(se_gene)$condition, levels = c("control", "treatment"))
 
 assays(se_gene)$counts <- round(assays(se_gene)$counts)
@@ -355,6 +367,7 @@ de_gene(iso)
 Plot examples.
 
 ``` r
+
 top_de_gene <- de_gene(iso) |>
   dplyr::arrange(qvalue) |>
   dplyr::slice_head(n = 1) |>
@@ -374,6 +387,7 @@ plot_log2fc(
 By gene name
 
 ``` r
+
 gene_to_plot <- row_data(iso) |>
   dplyr::filter(gene_id %in% top_de_gene) |>
   dplyr::slice_head(n = 1) |>
@@ -393,6 +407,7 @@ plot_log2fc(
 Top DE transcripts
 
 ``` r
+
 row_data(iso) |>
   dplyr::filter(gene_name %in% "MTG2")
 #> # A tibble: 0 × 6

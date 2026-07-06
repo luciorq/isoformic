@@ -10,6 +10,7 @@ comparison of case versus control transcriptomic data.
 ## Installation
 
 ``` r
+
 install.packages("isoformic", repos = c("https://luciorq.r-universe.dev", getOption("repos")))
 ```
 
@@ -17,6 +18,7 @@ You can install the development version of `isoformic` from
 [GitHub](https://github.com/) with:
 
 ``` r
+
 if (requireNamespace("remotes", quietly = TRUE)) {
   install.packages("remotes")
 }

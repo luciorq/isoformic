@@ -70,7 +70,7 @@ Development Changelog:
 - Argument `file_type` in
   [`download_reference()`](https://luciorq.github.io/isoformic/reference/download_reference.md)
   is now `"gff"` by default.
-- Default GENCODE `version` in
+- GENCODE `version` in
   [`download_reference()`](https://luciorq.github.io/isoformic/reference/download_reference.md)
   is now `"49"` by default.
 - Argument `output_path` in

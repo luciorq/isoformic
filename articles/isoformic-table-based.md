@@ -15,12 +15,14 @@ placentas. This dataset was chosen due for having many biological
 replicates with high sequencing depth.
 
 ``` r
+
 library(isoformic)
 ```
 
 Load dependency packages
 
 ``` r
+
 library(fs)
 library(readr)
 library(dplyr)
@@ -60,6 +62,7 @@ named “log2FoldChange”. 3) `p-value` information in a column named
 analysis. This DET table should be the UNFILTERED version of your table.
 
 ``` r
+
 path_package("isoformic")
 #> /home/runner/work/_temp/Library/isoformic
 ```
@@ -67,6 +70,7 @@ path_package("isoformic")
 Example:
 
 ``` r
+
 PE1_DETs <- read_csv(path_package("isoformic", "extdata", "DETs_fixed.csv"))
 #> Rows: 72385 Columns: 4
 #> ── Column specification ────────────────────────────────────────────────────────
@@ -131,6 +135,7 @@ formatting the necessary files for running the workflow. The files can
 be found in the following path.
 
 ``` r
+
 path_package("isoformic", "extdata")
 #> /home/runner/work/_temp/Library/isoformic/extdata
 ```
@@ -138,6 +143,7 @@ path_package("isoformic", "extdata")
 And the files available can be seen with:
 
 ``` r
+
 path_package("isoformic", "extdata") |>
   dir_ls()
 #> /home/runner/work/_temp/Library/isoformic/extdata/DEGs_PE_fixed2.csv
@@ -153,6 +159,7 @@ path_package("isoformic", "extdata") |>
 ```
 
 ``` r
+
 PE1_DETs <- path_package("isoformic", "extdata", "DETs_fixed.csv") |>
   read_csv()
 PE1_DEGs <- path_package("isoformic", "extdata", "DEGs_PE_fixed2.csv") |>
@@ -168,6 +175,7 @@ pregnant woman with Preeclampsia and controls matched pregnant without
 Preeclampsia.
 
 ``` r
+
 sample_table <- data.frame(
   samples = colnames(PE1_counts)[2:ncol(PE1_counts)],
   condition = c(rep("treatment", 8), rep("control", ncol(PE1_counts) - 9))
@@ -193,6 +201,7 @@ This step may take a while depending on the speed of your internet
 connection.
 
 ``` r
+
 gff_file_path <- download_reference(version = "33", file_type = "gff")
 #> ✔ '/home/runner/.cache/R/isoformic/gencode.v33.chr_patch_hapl_scaff.annotation.gff3.gz'
 #>   successfully downloaded.
@@ -219,6 +228,7 @@ with the specific version you used for the alignment. In the case here
 GENCODE v33.
 
 ``` r
+
 fasta_path <- download_reference(version = "33", file_type = "fasta")
 read_lines(fasta_path, n_max = 5)
 #> [1] ">ENST00000456328.2|ENSG00000223972.5|OTTHUMG00000000961.2|OTTHUMT00000362751.1|DDX11L1-202|DDX11L1|1657|processed_transcript|"
@@ -233,6 +243,7 @@ tidy, so we pass it through the `make_tx_to_gene` function that will
 make it tidy and ready for further use.
 
 ``` r
+
 tx_to_gene <- make_tx_to_gene(
   file_path = fasta_path,
   file_type = "fasta"
@@ -261,6 +272,7 @@ to the DET table.
 Select the columns with the gene id and the gene name info
 
 ``` r
+
 tx_to_gene <- tx_to_gene |>
   dplyr::select(
     transcript_id, gene_id,
@@ -282,6 +294,7 @@ head(tx_to_gene)
 First we add the `gene_name` information to the DEG table
 
 ``` r
+
 gene_join <- tx_to_gene |>
   dplyr::select(gene_id, gene_name) |>
   distinct()
@@ -293,6 +306,7 @@ PE1_DEGs <- PE1_DEGs |>
 Now the transcript name for the TPM table
 
 ``` r
+
 tpm_join <- tx_to_gene |>
   dplyr::select(transcript_id, transcript_name) |>
   distinct()
@@ -317,6 +331,7 @@ definitions superpose to one another, the ones further analyzed here can
 be seen on this figure
 
 ``` r
+
 knitr::include_graphics("https://i.imgur.com/UWoAr0k.png")
 ```
 
@@ -325,6 +340,7 @@ knitr::include_graphics("https://i.imgur.com/UWoAr0k.png")
 First we add the transcript name and type information to the DET table
 
 ``` r
+
 transcript_joined <- tx_to_gene |>
   dplyr::select(transcript_id, transcript_name, transcript_type) |>
   dplyr::distinct()
@@ -342,6 +358,7 @@ So we first filter the DEG table for the significant ones and the add it
 as a column on our main DET table using the isDEGsig function.
 
 ``` r
+
 PE1_DEGs_new_names_sig <- PE1_DEGs |>
   filter(abs(log2FC) >= 1) |>
   filter(pvalue <= 0.05) |>
@@ -355,6 +372,7 @@ transcript_gene_join <- tx_to_gene |>
 ```
 
 ``` r
+
 PE1_DETs_final <- is_deg_sig(DEGs_sig_joined$transcript_name, PE1_DETs)
 PE1_DETs_final <- PE1_DETs_final |>
   left_join(transcript_gene_join, by = "transcript_name")
@@ -367,6 +385,7 @@ transcripts are differentially expressed but their genes are not with a
 simple dplyr filter.
 
 ``` r
+
 DETs_not_DEGs <- PE1_DETs_final |>
   filter(pvalue < 0.05, abs(log2FC) > 1, DEG_sig == "NO")
 
@@ -421,6 +440,7 @@ transcript. Here we colored all the most abundant types separately and
 the less abundant on the same grey tone and name that vector accordingly
 
 ``` r
+
 tx_biotypes <- c(
   "gene", "protein_coding",
   "retained_intron", "protein_coding_CDS_not_defined",
@@ -447,6 +467,7 @@ tx_biotype_color_names
 ```
 
 ``` r
+
 print(tx_type_palette())
 #>                               gene                     protein_coding 
 #>                          "#fb8072"                          "#a6d854" 
@@ -474,6 +495,7 @@ For that we will make a combined version of the DEG table with the DET
 table using the function join_DEG_DET.
 
 ``` r
+
 DEG_DET_table <- join_DEG_DET(PE1_DEGs, PE1_DETs_final, logfc_cut = 1, pval_cut = 0.05)
 
 head(DEG_DET_table)
@@ -493,6 +515,7 @@ Now you just use the `plotLog2FC` for any gene you would like. The
 function also works well with a small vector of `gene_names`.
 
 ``` r
+
 # selected_gene = "RBPJ"
 plot_log2FC(DEG_DET_table, "RBPJ")
 ```
@@ -500,6 +523,7 @@ plot_log2FC(DEG_DET_table, "RBPJ")
 ![](isoformic-table-based_files/figure-html/unnamed-chunk-25-1.png)
 
 ``` r
+
 # Work here to look better? or just remove for now
 # the best would be a loop that goes over each one of a list and
 # plots them in a folder the default could be the DET not deg table
@@ -515,6 +539,7 @@ plot_obj +
 Multiple panels.
 
 ``` r
+
 c("RBPJ", "EGFR", "PNCK") |>
   purrr::map(function(gene) {
     DEG_DET_table |>
@@ -538,6 +563,7 @@ conditions and in the other the value of the TPM for the control
 conditions.
 
 ``` r
+
 profile_data_df <- prepare_profile_data(
   txi_transcript = PE1_counts,
   tx_to_gene = tx_to_gene,
@@ -558,6 +584,7 @@ profile_plot
 ![](isoformic-table-based_files/figure-html/unnamed-chunk-28-1.png)
 
 ``` r
+
 head(profile_data_df)
 #> # A tibble: 6 × 7
 #>   genename condition mean_TPM      SD transcript_type DE    parent_gene
@@ -571,6 +598,7 @@ head(profile_data_df)
 ```
 
 ``` r
+
 profile_data_df |>
   filter(genename %in% "IL2RA")
 #> # A tibble: 2 × 7
@@ -589,6 +617,7 @@ profile_plot
 ![](isoformic-table-based_files/figure-html/unnamed-chunk-30-1.png)
 
 ``` r
+
 profile_data_df |>
   filter(genename %in% "EGFR")
 #> # A tibble: 2 × 7
@@ -641,6 +670,7 @@ works here. The gmt is loaded on the fgsea format with lists for each
 biological process.
 
 ``` r
+
 fs::path_package("isoformic", "extdata", "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt")
 #> /home/runner/work/_temp/Library/isoformic/extdata/c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt
 
@@ -663,6 +693,7 @@ head(genesets_list[[1]])
 Visualize how is our table before running
 
 ``` r
+
 head(PE1_DETs_final)
 #> # A tibble: 6 × 8
 #>   transcript_id   transcript_name transcript_type log2FC  pvalue  qvalue DEG_sig
@@ -683,6 +714,7 @@ cutoff to be used. It will generate a table of enrichment but with an
 extra column “experiment”.
 
 ``` r
+
 enrichment_df <- run_enrichment(
   det_df = PE1_DETs_final,
   genesets_list = genesets_list,
@@ -690,30 +722,30 @@ enrichment_df <- run_enrichment(
   pval_cutoff = 0.05
 )
 head(enrichment_df)
-#>                                                         pathway         pval
-#>                                                          <char>        <num>
-#> 1:              REACTOME_ABC_FAMILY_PROTEINS_MEDIATED_TRANSPORT 0.0020462055
-#> 2:                           REACTOME_ABC_TRANSPORTER_DISORDERS 0.0093847179
-#> 3: REACTOME_ACROSOME_REACTION_AND_SPERM_OOCYTE_MEMBRANE_BINDING 0.0388416861
-#> 4:                REACTOME_ACTIVATED_NTRK2_SIGNALS_THROUGH_PI3K 0.0005364371
-#> 5:                 REACTOME_ACTIVATED_NTRK2_SIGNALS_THROUGH_RAS 0.0113517662
-#> 6:                REACTOME_ACTIVATED_NTRK3_SIGNALS_THROUGH_PI3K 0.0163050214
+#>                                                         pathway        pval
+#>                                                          <char>       <num>
+#> 1:              REACTOME_ABC_FAMILY_PROTEINS_MEDIATED_TRANSPORT 0.002318708
+#> 2:                           REACTOME_ABC_TRANSPORTER_DISORDERS 0.015954605
+#> 3: REACTOME_ACROSOME_REACTION_AND_SPERM_OOCYTE_MEMBRANE_BINDING 0.041103909
+#> 4:                REACTOME_ACTIVATED_NTRK2_SIGNALS_THROUGH_PI3K 0.001092064
+#> 5:                 REACTOME_ACTIVATED_NTRK2_SIGNALS_THROUGH_RAS 0.010228677
+#> 6:                REACTOME_ACTIVATED_NTRK3_SIGNALS_THROUGH_PI3K 0.016072292
 #>          padj   log2err        ES      NES  size
 #>         <num>     <num>     <num>    <num> <int>
-#> 1: 0.04390041 0.4317077 0.3765654 1.460352   266
-#> 2: 0.10002293 0.3807304 0.3668388 1.389022   199
-#> 3: 0.23504200 0.3217759 0.7791037 1.524748     6
-#> 4: 0.02288467 0.4772708 0.7290547 1.850483    19
-#> 5: 0.11258009 0.3807304 0.6017850 1.633391    26
-#> 6: 0.13467948 0.3524879 0.7330355 1.612455    10
-#>                                                        leadingEdge
-#>                                                             <list>
-#> 1:     OS9-209,PSMD7-204,PSMA5-206,UBC-205,ABCB1-201,UBA52-201,...
-#> 2:    OS9-209,PSMD7-204,PSMA5-206,UBC-205,UBA52-201,ERLIN2-206,...
-#> 3:                                 CD9-208,CD9-216,CD9-212,CD9-204
-#> 4: NTRK2-208,PIK3R1-202,PIK3R1-216,NTRK2-204,NTF4-203,GAB1-201,...
-#> 5:                  NTRK2-208,NTRK2-204,NTF4-203,NTF4-201,SHC1-208
-#> 6: PIK3R1-202,PIK3R1-216,PIK3R1-201,PIK3CA-205,IRS1-201,PIK3R1-211
+#> 1: 0.04910905 0.4317077 0.3765657 1.454340   266
+#> 2: 0.14048374 0.3524879 0.3668391 1.372851   199
+#> 3: 0.24425776 0.3217759 0.7791019 1.514194     6
+#> 4: 0.03340908 0.4550599 0.7290550 1.898374    19
+#> 5: 0.10561109 0.3807304 0.6017849 1.665833    26
+#> 6: 0.14048374 0.3524879 0.7330366 1.639327    10
+#>                                                            leadingEdge
+#>                                                                 <list>
+#> 1:     OS9-209,PSMD7-204,PSMA5-206,UBC-205,ABCB1-201,UBA52-201,...[47]
+#> 2:    OS9-209,PSMD7-204,PSMA5-206,UBC-205,UBA52-201,ERLIN2-206,...[34]
+#> 3:                                     CD9-208,CD9-216,CD9-212,CD9-204
+#> 4: NTRK2-208,PIK3R1-202,PIK3R1-216,NTRK2-204,NTF4-203,GAB1-201,...[10]
+#> 5:                      NTRK2-208,NTRK2-204,NTF4-203,NTF4-201,SHC1-208
+#> 6:     PIK3R1-202,PIK3R1-216,PIK3R1-201,PIK3CA-205,IRS1-201,PIK3R1-211
 #>        experiment
 #>            <char>
 #> 1: protein_coding
@@ -762,6 +794,7 @@ is if that pathway passes on the desired cutoff. First we plot for only
 Protein_coding versus Unproductive with a very extringent NES cutoff.
 
 ``` r
+
 enrichment_df |>
   dplyr::filter(
     experiment %in% c("protein_coding", "unproductive") & abs(NES) >= 2
@@ -780,6 +813,7 @@ enrichment_df |>
 And now the specific unproductive subtypes
 
 ``` r
+
 enrichment_df |>
   dplyr::filter(!experiment %in% c("protein_coding", "unproductive") & abs(NES) > 1.5) |>
   dplyr::arrange(padj) |>
@@ -821,6 +855,7 @@ needs to be downloaded on the accurate version for your transcriptome,
 in this case v33.
 
 ``` r
+
 gff_file <- download_reference(version = "33", file_type = "gff")
 #> ℹ '/home/runner/.cache/R/isoformic/gencode.v33.chr_patch_hapl_scaff.annotation.gff3.gz'
 #>   already exists.
@@ -846,6 +881,7 @@ context_data <- create_context_data(
 Plotting the context of the FLT1 isoforms.
 
 ``` r
+
 plot_genomic_context(
   gene_name = "FLT1",
   context_data = context_data
@@ -868,6 +904,7 @@ plot_genomic_context(
 #### Protein coding example
 
 ``` r
+
 plot_genomic_context(
   gene_name = "EGFR",
   context_data = context_data,
@@ -891,6 +928,7 @@ plot_genomic_context(
 Expanding the context around the genomic region of interest.
 
 ``` r
+
 plot_genomic_context(
   gene_name = "XIST",
   context_data = context_data,
@@ -915,6 +953,7 @@ plot_genomic_context(
     #> legend[legend1]
 
 ``` r
+
 plot_genomic_context(
   gene_name = "TSIX",
   context_data = context_data,
@@ -941,10 +980,11 @@ plot_genomic_context(
 ### Session Information
 
 ``` r
+
 sessionInfo()
-#> R version 4.5.2 (2025-10-31)
+#> R version 4.6.1 (2026-06-24)
 #> Platform: x86_64-pc-linux-gnu
-#> Running under: Ubuntu 24.04.3 LTS
+#> Running under: Ubuntu 24.04.4 LTS
 #> 
 #> Matrix products: default
 #> BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
@@ -964,132 +1004,133 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#>  [1] GenomicRanges_1.62.0 Seqinfo_1.0.0        IRanges_2.44.0      
-#>  [4] S4Vectors_0.48.0     BiocGenerics_0.56.0  generics_0.1.4      
-#>  [7] ggplot2_4.0.0        stringr_1.6.0        tidyr_1.3.1         
-#> [10] dplyr_1.1.4          readr_2.1.5          fs_1.6.6            
-#> [13] isoformic_0.1.2.9017
+#>  [1] GenomicRanges_1.64.0 Seqinfo_1.2.0        IRanges_2.46.0      
+#>  [4] S4Vectors_0.50.1     BiocGenerics_0.58.1  generics_0.1.4      
+#>  [7] ggplot2_4.0.3        stringr_1.6.0        tidyr_1.3.2         
+#> [10] dplyr_1.2.1          readr_2.2.0          fs_2.1.0            
+#> [13] isoformic_0.1.2.9018
 #> 
 #> loaded via a namespace (and not attached):
 #>   [1] strawr_0.0.92                           
 #>   [2] RColorBrewer_1.1-3                      
 #>   [3] jsonlite_2.0.0                          
-#>   [4] magrittr_2.0.4                          
-#>   [5] GenomicFeatures_1.62.0                  
+#>   [4] magrittr_2.0.5                          
+#>   [5] GenomicFeatures_1.64.0                  
 #>   [6] farver_2.1.2                            
-#>   [7] rmarkdown_2.30                          
-#>   [8] BiocIO_1.20.0                           
-#>   [9] vctrs_0.6.5                             
+#>   [7] rmarkdown_2.31                          
+#>   [8] BiocIO_1.22.0                           
+#>   [9] vctrs_0.7.3                             
 #>  [10] memoise_2.0.1                           
-#>  [11] Rsamtools_2.26.0                        
-#>  [12] RCurl_1.98-1.17                         
-#>  [13] rstatix_0.7.3                           
-#>  [14] htmltools_0.5.8.1                       
-#>  [15] S4Arrays_1.10.0                         
+#>  [11] Rsamtools_2.28.0                        
+#>  [12] RCurl_1.98-1.19                         
+#>  [13] rstatix_1.0.0                           
+#>  [14] htmltools_0.5.9                         
+#>  [15] S4Arrays_1.12.0                         
 #>  [16] progress_1.2.3                          
-#>  [17] AnnotationHub_4.0.0                     
-#>  [18] curl_7.0.0                              
-#>  [19] broom_1.0.10                            
-#>  [20] Rhdf5lib_1.32.0                         
-#>  [21] SparseArray_1.10.1                      
-#>  [22] Formula_1.2-5                           
-#>  [23] rhdf5_2.54.0                            
+#>  [17] AnnotationHub_4.2.2                     
+#>  [18] curl_7.1.0                              
+#>  [19] broom_1.0.13                            
+#>  [20] Rhdf5lib_2.0.0                          
+#>  [21] rhdf5_2.56.0                            
+#>  [22] SparseArray_1.12.2                      
+#>  [23] Formula_1.2-5                           
 #>  [24] gridGraphics_0.5-1                      
-#>  [25] httr2_1.2.1                             
+#>  [25] httr2_1.2.3                             
 #>  [26] cachem_1.1.0                            
-#>  [27] GenomicAlignments_1.46.0                
-#>  [28] lifecycle_1.0.4                         
+#>  [27] GenomicAlignments_1.48.0                
+#>  [28] lifecycle_1.0.5                         
 #>  [29] pkgconfig_2.0.3                         
-#>  [30] Matrix_1.7-4                            
+#>  [30] Matrix_1.7-5                            
 #>  [31] R6_2.6.1                                
 #>  [32] fastmap_1.2.0                           
 #>  [33] GenomeInfoDbData_1.2.15                 
-#>  [34] MatrixGenerics_1.22.0                   
-#>  [35] digest_0.6.37                           
+#>  [34] MatrixGenerics_1.24.0                   
+#>  [35] digest_0.6.39                           
 #>  [36] patchwork_1.3.2                         
-#>  [37] AnnotationDbi_1.72.0                    
-#>  [38] RSQLite_2.4.4                           
-#>  [39] org.Hs.eg.db_3.22.0                     
-#>  [40] ggpubr_0.6.2                            
+#>  [37] AnnotationDbi_1.74.0                    
+#>  [38] RSQLite_3.53.3                          
+#>  [39] org.Hs.eg.db_3.23.1                     
+#>  [40] ggpubr_0.6.3                            
 #>  [41] filelock_1.0.3                          
 #>  [42] labeling_0.4.3                          
-#>  [43] httr_1.4.7                              
+#>  [43] httr_1.4.8                              
 #>  [44] abind_1.4-8                             
-#>  [45] compiler_4.5.2                          
-#>  [46] bit64_4.6.0-1                           
-#>  [47] withr_3.0.2                             
-#>  [48] S7_0.2.0                                
-#>  [49] backports_1.5.0                         
-#>  [50] BiocParallel_1.44.0                     
-#>  [51] carData_3.0-5                           
+#>  [45] compiler_4.6.1                          
+#>  [46] bit64_4.8.2                             
+#>  [47] withr_3.0.3                             
+#>  [48] S7_0.2.2                                
+#>  [49] backports_1.5.1                         
+#>  [50] BiocParallel_1.46.0                     
+#>  [51] carData_3.0-6                           
 #>  [52] viridis_0.6.5                           
-#>  [53] DBI_1.2.3                               
+#>  [53] DBI_1.3.0                               
 #>  [54] ggsignif_0.6.4                          
-#>  [55] biomaRt_2.66.0                          
-#>  [56] rappdirs_0.3.3                          
-#>  [57] DelayedArray_0.36.0                     
+#>  [55] biomaRt_2.68.0                          
+#>  [56] rappdirs_0.3.4                          
+#>  [57] DelayedArray_0.38.2                     
 #>  [58] rjson_0.2.23                            
-#>  [59] tools_4.5.2                             
-#>  [60] glue_1.8.0                              
-#>  [61] restfulr_0.0.16                         
-#>  [62] rhdf5filters_1.22.0                     
-#>  [63] grid_4.5.2                              
-#>  [64] fgsea_1.36.0                            
-#>  [65] gtable_0.3.6                            
-#>  [66] tzdb_0.5.0                              
-#>  [67] data.table_1.17.8                       
-#>  [68] hms_1.1.4                               
-#>  [69] car_3.1-3                               
-#>  [70] utf8_1.2.6                              
-#>  [71] XVector_0.50.0                          
-#>  [72] BiocVersion_3.22.0                      
-#>  [73] ggrepel_0.9.6                           
-#>  [74] pillar_1.11.1                           
-#>  [75] yulab.utils_0.2.1                       
-#>  [76] vroom_1.6.6                             
-#>  [77] BiocFileCache_3.0.0                     
-#>  [78] lattice_0.22-7                          
-#>  [79] rtracklayer_1.70.0                      
-#>  [80] bit_4.6.0                               
-#>  [81] tidyselect_1.2.1                        
-#>  [82] Biostrings_2.78.0                       
-#>  [83] knitr_1.50                              
-#>  [84] gridExtra_2.3                           
-#>  [85] SummarizedExperiment_1.40.0             
-#>  [86] xfun_0.54                               
-#>  [87] Biobase_2.70.0                          
-#>  [88] matrixStats_1.5.0                       
-#>  [89] stringi_1.8.7                           
-#>  [90] UCSC.utils_1.6.0                        
-#>  [91] yaml_2.3.10                             
-#>  [92] TxDb.Hsapiens.UCSC.hg38.knownGene_3.22.0
-#>  [93] evaluate_1.0.5                          
-#>  [94] codetools_0.2-20                        
-#>  [95] cigarillo_1.0.0                         
-#>  [96] tibble_3.3.0                            
-#>  [97] BiocManager_1.30.26                     
-#>  [98] ggplotify_0.1.3                         
-#>  [99] cli_3.6.5                               
-#> [100] Rcpp_1.1.0                              
-#> [101] GenomeInfoDb_1.46.0                     
-#> [102] dbplyr_2.5.1                            
-#> [103] png_0.1-8                               
-#> [104] XML_3.99-0.20                           
-#> [105] parallel_4.5.2                          
-#> [106] blob_1.2.4                              
-#> [107] prettyunits_1.2.0                       
-#> [108] plyranges_1.30.0                        
-#> [109] bitops_1.0-9                            
-#> [110] txdbmaker_1.6.0                         
-#> [111] viridisLite_0.4.2                       
-#> [112] scales_1.4.0                            
-#> [113] plotgardener_1.16.0                     
-#> [114] purrr_1.2.0                             
-#> [115] crayon_1.5.3                            
-#> [116] rlang_1.1.6                             
-#> [117] cowplot_1.2.0                           
-#> [118] fastmatch_1.1-6                         
-#> [119] KEGGREST_1.50.0
+#>  [59] tools_4.6.1                             
+#>  [60] otel_0.2.0                              
+#>  [61] glue_1.8.1                              
+#>  [62] restfulr_0.0.17                         
+#>  [63] rhdf5filters_1.24.0                     
+#>  [64] grid_4.6.1                              
+#>  [65] fgsea_1.38.0                            
+#>  [66] gtable_0.3.6                            
+#>  [67] tzdb_0.5.0                              
+#>  [68] data.table_1.18.4                       
+#>  [69] hms_1.1.4                               
+#>  [70] car_3.1-5                               
+#>  [71] utf8_1.2.6                              
+#>  [72] XVector_0.52.0                          
+#>  [73] BiocVersion_3.23.1                      
+#>  [74] ggrepel_0.9.8                           
+#>  [75] pillar_1.11.1                           
+#>  [76] yulab.utils_0.2.4                       
+#>  [77] vroom_1.7.1                             
+#>  [78] BiocFileCache_3.2.0                     
+#>  [79] lattice_0.22-9                          
+#>  [80] rtracklayer_1.72.0                      
+#>  [81] bit_4.6.0                               
+#>  [82] tidyselect_1.2.1                        
+#>  [83] Biostrings_2.80.1                       
+#>  [84] knitr_1.51                              
+#>  [85] gridExtra_2.3.1                         
+#>  [86] SummarizedExperiment_1.42.0             
+#>  [87] xfun_0.59                               
+#>  [88] Biobase_2.72.0                          
+#>  [89] matrixStats_1.5.0                       
+#>  [90] stringi_1.8.7                           
+#>  [91] UCSC.utils_1.8.0                        
+#>  [92] yaml_2.3.12                             
+#>  [93] TxDb.Hsapiens.UCSC.hg38.knownGene_3.22.0
+#>  [94] evaluate_1.0.5                          
+#>  [95] codetools_0.2-20                        
+#>  [96] cigarillo_1.2.0                         
+#>  [97] tibble_3.3.1                            
+#>  [98] BiocManager_1.30.27                     
+#>  [99] ggplotify_0.1.3                         
+#> [100] cli_3.6.6                               
+#> [101] Rcpp_1.1.2                              
+#> [102] GenomeInfoDb_1.48.0                     
+#> [103] dbplyr_2.6.0                            
+#> [104] png_0.1-9                               
+#> [105] XML_3.99-0.23                           
+#> [106] parallel_4.6.1                          
+#> [107] blob_1.3.0                              
+#> [108] prettyunits_1.2.0                       
+#> [109] plyranges_1.32.0                        
+#> [110] bitops_1.0-9                            
+#> [111] txdbmaker_1.8.0                         
+#> [112] viridisLite_0.4.3                       
+#> [113] scales_1.4.0                            
+#> [114] plotgardener_1.18.0                     
+#> [115] purrr_1.2.2                             
+#> [116] crayon_1.5.3                            
+#> [117] rlang_1.3.0                             
+#> [118] cowplot_1.2.0                           
+#> [119] fastmatch_1.1-8                         
+#> [120] KEGGREST_1.52.2
 ```
 
 ### References

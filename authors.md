@@ -21,15 +21,15 @@
 Source:
 [`DESCRIPTION`](https://github.com/luciorq/isoformic/blob/main/DESCRIPTION)
 
-Queiroz L, Queiroz L, Conceicao I, Marchionni L, Franco G (2025).
+Queiroz L, Queiroz L, Conceicao I, Marchionni L, Franco G (2026).
 *isoformic: Isoform-Level Biological Interpretation of Transcriptomic
-Data*. R package version 0.1.2.9017,
+Data*. R package version 0.1.2.9018,
 <https://github.com/luciorq/isoformic>.
 
     @Manual{,
       title = {isoformic: Isoform-Level Biological Interpretation of Transcriptomic Data},
       author = {Lucio Rezende Queiroz and Lucio Rezende Queiroz and Izabela Mamede Conceicao and Luigi Marchionni and Gloria Franco},
-      year = {2025},
-      note = {R package version 0.1.2.9017},
+      year = {2026},
+      note = {R package version 0.1.2.9018},
       url = {https://github.com/luciorq/isoformic},
     }
