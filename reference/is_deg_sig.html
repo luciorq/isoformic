@@ -9,7 +9,7 @@ originates from a gene that is significantly differentially expressed."><meta pr
 
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9018</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9019</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,18 +52,18 @@ originates from a gene that is significantly differentially expressed.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">is_deg_sig</span><span class="op">(</span><span class="va">DegsigVector</span>, <span class="va">DET_table</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">is_deg_sig</span><span class="op">(</span><span class="va">deg_sig_vector</span>, <span class="va">det_table</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-degsigvector">DegsigVector<a class="anchor" aria-label="anchor" href="#arg-degsigvector"></a></dt>
+<dl><dt id="arg-deg-sig-vector">deg_sig_vector<a class="anchor" aria-label="anchor" href="#arg-deg-sig-vector"></a></dt>
 <dd><p>A character vector containing the names of transcripts from significantly differentially expressed genes.</p></dd>
 
 
-<dt id="arg-det-table">DET_table<a class="anchor" aria-label="anchor" href="#arg-det-table"></a></dt>
+<dt id="arg-det-table">det_table<a class="anchor" aria-label="anchor" href="#arg-det-table"></a></dt>
 <dd><p>A <code>data.frame</code> or <code>tibble</code> containing transcript-level differential expression results,
 including a <code>transcript_name</code> column.</p></dd>
 
@@ -71,28 +71,31 @@ including a <code>transcript_name</code> column.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A <code>tibble</code> with an additional column <code>DEG_sig</code> indicating whether the transcript is from a significantly
-differentially expressed gene (<code>"YES"</code> or <code>"NO"</code>).</p>
+differentially expressed gene (<code>"YES"</code> or <code>"NO"</code>). Row order matches the input <code>det_table</code>.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Sample data</span></span></span>
 <span class="r-in"><span><span class="va">significant_transcripts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"transcript1"</span>, <span class="st">"transcript3"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">DET_table</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span><span class="va">det_table</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  transcript_name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"transcript1"</span>, <span class="st">"transcript2"</span>, <span class="st">"transcript3"</span>, <span class="st">"transcript4"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  log2FC <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2.5</span>, <span class="op">-</span><span class="fl">1.2</span>, <span class="fl">0.8</span>, <span class="op">-</span><span class="fl">0.5</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  pvalue <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.01</span>, <span class="fl">0.2</span>, <span class="fl">0.03</span>, <span class="fl">0.6</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Annotate transcripts with DEG significance</span></span></span>
-<span class="r-in"><span><span class="va">DET_table_annotated</span> <span class="op">&lt;-</span> <span class="fu">is_deg_sig</span><span class="op">(</span>DegsigVector <span class="op">=</span> <span class="va">significant_transcripts</span>, DET_table <span class="op">=</span> <span class="va">DET_table</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">det_table_annotated</span> <span class="op">&lt;-</span> <span class="fu">is_deg_sig</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  deg_sig_vector <span class="op">=</span> <span class="va">significant_transcripts</span>,</span></span>
+<span class="r-in"><span>  det_table <span class="op">=</span> <span class="va">det_table</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># View the result</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">DET_table_annotated</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">det_table_annotated</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   transcript_name log2FC pvalue DEG_sig</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1     transcript1    2.5   0.01     YES</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2     transcript3    0.8   0.03     YES</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3     transcript2   -1.2   0.20      NO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2     transcript2   -1.2   0.20      NO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3     transcript3    0.8   0.03     YES</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4     transcript4   -0.5   0.60      NO</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

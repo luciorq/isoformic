@@ -28,7 +28,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9018</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9019</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,7 +73,7 @@
       <p class="author">Lucio Rezende QueirozIzabela Mamede Conceição</p>
       <p class="date">October 2, 2025</p>
 
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/vignettes/isoformic-preprocess.qmd" class="external-link"><code>vignettes/isoformic-preprocess.qmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/vignettes/articles/isoformic-preprocess.qmd" class="external-link"><code>vignettes/articles/isoformic-preprocess.qmd</code></a></small>
       <div class="d-none name"><code></code></div>
     </div>
 
@@ -237,13 +237,10 @@
 <div class="cell">
 <div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as_isoformic.html">as_isoformic</a></span><span class="op">(</span><span class="va">se_tx</span>, <span class="va">gff_path</span><span class="op">)</span></span>
-<span><span class="co">#&gt; duckdb: caching downloaded extensions in the package library:</span></span>
-<span><span class="co">#&gt; ℹ /home/runner/work/_temp/Library/duckdb/extensions</span></span>
-<span><span class="co">#&gt; ℹ This is removed when the package is re-installed; see `?duckdb_storage` to choose a different location.</span></span>
 <span><span class="va">iso</span></span>
 <span><span class="co">#&gt; &lt;IsoformicExperiment&gt;</span></span>
-<span><span class="co">#&gt;  Experiment Name: 884d42dacfa2621d9c9f6407b58516a8</span></span>
-<span><span class="co">#&gt;  Data Path: /home/runner/.cache/R/isoformic/884d42dacfa2621d9c9f6407b58516a8</span></span>
+<span><span class="co">#&gt;  Experiment Name: cd9ad3214aa0f3db0f8a6d0e0d0711ff</span></span>
+<span><span class="co">#&gt;  Data Path: /home/runner/.cache/R/isoformic/cd9ad3214aa0f3db0f8a6d0e0d0711ff</span></span>
 <span><span class="co">#&gt;  Assays: counts, abundance, length, infRep1, infRep2, infRep3, infRep4, infRep5, infRep6, infRep7, infRep8, infRep9, infRep10, infRep11, infRep12, infRep13, infRep14, infRep15, infRep16, infRep17, infRep18, infRep19, infRep20</span></span>
 <span><span class="co">#&gt;  Samples: 6</span></span>
 <span><span class="co">#&gt;  Transcripts in Assay: 111</span></span>
@@ -271,8 +268,8 @@
 <span><span class="co"># rowData(se_tx) &lt;- row_data(iso)</span></span>
 <span><span class="va">iso</span></span>
 <span><span class="co">#&gt; &lt;IsoformicExperiment&gt;</span></span>
-<span><span class="co">#&gt;  Experiment Name: 884d42dacfa2621d9c9f6407b58516a8</span></span>
-<span><span class="co">#&gt;  Data Path: /home/runner/.cache/R/isoformic/884d42dacfa2621d9c9f6407b58516a8</span></span>
+<span><span class="co">#&gt;  Experiment Name: cd9ad3214aa0f3db0f8a6d0e0d0711ff</span></span>
+<span><span class="co">#&gt;  Data Path: /home/runner/.cache/R/isoformic/cd9ad3214aa0f3db0f8a6d0e0d0711ff</span></span>
 <span><span class="co">#&gt;  Assays: counts, abundance, length, infRep1, infRep2, infRep3, infRep4, infRep5, infRep6, infRep7, infRep8, infRep9, infRep10, infRep11, infRep12, infRep13, infRep14, infRep15, infRep16, infRep17, infRep18, infRep19, infRep20</span></span>
 <span><span class="co">#&gt;  Samples: 6</span></span>
 <span><span class="co">#&gt;  Transcripts in Assay: 111</span></span>
@@ -319,16 +316,16 @@
 <span><span class="co">#&gt; # A tibble: 111 × 9</span></span>
 <span><span class="co">#&gt;    transcript_id      log10mean keep   stat log2FC pvalue locfdr qvalue det_sig</span></span>
 <span><span class="co">#&gt;    &lt;chr&gt;                  &lt;dbl&gt; &lt;lgl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;  </span></span>
-<span><span class="co">#&gt;  1 ENST00000263341.7       3.59 TRUE   3.25   6.63 0.0696  0.541  0.222 no     </span></span>
-<span><span class="co">#&gt;  2 ENST00000651122.1       2.72 TRUE   3.5    4.91 0.0542  0.467  0.222 no     </span></span>
-<span><span class="co">#&gt;  3 ENST00000306602.3       2.44 TRUE  -3.3   -3.75 0.0665  0.527  0.222 no     </span></span>
-<span><span class="co">#&gt;  4 ENST00000392322.7       2.61 TRUE   2.45   2.62 0.174   0.936  0.453 no     </span></span>
+<span><span class="co">#&gt;  1 ENST00000263341.7       3.59 TRUE   3.25   6.63 0.0677  0.526  0.213 no     </span></span>
+<span><span class="co">#&gt;  2 ENST00000651122.1       2.72 TRUE   3.5    4.91 0.0527  0.454  0.213 no     </span></span>
+<span><span class="co">#&gt;  3 ENST00000306602.3       2.44 TRUE  -3.3   -3.75 0.0654  0.516  0.213 no     </span></span>
+<span><span class="co">#&gt;  4 ENST00000392322.7       2.61 TRUE   2.45   2.62 0.175   0.928  0.455 no     </span></span>
 <span><span class="co">#&gt;  5 ENST00000698141.1       2.45 TRUE   2      2.24 0.295   1      0.59  no     </span></span>
-<span><span class="co">#&gt;  6 ENST00000697958.1       2.52 TRUE  -3.65  -2.01 0.0438  0.414  0.222 no     </span></span>
-<span><span class="co">#&gt;  7 ENST00000673858.1       2.18 TRUE   2.1    1.98 0.275   1      0.59  no     </span></span>
-<span><span class="co">#&gt;  8 ENST00000367468.10      2.92 TRUE   1.85   1.82 0.343   1      0.638 no     </span></span>
-<span><span class="co">#&gt;  9 ENST00000557389.1       2.75 TRUE  -3.85  -1.67 0.0408  0.397  0.222 no     </span></span>
-<span><span class="co">#&gt; 10 ENST00000330871.3       3.57 TRUE   1.5    1.63 0.423   1      0.646 no     </span></span>
+<span><span class="co">#&gt;  6 ENST00000697958.1       2.52 TRUE  -3.65  -2.01 0.0442  0.411  0.213 no     </span></span>
+<span><span class="co">#&gt;  7 ENST00000673858.1       2.18 TRUE   2.1    1.98 0.271   1      0.59  no     </span></span>
+<span><span class="co">#&gt;  8 ENST00000367468.10      2.92 TRUE   1.85   1.82 0.338   1      0.629 no     </span></span>
+<span><span class="co">#&gt;  9 ENST00000557389.1       2.75 TRUE  -3.8   -1.67 0.0419  0.398  0.213 no     </span></span>
+<span><span class="co">#&gt; 10 ENST00000330871.3       3.57 TRUE   1.5    1.63 0.42    1      0.642 no     </span></span>
 <span><span class="co">#&gt; # ℹ 101 more rows</span></span></code></pre></div>
 </div>
 <p>Summarize Transcript SummarizedExperiment to Gene level.</p>

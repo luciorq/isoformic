@@ -8,18 +8,18 @@ their types.
 ## Usage
 
 ``` r
-join_DEG_DET(DEG_tab, DET_final_tab, logfc_cut, pval_cut)
+join_DEG_DET(deg_table, det_table, logfc_cut, pval_cut)
 ```
 
 ## Arguments
 
-- DEG_tab:
+- deg_table:
 
   A `data.frame` or `tibble` containing gene-level differential
   expression results, including `gene_id`, `gene_name`, `log2FC`, and
   `pvalue` columns.
 
-- DET_final_tab:
+- det_table:
 
   A `data.frame` or `tibble` containing transcript-level differential
   expression results, including `transcript_id`, `transcript_name`,
@@ -55,7 +55,7 @@ results, with additional columns:
 
 ``` r
 # Sample gene-level data
-DEG_tab <- data.frame(
+deg_table <- data.frame(
   gene_id = c("gene1", "gene2"),
   gene_name = c("GeneA", "GeneB"),
   log2FC = c(1.5, -2.0),
@@ -63,7 +63,7 @@ DEG_tab <- data.frame(
 )
 
 # Sample transcript-level data
-DET_final_tab <- data.frame(
+det_table <- data.frame(
   transcript_id = c("tx1", "tx2", "tx3"),
   transcript_name = c("Transcript1", "Transcript2", "Transcript3"),
   transcript_type = c("protein_coding", "lncRNA", "processed_transcript"),
@@ -72,15 +72,15 @@ DET_final_tab <- data.frame(
 )
 
 # Merge and annotate differential expression results
-DEGs_DETs_table <- join_DEG_DET(
-  DEG_tab = DEG_tab,
-  DET_final_tab = DET_final_tab,
+deg_det_table <- join_DEG_DET(
+  deg_table = deg_table,
+  det_table = det_table,
   logfc_cut = 1,
   pval_cut = 0.05
 )
 
 # View the result
-print(DEGs_DETs_table)
+print(deg_det_table)
 #>   feature_id feature_name log2FC pvalue         feature_type significance is_de
 #> 1      gene1        GeneA    1.5   0.01                 gene          sig   yes
 #> 2      gene2        GeneB   -2.0   0.04                 gene          sig   yes

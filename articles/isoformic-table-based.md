@@ -589,12 +589,12 @@ head(profile_data_df)
 #> # A tibble: 6 × 7
 #>   genename condition mean_TPM      SD transcript_type DE    parent_gene
 #>   <chr>    <fct>        <dbl>   <dbl> <chr>           <fct> <chr>      
-#> 1 A1BG     control      11.7     4.53 gene            No    genename   
-#> 2 A1BG     treatment     9.60    4.80 gene            No    genename   
-#> 3 A1BG-AS1 control       7.28    4.20 gene            No    genename   
-#> 4 A1BG-AS1 treatment     5.80    4.17 gene            No    genename   
-#> 5 A2M      control    6342.   1870.   gene            No    genename   
-#> 6 A2M      treatment  5995.   1411.   gene            No    genename
+#> 1 A1BG     control      11.7     4.53 gene            No    A1BG       
+#> 2 A1BG     treatment     9.60    4.80 gene            No    A1BG       
+#> 3 A1BG-AS1 control       7.28    4.20 gene            No    A1BG-AS1   
+#> 4 A1BG-AS1 treatment     5.80    4.17 gene            No    A1BG-AS1   
+#> 5 A2M      control    6342.   1870.   gene            No    A2M        
+#> 6 A2M      treatment  5995.   1411.   gene            No    A2M
 ```
 
 ``` r
@@ -604,8 +604,8 @@ profile_data_df |>
 #> # A tibble: 2 × 7
 #>   genename condition mean_TPM    SD transcript_type DE    parent_gene
 #>   <chr>    <fct>        <dbl> <dbl> <chr>           <fct> <chr>      
-#> 1 IL2RA    control       32.5 14.5  gene            Yes   genename   
-#> 2 IL2RA    treatment     11.8  9.04 gene            Yes   genename
+#> 1 IL2RA    control       32.5 14.5  gene            Yes   IL2RA      
+#> 2 IL2RA    treatment     11.8  9.04 gene            Yes   IL2RA
 
 profile_plot <- plot_tx_expr(
   genes_to_plot = "IL2RA",
@@ -623,8 +623,8 @@ profile_data_df |>
 #> # A tibble: 2 × 7
 #>   genename condition mean_TPM    SD transcript_type DE    parent_gene
 #>   <chr>    <fct>        <dbl> <dbl> <chr>           <fct> <chr>      
-#> 1 EGFR     control      3255.  774. gene            No    genename   
-#> 2 EGFR     treatment    4963. 2439. gene            No    genename
+#> 1 EGFR     control      3255.  774. gene            No    EGFR       
+#> 2 EGFR     treatment    4963. 2439. gene            No    EGFR
 
 profile_plot <- plot_tx_expr(
   genes_to_plot = "EGFR",
@@ -696,14 +696,14 @@ Visualize how is our table before running
 
 head(PE1_DETs_final)
 #> # A tibble: 6 × 8
-#>   transcript_id   transcript_name transcript_type log2FC  pvalue  qvalue DEG_sig
-#>   <chr>           <chr>           <chr>            <dbl>   <dbl>   <dbl> <chr>  
-#> 1 ENST0000064952… ISG15-203       protein_coding   0.640 3.11e-1 5.40e-1 YES    
-#> 2 ENST0000037937… AGRN-201        protein_coding   0.534 1.29e-2 7.07e-2 YES    
-#> 3 ENST0000046111… AGRN-202        retained_intron -0.530 5.81e-2 1.91e-1 YES    
-#> 4 ENST0000045346… RNF223-201      protein_coding   1.83  1.66e-5 6.81e-4 YES    
-#> 5 ENST0000049786… TNFRSF4-203     retained_intron  0.415 2.20e-1 4.40e-1 YES    
-#> 6 ENST0000037923… TNFRSF4-201     protein_coding   0.374 2.27e-1 4.48e-1 YES    
+#>   transcript_id   transcript_name transcript_type  log2FC  pvalue qvalue DEG_sig
+#>   <chr>           <chr>           <chr>             <dbl>   <dbl>  <dbl> <chr>  
+#> 1 ENST0000045632… DDX11L1-202     processed_tran… -0.692  0.0199  0.0940 NO     
+#> 2 ENST0000048814… WASH7P-201      unprocessed_ps…  0.0731 0.652   0.812  NO     
+#> 3 ENST0000046643… AL627309.1-201  lncRNA          -0.146  0.364   0.590  NO     
+#> 4 ENST0000044298… CICP27-201      processed_pseu… -0.183  0.0841  0.242  NO     
+#> 5 ENST0000049414… AL627309.6-201  processed_pseu… -0.728  0.00599 0.0420 NO     
+#> 6 ENST0000059591… AL627309.7-201  processed_pseu… -0.0789 0.951   0.977  NO     
 #> # ℹ 1 more variable: gene_name <chr>
 ```
 
@@ -724,28 +724,28 @@ enrichment_df <- run_enrichment(
 head(enrichment_df)
 #>                                                         pathway        pval
 #>                                                          <char>       <num>
-#> 1:              REACTOME_ABC_FAMILY_PROTEINS_MEDIATED_TRANSPORT 0.002318708
-#> 2:                           REACTOME_ABC_TRANSPORTER_DISORDERS 0.015954605
-#> 3: REACTOME_ACROSOME_REACTION_AND_SPERM_OOCYTE_MEMBRANE_BINDING 0.041103909
-#> 4:                REACTOME_ACTIVATED_NTRK2_SIGNALS_THROUGH_PI3K 0.001092064
-#> 5:                 REACTOME_ACTIVATED_NTRK2_SIGNALS_THROUGH_RAS 0.010228677
-#> 6:                REACTOME_ACTIVATED_NTRK3_SIGNALS_THROUGH_PI3K 0.016072292
+#> 1:              REACTOME_ABC_FAMILY_PROTEINS_MEDIATED_TRANSPORT 0.001344109
+#> 2:                           REACTOME_ABC_TRANSPORTER_DISORDERS 0.016547731
+#> 3: REACTOME_ACROSOME_REACTION_AND_SPERM_OOCYTE_MEMBRANE_BINDING 0.033337706
+#> 4:                 REACTOME_ACTIVATED_NTRK2_SIGNALS_THROUGH_FYN 0.048309179
+#> 5:                REACTOME_ACTIVATED_NTRK2_SIGNALS_THROUGH_PI3K 0.001189413
+#> 6:                 REACTOME_ACTIVATED_NTRK2_SIGNALS_THROUGH_RAS 0.013771212
 #>          padj   log2err        ES      NES  size
 #>         <num>     <num>     <num>    <num> <int>
-#> 1: 0.04910905 0.4317077 0.3765657 1.454340   266
-#> 2: 0.14048374 0.3524879 0.3668391 1.372851   199
-#> 3: 0.24425776 0.3217759 0.7791019 1.514194     6
-#> 4: 0.03340908 0.4550599 0.7290550 1.898374    19
-#> 5: 0.10561109 0.3807304 0.6017849 1.665833    26
-#> 6: 0.14048374 0.3524879 0.7330366 1.639327    10
+#> 1: 0.03839855 0.4550599 0.3765657 1.458808   266
+#> 2: 0.14010162 0.3524879 0.3668391 1.380757   199
+#> 3: 0.22387760 0.3217759 0.7791019 1.519426     6
+#> 4: 0.26720113 0.2616635 0.6129485 1.522223    16
+#> 5: 0.03707379 0.4550599 0.7290550 1.869320    19
+#> 6: 0.13074737 0.3807304 0.6017849 1.685837    26
 #>                                                            leadingEdge
 #>                                                                 <list>
 #> 1:     OS9-209,PSMD7-204,PSMA5-206,UBC-205,ABCB1-201,UBA52-201,...[47]
 #> 2:    OS9-209,PSMD7-204,PSMA5-206,UBC-205,UBA52-201,ERLIN2-206,...[34]
 #> 3:                                     CD9-208,CD9-216,CD9-212,CD9-204
-#> 4: NTRK2-208,PIK3R1-202,PIK3R1-216,NTRK2-204,NTF4-203,GAB1-201,...[10]
-#> 5:                      NTRK2-208,NTRK2-204,NTF4-203,NTF4-201,SHC1-208
-#> 6:     PIK3R1-202,PIK3R1-216,PIK3R1-201,PIK3CA-205,IRS1-201,PIK3R1-211
+#> 4:                         NTRK2-208,NTRK2-204,FYN-201,FYN-212,FYN-204
+#> 5: NTRK2-208,PIK3R1-202,PIK3R1-216,NTRK2-204,NTF4-203,GAB1-201,...[10]
+#> 6:                      NTRK2-208,NTRK2-204,NTF4-203,NTF4-201,SHC1-208
 #>        experiment
 #>            <char>
 #> 1: protein_coding
@@ -1008,7 +1008,7 @@ sessionInfo()
 #>  [4] S4Vectors_0.50.1     BiocGenerics_0.58.1  generics_0.1.4      
 #>  [7] ggplot2_4.0.3        stringr_1.6.0        tidyr_1.3.2         
 #> [10] dplyr_1.2.1          readr_2.2.0          fs_2.1.0            
-#> [13] isoformic_0.1.2.9018
+#> [13] isoformic_0.1.2.9019
 #> 
 #> loaded via a namespace (and not attached):
 #>   [1] strawr_0.0.92                           
@@ -1050,7 +1050,7 @@ sessionInfo()
 #>  [37] AnnotationDbi_1.74.0                    
 #>  [38] RSQLite_3.53.3                          
 #>  [39] org.Hs.eg.db_3.23.1                     
-#>  [40] ggpubr_0.6.3                            
+#>  [40] ggpubr_1.0.0                            
 #>  [41] filelock_1.0.3                          
 #>  [42] labeling_0.4.3                          
 #>  [43] httr_1.4.8                              
