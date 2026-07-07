@@ -178,8 +178,8 @@ Convert to IsoformicExperiment object.
 iso <- as_isoformic(se_tx, gff_path)
 iso
 #> <IsoformicExperiment>
-#>  Experiment Name: 9d30ea984675a94b7f3f760fc43d4bfd
-#>  Data Path: /home/runner/.cache/R/isoformic/9d30ea984675a94b7f3f760fc43d4bfd
+#>  Experiment Name: 8cfae35ed7f0a8223eda10215885456f
+#>  Data Path: /home/runner/.cache/R/isoformic/8cfae35ed7f0a8223eda10215885456f
 #>  Assays: counts, abundance, length, infRep1, infRep2, infRep3, infRep4, infRep5, infRep6, infRep7, infRep8, infRep9, infRep10, infRep11, infRep12, infRep13, infRep14, infRep15, infRep16, infRep17, infRep18, infRep19, infRep20
 #>  Samples: 6
 #>  Transcripts in Assay: 111
@@ -208,8 +208,8 @@ head(tx_to_gene_df)
 # rowData(se_tx) <- row_data(iso)
 iso
 #> <IsoformicExperiment>
-#>  Experiment Name: 9d30ea984675a94b7f3f760fc43d4bfd
-#>  Data Path: /home/runner/.cache/R/isoformic/9d30ea984675a94b7f3f760fc43d4bfd
+#>  Experiment Name: 8cfae35ed7f0a8223eda10215885456f
+#>  Data Path: /home/runner/.cache/R/isoformic/8cfae35ed7f0a8223eda10215885456f
 #>  Assays: counts, abundance, length, infRep1, infRep2, infRep3, infRep4, infRep5, infRep6, infRep7, infRep8, infRep9, infRep10, infRep11, infRep12, infRep13, infRep14, infRep15, infRep16, infRep17, infRep18, infRep19, infRep20
 #>  Samples: 6
 #>  Transcripts in Assay: 111
@@ -258,16 +258,16 @@ de_tx(iso)
 #> # A tibble: 111 × 9
 #>    transcript_id      log10mean keep   stat log2FC pvalue locfdr qvalue det_sig
 #>    <chr>                  <dbl> <lgl> <dbl>  <dbl>  <dbl>  <dbl>  <dbl> <chr>  
-#>  1 ENST00000263341.7       3.59 TRUE   3.25   6.63 0.0665  0.535  0.216 no     
-#>  2 ENST00000651122.1       2.72 TRUE   3.5    4.91 0.0508  0.455  0.216 no     
-#>  3 ENST00000306602.3       2.44 TRUE  -3.3   -3.75 0.0646  0.526  0.216 no     
-#>  4 ENST00000392322.7       2.61 TRUE   2.45   2.62 0.182   0.980  0.472 no     
-#>  5 ENST00000698141.1       2.45 TRUE   2      2.24 0.300   1      0.599 no     
-#>  6 ENST00000697958.1       2.52 TRUE  -3.65  -2.01 0.0392  0.391  0.214 no     
-#>  7 ENST00000673858.1       2.18 TRUE   2.1    1.98 0.278   1      0.599 no     
-#>  8 ENST00000367468.10      2.92 TRUE   1.85   1.82 0.344   1      0.639 no     
-#>  9 ENST00000557389.1       2.75 TRUE  -3.85  -1.67 0.0373  0.380  0.214 no     
-#> 10 ENST00000330871.3       3.57 TRUE   1.5    1.63 0.419   1      0.641 no     
+#>  1 ENST00000263341.7       3.59 TRUE   3.25   6.63 0.0542  0.437  0.176 no     
+#>  2 ENST00000651122.1       2.72 TRUE   3.5    4.91 0.0431  0.380  0.176 no     
+#>  3 ENST00000306602.3       2.44 TRUE  -3.3   -3.75 0.0515  0.424  0.176 no     
+#>  4 ENST00000392322.7       2.61 TRUE   2.45   2.62 0.147   0.818  0.382 no     
+#>  5 ENST00000698141.1       2.45 TRUE   2      2.24 0.247   1      0.494 no     
+#>  6 ENST00000697958.1       2.52 TRUE  -3.65  -2.01 0.0335  0.327  0.176 no     
+#>  7 ENST00000673858.1       2.18 TRUE   2.1    1.98 0.232   1      0.494 no     
+#>  8 ENST00000367468.10      2.92 TRUE   1.85   1.82 0.300   1      0.555 no     
+#>  9 ENST00000557389.1       2.75 TRUE  -3.8   -1.67 0.0308  0.312  0.176 no     
+#> 10 ENST00000330871.3       3.57 TRUE   1.5    1.63 0.363   1      0.555 no     
 #> # ℹ 101 more rows
 ```
 

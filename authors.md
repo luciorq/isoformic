@@ -22,17 +22,20 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/luciorq/isoformic/blob/main/DESCRIPTION)
+[`inst/CITATION`](https://github.com/luciorq/isoformic/blob/main/inst/CITATION)
 
-Queiroz L, Queiroz L, Conceicao I, Mata-Machado C, Marchionni L, Franco
-G (2026). *isoformic: Isoform-Level Biological Interpretation of
-Transcriptomic Data*. R package version 0.1.2.9019,
-<https://github.com/luciorq/isoformic>.
+Mamede I, Queiroz L, Mata-Machado C, Rodrigues J, Luscher-Dias T, de
+Toledo N, Amaral P, Marchionni L, Franco G (2025). “Isoformic: a
+workflow for transcript-level RNA-seq interpretation.” *NAR Genomics and
+Bioinformatics*, **7**(4), lqaf176.
 
-    @Manual{,
-      title = {isoformic: Isoform-Level Biological Interpretation of Transcriptomic Data},
-      author = {Lucio Rezende Queiroz and Lucio Rezende Queiroz and Izabela Mamede Conceicao and Carlos Mata-Machado and Luigi Marchionni and Gloria Franco},
-      year = {2026},
-      note = {R package version 0.1.2.9019},
-      url = {https://github.com/luciorq/isoformic},
+    @Article{,
+      title = {Isoformic: a workflow for transcript-level RNA-seq interpretation},
+      author = {Izabela Mamede and Lucio R. Queiroz and Carlos Mata-Machado and Júlia Teixeira Rodrigues and Thomaz Luscher-Dias and Nayara E. {de Toledo} and Paulo P. Amaral and Luigi Marchionni and Gloria R. Franco},
+      journal = {NAR Genomics and Bioinformatics},
+      volume = {7},
+      number = {4},
+      pages = {lqaf176},
+      year = {2025},
+      publisher = {Oxford University Press},
     }
