@@ -9,6 +9,12 @@ Welcome to `isoformic`, a workflow for isoform-level biological interpretation o
 
 This workflow uses known annotated transcripts to produce biologically relevant results based on the different types of transcripts for any comparison of case versus control transcriptomic data.
 
+## Citation
+
+If you use `isoformic` in publications, please cite:
+
+Izabela Mamede, Lucio R Queiroz, Carlos Mata-Machado, Júlia Teixeira Rodrigues, Thomaz Luscher-Dias, Nayara E de Toledo, Paulo P Amaral, Luigi Marchionni, Gloria R Franco, **Isoformic**: a workflow for transcript-level RNA-seq interpretation, *NAR Genomics and Bioinformatics*, Volume 7, Issue 4, December 2025, lqaf176, [https://doi.org/10.1093/nargab/lqaf176](https://doi.org/10.1093/nargab/lqaf176)
+
 ## Installation
 
 ```r
