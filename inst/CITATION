@@ -1,0 +1,22 @@
+bibentry(
+  bibtype = "Article",
+  title = "Isoformic: a workflow for transcript-level RNA-seq interpretation",
+  author = c(
+    person("Izabela", "Mamede"),
+    person("Lucio R.", "Queiroz"),
+    person("Carlos", "Mata-Machado"),
+    person("Júlia Teixeira", "Rodrigues"),
+    person("Thomaz", "Luscher-Dias"),
+    person("Nayara E.", "de Toledo"),
+    person("Paulo P.", "Amaral"),
+    person("Luigi", "Marchionni"),
+    person("Gloria R.", "Franco")
+  ),
+  journal = "NAR Genomics and Bioinformatics",
+  volume = "7",
+  number = "4",
+  pages = "lqaf176",
+  year = "2025",
+  publisher = "Oxford University Press"
+)
+
