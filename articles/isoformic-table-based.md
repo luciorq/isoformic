@@ -722,22 +722,22 @@ enrichment_df <- run_enrichment(
   pval_cutoff = 0.05
 )
 head(enrichment_df)
-#>                                                         pathway        pval
-#>                                                          <char>       <num>
-#> 1:              REACTOME_ABC_FAMILY_PROTEINS_MEDIATED_TRANSPORT 0.001344109
-#> 2:                           REACTOME_ABC_TRANSPORTER_DISORDERS 0.016547731
-#> 3: REACTOME_ACROSOME_REACTION_AND_SPERM_OOCYTE_MEMBRANE_BINDING 0.033337706
-#> 4:                 REACTOME_ACTIVATED_NTRK2_SIGNALS_THROUGH_FYN 0.048309179
-#> 5:                REACTOME_ACTIVATED_NTRK2_SIGNALS_THROUGH_PI3K 0.001189413
-#> 6:                 REACTOME_ACTIVATED_NTRK2_SIGNALS_THROUGH_RAS 0.013771212
+#>                                                         pathway         pval
+#>                                                          <char>        <num>
+#> 1:              REACTOME_ABC_FAMILY_PROTEINS_MEDIATED_TRANSPORT 0.0029280881
+#> 2:                           REACTOME_ABC_TRANSPORTER_DISORDERS 0.0175428581
+#> 3: REACTOME_ACROSOME_REACTION_AND_SPERM_OOCYTE_MEMBRANE_BINDING 0.0399776498
+#> 4:                 REACTOME_ACTIVATED_NTRK2_SIGNALS_THROUGH_FYN 0.0453074434
+#> 5:                REACTOME_ACTIVATED_NTRK2_SIGNALS_THROUGH_PI3K 0.0008066094
+#> 6:                 REACTOME_ACTIVATED_NTRK2_SIGNALS_THROUGH_RAS 0.0109290440
 #>          padj   log2err        ES      NES  size
 #>         <num>     <num>     <num>    <num> <int>
-#> 1: 0.03839855 0.4550599 0.3765657 1.458808   266
-#> 2: 0.14010162 0.3524879 0.3668391 1.380757   199
-#> 3: 0.22387760 0.3217759 0.7791019 1.519426     6
-#> 4: 0.26720113 0.2616635 0.6129485 1.522223    16
-#> 5: 0.03707379 0.4550599 0.7290550 1.869320    19
-#> 6: 0.13074737 0.3807304 0.6017849 1.685837    26
+#> 1: 0.05924716 0.4317077 0.3765657 1.464342   266
+#> 2: 0.14563217 0.3524879 0.3668391 1.386226   199
+#> 3: 0.24551330 0.3217759 0.7791019 1.494412     6
+#> 4: 0.26098175 0.2712886 0.6129485 1.512092    16
+#> 5: 0.02971883 0.4772708 0.7290550 1.876910    19
+#> 6: 0.11723219 0.3807304 0.6017849 1.652312    26
 #>                                                            leadingEdge
 #>                                                                 <list>
 #> 1:     OS9-209,PSMD7-204,PSMA5-206,UBC-205,ABCB1-201,UBA52-201,...[47]

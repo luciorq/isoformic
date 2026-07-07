@@ -27,6 +27,9 @@ Authors:
 - Izabela Mamede Conceicao <iza.mamede@gmail.com>
   ([ORCID](https://orcid.org/0000-0002-0707-5588)) \[contributor\]
 
+- Carlos Mata-Machado <carlosaugustodmm@gmail.com>
+  ([ORCID](https://orcid.org/0009-0005-6615-6563)) \[contributor\]
+
 - Luigi Marchionni <lum4003@med.cornell.edu>
   ([ORCID](https://orcid.org/0000-0002-7336-8071)) \[contributor\]
 
