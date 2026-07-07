@@ -20,11 +20,12 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Lucio Rezende Queiroz \email{luciorqueiroz@gmail.com, lrq4001@med.cornell.edu} (\href{https://orcid.org/0000-0002-6090-1834}{ORCID}) [copyright holder]
+\strong{Maintainer}: Lucio Rezende Queiroz \email{luciorqueiroz@gmail.com} (\href{https://orcid.org/0000-0002-6090-1834}{ORCID}) [copyright holder]
 
 Authors:
 \itemize{
-  \item Lucio Rezende Queiroz \email{luciorqueiroz@gmail.com, lrq4001@med.cornell.edu} (\href{https://orcid.org/0000-0002-6090-1834}{ORCID}) [copyright holder]
+  \item Lucio Rezende Queiroz \email{luciorqueiroz@gmail.com} (\href{https://orcid.org/0000-0002-6090-1834}{ORCID}) [copyright holder]
+  \item Lucio Rezende Queiroz \email{lrq4001@med.cornell.edu} [contributor]
   \item Izabela Mamede Conceicao \email{iza.mamede@gmail.com} (\href{https://orcid.org/0000-0002-0707-5588}{ORCID}) [contributor]
   \item Carlos Mata-Machado \email{carlosaugustodmm@gmail.com} (\href{https://orcid.org/0009-0005-6615-6563}{ORCID}) [contributor]
   \item Luigi Marchionni \email{lum4003@med.cornell.edu} (\href{https://orcid.org/0000-0002-7336-8071}{ORCID}) [contributor]
