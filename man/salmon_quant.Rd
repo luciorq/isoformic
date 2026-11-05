@@ -10,7 +10,7 @@ salmon_quant(
   index_path = "salmon_index",
   output_dir = "quant_output",
   num_threads = 8,
-  num_gibbs = 100,
+  num_gibbs = 30,
   min_score_fraction = "0.65",
   env_name = "salmon-env"
 )
@@ -29,8 +29,11 @@ salmon_quant(
 
 \item{num_threads}{Number of threads to use (default is 8).}
 
-\item{num_gibbs}{Number of Gibbs samples for uncertainty estimation
-(default is 100).}
+\item{num_gibbs}{Number of Gibbs samples (inferential replicates) drawn per
+sample (default is 30). They quantify how well each transcript abundance is
+determined by the reads and are used by \code{\link[=add_uncertainty]{add_uncertainty()}} and by \code{swish};
+30 is enough for those summaries, and more only costs time and disk space.
+Set it to \code{0} to skip them.}
 
 \item{min_score_fraction}{Minimum score fraction for alignments
 (default is "0.65").}
@@ -44,4 +47,14 @@ processx style output list.
 \description{
 Perform transcript quantification using Salmon's
 selective-alignment-based mode from raw RNA-seq reads.
+}
+\details{
+The command enables the sequence, GC and positional bias corrections,
+allows dovetailing mates and soft-clipped overhangs, writes the
+equivalence classes with their weights (\code{--dumpEq --dumpEqWeights}) and
+draws \code{num_gibbs} Gibbs samples (\verb{aux_info/bootstrap/}) so that
+inferential replicates are available for \code{swish}. Selective alignment and
+the variational Bayes optimiser are Salmon defaults and are not passed
+explicitly; Salmon 2 quantifies deterministically (identical output for
+any thread count). Single-end reads are passed with \code{--unmatedReads}.
 }

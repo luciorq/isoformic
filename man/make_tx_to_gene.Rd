@@ -2,43 +2,44 @@
 % Please edit documentation in R/make_tx_to_gene.R
 \name{make_tx_to_gene}
 \alias{make_tx_to_gene}
-\title{Create Transcript-to-Gene Relationship Table}
+\title{Create a Transcript-to-Gene Mapping Table}
 \usage{
-make_tx_to_gene(file_path, file_type = c("fasta", "gff", "gtf"))
+make_tx_to_gene(
+  file_path,
+  file_type = c("auto", "fasta", "gff", "gtf"),
+  output_path = NULL
+)
 }
 \arguments{
-\item{file_path}{A character string specifying the path to the reference file (e.g., GENCODE FASTA file).}
+\item{file_path}{Path to a FASTA (\code{.fa}, \code{.fasta}, optionally \code{.gz}),
+GFF3 or GTF file, or to an annotation directory.}
 
-\item{file_type}{A character string specifying the type of the reference file. Currently, only \code{"fasta"} is supported.
-Default is \code{"fasta"}.}
+\item{file_type}{\code{"auto"} (default) detects the format from the file
+extension; otherwise one of \code{"fasta"}, \code{"gff"}, \code{"gtf"}.}
+
+\item{output_path}{Passed to \code{\link[=prepare_isoformic_annotation]{prepare_isoformic_annotation()}} for
+GFF3/GTF inputs.}
 }
 \value{
-A \code{tibble} containing the transcript-to-gene mapping information, including transcript IDs, gene IDs,
-transcript names, gene names, and transcript types.
+A tibble with columns \code{transcript_id}, \code{gene_id},
+\code{havana_gene_id}, \code{havana_transcript_id}, \code{transcript_name},
+\code{gene_name}, \code{tx_length} and \code{transcript_type}. The Havana columns are
+\code{NA} for GFF3/GTF inputs.
 }
 \description{
-Extracts a transcript-to-gene mapping table from GENCODE annotation files, such as the transcriptome FASTA file.
-Currently, only FASTA files are supported.
+Builds a transcript-to-gene table from a GENCODE transcriptome FASTA
+file (parsing the \code{|}-separated headers) or from a GFF3/GTF annotation
+(through \code{\link[=prepare_isoformic_annotation]{prepare_isoformic_annotation()}}). Parsing is done by DuckDB,
+so a full GENCODE FASTA (about 250,000 headers, gzip-compressed) takes a
+couple of seconds.
 }
 \details{
-The function reads the headers of the FASTA file and extracts relevant information to create a mapping table.
-For GTF or GFF3 files, support is not yet implemented.
+With an \link{IsoformicExperiment} object, use \code{\link[=tx_to_gene]{tx_to_gene()}} or \code{\link[=tx_annot]{tx_annot()}},
+which read the same information from the annotation directory.
 }
 \examples{
-\dontrun{
-# Assuming you have downloaded the GENCODE transcriptome FASTA file:
-fasta_file <- download_reference(
-  version = "43",
-  organism = "human",
-  file_type = "fasta",
-  output_path = "data-raw"
-)
-
-# Create the transcript-to-gene mapping table
-tx_to_gene <- make_tx_to_gene(file_path = fasta_file, file_type = "fasta")
-
-# View the first few rows
-utils::head(tx_to_gene)
-}
+gff <- system.file("extdata", "example.gff3", package = "isoformic")
+tx2gene <- make_tx_to_gene(gff, output_path = tempdir())
+head(tx2gene)
 
 }

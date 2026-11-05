@@ -8,7 +8,7 @@
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-Isoform-level biological interpretation of transcriptomic data.
+Isoform-level biological interpretation of transcriptomic data. Provides the 'IsoformicExperiment' class, a disk-backed (Parquet) container holding transcript, gene and exon level data for the same samples, fast DuckDB based readers for annotations and quantifications, summaries of isoform usage and diversity, and plots of isoform-level differential expression, expression profiles and genomic context.
 }
 \seealso{
 Useful links:
@@ -25,7 +25,6 @@ Useful links:
 Authors:
 \itemize{
   \item Lucio Rezende Queiroz \email{luciorqueiroz@gmail.com} (\href{https://orcid.org/0000-0002-6090-1834}{ORCID}) [copyright holder]
-  \item Lucio Rezende Queiroz \email{lrq4001@med.cornell.edu} [contributor]
   \item Izabela Mamede Conceicao \email{iza.mamede@gmail.com} (\href{https://orcid.org/0000-0002-0707-5588}{ORCID}) [contributor]
   \item Carlos Mata-Machado \email{carlosaugustodmm@gmail.com} (\href{https://orcid.org/0009-0005-6615-6563}{ORCID}) [contributor]
   \item Luigi Marchionni \email{lum4003@med.cornell.edu} (\href{https://orcid.org/0000-0002-7336-8071}{ORCID}) [contributor]

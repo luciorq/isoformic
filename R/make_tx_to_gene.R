@@ -1,74 +1,126 @@
-#' Create Transcript-to-Gene Relationship Table
+#' Create a Transcript-to-Gene Mapping Table
 #'
-#' Extracts a transcript-to-gene mapping table from GENCODE annotation files, such as the transcriptome FASTA file.
-#' Currently, only FASTA files are supported.
+#' Builds a transcript-to-gene table from a GENCODE transcriptome FASTA
+#' file (parsing the `|`-separated headers) or from a GFF3/GTF annotation
+#' (through [prepare_isoformic_annotation()]). Parsing is done by DuckDB,
+#' so a full GENCODE FASTA (about 250,000 headers, gzip-compressed) takes a
+#' couple of seconds.
 #'
-#' @param file_path A character string specifying the path to the reference file (e.g., GENCODE FASTA file).
-#' @param file_type A character string specifying the type of the reference file. Currently, only `"fasta"` is supported.
-#'   Default is `"fasta"`.
+#' With an [IsoformicExperiment] object, use [tx_to_gene()] or [tx_annot()],
+#' which read the same information from the annotation directory.
 #'
-#' @returns A `tibble` containing the transcript-to-gene mapping information, including transcript IDs, gene IDs,
-#'   transcript names, gene names, and transcript types.
+#' @param file_path Path to a FASTA (`.fa`, `.fasta`, optionally `.gz`),
+#'   GFF3 or GTF file, or to an annotation directory.
+#' @param file_type `"auto"` (default) detects the format from the file
+#'   extension; otherwise one of `"fasta"`, `"gff"`, `"gtf"`.
+#' @param output_path Passed to [prepare_isoformic_annotation()] for
+#'   GFF3/GTF inputs.
 #'
-#' @details
-#' The function reads the headers of the FASTA file and extracts relevant information to create a mapping table.
-#' For GTF or GFF3 files, support is not yet implemented.
+#' @returns A tibble with columns `transcript_id`, `gene_id`,
+#'   `havana_gene_id`, `havana_transcript_id`, `transcript_name`,
+#'   `gene_name`, `tx_length` and `transcript_type`. The Havana columns are
+#'   `NA` for GFF3/GTF inputs.
 #'
 #' @examples
-#' \dontrun{
-#' # Assuming you have downloaded the GENCODE transcriptome FASTA file:
-#' fasta_file <- download_reference(
-#'   version = "43",
-#'   organism = "human",
-#'   file_type = "fasta",
-#'   output_path = "data-raw"
-#' )
-#'
-#' # Create the transcript-to-gene mapping table
-#' tx_to_gene <- make_tx_to_gene(file_path = fasta_file, file_type = "fasta")
-#'
-#' # View the first few rows
-#' utils::head(tx_to_gene)
-#' }
+#' gff <- system.file("extdata", "example.gff3", package = "isoformic")
+#' tx2gene <- make_tx_to_gene(gff, output_path = tempdir())
+#' head(tx2gene)
 #'
 #' @export
 make_tx_to_gene <- function(
   file_path,
-  file_type = c("fasta", "gff", "gtf")
+  file_type = c("auto", "fasta", "gff", "gtf"),
+  output_path = NULL
 ) {
   file_type <- rlang::arg_match(file_type)
-  assert_file_exists(file_path)
-  if (isTRUE(file_type == "fasta")) {
-    fasta_lines <- readr::read_lines(file_path)
-    vector_detect <- stringr::str_detect(fasta_lines, "^>.")
-    header_table <- fasta_lines[vector_detect]
-    header_table <- header_table |>
-      tibble::as_tibble() |>
-      tidyr::separate(
-        .data[["value"]],
-        into = paste0("col_", 1:9),
-        sep = "\\|"
-      ) |>
-      dplyr::select(-c("col_9"))
-    header_table$col_1 <- stringr::str_remove(header_table$col_1, ">")
-  } else if (isTRUE(file_type == "gff")) {
-    # TODO: @luciorq Actually implement parsing GFF3 and GTF files
-    cli::cli_abort(
-      c(
-        `x` = "{.var GTF} and {.var GFF3} files are not supported yet.",
-        `!` = "Use the GENCODE {.var FASTA} file."
-      )
-    )
+  if (is_annotation_dir(file_path)) {
+    return(tx_to_gene_from_annotation(file_path))
   }
-  names(header_table) <- c(
+  assert_file_exists(file_path)
+  if (identical(file_type, "auto")) {
+    ext <- tolower(fs::path_ext(sub("\\.(gz|bgz|zst|bz2)$", "", file_path)))
+    file_type <- if (ext %in% c("fa", "fasta", "fna")) {
+      "fasta"
+    } else {
+      detect_annotation_type(file_path)
+    }
+  }
+  if (identical(file_type, "fasta")) {
+    return(tx_to_gene_from_fasta(file_path))
+  }
+  annot_dir <- prepare_isoformic_annotation(
+    input_path = file_path,
+    output_path = output_path,
+    file_type = file_type
+  )
+  tx_to_gene_from_annotation(annot_dir)
+}
+
+tx_to_gene_cols <- function() {
+  c(
     "transcript_id",
     "gene_id",
-    "havanna_gene_id",
-    "havanna_transcript_id",
+    "havana_gene_id",
+    "havana_transcript_id",
     "transcript_name",
     "gene_name",
     "tx_length",
     "transcript_type"
   )
-  return(header_table)
+}
+
+#' Parse GENCODE FASTA headers with DuckDB
+#' @keywords internal
+#' @noRd
+tx_to_gene_from_fasta <- function(file_path) {
+  file_path <- as.character(fs::path_abs(file_path))
+  con <- duckdb_connect()
+  sql <- glue::glue_sql(
+    "WITH headers AS (
+      SELECT substr(line, 2) AS header
+      FROM read_csv(
+        {file_path},
+        delim = '\t', header = false, auto_detect = false,
+        quote = '', escape = '', columns = {{'line': 'VARCHAR'}}
+      )
+      WHERE line LIKE '>%'
+    )
+    SELECT
+      split_part(header, '|', 1) AS transcript_id,
+      nullif(split_part(header, '|', 2), '') AS gene_id,
+      nullif(split_part(header, '|', 3), '') AS havana_gene_id,
+      nullif(split_part(header, '|', 4), '') AS havana_transcript_id,
+      nullif(split_part(header, '|', 5), '') AS transcript_name,
+      nullif(split_part(header, '|', 6), '') AS gene_name,
+      TRY_CAST(split_part(header, '|', 7) AS INTEGER) AS tx_length,
+      nullif(split_part(header, '|', 8), '') AS transcript_type
+    FROM headers",
+    .con = con
+  )
+  res <- tibble::as_tibble(DBI::dbGetQuery(con, sql))
+  if (!nrow(res)) {
+    cli::cli_abort(
+      message = c(x = "No FASTA headers found in {.path {file_path}}."),
+      class = "isoformic_fasta_no_headers"
+    )
+  }
+  res
+}
+
+#' Transcript-to-gene table from an annotation directory
+#' @keywords internal
+#' @noRd
+tx_to_gene_from_annotation <- function(annot_dir) {
+  transcripts <- read_annotation_table(annot_dir, "transcripts")
+  genes <- read_annotation_table(annot_dir, "genes")
+  transcripts |>
+    dplyr::left_join(
+      genes[, c("gene_id", "gene_name")],
+      by = "gene_id"
+    ) |>
+    dplyr::mutate(
+      havana_gene_id = NA_character_,
+      havana_transcript_id = NA_character_
+    ) |>
+    dplyr::select(dplyr::all_of(tx_to_gene_cols()))
 }

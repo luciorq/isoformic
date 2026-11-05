@@ -1,0 +1,7 @@
+chr1	FANTOM	gene	47082703	47083645	.	+	.	gene_id "CATG00000000004.1"; geneSuperClass "all_lncRNA";  geneClass "lncRNA_divergent";  geneSubClass "divergent_promoters"; gene_type "__na"; gene_name "CATG00000000004.1"; coding_status "nonCoding"; cumulative_support "ENCODE"; geneCategory "p_lncRNA_divergent"; DHS_type "DHS_promoter";
+chr1	FANTOM	transcript	47082703	47083645	.	+	.	gene_id "CATG00000000004.1"; transcript_id "ENCT00000005542.1"; transcript_type "__na"; transcript_name "__na"; coding_status "nonCoding"; cumulative_support "ENCODE"; TIEScore "60.31233";
+chr1	FANTOM	exon	47082703	47083645	.	+	.	gene_id "CATG00000000004.1"; transcript_id "ENCT00000005542.1"; exon_number 1;
+chr1	FANTOM	gene	100000	110000	.	-	.	gene_id "ENSG00000999999.1"; geneSuperClass "mRNA";  geneClass "coding_mRNA";  geneSubClass "coding_mRNA"; gene_type "protein_coding"; gene_name "GENEX"; coding_status "coding"; cumulative_support "GENCODE"; geneCategory "__na"; DHS_type "DHS_promoter";
+chr1	FANTOM	transcript	100000	110000	.	-	.	gene_id "ENSG00000999999.1"; transcript_id "ENST00000999999.1"; transcript_type "protein_coding"; transcript_name "GENEX-201"; coding_status "coding"; cumulative_support "GENCODE"; TIEScore "80.5";
+chr1	FANTOM	exon	100000	100500	.	-	.	gene_id "ENSG00000999999.1"; transcript_id "ENST00000999999.1"; exon_number 2;
+chr1	FANTOM	exon	109000	110000	.	-	.	gene_id "ENSG00000999999.1"; transcript_id "ENST00000999999.1"; exon_number 1;

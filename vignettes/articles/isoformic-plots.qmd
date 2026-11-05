@@ -1,0 +1,110 @@
+---
+title: "Plots"
+date: 2026-10-17
+date-modified: 2026-10-17
+date-format: long
+author:
+  - name: Izabela Mamede Conceição
+  - name: Lucio Rezende Queiroz
+format:
+  html:
+    toc: true
+bibliography: library.bib
+vignette: |
+  %\VignetteIndexEntry{Plots}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: "#>"
+    fig-width: 8
+    fig-height: 5
+---
+
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Three plots show a gene and its isoforms from three angles: the fold-change of each isoform next to that of the gene, the expression of each isoform across conditions and the exon-intron structure of each isoform along the genome.
+All of them are `ggplot2` objects and take an `IsoformicExperiment` (or the equivalent table, see [working with plain tables](isoformic-tables.html)).
+
+They start from the object built in the [introduction](isoformic-introduction.html):
+
+```{r}
+#| message: false
+library(isoformic)
+
+extdata <- fs::path_package("isoformic", "extdata")
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+iso <- IsoformicExperiment(
+  experiment_name = "preeclampsia_placenta",
+  annot_path = annot_dir,
+  assays = list(abundance = read_parquet(fs::path(extdata, "pe_abundance.parquet"))),
+  col_data = read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+)
+de_tx(iso) <- read_parquet(fs::path(extdata, "pe_det.parquet"))
+de_gene(iso) <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+```
+
+## Log2 fold-change plot
+
+`plot_log2fc()` compares the fold-change of a gene with that of each of its transcripts, coloured by transcript type and faded when not significant.
+Several genes give one panel each.
+
+```{r}
+plot_log2fc(iso, feature = "RBPJ")
+plot_log2fc(iso, feature = c("RBPJ", "EGFR", "PNCK"), ncol = 3)
+```
+
+The colours come from `tx_type_palette()` and can be replaced through the `tx_type_palette` property of the object; `productivity_palette()` colours the productivity classes the same way.
+
+```{r}
+tx_type_palette()
+```
+
+## Expression profile plot
+
+`plot_tx_expr()` shows the mean expression of a gene and of each of its isoforms in every condition, with standard deviations, so that isoform switches become visible as crossing lines.
+
+```{r}
+plot_tx_expr(iso, gene_name = "RBPJ", group = "condition")
+plot_tx_expr(iso, gene_name = c("IL2RA", "EGFR"), group = "condition", ncol = 2)
+```
+
+The underlying table is available with `profile_data()`.
+
+```{r}
+head(profile_data(iso, gene_name = "RBPJ", group = "condition"))
+```
+
+## Genomic context plot
+
+`plot_genomic_context()` draws the exon-intron structure of every annotated isoform of a gene along the genome, coloured by transcript type, labelled with its mean expression and outlined when differentially expressed.
+Poison exons (see the [productivity article](isoformic-productivity.html)) are outlined as well.
+
+```{r}
+#| fig-height: 7
+plot_genomic_context(iso, gene_name = "FLT1")
+```
+
+```{r}
+#| fig-height: 9
+plot_genomic_context(iso, gene_name = "EGFR")
+```
+
+`upstream_offset` widens the window, for example to show a neighbouring gene:
+
+```{r}
+#| fig-height: 6
+plot_genomic_context(iso, gene_name = "XIST", upstream_offset = 100000)
+```
+
+## Session information
+
+```{r}
+#| label: session-info
+sessionInfo()
+```

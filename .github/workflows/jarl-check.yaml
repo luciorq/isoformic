@@ -1,0 +1,24 @@
+# Lint R sources with jarl <https://jarl.etiennebacher.com>; rules are set in
+# `jarl.toml` at the repository root.
+---
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+name: jarl-check
+
+permissions: read-all
+
+jobs:
+  jarl-check:
+    name: jarl-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: etiennebacher/setup-jarl@v0.1.1
+        with:
+          args: check
+          src: .

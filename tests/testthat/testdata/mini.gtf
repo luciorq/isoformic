@@ -1,0 +1,10 @@
+#!genome-build GRCh38
+chr1	HAVANA	gene	100	5000	.	+	.	gene_id "gene1"; gene_type "protein_coding"; gene_name "GENEA"; level 2;
+chr1	HAVANA	transcript	100	5000	.	+	.	gene_id "gene1"; transcript_id "tx1"; gene_type "protein_coding"; gene_name "GENEA"; transcript_type "protein_coding"; transcript_name "GENEA-201"; level 2;
+chr1	HAVANA	exon	100	200	.	+	.	gene_id "gene1"; transcript_id "tx1"; gene_name "GENEA"; transcript_type "protein_coding"; exon_number 1; exon_id "exon1";
+chr1	HAVANA	exon	300	400	.	+	.	gene_id "gene1"; transcript_id "tx1"; gene_name "GENEA"; transcript_type "protein_coding"; exon_number 2; exon_id "exon2";
+chr1	HAVANA	transcript	600	5000	.	+	.	gene_id "gene1"; transcript_id "tx2"; gene_type "protein_coding"; gene_name "GENEA"; transcript_type "retained_intron"; transcript_name "GENEA-202";
+chr1	HAVANA	exon	600	700	.	+	.	gene_id "gene1"; transcript_id "tx2"; gene_name "GENEA"; transcript_type "retained_intron"; exon_number 1; exon_id "exon3";
+chr2	HAVANA	gene	1	1000	.	-	.	gene_id "gene2"; gene_type "protein_coding"; gene_name "GENEB";
+chr2	HAVANA	transcript	1	1000	.	-	.	gene_id "gene2"; transcript_id "tx3"; gene_type "protein_coding"; gene_name "GENEB"; transcript_type "protein_coding"; transcript_name "GENEB-201";
+chr2	HAVANA	exon	1	100	.	-	.	gene_id "gene2"; transcript_id "tx3"; gene_name "GENEB"; transcript_type "protein_coding"; exon_number 1; exon_id "exon4";

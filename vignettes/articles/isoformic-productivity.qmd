@@ -1,0 +1,182 @@
+---
+title: "Isoform structure and productivity"
+date: 2026-10-17
+date-modified: 2026-10-17
+date-format: long
+author:
+  - name: Lucio Rezende Queiroz
+  - name: Izabela Mamede Conceição
+format:
+  html:
+    toc: true
+bibliography: library.bib
+vignette: |
+  %\VignetteIndexEntry{Isoform structure and productivity}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: "#>"
+    fig-width: 8
+    fig-height: 5
+---
+
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Not every isoform of a coding gene makes the protein.
+Retained introns, poison exons and shifted stop codons produce transcripts that are degraded by nonsense-mediated decay (NMD) or translated into a different protein.
+This article derives the open reading frame (ORF) of every isoform, classifies each one as productive or not, quantifies the productive share of each gene's expression, tests its change between conditions and brings in external evidence of translation and decay.
+
+It starts from the object built in the [introduction](isoformic-introduction.html):
+
+```{r}
+#| message: false
+library(isoformic)
+library(dplyr)
+
+extdata <- fs::path_package("isoformic", "extdata")
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+iso <- IsoformicExperiment(
+  experiment_name = "preeclampsia_placenta",
+  annot_path = annot_dir,
+  assays = list(abundance = read_parquet(fs::path(extdata, "pe_abundance.parquet"))),
+  col_data = read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+)
+de_tx(iso) <- read_parquet(fs::path(extdata, "pe_det.parquet"))
+de_gene(iso) <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+```
+
+## Structural features from the annotation
+
+Beyond the biotype label, `transcript_features()` derives from the exon and CDS coordinates the ORF and UTR lengths, the distance from the stop codon to the last exon junction (the 50-nt rule of NMD), the promoter and 3'-end groups of each gene, the canonical isoform (MANE Select or Ensembl canonical) and the splicing events of every isoform relative to it:
+
+```{r}
+feats <- transcript_features(iso, gene_name = "RBPJ")
+feats[, c("transcript_name", "orf_length", "utr3_length", "stop_to_last_junction", "nmd_predicted", "tss_group", "n_skipped_exons", "n_retained_introns")]
+```
+
+## Productivity calls
+
+`transcript_productivity()` turns those features into a graded call, each with its reason:
+
+- `productive`: complete ORF identical to the canonical one;
+- `altered_productive`: complete ORF, no NMD, but a different protein;
+- `unproductive`: no ORF, NMD predicted or an unproductive biotype;
+- `noncoding`;
+- `uncertain`: not enough information (for example an incomplete CDS annotation).
+
+`productive_fraction()` is the share of a gene's expression carried by productive isoforms, per condition, with its change.
+A gene whose total expression is flat while its productive fraction falls is regulated post-transcriptionally.
+
+```{r}
+prod <- transcript_productivity(iso)
+table(prod$productivity)
+pf <- productive_fraction(iso, group = "condition")
+head(pf)
+```
+
+## Sequence-aware ORFs
+
+The annotation only describes the CDS it was given, and novel transcripts have none.
+`extract_transcript_sequences()` adds the spliced sequence of every transcript to an annotation directory, from a genome FASTA (which also covers novel transcripts of long-read or assembly annotations) or, as here, from the matching GENCODE transcript FASTA (the bundled `example_isoformic()` annotation already carries them).
+
+With sequences, `transcript_orfs()` projects the canonical start codon of each gene onto every isoform and translates it, so the ORF, its stop codon, upstream ORFs, the frame relative to the canonical protein and the NMD class are computed rather than read from the annotation, and `transcript_productivity()` reports `source = "sequence"`:
+
+```{r}
+fasta_file <- download_reference(version = "33", file_type = "fasta")
+extract_transcript_sequences(annot_dir, transcript_fasta = fasta_file)
+has_sequences(iso)
+orfs <- transcript_orfs(iso, gene_name = "RBPJ")
+orfs[, c("transcript_name", "orf_source", "orf_length", "stop_codon", "nmd_class", "n_uorf", "frame_vs_canonical", "coding_probability")]
+prod <- transcript_productivity(iso, gene_name = "RBPJ")
+prod[, c("transcript_name", "productivity", "reason", "source")]
+```
+
+`orf_source` records where the ORF came from: `annotation` (the annotated CDS, re-read from the sequence), `projected` (the canonical start codon projected onto the isoform), `annotation_partial` (a CDS flagged incomplete), `longest` (the longest ORF, when nothing could be projected) or `none`.
+`coding_probability` comes from a Fickett + hexamer logistic model trained on GENCODE coding and lncRNA transcripts; it decides whether a longest ORF is believable.
+
+`benchmark_productivity()` measures the rules against the annotation biotypes: how many `nonsense_mediated_decay` and `retained_intron` transcripts the sequence rules alone call unproductive, and how many coding and canonical transcripts they call productive:
+
+```{r}
+benchmark_productivity(iso)$summary
+```
+
+## Fractions, tests and uncertainty
+
+`productivity_fractions()` splits each gene's expression over the classes and, for unproductive isoforms, over the mechanism (NMD, retained intron, no ORF, non-stop decay).
+
+`test_productive_fraction()` tests the change in productive fraction between two groups with a quasi-binomial model per gene.
+It runs on the `counts` assay when the object has one; this object only carries TPM, so the test is run on abundances here.
+
+```{r}
+head(productivity_fractions(iso, group = "condition"))
+head(test_productive_fraction(iso, group = "condition", assay = "abundance"))
+```
+
+`productive_fraction()` also accepts an expression floor (`min_expr`), Salmon inferential replicates (`inf_reps`, or `metadata(iso)$inf_reps`) for the uncertainty of each fraction, and a healthy-tissue `reference` from GTEx (below).
+
+## Poison exons and enrichment
+
+Genes ranked by the change in productive fraction can be tested for enrichment directly, which targets regulated unproductive splicing such as AS-NMD.
+Exons found only in unproductive isoforms (poison exons) are listed by `poison_exons()` and outlined in the genomic context plot:
+
+```{r}
+#| warning: false
+genesets <- read_gmt(fs::path(extdata, "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"))
+set.seed(42)
+prod_enrichment <- run_productivity_enrichment(iso, genesets, group = "condition")
+head(prod_enrichment[order(prod_enrichment$padj), c("pathway", "NES", "padj")])
+poison <- poison_exons(iso)
+head(poison)
+```
+
+```{r}
+#| fig-height: 7
+plot_genomic_context(iso, gene_name = unique(poison$gene_name)[1])
+```
+
+## External evidence from frozen datasets
+
+Observed translation and decay beat rules.
+The package pins versioned evidence tables (`frozen_datasets()`) that are downloaded once from the first mirror that has them, or rebuilt from their sources (`data-raw/README.md` in the repository documents the procedure), and joined into the annotation; `transcript_productivity()` then reports `source = "evidence"` for the transcripts they cover:
+
+```{r}
+frozen_datasets()[, c("name", "version")]
+```
+
+```{r}
+#| eval: false
+add_appris(iso)          # APPRIS principal isoforms and method scores
+add_riboseq_orfs(iso)    # GENCODE Ribo-seq ORFs: translated main ORFs and uORFs
+add_nmd_exons(iso)       # NMD-inducing exons validated by NMD inhibition
+transcript_productivity(iso, gene_name = "RBPJ")[, c("transcript_name", "productivity", "reason", "source")]
+
+# Pfam domains retained, partial or lost relative to the canonical isoform
+domain_retention(iso, gene_name = "RBPJ")
+
+# Healthy-tissue baseline: productive fraction and dominant isoform in GTEx
+ref <- gtex_reference(iso, tissue = "Whole Blood")
+productive_fraction(iso, group = "condition", reference = ref)
+```
+
+The evidence columns are consulted in a fixed order: a `productivity_evidence` column overrides everything, then a validated NMD exon, then a translated main ORF, then APPRIS principal status.
+Any other per-transcript evidence is attached with `add_annotation_columns()`.
+
+To reproduce an analysis with one deposit of the frozen files, pin the mirror before calling the `add_*()` functions (see `?isoformic-options`):
+
+```{r}
+#| eval: false
+options(isoformic.frozen_mirrors = "https://zenodo.org/records/<record>/files/")
+```
+
+## Session information
+
+```{r}
+#| label: session-info
+sessionInfo()
+```

@@ -1,0 +1,5 @@
+chr1	HAVANA	gene	100	5000	.	+	.	gene_id "gene1"; gene_type "protein_coding"; gene_name "GENEA";
+chr1	HAVANA	transcript	100	5000	.	+	.	gene_id "gene1"; transcript_id "tx1"; gene_type "protein_coding"; gene_name "GENEA"; transcript_type "protein_coding"; transcript_name "GENEA-201"; tag "basic"; tag "MANE_Select"; tag "CCDS";
+chr1	HAVANA	exon	100	200	.	+	.	gene_id "gene1"; transcript_id "tx1"; exon_number 1; exon_id "exon1";
+chr1	HAVANA	transcript	600	5000	.	+	.	gene_id "gene1"; transcript_id "tx2"; gene_type "protein_coding"; gene_name "GENEA"; transcript_type "retained_intron"; transcript_name "GENEA-202"; tag "basic";
+chr1	HAVANA	exon	600	700	.	+	.	gene_id "gene1"; transcript_id "tx2"; exon_number 1; exon_id "exon3";

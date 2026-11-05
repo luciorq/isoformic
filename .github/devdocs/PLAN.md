@@ -1,273 +1,333 @@
-# isoformic — Code Review & Remediation Plan
+# Plan: next steps for isoform-level analysis
 
-Date: 2026-07-06
-Scope: Full review of `DESCRIPTION`, `NAMESPACE`, and all files under `R/`
-(33 files, ~3,830 lines), plus `tests/testthat/`.
+Started 2026-10-23. Status values: `todo`, `doing`, `done`, `blocked`.
+Update the table and tick the boxes as work lands; add a line to the log at
+the bottom for every decision or surprise.
 
-Methodology: manual read of every file in `R/`, static analysis with
-`lintr::lint_dir()`, dead-code detection with `codetools::checkUsage()`,
-and direct execution of suspicious expressions in R to confirm (not just
-suspect) bugs.
+## Overview
 
-> **Implementation status (2026-07-06): Phases 1-3 fully implemented,
-> Phase 4 (tests) mostly implemented.** See `TODO.md` for the detailed,
-> item-by-item checklist of what was completed. Summary:
-> - All 6 confirmed functional bugs in §2.1 were fixed.
-> - All 3 metadata/CRAN-readiness issues in §1 were fixed.
-> - All DRY/NSE/performance items in §2.2-§2.6 were addressed.
-> - `styler`/`air format` were run manually; explicit `return()` calls
->   are kept intentionally (project style preference).
-> - The test suite grew from 55 to 125 passing tests.
-> - `devtools::check()` now reports **0 errors, 0 warnings, 0 notes**.
-> - Not done: unit tests for `prepare_annotation()`,
->   `prepare_annotation_db()`, `run_enrichment()`, `ContextData()`, and
->   the `plotgardener`-based plotting functions (deferred — see TODO.md).
+| ID | Workstream | Deliverable | Status |
+|----|------------|-------------|--------|
+| A | Differential transcript usage | `test_usage()` with `diffsplice`, `satuRn` and `DEXSeq` backends on the uncertainty-scaled counts, benchmarked on the read-split data | done |
+| B | Terminus groups | `read_terminus_groups()` and custom groups in `add_uncertainty()` / `de_confidence()`, compared with the correlation groups | done |
+| C | Long-read replicates (Oarfish) | `read_oarfish()` and Parquet replicates in `read_inferential_replicates()`, validated on real Oarfish output | done |
+| D | IsoformSwitchAnalyzeR v2 comparison | Switch calls of `isoform_switches()` against ISAR v2 on GSE129540, written up | done |
+| E | Wrap-up | Docs, NEWS, article, ARCHITECTURE, full verification | done |
+| F | Usage tests for more than two groups | `test_usage()` with several levels: each level against the reference or all pairs, one fit per backend where it allows | done |
+| H | Omnibus usage test | `contrasts = "omnibus"`: DEXSeq likelihood-ratio test over all groups; Simes over the contrasts against the reference for diffSplice and satuRn | done |
+| I | Oarfish single-cell | Read the single-cell output of Oarfish (real output from a simulated tagged BAM) and pseudobulk it into an IsoformicExperiment | done |
+| J | Test everything | Coverage of the new code, the unrun script branches run for real, examples, edge cases | done |
+| K | TreeTerminus | `read_treeterminus()` and `cut_transcript_trees()`: adaptive groups from transcript trees, cut where inferential variance falls below a cutoff | done |
+| L | Stability article | 30 vs 100 Gibbs draws and the molecular features that make an isoform hard to quantify, as a new article | done |
+| G | Terminus from R | `run_terminus()` (group per sample, consensus collapse) through condathis, with input checks, validated against the shell run | done |
 
----
+Order: A, B, C, D, E. Each workstream ends with its own verification before
+the next starts.
 
-## 1. Package Structure & Metadata (`DESCRIPTION`, `NAMESPACE`)
+## Working rules
 
-### 1.1 Critical — Bioconductor-only packages in hard `Imports`
+- Every new exported function: roxygen topic, tests, entry in `_pkgdown.yml`,
+  NEWS bullet.
+- Dependencies stay in `Suggests` and are called as `pkg::fun()`; tests skip
+  when a backend is missing.
+- Validate on real output of the tool being read (Terminus, Oarfish), not on
+  a format guessed from documentation.
+- Heavy files live in `/data/gamma/luciorq/workspaces/temp/isoformic-knockdown/`.
+- Nothing is committed or uploaded without being asked.
 
-`plotgardener` and `txdbmaker` are declared in `Imports` (`DESCRIPTION`
-lines ~22-42), meaning every install of `isoformic` requires them
-unconditionally. But in the code they are treated as **optional**,
-guarded by `rlang::check_installed()`:
+## A. Differential transcript usage
 
-```r
-# R/ContextData-class.R:98
-rlang::check_installed("txdbmaker")
-# R/plot_genomic_context.R:55
-rlang::check_installed("plotgardener")
-```
+Why: benchmarks (2024-2025) favour DEXSeq, limma/edgeR `diffSplice` and
+satuRn; Baldoni et al. (2025) show that dividing out the read-ambiguity
+overdispersion keeps the error rate of usage tests.
 
-Both packages are Bioconductor-only (not on CRAN). With no
-`Additional_repositories` field in `DESCRIPTION`, this is a likely
-**CRAN submission blocker**: hard dependencies must be resolvable from
-CRAN. Fix: move both to `Suggests`, matching the already-correct pattern
-used for `fgsea` and `condathis`.
+- [x] A1 Install limma, satuRn, DEXSeq; prototype each on the GSE129540 data
+- [x] A2 `test_usage(self, group, levels, method, scale = TRUE)` returning
+      transcript and gene level results (`gene_id`, `transcript_id`,
+      `usage_log2FC`, `pvalue`, `qvalue`, `gene_pvalue`, `gene_qvalue`,
+      `method`, `scaled`); `scale = NULL` scales for diffsplice when draws exist
+- [x] A3 Tests: synthetic known switch, missing backend, group levels
+- [x] A4 Benchmark on the read-split null contrasts and real contrast:
+      false positives, replication across halves, per backend, with and
+      without the overdispersion scaling
+- [x] A5 Document results in the uncertainty article and `data-raw/`
 
-### 1.2 Missing guard for other Suggests-only Bioconductor packages
+Acceptance: all three backends run on the bundled data; the benchmark table
+is bundled; results reported even when they are negative.
 
-`R/plot_genomic_context.R` calls `GenomicFeatures::exonsBy()` (line 115)
-and `IRanges::start()/end()/ranges()` (lines 121-126) directly, with **no**
-`rlang::check_installed(c("GenomicFeatures", "IRanges"))` guard. Users
-without these Suggested packages get an opaque "could not find function"
-error instead of the clean `cli_abort()` used elsewhere in the package.
+## B. Terminus groups
 
-### 1.3 `DESCRIPTION` metadata typo
+Why: Terminus builds data-driven groups of transcripts that the reads cannot
+separate; `collapse_groups` does the same with a correlation rule.
 
-```
-Config/Needs/dev: devtools, pkgload, remotes, rcmdcheck, covr. testthat,
-```
+- [x] B1 Install Terminus; run on the GSE129540 Salmon output; record the
+      real output layout
+- [x] B2 `read_terminus_groups(path)` mapping transcripts to groups
+- [x] B3 `add_uncertainty(groups = <table>)` (or equivalent) so
+      `de_confidence(collapse_groups = TRUE)` can use external groups
+- [x] B4 Tests with a fixture written from real Terminus output
+- [x] B5 Compare Terminus groups with the correlation groups (overlap, size,
+      effect on the confidence classes)
 
-Note the **period** instead of a comma after `covr`. Tooling that parses
-this comma-separated field (e.g. `pak::local_install_dev_deps()`, used by
-the `justfile`'s `install-dev-deps` recipe) will try to resolve the
-malformed token `"covr. testthat"` as one package spec and fail.
+Acceptance: groups read from real Terminus output; comparison table written.
 
-### 1.4 What is already correct
+## C. Long-read replicates (Oarfish)
 
-- `NAMESPACE` has no broad `import(pkg)` statements — every call site is
-  namespace-qualified (`pkg::fun()`), which is best practice.
-- The rest of the `Imports`/`Suggests` split is sound: `arrow`, `cli`,
-  `DBI`, `dplyr`, `duckdb`, `fs`, `glue`, `purrr`, `rlang`, `S7`,
-  `stringr`, `tibble`, `tidyr`, `vroom`, `withr` are core/unconditional
-  and correctly placed in `Imports`. `condathis`, `fgsea`, `DESeq2`,
-  `tximport`, `SummarizedExperiment`, etc. are correctly optional and
-  in `Suggests`.
-- `Config/testthat/edition: 3`, `VignetteBuilder: quarto`,
-  `Encoding: UTF-8` are all present and correct.
+Why: Oarfish leads long-read quantification benchmarks and can write
+inferential replicates; Parquet fits the package.
 
----
+- [x] C1 Install Oarfish, minimap2, samtools; simulate a small long-read
+      dataset from the bundled transcript FASTA; run Oarfish with replicates
+      to obtain the real file layout
+- [x] C2 `read_oarfish(path)` for quantification, ambiguity counts and run
+      metadata
+- [x] C3 Parquet replicates accepted by `read_inferential_replicates()`
+      (matrix per replicate, same return value as for Salmon)
+- [x] C4 Tests with a tiny fixture generated from real Oarfish output
+- [x] C5 Document in the preprocessing article
 
-## 2. Code Quality & Performance (`R/` directory)
+Acceptance: fixture comes from real Oarfish output; `add_uncertainty()` runs
+on it unchanged.
 
-### 2.1 Confirmed functional bugs (verified by execution)
+## D. IsoformSwitchAnalyzeR v2 comparison
 
-| # | Location | Bug | Evidence |
-|---|----------|-----|----------|
-| 1 | `R/plot_genomic_context.R:76-81` | `paste0(assembly_name, annotation_name, sep = "_")` — `paste0()` has **no `sep` argument**. | Confirmed: `paste0("hg38","gencode",sep="_")` → `"hg38gencode_"`, not `"hg38_gencode"`. |
-| 2 | `R/salmon_utils.R:117` and `:201` | `salmon_index()`/`salmon_quant()` accept a user-supplied `env_name`, validate it via `check_env_installed(env_name)`, then **hardcode `env_name = "salmon-env"`** in the actual `condathis::run()` call. Custom environments are silently ignored. | Direct code read; parameter never reaches the call. |
-| 3 | `R/duckdb_run.R:40-46` | `read_only` is a documented/validated parameter, but `DBI::dbConnect(..., read_only = TRUE)` **hardcodes `TRUE`** regardless of the argument. Dead parameter. | Direct code read. |
-| 4 | `R/prepare_profile_data.R:209-210` | `dplyr::mutate(parent_gene = "genename")` sets `parent_gene` to the **literal string `"genename"`** for every row instead of the column's values. | Direct code read; missing `.data$genename`. |
-| 5 | `R/as_isoformic.R:16` | `rlang::check_installed("SummarizedExperiment")` is commented out, even though the package is only in `Suggests`. | Direct code read. |
-| 6 | `R/IsoformicExperiment-class.R:142` | Leftover debug `message(names(value))` inside the `tx_type_palette` setter; prints noisy output on every property set. | Direct code read. |
+- [x] D1 Install IsoformSwitchAnalyzeR (v2 line); import the GSE129540 Salmon
+      quantifications with the GENCODE v49 annotation
+- [x] D2 Run its switch test; list the significant switches
+- [x] D3 Compare with `isoform_switches()` and the confidence classes
+      (agreement, switches only one tool calls, confidence of each)
+- [x] D4 Write up in `data-raw/` and the uncertainty article, with the
+      versions used
 
-### 2.2 NSE / global-variable safety
+Acceptance: a table of agreement and disagreement; no claim about accuracy
+without ground truth.
 
-- Almost every function locally reassigns `.data <- rlang::.data` /
-  `.env <- rlang::.env` / `` `:=` <- rlang::`:=` `` — confirmed **29
-  occurrences across 15 files** (`ContextData-class.R`,
-  `get_annot_metadata.R`, `is_deg_sig.R`, `IsoformicExperiment-class.R`,
-  `join_DEG_DET.R`, `make_tx_to_gene.R`, `plot_genomic_context.R`,
-  `plot_log2FC.R`, `plot_tx_context.R`, `prepare_annotation.R`,
-  `prepare_exon_annotation.R`, `prepare_profile_data.R`,
-  `profile_plot.R`, `run_enrichment.R`, `summarize_to_gene.R`). This is a
-  workaround to avoid "no visible binding" NOTEs, but it is unusual,
-  repetitive, and violates DRY. Idiomatic fix: a single
-  `#' @importFrom rlang .data` tag in `R/isoformic-package.R`.
-- Applied inconsistently:
-  - `R/plot_tx_context.R:29,85`: `dplyr::group_by(tx_id)`,
-    `dplyr::arrange(tx_id)` use **bare symbols**, not `.data$tx_id`.
-    Confirmed with `codetools::checkUsage()` that this produces
-    `no visible binding for global variable 'tx_id'` — a real
-    `R CMD check` NOTE.
-  - `R/prepare_exon_annotation.R:54`: `dplyr::select(.data$X9)` —
-    confirmed this triggers a `tidyselect` **deprecation warning**
-    (use of `.data` in tidyselect expressions deprecated since
-    tidyselect 1.2.0). Should be `dplyr::select("X9")`.
-  - `R/plot_log2FC.R:181` and `R/run_enrichment.R:84-85`: `.data`/`.env`
-    assigned but **never used** in that scope (confirmed by
-    `lintr::object_usage_linter`) — dead code from copy-paste.
+## E. Wrap-up
 
-### 2.3 Deprecated / dead code
+- [x] E1 `air format`, `jarl check .`, `lintr::lint_package()`, ASCII scan
+- [x] E2 `devtools::document()`, full tests, `pkgdown::check_pkgdown()`,
+      all articles, R CMD check
+- [x] E3 NEWS, README, ARCHITECTURE, `data-raw/README.md`
+- [x] E4 Stage everything; final report with the open items
 
-- `R/join_DEG_DET.R:90`: `dplyr::select(-dplyr::one_of(drop_columns))`
-  — `one_of()` is soft-deprecated; the rest of the file correctly uses
-  `dplyr::any_of()` elsewhere (internal inconsistency).
-- `R/join_DEG_DET.R:106`: `DEGs_DETs_table$significance <- c()` is a
-  no-op (immediately overwritten on the next line) — vestigial.
-- `R/prepare_exon_annotation.R:61`: `dplyr::arrange()` with no arguments
-  is a no-op.
+## F. Usage tests for more than two groups
 
-### 2.4 Performance bottlenecks (loops that should be vectorized)
+- [x] F1 `group_setup()` generalising `two_group_setup()` (two or more levels,
+      samples outside `levels` dropped)
+- [x] F2 `contrasts` argument: `NULL` (each level against the first),
+      `"pairwise"`, or a list of `c(numerator, denominator)`; results stacked
+      with a `contrast` column, Simes and BH per contrast
+- [x] F3 Backends: diffSplice with one `~0 + group` fit and a contrast
+      vector per comparison; satuRn with one fit and a contrast matrix;
+      DEXSeq on the samples of each pair
+- [x] F4 Tests: three-group synthetic switch, pairwise, explicit contrasts,
+      two-group behaviour unchanged apart from the `contrast` column
+- [x] F5 Docs, NEWS, article sentence
 
-- `R/profile_plot.R` `calculate_sd_min()`: explicit
-  `for (i in seq_along(x))` with a per-element `if` to clamp negative
-  values — trivially vectorizable:
-  ```r
-  neg <- (x - y) < 0
-  x[neg] <- 0; y[neg] <- 0
-  log2((x - y) + 1)
-  ```
-- `R/plot_tx_context.R:61-76`: `for (tx_id in tx_id_vector)` repeatedly
-  re-filters `plot_data` to find the max exon per transcript. This is
-  exactly `dplyr::group_by(tx_id) |> dplyr::mutate(exon_right_max = max(exon_right))`,
-  computed once instead of once per transcript.
-- `R/prepare_exon_annotation.R:44-50`: classic
-  "growing-a-data-frame-in-a-loop" anti-pattern
-  (`gene_annot_df <- dplyr::bind_rows(gene_annot_df, gene_annot_df_temp)`
-  inside `for (i in gene_name)`), followed by a `purrr::map_dfr()` that
-  re-scans the whole table with a fresh regex per transcript — O(n×m),
-  will not scale to full-genome annotations.
-- `R/is_deg_sig.R`: splits the table into matched/unmatched subsets and
-  `dplyr::bind_rows()`s them back — should be a single
-  `dplyr::mutate(DEG_sig = dplyr::if_else(transcript_name %in% DegsigVector, "YES", "NO"))`.
-  As written it is slower **and** silently reorders rows relative to the
-  input — a latent correctness risk for downstream code assuming stable
-  row order.
+Acceptance: a three-group fixture finds the switches in the right contrasts
+with all three backends.
 
-### 2.5 DRY violations (duplication)
+## G. Terminus from R
 
-- `tx_annot()` and `row_data()`
-  (`R/IsoformicExperiment-class.R:401-459`) are near-identical (same
-  `cols_to_remove` vector, same `select`/`distinct`/`left_join` chain),
-  differing only by one extra `filter()`. Should share a helper.
-- `combine_deg_det_longer()` (`R/plot_log2FC.R:206-285`) duplicates the
-  same `select(any_of(...))`/`rename`/`distinct` block for gene- and
-  transcript-level data.
-- The "path does not exist" `cli_abort()` block (class
-  `isoformic_annot_file_dont_exist`) is copy-pasted verbatim in
-  `R/prepare_annotation.R`, `R/prepare_annotation_db.R`,
-  `R/prepare_isoformic_annotation.R`, and `R/make_tx_to_gene.R` — a
-  shared `assert_file_exists()` helper would remove 4x duplication.
+- [x] G1 `create_terminus_env()` and `run_terminus(paths, output_dir,
+      consensus_thresh, threads, keep_logs, env_name)` through condathis
+- [x] G2 Input checks: replicates and equivalence-class weights in every
+      Salmon directory (a class line has 2k + 2 fields with weights, k + 2
+      without; `cmd_info.json` does not record the flag)
+- [x] G3 Returns `read_terminus_groups()` of the consensus; removes the
+      multi-gigabyte `delta.log` unless `keep_logs = TRUE`
+- [x] G4 Tests with mocked `condathis::run()` (arguments, order, checks)
+- [x] G5 Real run on the six GSE129540 samples; the consensus must equal the
+      shell run (md5 of `clusters.txt`)
+- [x] G6 Docs, NEWS, article chunk
 
-### 2.6 Naming convention inconsistencies
+Acceptance: identical consensus to the shell run.
 
-The package is ~95% clean `snake_case`, but `R/is_deg_sig.R` and
-`R/join_DEG_DET.R` are outliers: `DegsigVector`, `DET_table`,
-`DETs_DEGs`, `DETs_notDEGs`, `DET_table_final`, `DEG_tab`,
-`DET_final_tab`, `DEGs_DETs_table`. These clash with the tidyverse style
-guide and with the rest of the codebase.
+## H. Omnibus usage test
 
-### 2.7 Aggregate style metrics (via `lintr`, default linters)
+- [x] H1 `contrasts = "omnibus"` in `test_usage()`; one row per transcript,
+      `contrast = "omnibus"`, `usage_log2FC = NA`
+- [x] H2 DEXSeq: full against reduced model on all groups; diffSplice and
+      satuRn: Simes combination of the k - 1 contrasts against the reference
+      (valid under positive dependence; any difference among groups implies
+      a difference from the reference)
+- [x] H3 Tests: three-group fixture, both switch sets found; two groups give
+      the same p-values as the single contrast for diffSplice
+- [x] H4 Docs
 
-262 total style lints across `R/`:
-- **96** lines longer than 80 characters
-- **72** blocks of commented-out code left in source
-- **49** non-`snake_case` identifiers
+## I. Oarfish single-cell
 
-(Explicit `return()` calls are a deliberate project style choice and are
-not counted as an issue here.)
+- [x] I1 Real output: simulated reads with cell barcodes, minimap2 to the
+      transcriptome, `CB:Z` tags, `oarfish --single-cell --alignments`
+- [x] I2 Reader for the real layout (sparse counts, barcodes, transcripts)
+- [x] I3 Pseudobulk by a cell-to-sample table into an IsoformicExperiment
+- [x] I4 Tests from a tiny real fixture; docs
 
-### 2.8 Test coverage gap
+## J. Test everything
 
-Only 4 test files exist:
-`test-check_installed.R`, `test-download_reference.R`,
-`test-IsoformicExperiment.R`, `test-set_random_experiment_name.R`.
+- [x] J1 Coverage of R/usage.R, R/terminus.R, R/oarfish.R, R/uncertainty*.R;
+      tests for uncovered branches
+- [x] J2 Run the computation branch of `validate_uncertainty.R` for real and
+      compare with the bundled tables
+- [x] J3 Make `quantify_knockdown.sh` testable at small scale (number of read
+      pairs, run filter) and run it end to end
+- [x] J4 Full verification: tests, lint, articles, R CMD check
 
-This covers only a handful of the **37 exported functions**. Zero unit
-tests exist for `prepare_annotation()`, `prepare_annotation_db()`,
-`prepare_exon_annotation()`, `prepare_isoformic_annotation()`,
-`prepare_profile_data()`, `join_DEG_DET()`, `is_deg_sig()`,
-`run_enrichment()`, `make_tx_to_gene()`, any `plot_*()` function, or
-`ContextData()`/`create_context_data()`. Notably, bugs #1, #2, and #4 in
-§2.1 are exactly the class of bug that a basic `expect_equal()` on
-output values would have caught immediately.
+## K. TreeTerminus
 
----
+- [x] K1 `read_treeterminus(path, salmon_dir | transcripts)`: Newick trees of
+      `group`/`consensus` (leaves are 0-based indices in `quant.sf` order,
+      checked against the real output), parent-pointer table
+- [x] K2 `cut_transcript_trees(trees, x, cutoff = 0.5, unresolved)`: node InfRV
+      from the summed draws (bottom-up per tree), lowest ancestor below the
+      cutoff for each transcript, maximal nodes kept so that groups are disjoint
+- [x] K3 Groups source "treeterminus" in `add_uncertainty()` and
+      `uncertainty_methods()`
+- [x] K4 Tests: parser on real output lines, cut on the uncertainty fixture
+- [x] K5 Validation on the six prostate samples against Terminus and the
+      correlation groups; docs. The conda recipe is the user's.
 
-## 3. Remediation Plan (priority order)
+## L. What makes an isoform hard to quantify
 
-### Phase 1 — Correctness fixes (blockers / silent-failure bugs)
-1. Fix `paste0(sep = "_")` bug in `plot_genomic_context.R`.
-2. Fix hardcoded `env_name = "salmon-env"` in `salmon_index()` and
-   `salmon_quant()` (`salmon_utils.R`).
-3. Fix `mutate(parent_gene = "genename")` literal-string bug in
-   `prepare_profile_data.R`.
-4. Restore the `SummarizedExperiment` install check in
-   `as_isoformic.R`.
-5. Remove the stray `message(names(value))` debug call in
-   `IsoformicExperiment-class.R`.
-6. Decide on and fix the `read_only` dead parameter in `duckdb_run.R`
-   (either wire it through, or remove the parameter if intentionally
-   always read-only).
+- [x] L1 100 Gibbs draws for three GSE129540 samples; TreeTerminus per sample at
+      30 and 100 draws
+- [x] L2 Features (data-raw/knockdown/isoform_features.R part A): length, exons,
+      isoforms in gene, GC, MANE/basic/TSL, NAGNAG and near alternative
+      acceptors/donors, unique exonic bases, closest sibling, containment
+- [x] L3 Outcomes (part B): InfRV, InfRV disagreement and cutoff flips between
+      independent 30-draw sets, tree change 30 vs 100, unique fragments
+- [x] L4 Summaries and models (part C), bundled under inst/extdata/knockdown/stability
+- [x] L5 Article isoformic-quantification-stability.qmd, pkgdown, NEWS; checks
 
-### Phase 2 — Metadata / CRAN-readiness
-7. Move `plotgardener` and `txdbmaker` from `Imports` to `Suggests`.
-8. Add `rlang::check_installed(c("GenomicFeatures", "IRanges"))` guard
-   in `plot_genomic_context.R`.
-9. Fix the `DESCRIPTION` `Config/Needs/dev` typo (`covr. testthat` →
-   `covr, testthat`).
+## Log
 
-### Phase 3 — Code quality / DRY / style
-10. Replace the 29x repeated `.data <- rlang::.data` (and `.env`, `:=`)
-    pattern with a single `@importFrom rlang .data` tag; remove
-    now-redundant local reassignments.
-11. Fix NSE inconsistencies in `plot_tx_context.R`
-    (`group_by(tx_id)` → `group_by(.data$tx_id)`, etc.) and
-    `prepare_exon_annotation.R` (`select(.data$X9)` → `select("X9")`).
-12. Replace `dplyr::one_of()` with `dplyr::any_of()` in
-    `join_DEG_DET.R`.
-13. Remove dead/no-op code: `DEGs_DETs_table$significance <- c()`,
-    bare `dplyr::arrange()`.
-14. Vectorize loops: `calculate_sd_min()` in `profile_plot.R`, the
-    per-transcript max-exon loop in `plot_tx_context.R`, and the
-    gene/exon accumulation loops in `prepare_exon_annotation.R`.
-15. Refactor `is_deg_sig()` to a single vectorized `mutate()` that
-    preserves row order.
-16. De-duplicate `tx_annot()`/`row_data()` and the repeated
-    file-existence check across `prepare_*` functions.
-17. Rename `is_deg_sig.R` / `join_DEG_DET.R` internals to `snake_case`.
-
-### Phase 4 — Test coverage
-18. Add `testthat` unit tests for every exported function currently
-    untested, prioritizing the functions where bugs were found in
-    Phase 1 (regression tests), then the `prepare_*` family, then the
-    `plot_*` family (visual/structural assertions, not full rendering).
-
----
-
-## Summary Table
-
-| Category | Findings |
-|---|---|
-| Critical metadata issues | 1 (Bioconductor pkgs in Imports) |
-| Confirmed functional bugs | 6 |
-| NSE / global-variable issues | 4 locations |
-| Deprecated/dead code | 3 |
-| Performance bottlenecks | 4 |
-| DRY violations | 3 |
-| Style lints (via lintr) | 262 |
-| Untested exported functions | ~30+ of 37 |
+- 2026-10-23: plan created. State before starting: R CMD check OK, all tests
+  pass, uncertainty features (add_uncertainty, de_confidence,
+  inferential_overdispersion, scale_counts) and the read-split validation are
+  in the staged tree.
+- 2026-10-23: A1-A3 done. All three backends run (diffSplice 5 s, satuRn 53 s,
+  DEXSeq ~10 s per 800 genes on 40k transcripts). satuRn 1.18 has no
+  `parameterization` argument; DEXSeq fold changes need
+  `estimateExonFoldChanges()` then `DEXSeqResults()`. A4 benchmark running
+  (`data-raw/knockdown/benchmark_usage.R`, log in the work directory).
+- 2026-10-23: C done. Real Oarfish 0.10.3 layout: `<prefix>.quant` (tname, len,
+  num_reads), `.infreps.pq` (columns `bootstrap.0`..., same row order),
+  `.ambig_info.tsv` (unique_reads, ambig_reads, total_reads, no names),
+  `.meta_info.json`. Oarfish maps reads itself (`--reads --annotated`), so
+  minimap2 was not needed. Reads are simulated, not a real library.
+- 2026-10-23: B in progress. Terminus 0.1.0 needs `--dumpEqWeights` and
+  replicates in the Salmon output; the earlier runs lacked the weights, so one
+  sample was re-quantified for the format check.
+- 2026-10-23: A done. Read-split benchmark (technical replicates): unscaled
+  diffSplice 41/59 and DEXSeq 195/244 false transcript calls at q<0.05 in the
+  two null contrasts, satuRn 0; scaled 7/2, 12/4 and 0/2. Real-contrast calls
+  of half 1 go the same way in half 2: unscaled diffSplice 47% (chance),
+  DEXSeq 65%; scaled 100% and 94%. Scaling therefore defaults to on whenever
+  replicates exist. Caveat: scaled runs test ~3x fewer transcripts (expression
+  filter on divided counts).
+- 2026-10-24: D done. Installed IsoformSwitchAnalyzeR is 2.10.0 (Bioconductor
+  release here), not a newer 2.x. It needs the `chr_patch_hapl_scaff` GTF because
+  the Salmon index includes patch transcripts. Like-for-like (q<0.05,
+  |dIF|>=0.1): ISAR 40 calls of 79,463 tested; test_usage DEXSeq raw 372 of
+  19,171 (8 shared with ISAR); scaled 139 of 8,779 (1 shared). Comparison is
+  descriptive: different tested sets, no ground truth.
+- 2026-10-24: B code done (read_terminus_groups, add_uncertainty(groups=)).
+  Real Terminus output: `terminus group -d <salmon dir> -o <prefix>` then
+  `terminus collapse -d <salmon dirs> -o <prefix>` writes `<prefix>/<run>/
+  clusters.txt` (`NewTr<id>,<tx>,<tx>`). Pending: six-sample Terminus run and
+  the comparison with the correlation groups (B5).
+- 2026-10-24: B done. Six-sample Terminus 0.1.0 consensus: 14,029 groups, 52,911
+  transcripts (a single sample gave 17,008 groups); identical `clusters.txt` in
+  every sample folder. Against the correlation groups: 67% of correlation-grouped
+  transcripts are also Terminus-grouped, 65% of correlation pairs share a
+  Terminus group; median InfRV 15.5 (Terminus), 8.6 (correlation), 1.4 (neither);
+  among |log2FC|>1 changes high stays 203, ~900 move moderate to low. Two bugs
+  found on the way: a local variable shadowing the new `groups` argument, and
+  `meta$uncertainty_group` partially matching the new metadata key (renamed to
+  `uncertainty_ambiguity_source`; `$` on lists partial-matches).
+- 2026-10-24: E done. 159 test blocks pass (1 skip: writexl), jarl and lintr
+  clean, pkgdown check clean, all articles build, R CMD check Status OK (needs
+  `_R_CHECK_FORCE_SUGGESTS_=false` because writexl is not installed). The usage
+  backends (edgeR, limma, satuRn, DEXSeq, BiocParallel) are in Suggests.
+  Everything is staged; nothing is committed.
+- 2026-10-27: F and G added at the user's request. diffSpliceDGE takes a
+  `contrast` vector, so one multi-group fit serves all comparisons.
+  salmon_quant() already writes `--dumpEqWeights`.
+- 2026-10-27: F done. `contrasts` = NULL (each level vs first), "pairwise" or
+  pairs; `contrast` column added to the output. Three-group fixture (switches
+  in b for g1-g8, in c for g9-g16) passes for all three backends. Two-group
+  results on the prostate data are identical to the earlier `~group` fit.
+  `group_setup()` replaces the body of `two_group_setup()`.
+- 2026-10-27: G1-G4 and G6 done (run_terminus, input checks, mocked tests,
+  docs). G5 running: run_terminus(workers = 6) on the six quants_terminus
+  directories into terminus_r/. While linting, jarl 0.7.1 reported 18 findings
+  in files that had passed before (undesirable_operator `<<-` in test mocks and
+  closures, cyclomatic_complexity in resolve_ensembl_file, nzchar, library_call,
+  an unused object in an example); the binary and jarl.toml are unchanged and
+  the cause is unknown. All were fixed (environments instead of `<<-`,
+  `ensembl_file_pattern()` helper) and the affected tests pass.
+- 2026-10-27: G done. run_terminus(workers = 6) on the six GSE129540 samples took
+  21 minutes and wrote a consensus identical to the command-line run (all 12
+  clusters.txt share md5 038a7bf2...); logs removed, 427 MB left. 163 test
+  blocks pass, lint clean, articles build, R CMD check OK. Staged, not committed.
+- 2026-10-29: H, I, J added ("go for it"). edgeR's diffSplice.DGEGLM and
+  diffSpliceDGE test one coefficient or contrast only, hence the Simes omnibus
+  for diffSplice and satuRn.
+- 2026-10-29: H done. Three-group omnibus finds both switch sets with every
+  backend; with two groups the omnibus p-values equal the single contrast
+  (diffSplice, DEXSeq).
+- 2026-10-29: I done. Real `oarfish --single-cell` layout: `<prefix>.count.mtx`
+  (MatrixMarket coordinate real, cells as rows), `.barcodes.txt`,
+  `.features.txt`, `.meta_info.json`; no bootstraps. 60 cells, 9,000 reads, all
+  assigned. The boosted RBPJ-203 rises 4.6-fold in the treated pseudobulk (the
+  other two boosted isoforms have too few reads to show it).
+- 2026-10-29: J2 done. validate_uncertainty.R computation branch rerun from
+  scratch: the four bundled tables are identical; per-transcript results are
+  identical except swish q-values (up to 0.0097), which come from random
+  permutations. set.seed() added before swish in validate_uncertainty.R,
+  build_knockdown_example.R and the preprocess article.
+- 2026-10-29: J3 done. quantify_knockdown.sh gained N_PAIRS and RUNS. Running it
+  end to end (100k pairs, one run per series) exposed a real bug: under
+  `set -euo pipefail` the `pigz -dc | head` pipeline always fails and would
+  have aborted the first download; fixed (the record check decides). Mapping
+  93.0% and 86.0%, as in the full runs. Both Oarfish fixture scripts also run
+  end to end: read counts reproduce to 1e-13 and single-cell counts exactly;
+  Oarfish bootstraps are unseeded and barcode order varies (documented).
+- 2026-10-30: J done. Coverage 93% overall; tests added for the uncovered
+  branches (Oarfish path forms in the shared readers, inconsistent and
+  incomplete input, Matrix Market errors, parallel Terminus failure, env
+  creation); R/terminus.R now 100% and R/oarfish.R 99.7% from their own tests.
+  176 test blocks pass, lint clean, all ten articles rebuilt, R CMD check OK.
+  Stack imbalance warnings during pkgdown article builds: deterministic (three
+  per build), traced to the Bioconductor package SparseArray 1.10.10 (Bioc
+  3.22): `asNamespace("SparseArray")` alone prints a stack imbalance warning;
+  none of its dependencies do. The articles reach it through downlit, which
+  loads the namespaces of attached packages (`library(fishpond)`,
+  `library(SummarizedExperiment)`) to link function names. Not isoformic code
+  (no compiled code) and outputs are unaffected. Builds are reproducible apart
+  from the per-session temporary paths printed in four articles.
+  Correction: an earlier entry claimed six clean builds; those builds had
+  silently failed ("No built file found") because a test script left a
+  `vignettes/_quarto.yaml` behind (on.exit() does nothing at the top level of an
+  Rscript script). The file was removed and the builds redone.
+- 2026-10-31: K started at the user's request ("improvement against terminus
+  alone for some hard cases"); the user maintains a conda recipe for
+  TreeTerminus. Built here from source (commit 6a81966) with GSL from
+  conda-forge.
+- 2026-10-31: K done. On the six prostate samples (116,229 assessed isoforms):
+  grouped 8,076 / 20,703 / 31,606 (correlation / Terminus / TreeTerminus cut),
+  uncertain left alone 78,892 / 67,138 / 58,225, features after collapse
+  112,258 / 103,692 / 90,326, median group InfRV 1.48 / 2.87 / 0.19. Reading and
+  cutting the trees: 218 s, 4.4 GB. Leaf positions follow quant.sf, verified (80%
+  of trees within one gene against 13% with the eq_classes order). Bug class
+  seen three times in the comparison scripts: a tibble() column shadowing a
+  variable used later in the same call; package code scanned, only identity
+  cases there.
+- 2026-10-31: L done. 3 samples, 87,430 isoforms with >= 5 reads (85,236 in the
+  models). log InfRV: R2 0.63, led by unique_fraction (40% of explained
+  deviance), reads (29%), MANE (11%); NAGNAG and near splice sites act through
+  unique fragments (<0.1% once those are in). Disagreement between 30-draw sets:
+  R2 0.08, mostly sampling noise. Tree change: type (62%) and isoforms in gene
+  (26%); lncRNA trees change about half the time, also for uncertain isoforms.
+  Article isoformic-quantification-stability.qmd with tables in
+  inst/extdata/knockdown/stability/.

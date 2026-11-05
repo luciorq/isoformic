@@ -1,0 +1,7 @@
+# Jarl (https://jarl.etiennebacher.com) configuration for isoformic.
+# `just lint` and the `jarl-check` workflow run `jarl check .` with this file.
+[lint]
+# Every rule, including the opt-in ones (TESTTHAT, PERF, READ, ...).
+select = ["ALL"]
+default-exclude = true
+exclude = ["docs/", "inst/", "man/", "revdep/"]

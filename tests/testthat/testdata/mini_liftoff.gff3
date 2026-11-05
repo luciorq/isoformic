@@ -1,0 +1,10 @@
+##gff-version 3
+chr1	Liftoff	gene	100	2000	.	+	.	ID=LOC112268260;gene_name=LOC112268260;gbkey=Gene;gene=LOC112268260;gene_biotype=protein_coding;coverage=1.0;extra_copy_number=0
+chr1	Liftoff	transcript	100	2000	.	+	.	ID=XM_047436352.1;Parent=LOC112268260;gbkey=mRNA;gene=LOC112268260;transcript_biotype=mRNA
+chr1	Liftoff	exon	100	500	.	+	.	Parent=XM_047436352.1;gene=LOC112268260
+chr1	Liftoff	exon	1500	2000	.	+	.	Parent=XM_047436352.1;gene=LOC112268260
+chr1	Liftoff	CDS	120	1900	.	+	0	Parent=XM_047436352.1
+chr1	CAT	gene	5000	9000	.	-	.	source_gene_common_name=AC114498.1;source_gene=ENSG00000235146.2;biotype=lncRNA;gene_id=CHM13_G0000001;gene_name=AC114498.1;ID=CHM13_G0000001;Name=AC114498.1
+chr1	CAT	transcript	5000	9000	8940	-	.	source_transcript=ENST00000423796.1;source_transcript_name=AC114498.1-201;source_gene=ENSG00000235146.2;biotype=lncRNA;transcript_biotype=lncRNA;transcript_id=CHM13_T0000001;gene_id=CHM13_G0000001;Parent=CHM13_G0000001;transcript_name=AC114498.1-201;ID=CHM13_T0000001;gene_name=AC114498.1
+chr1	CAT	exon	5000	5300	.	-	.	source_transcript=ENST00000423796.1;transcript_id=CHM13_T0000001;Parent=CHM13_T0000001;ID=exon:CHM13_T0000001:0
+chr1	CAT	exon	8000	9000	.	-	.	source_transcript=ENST00000423796.1;transcript_id=CHM13_T0000001;Parent=CHM13_T0000001;ID=exon:CHM13_T0000001:1

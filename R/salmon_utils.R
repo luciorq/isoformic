@@ -1,6 +1,20 @@
+#' Create the conda environment that holds Salmon
+#'
+#' Installs Salmon from Bioconda into a conda environment managed by
+#' `condathis`. Salmon 2 is a Rust rewrite with a new index format: indices
+#' built with Salmon 1.x cannot be read, and vice versa, so keep one
+#' environment per Salmon major version (the final C++ release, 1.12.0, is
+#' available as the `salmon-cpp` package).
+#'
+#' @param env_name Name of the conda environment (default `"salmon-env"`).
+#' @param version Salmon version to install (default `"2.8.0"`).
+#' @param force Logical, recreate the environment if it exists.
+#'
+#' @keywords internal
+#' @noRd
 create_salmon_env <- function(
   env_name = "salmon-env",
-  version = "1.10.3",
+  version = "2.8.0",
   force = FALSE
 ) {
   rlang::check_installed("condathis")
@@ -40,6 +54,12 @@ check_env_installed <- function(env_name = "salmon-env") {
 #'
 #' Create a Salmon index from a reference transcriptome FASTA file.
 #'
+#' @details
+#' The index must be built with the same Salmon major version used for
+#' `salmon_quant()`: Salmon 2 (the Rust rewrite) cannot read indices built by
+#' Salmon 1.x and rejects them with an error. Rebuild the index after
+#' upgrading.
+#'
 #' @param fasta_path Path to the reference transcriptome FASTA file.
 #' @param index_path Directory path to save the Salmon index (default is
 #' "salmon_index").
@@ -48,7 +68,8 @@ check_env_installed <- function(env_name = "salmon-env") {
 #' @param env_name Name of the conda environment with Salmon installed
 #' (default is "salmon-env").
 #' @param is_gencode Logical indicating if the FASTA is from GENCODE
-#' (default is `FALSE`).
+#' (default is `FALSE`); the transcript names are then truncated at the
+#' first `|` so that they match the annotation.
 #' @param decoy_fasta Optional path to a FASTA file containing decoy sequences
 #' (default is `NULL`).
 #' @param clip_poly_a Logical indicating whether to clip poly-A tails
@@ -76,20 +97,9 @@ salmon_index <- function(
   } else {
     gencode_arg <- NULL
   }
-  # TODO: @luciorq add decoy argument support
-  # + that recieves a text file with sequences ids
-  # + from the reference to be treated as decoys.
-  # + If using genome fasta, provide a list of chromosome names
-  # + Use: "--decoys" "decoys.txt"
-  # if (!rlang::is_null(decoy_fasta)) {
-  # Merge FASTAs
+  # TODO: @luciorq add decoy support: a text file with sequence IDs from the
+  # reference to be treated as decoys (passed as --decoys decoys.txt).
   decoy_args <- NULL
-  #  fasta_path <- cat(decoy_fasta, fasta_path)
-  # Get sequence names from decoy fasta
-  #  decoy_args <- c("--decoys", "decoys.txt")
-  # } else {
-  #  decoy_args <- NULL
-  # }
 
   if (isFALSE(clip_poly_a)) {
     no_clip_arg <- "--no-clip"
@@ -98,7 +108,6 @@ salmon_index <- function(
   }
   condathis::run(
     "salmon",
-    "--no-version-check",
     "index",
     "--transcripts",
     fasta_path,
@@ -112,8 +121,6 @@ salmon_index <- function(
     num_threads,
     decoy_args,
     no_clip_arg,
-    "--type",
-    "puff",
     env_name = env_name,
     verbose = "output"
   )
@@ -124,6 +131,16 @@ salmon_index <- function(
 #' Perform transcript quantification using Salmon's
 #' selective-alignment-based mode from raw RNA-seq reads.
 #'
+#' @details
+#' The command enables the sequence, GC and positional bias corrections,
+#' allows dovetailing mates and soft-clipped overhangs, writes the
+#' equivalence classes with their weights (`--dumpEq --dumpEqWeights`) and
+#' draws `num_gibbs` Gibbs samples (`aux_info/bootstrap/`) so that
+#' inferential replicates are available for `swish`. Selective alignment and
+#' the variational Bayes optimiser are Salmon defaults and are not passed
+#' explicitly; Salmon 2 quantifies deterministically (identical output for
+#' any thread count). Single-end reads are passed with `--unmatedReads`.
+#'
 #' @param input_r1 Path to the FASTQ file for read 1 (or single-end reads).
 #' @param input_r2 Optional path to the FASTQ file for read 2
 #' (paired-end reads).
@@ -132,8 +149,11 @@ salmon_index <- function(
 #' @param output_dir Directory to save the quantification output
 #' (default is "quant_output").
 #' @param num_threads Number of threads to use (default is 8).
-#' @param num_gibbs Number of Gibbs samples for uncertainty estimation
-#' (default is 100).
+#' @param num_gibbs Number of Gibbs samples (inferential replicates) drawn per
+#' sample (default is 30). They quantify how well each transcript abundance is
+#' determined by the reads and are used by [add_uncertainty()] and by `swish`;
+#' 30 is enough for those summaries, and more only costs time and disk space.
+#' Set it to `0` to skip them.
 #' @param min_score_fraction Minimum score fraction for alignments
 #' (default is "0.65").
 #' @param env_name Name of the conda environment with Salmon installed
@@ -148,7 +168,7 @@ salmon_quant <- function(
   index_path = "salmon_index",
   output_dir = "quant_output",
   num_threads = 8,
-  num_gibbs = 100,
+  num_gibbs = 30,
   min_score_fraction = "0.65",
   env_name = "salmon-env"
 ) {
@@ -165,18 +185,24 @@ salmon_quant <- function(
     )
   }
 
+  gibbs_args <- if (isTRUE(num_gibbs > 0)) {
+    c("--numGibbsSamples", num_gibbs)
+  } else {
+    NULL
+  }
+  if (is.null(input_r2)) {
+    read_args <- c("--unmatedReads", input_r1)
+  } else {
+    read_args <- c("--mates1", input_r1, "--mates2", input_r2)
+  }
   condathis::run(
     "salmon",
-    "--no-version-check",
     "quant",
     "--libType",
     "A",
     "--index",
     index_path,
-    "--mates1",
-    input_r1,
-    "--mates2",
-    input_r2,
+    read_args,
     "--output",
     output_dir,
     "--seqBias",
@@ -186,18 +212,11 @@ salmon_quant <- function(
     num_threads,
     "--minScoreFraction",
     min_score_fraction,
-
-    # This is not needed as of Salmon 1.10.3
-    #+ "--validateMappings",
-    "--disableChainingHeuristic",
     "--allowDovetail",
-    # "--softclip", # Is it a good idea?
     "--softclipOverhangs",
     "--dumpEq",
     "--dumpEqWeights",
-    "--useVBOpt",
-    "--numGibbsSamples",
-    num_gibbs,
+    gibbs_args,
     env_name = env_name,
     verbose = "output"
   )

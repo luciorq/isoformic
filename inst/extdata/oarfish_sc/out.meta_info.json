@@ -1,0 +1,28 @@
+{
+  "prob_model": "no_coverage",
+  "bin_width": 100,
+  "alignments": "cells.bam",
+  "output": "sc_default/out",
+  "verbose": false,
+  "single_cell": true,
+  "quiet": false,
+  "em_max_iter": 1000,
+  "em_convergence_thresh": 0.001,
+  "threads": 3,
+  "filter_group": null,
+  "short_quant": null,
+  "digest": {
+    "bam_digest": {
+      "seqcol_digest": {
+        "level": 1,
+        "names": "9RJXzt43zzj0NY8iCmRrD11X4cc_XDaA",
+        "lengths": "suvWgAsLnWZhyPRVAlC0JKzdH1JNWR_A",
+        "sorted_name_length_pairs": "aiOkaSJdrWTGbRl8Yofxxqv9rBhngOuX"
+      },
+      "sha256_digests": {
+        "sha256_names": "1719e767440ee4153d51daaab8c87d9db8ee4c6db6f9ed26b3faa959aaa3d893",
+        "sha256_seqs": null
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+##gff-version 3
+##sequence-region   1 1 248387328
+1	ensembl	gene	100	2000	.	+	.	ID=gene:ENSG05220060769;Name=OR4F29;biotype=protein_coding;gene_id=ENSG05220060769;version=2
+1	ensembl	mRNA	100	2000	.	+	.	ID=transcript:ENST05220233280;Parent=gene:ENSG05220060769;biotype=protein_coding;tag=Ensembl_canonical;transcript_id=ENST05220233280;version=2
+1	ensembl	exon	100	500	.	+	.	Parent=transcript:ENST05220233280;constitutive=1;exon_id=ENSE05220757328;rank=1;version=1
+1	ensembl	exon	1500	2000	.	+	.	Parent=transcript:ENST05220233280;constitutive=1;exon_id=ENSE05220757329;rank=2;version=1
+1	ensembl	five_prime_UTR	100	119	.	+	.	Parent=transcript:ENST05220233280
+1	ensembl	CDS	120	1900	.	+	0	ID=CDS:ENSP05220233280;Parent=transcript:ENST05220233280
+1	ensembl	ncRNA_gene	5000	9000	.	-	.	ID=gene:ENSG05220062570;biotype=lncRNA;gene_id=ENSG05220062570;version=1
+1	ensembl	lnc_RNA	5000	9000	.	-	.	ID=transcript:ENST05220237111;Parent=gene:ENSG05220062570;biotype=lncRNA;transcript_id=ENST05220237111;version=1
+1	ensembl	exon	5000	5300	.	-	.	Parent=transcript:ENST05220237111;exon_id=ENSE05220757330;rank=2
+1	ensembl	exon	8000	9000	.	-	.	Parent=transcript:ENST05220237111;exon_id=ENSE05220757331;rank=1

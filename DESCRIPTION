@@ -1,10 +1,9 @@
 Package: isoformic
 Title: Isoform-Level Biological Interpretation of Transcriptomic Data
-Version: 0.1.2.9019
+Version: 0.1.2.9022
 Authors@R: c(
     person("Lucio Rezende", "Queiroz", , "luciorqueiroz@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0002-6090-1834")),
-    person("Lucio Rezende", "Queiroz", , "lrq4001@med.cornell.edu", role = c("aut", "ctb")),
     person("Izabela Mamede", "Conceicao", , "iza.mamede@gmail.com", role = c("aut", "ctb"),
            comment = c(ORCID = "0000-0002-0707-5588")),
     person("Carlos", "Mata-Machado", , "carlosaugustodmm@gmail.com", role = c("aut", "ctb"),
@@ -14,8 +13,12 @@ Authors@R: c(
     person("Gloria", "Franco", , "gfranco@ufmg.br", role = c("aut", "ctb"),
            comment = c(ORCID = "0000-0001-5245-2365"))
   )
-Description: Isoform-level biological interpretation of transcriptomic
-    data.
+Description: Isoform-level biological interpretation of transcriptomic data.
+    Provides the 'IsoformicExperiment' class, a disk-backed (Parquet)
+    container holding transcript, gene and exon level data for the same
+    samples, fast DuckDB based readers for annotations and quantifications,
+    summaries of isoform usage and diversity, and plots of isoform-level
+    differential expression, expression profiles and genomic context.
 License: MIT + file LICENSE
 URL: https://github.com/luciorq/isoformic,
     https://luciorq.github.io/isoformic/
@@ -23,61 +26,50 @@ BugReports: https://github.com/luciorq/isoformic/issues
 Depends:
     R (>= 4.3)
 Imports:
-    arrow,
     cli,
     DBI,
     dplyr,
     duckdb,
     fs,
     ggplot2,
-    ggpubr,
     ggrepel,
     glue,
-    purrr (>= 1.1.0),
-    readr,
+    grid,
+    parallel,
     rlang,
     S7 (>= 0.2.0),
-    stringr,
+    scales,
+    stats,
     tibble,
-    tidyr,
+    tools,
     utils,
-    vroom,
     withr
 Suggests:
-    AnnotationHub,
     apeglm,
-    BSgenome.Hsapiens.NCBI.GRCh38,
-    carrier (>= 0.3.0),
+    BiocParallel,
     condathis,
     curl,
     DESeq2,
+    DEXSeq,
+    edgeR,
     fgsea,
     fishpond,
-    GenomeInfoDbData,
-    GenomicFeatures,
-    IRanges,
     knitr,
-    mirai (>= 2.5.1),
-    org.Hs.eg.db,
+    limma,
     patchwork,
-    plotgardener,
-    quarto,
+    readxl,
+    satuRn,
     SummarizedExperiment,
     testthat (>= 3.0.0),
-    TxDb.Hsapiens.UCSC.hg38.knownGene,
-    txdbmaker,
     tximeta,
     tximport,
-    viridis
-VignetteBuilder:
-    quarto
-BiocViews:
-Config/Needs/dev: devtools, pkgload, remotes, rcmdcheck, covr, testthat,
-    usethis, pak, knitr, quarto, pkgdown, roxygen2, roxygen2md, lintr,
-    styler
-Config/Needs/website: quarto
+    writexl
+Config/Needs/dev: devtools, pkgload, rcmdcheck, covr, testthat, usethis,
+    pak, knitr, quarto, pkgdown, roxygen2, lintr, urlchecker
+Config/Needs/website: quarto, fgsea, patchwork, SummarizedExperiment,
+    tximeta, fishpond, DESeq2, apeglm, tidyr
 Config/roxygen2/markdown: TRUE
-Config/roxygen2/version: 8.0.0
+Config/roxygen2/version: 8.1.0
 Config/testthat/edition: 3
 Config/testthat/parallel: true
 Encoding: UTF-8

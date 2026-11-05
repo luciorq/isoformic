@@ -1,0 +1,120 @@
+---
+title: "Other annotations: T2T-CHM13, Ensembl, RefSeq, haplotypes, FANTOM CAT and long reads"
+date: 2026-10-17
+date-modified: 2026-10-17
+date-format: long
+author:
+  - name: Lucio Rezende Queiroz
+  - name: Izabela Mamede Conceição
+format:
+  html:
+    toc: true
+bibliography: library.bib
+vignette: |
+  %\VignetteIndexEntry{Other annotations}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: "#>"
+    fig-width: 8
+    fig-height: 5
+---
+
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The [introduction](isoformic-introduction.html) uses GENCODE, but `prepare_isoformic_annotation()` does not depend on the GENCODE vocabulary.
+Genes are features of a gene-like type or parents of transcripts, transcripts are features of a transcript-like type (`transcript`, `mRNA`, `lnc_RNA`, ...) or parents of exons, and identifiers are taken from `gene_id`/`transcript_id` attributes or from `ID`/`Parent`.
+This article shows how to obtain and prepare the other references the downloader knows about.
+Most chunks are not evaluated because they download gigabytes of data; every file lands in the package cache (`?isoformic-options`).
+
+```{r}
+#| message: false
+library(isoformic)
+```
+
+## Telomere-to-telomere assembly (T2T-CHM13)
+
+The same object works on the T2T-CHM13v2.0 assembly, with the NCBI RefSeq annotation or the Liftoff annotations of the T2T consortium:
+
+```{r}
+#| eval: false
+# NCBI RefSeq annotation of T2T-CHM13v2.0: GFF3 + matching transcript FASTA
+t2t_gff <- download_reference(reference = "t2t", file_type = "gff")
+t2t_fasta <- download_reference(reference = "t2t", file_type = "fasta")
+annot_t2t <- prepare_isoformic_annotation(t2t_gff)
+
+# T2T consortium Liftoff annotations keep the GRCh38 identifiers of each
+# lifted gene and transcript in `source_gene_id` / `source_transcript_id`
+annot_lift <- prepare_isoformic_annotation(
+  "chm13v2.0_GENCODEv35_CAT_Liftoff.vep.gff3.gz"
+)
+read_parquet(fs::path(annot_lift, "annot_data_transcripts.parquet"), n_max = 3)
+```
+
+For lifted annotations, build the transcript FASTA for Salmon from the assembly with `gffread -w transcripts.fa -g chm13v2.0.fa annotation.gff3`, and use `source_transcript_id` to join results obtained on GRCh38 (for example gene sets defined on GENCODE identifiers).
+`extract_transcript_sequences(annot, genome_fasta = )` derives the transcript sequences from the assembly for the sequence-aware analyses.
+
+## Ensembl, NCBI and MANE
+
+The same downloader covers Ensembl (any division), any NCBI assembly accession and MANE, and arbitrary URLs:
+
+```{r}
+#| eval: false
+ens_gff <- download_reference(reference = "ensembl")                       # current human release
+ath_gff <- download_reference(reference = "ensembl", division = "plants",
+                              species = "arabidopsis_thaliana")
+grch38_refseq <- download_reference(reference = "ncbi", accession = "GCF_000001405.40")
+mane_gff <- download_reference(reference = "mane")                         # canonical transcripts
+```
+
+Transcripts carry their `tags` (`MANE_Select`, `Ensembl_canonical`, `basic`, ...) and an `is_canonical` flag whatever the source, so `dominant_isoform()` and `transcript_features()` know the canonical isoform of each gene.
+
+## Haplotype-resolved assemblies (trio binning, HPRC)
+
+Phased assemblies come with one annotation per haplotype.
+`merge_annotations()` combines them into one annotation directory whose identifiers carry a `_<haplotype>` suffix (rename the transcript FASTA headers the same way before indexing), and `haplotype_summary()` reports the expression of each gene per haplotype, the haplotype fraction and whether the dominant isoform differs between haplotypes:
+
+```{r}
+#| eval: false
+files <- download_hprc_annotation("HG00438")           # HG00438.1.chm13.gff3.gz, HG00438.2.chm13.gff3.gz
+merged <- merge_annotations(files, annot_name = "HG00438_chm13")
+iso_hap <- read_salmon(quant_dirs, annot_path = merged)
+haplotype_summary(iso_hap, group = "condition")
+```
+
+## FANTOM CAT and FANTOM6
+
+The FANTOM CAT transcriptome assembly (the catalog used by FANTOM6) is read with its own variables: `geneClass` becomes the gene type and the type of transcripts without a biotype, and `geneCategory`, `DHS_type`, `coding_status`, `cumulative_support` and `TIEScore` are kept; the companion tables add the CAGE-defined promoter of every transcript (`cage_cluster_id`) and the gene information columns:
+
+```{r}
+#| eval: false
+gtf <- download_reference(reference = "fantom", version = "lv3_robust", file_type = "gtf")
+tables <- download_fantom_cat_tables("lv3_robust")
+annot_fantom <- prepare_isoformic_annotation(gtf)
+add_fantom_cat_tables(annot_fantom, tables[["id_mapping"]], tables[["gene_info"]])
+```
+
+## Long-read transcript catalogs
+
+StringTie, Bambu, FLAIR or IsoQuant GTF files are read like any annotation; novel transcripts have no biotype until SQANTI3 structural categories are added, after which they behave as transcript types in every plot and summary:
+
+```{r}
+#| eval: false
+annot_lr <- prepare_isoformic_annotation("flair_isoforms.gtf")
+add_sqanti_classification(annot_lr, "flair_isoforms_classification.txt")
+```
+
+Novel transcripts have no annotated CDS, so the [sequence-aware ORFs](isoformic-productivity.html) derived from the genome are what classify them as productive or not.
+
+## Session information
+
+```{r}
+#| label: session-info
+sessionInfo()
+```

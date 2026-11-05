@@ -14,8 +14,10 @@ renv.lock
 revdep
 .Rprofile
 README.html
-data-raw/
+data-raw/*
 !data-raw/.gitkeep
+!data-raw/*.R
+!data-raw/pe_csv/
 **/.quarto/
 docs
 *.RData
@@ -24,3 +26,10 @@ docs
 .quarto
 .positai
 
+.rumdl_cache/
+.lintr_cache/
+
+# transient pkgdown/quarto render artifacts
+vignettes/_quarto.yaml
+vignettes/**/*.rmarkdown
+vignettes/**/*_files/

@@ -21,14 +21,14 @@
 get_isoformic_cache <- function(..., ext = NULL) {
   rlang::check_dots_unnamed()
   if (isFALSE(rlang::is_null(ext))) {
-    ext <- stringr::str_remove(ext, pattern = "^\\.")
-    ext <- stringr::str_to_lower(ext)
+    ext <- sub("^\\.", "", ext)
+    ext <- tolower(ext)
   } else {
     ext <- ""
   }
   if (
-    isTRUE(Sys.getenv(x = "XDG_CACHE_HOME") == "") &&
-      isTRUE(stringr::str_detect(get_sys_arch(), pattern = "^Darwin"))
+    !nzchar(Sys.getenv(x = "XDG_CACHE_HOME")) &&
+      isTRUE(startsWith(get_sys_arch(), "Darwin"))
   ) {
     withr::local_envvar(
       .new = list(

@@ -1,0 +1,200 @@
+---
+title: "Introduction to isoformic"
+date: 2023-04-07
+date-modified: 2026-10-17
+date-format: long
+author:
+  - name: Izabela Mamede Conceição
+  - name: Lucio Rezende Queiroz
+format:
+  html:
+    toc: true
+bibliography: library.bib
+vignette: |
+  %\VignetteIndexEntry{Introduction to isoformic}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: "#>"
+    fig-width: 8
+    fig-height: 5
+---
+
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# The isoformic method
+
+`isoformic` interprets RNA-seq data at the level of annotated transcripts.
+Instead of asking only whether a gene changes between conditions, it asks which of its isoforms change, what type of transcript they are (protein coding, retained intron, nonsense-mediated decay, ...) and how the expression of the gene is distributed across them.
+
+Everything revolves around the `IsoformicExperiment` object.
+It holds, for the same samples, transcript-level assays, gene-level assays derived from them, the exon structures of every annotated transcript and the differential expression results, all backed by Parquet files on disk.
+
+This article builds the object from quantification and differential expression tables and shows how to look at it.
+The analyses have one article each:
+
+- [Transcriptomic diversity](isoformic-diversity.html): how many isoforms a gene uses, which one dominates and where isoform switches happen.
+- [Quantification uncertainty](isoformic-uncertainty.html): how well the reads determine each isoform, which isoforms cannot be told apart and how confident each differential expression call is.
+- [What makes an isoform hard to quantify?](isoformic-quantification-stability.html): which isoforms the reads leave uncertain, why, and how many Gibbs draws are enough.
+- [Isoform structure and productivity](isoformic-productivity.html): open reading frames, nonsense-mediated decay, productive fractions, poison exons and external evidence.
+- [Alternative polyadenylation](isoformic-polyadenylation.html): 3' end usage and 3' UTR length.
+- [Functional enrichment by transcript type](isoformic-enrichment.html): gene set enrichment run separately for coding and unproductive transcripts.
+- [Plots](isoformic-plots.html): fold-change, expression profile and genomic context plots.
+- [Other annotations](isoformic-references.html): T2T-CHM13, Ensembl, RefSeq, haplotype-resolved assemblies, FANTOM CAT and long-read catalogs.
+- [Working with plain tables](isoformic-tables.html): the table-based counterparts of every step.
+
+To start from Salmon output instead of ready-made tables, see [From Salmon quantifications to an IsoformicExperiment](isoformic-preprocess.html).
+
+## The data
+
+The examples use the placenta RNA-seq dataset from ["Landscape of Dysregulated Placental RNA Editing Associated With Preeclampsia"][pe-paper-ref]: 8 preeclamptic and 17 control placentas quantified with Salmon [@salmon] against GENCODE v33 and tested for differential expression at the transcript level with `swish` [@swish] and at the gene level with `DESeq2`.
+The tables ship with the package as Parquet files.
+
+```{r}
+#| message: false
+library(isoformic)
+library(dplyr)
+
+extdata <- fs::path_package("isoformic", "extdata")
+fs::dir_ls(extdata)
+```
+
+```{r}
+abundance <- read_parquet(fs::path(extdata, "pe_abundance.parquet"))
+col_data <- read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+det <- read_parquet(fs::path(extdata, "pe_det.parquet"))
+deg <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+
+abundance[1:3, 1:4]
+col_data
+head(det)
+head(deg)
+```
+
+## The annotation
+
+`isoformic` relies on the transcript types of the [GENCODE][gencode-ref] annotation.
+The annotation must be the one used for quantification, here GENCODE v33.
+`download_reference()` fetches it into the package cache (this step needs an internet connection the first time) and `prepare_isoformic_annotation()` converts the GFF3 file, once, into a directory of Parquet tables.
+
+```{r}
+gff_file <- download_reference(version = "33", file_type = "gff")
+annot_dir <- prepare_isoformic_annotation(gff_file)
+fs::dir_ls(annot_dir)
+```
+
+The tables can be inspected with `read_parquet()`, but normally the object reads them for you.
+
+```{r}
+read_parquet(fs::path(annot_dir, "annot_data_transcripts.parquet"), n_max = 3)
+```
+
+The cache location and every other setting the package reads are documented in `?isoformic-options`.
+
+## Building the IsoformicExperiment
+
+A transcript-level abundance table (TPM) with the sample metadata is all that is needed.
+Transcript IDs are checked against the annotation, sample IDs against the metadata.
+
+```{r}
+iso <- IsoformicExperiment(
+  experiment_name = "preeclampsia_placenta",
+  annot_path = annot_dir,
+  assays = list(abundance = abundance),
+  col_data = col_data
+)
+iso
+```
+
+The object behaves like a `SummarizedExperiment`:
+
+```{r}
+dim(iso)
+assay(iso, "abundance")[1:3, 1:3]
+head(row_data(iso))
+col_data(iso)
+iso[1:5, 1:3]
+```
+
+Gene-level assays are derived on demand by summing the isoforms of each gene and cached.
+
+```{r}
+gene_assay(iso, "abundance")[1:3, 1:3]
+head(gene_data(iso))
+```
+
+## Adding differential expression results
+
+Results from any tool can be attached: column names such as `log2FoldChange`, `padj`, `logFC` or `FDR` are standardised to `log2FC`, `pvalue` and `qvalue`, and IDs are validated against the annotation.
+Significance is flagged with stored cutoffs (absolute log2 fold-change of 1 and adjusted p-value of 0.05 by default).
+
+```{r}
+de_tx(iso) <- det
+de_gene(iso) <- deg
+de_cutoffs(iso)
+
+head(de_tx(iso, sig_only = TRUE))
+head(de_gene(iso, sig_only = TRUE))
+```
+
+`de_table()` combines both levels in one long table, one row per feature, which is what the plots consume.
+
+```{r}
+de_table(iso) |>
+  filter(gene_name == "RBPJ")
+```
+
+## A first look
+
+The fold-change plot compares the change of a gene with that of each of its transcripts, coloured by transcript type; the [plots article](isoformic-plots.html) covers the others.
+
+```{r}
+plot_log2fc(iso, feature = "RBPJ")
+```
+
+## Saving the experiment
+
+The whole object, including results, is written as a directory of Parquet files and restored with `read_isoformic()`.
+
+```{r}
+out_dir <- fs::path(tempdir(), "preeclampsia_placenta")
+iso <- write_isoformic(iso, out_dir, overwrite = TRUE)
+iso@data_path
+fs::dir_ls(out_dir, recurse = TRUE)
+read_isoformic(out_dir)
+```
+
+Every other article starts from this object; the block below is all it takes to rebuild it.
+
+```{r}
+#| eval: false
+library(isoformic)
+extdata <- fs::path_package("isoformic", "extdata")
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+iso <- IsoformicExperiment(
+  experiment_name = "preeclampsia_placenta",
+  annot_path = annot_dir,
+  assays = list(abundance = read_parquet(fs::path(extdata, "pe_abundance.parquet"))),
+  col_data = read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+)
+de_tx(iso) <- read_parquet(fs::path(extdata, "pe_det.parquet"))
+de_gene(iso) <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+```
+
+## Session information
+
+```{r}
+#| label: session-info
+sessionInfo()
+```
+
+## References
+
+[gencode-ref]: <https://www.gencodegenes.org/human/>
+[pe-paper-ref]: <https://pubmed.ncbi.nlm.nih.gov/32306769/>

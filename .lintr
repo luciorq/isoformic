@@ -1,0 +1,10 @@
+linters: linters_with_defaults(
+    line_length_linter(120),
+    object_usage_linter = NULL,
+    return_linter = NULL,
+    object_name_linter(styles = c("snake_case", "CamelCase", "symbols")),
+    indentation_linter = NULL,
+    cyclocomp_linter(complexity_limit = 40)
+  )
+exclusions: list("data-raw", "inst", "man", "vignettes", "tests/testthat.R")
+encoding: "UTF-8"

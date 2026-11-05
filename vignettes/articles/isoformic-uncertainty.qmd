@@ -1,0 +1,518 @@
+---
+title: "How confident are we in an isoform-level result?"
+date: 2026-10-17
+date-modified: 2026-10-17
+date-format: long
+author:
+  - name: Lucio Rezende Queiroz
+  - name: Izabela Mamede Conceição
+format:
+  html:
+    toc: true
+bibliography: library.bib
+vignette: |
+  %\VignetteIndexEntry{Quantification uncertainty}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: "#>"
+    fig-width: 8
+    fig-height: 5
+---
+
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Reads that map to several isoforms of a gene can be shared out between them in more than one way, so the abundance of an isoform is estimated with an uncertainty that has nothing to do with biological variability.
+A fold-change between two isoforms that share most of their reads can be an artefact of how those reads were apportioned in each sample, however clean the statistics look.
+
+Salmon [@salmon] measures this *inferential uncertainty* by drawing replicates from the posterior of the abundances (Gibbs sampling, `--numGibbsSamples`, 30 by default in `salmon_quant()`) and by writing the equivalence classes (`--dumpEq`) and a run summary (`meta_info.json`).
+`isoformic` turns them into four kinds of evidence for every isoform and one confidence class for every differential expression call:
+
+| Evidence | Question it answers | Columns |
+|---|---|---|
+| Quantification uncertainty | Is the abundance determined by the reads? | `mean_inf_rv`, `uncertain` |
+| Identifiability | Can the isoform be told apart from its siblings? | `min_sibling_cor`, `ambiguity_group` |
+| Read support | How many of its reads map to it alone? | `unique_fraction` |
+| Fold-change stability | Does the contrast survive resampling the quantification? | `lfc_lo`, `lfc_hi`, `sign_agreement`, `frac_draws_sig` |
+
+The first three are properties of the quantification; the last one is a property of one contrast.
+
+## Quantifying with replicates
+
+Ask Salmon for the replicates and the equivalence classes.
+`salmon_quant()` does it by default; from a shell:
+
+``` bash
+salmon quant ... --numGibbsSamples 30 --dumpEq --dumpEqWeights
+```
+
+Thirty replicates are enough for the summaries below.
+More cost time and disk space and change little.
+Then read everything in one call, from the same output directories used for `read_salmon()`:
+
+```{r}
+#| eval: false
+iso <- read_salmon(quant_dirs, annot_path = annot_dir, col_data = col_data, inferential = TRUE)
+
+# or, with a contrast and other cutoffs
+iso <- read_salmon(quant_dirs, annot_path = annot_dir, col_data = col_data)
+iso <- add_uncertainty(iso, paths = quant_dirs, group = "condition")
+```
+
+The replicates are read for the transcripts with an estimated mean count of at least one, and the run metadata of every sample is added to `col_data()`.
+The replicates stay in memory (`metadata(iso)$inf_reps`); the tables derived from them are stored in the object and written by `write_isoformic()`.
+
+## The example
+
+The package ships two small real datasets in which an isoform switch defines the phenotype.
+ESRP1 and ESRP2 are epithelial splicing regulators that keep cells in an epithelial isoform program; their loss moves many genes (CD44, CTNND1, ENAH, SCRIB, ...) to the isoforms of mesenchymal cells.
+In prostate cancer the androgen receptor controls `ESRP2`, which makes this switch part of the androgen response [@munkley2019].
+
+| Series | Cells | Knockdown | Reference |
+|---|---|---|---|
+| GSE129540 | prostate cancer | `ESRP2` siRNA, 3 vs 3 | @munkley2019 |
+| GSE75489 | H358 lung epithelial | `ESRP1` and `ESRP2` shRNA, 3 vs 3 | @yang2016 |
+
+Both were re-quantified from the public reads (the first 12 million read pairs of each sample) with Salmon 2.8.0 against GENCODE v49, with 30 Gibbs draws and equivalence classes.
+The `swish` test [@swish] was run on the complete quantification, so its q-values are those of the full analysis; only the transcripts of 41 genes (known ESRP targets and the genes with the most significant transcripts) are bundled.
+`data-raw/build_knockdown_example.R` rebuilds everything from the Salmon output.
+
+```{r}
+#| message: false
+library(isoformic)
+library(dplyr)
+
+extdata <- fs::path_package("isoformic", "extdata")
+
+read_knockdown <- function(series) {
+  dir <- fs::path(extdata, "knockdown", series)
+  iso <- IsoformicExperiment(
+    experiment_name = series,
+    annot_path = fs::path(extdata, "knockdown_annotation"),
+    assays = list(
+      abundance = read_parquet(fs::path(dir, "abundance.parquet")),
+      counts = read_parquet(fs::path(dir, "counts.parquet"))
+    ),
+    col_data = read_parquet(fs::path(dir, "col_data.parquet"))
+  )
+  de_tx(iso) <- read_parquet(fs::path(dir, "det.parquet"))
+  # The draws and the equivalence classes of the Salmon runs
+  iso@metadata$inf_reps <- as_inferential_replicates(
+    read_parquet(fs::path(dir, "draws.parquet"))
+  )
+  list(iso = iso, equivalence = read_parquet(fs::path(dir, "equivalence.parquet")))
+}
+
+prostate <- read_knockdown("GSE129540")
+iso <- prostate$iso
+iso
+```
+
+The small result tables of the checks further down (read-split experiments, tool comparisons) are bundled; this helper reads them.
+
+```{r}
+read_split <- function(name) {
+  read_parquet(fs::path(extdata, "knockdown", "read_split", paste0(name, ".parquet")))
+}
+```
+
+Run-level checks come first: the mapping rate, the library type and whether the optimiser converged are in the sample table, from `salmon_run_qc()`.
+
+```{r}
+col_data(iso) |>
+  select(sample_id, condition, num_mapped, percent_mapped, num_replicates, qc_flag)
+```
+
+The `library_size` column holds the total estimated count of the complete quantification.
+Because the object keeps only a subset of the transcripts, `add_uncertainty()` uses it to scale the counts before it computes the fold-changes.
+
+The bundled `swish` result flags the isoforms that change:
+
+```{r}
+sum(de_tx(iso)$qvalue < 0.05, na.rm = TRUE)
+```
+
+## Computing the uncertainty
+
+`add_uncertainty()` computes the tables and, given a `group`, repeats the contrast on every draw.
+Without `paths` it uses the draws already in the object.
+
+```{r}
+iso <- add_uncertainty(
+  iso,
+  group = "condition",
+  levels = c("control", "knockdown"),
+  equivalence = prostate$equivalence
+)
+iso
+```
+
+## Which isoforms are not determined by the reads?
+
+`tx_uncertainty()` has one row per assessed transcript.
+`mean_inf_rv` is the inferential relative variance [@swish]: the variance of the draws in excess of the counting noise (the mean), relative to the expression, averaged over samples.
+A well-determined isoform has a value near zero; the value of one that shares its reads with others can be several units.
+
+```{r}
+unc <- tx_uncertainty(iso)
+unc |>
+  arrange(desc(mean_inf_rv)) |>
+  select(any_of(c("gene_name", "transcript_name", "mean_count", "mean_inf_rv", "uncertain", "unique_fraction"))) |>
+  head(8)
+
+table(unc$transcript_type, unc$uncertain)
+```
+
+The distribution per transcript type, with the cutoff that separates uncertain isoforms (0.5 by default; with 30 draws, sampling noise puts well-determined, highly expressed transcripts near 0.1):
+
+```{r}
+plot_inf_rv(iso)
+```
+
+`unique_fraction` is the share of the fragments of an isoform that are compatible with it alone, read from the equivalence classes of `--dumpEq`.
+It is the most direct measure of read support. With `paths`, `add_uncertainty()` reads the classes itself; here the table returned by `equivalence_support()` is passed instead.
+
+## Which isoforms cannot be told apart?
+
+When two isoforms share their reads, every fragment given to one is taken from the other, and their draws are negatively correlated.
+`isoform_ambiguity()` reports the mean correlation of every pair of isoforms of the same gene; pairs at or below `cor_cutoff` (-0.5) are ambiguous and connected into `ambiguity_group`s.
+
+```{r}
+isoform_ambiguity(iso, ambiguous_only = TRUE) |>
+  select(gene_name, transcript_name_1, transcript_name_2, mean_cor, min_cor, n_samples)
+```
+
+```{r}
+plot_isoform_correlation(iso, gene_name = "SCRIB")
+```
+
+An ambiguous pair is a statement about this quantification: one isoform of the pair may be up and the other down, or both unchanged, with the same data.
+The sum of the pair is better determined than either part.
+
+## How stable is each fold-change?
+
+`de_confidence()` repeats the contrast on every draw and summarises the log2 fold-change: its median and 95% interval, the share of draws that agree on its direction (`sign_agreement`) and the share in which the isoform is called differentially expressed (`frac_draws_sig`).
+Combined with the quantification uncertainty and the ambiguity it gives a confidence class:
+
+- `high`: the fold-change is stable (`sign_agreement >= 0.95`), the isoform is not `uncertain` and has no ambiguous sibling;
+- `moderate`: exactly one of these fails;
+- `low`: two or more fail.
+
+The class says how far a call on this isoform can be trusted, so read it for the isoforms flagged by the primary test; for the others it only says that nothing would be believed.
+
+```{r}
+conf <- de_confidence(iso)
+conf |>
+  filter(n_det_sig > 0) |>
+  select(gene_name, transcript_name, det_log2FC, lfc_lo, lfc_hi, sign_agreement, mean_inf_rv, confidence, reason) |>
+  head(10)
+
+table(significant = conf$n_det_sig > 0, confidence = conf$confidence, useNA = "ifany")
+```
+
+```{r}
+plot_de_confidence(iso, gene_name = c("SCRIB", "CTNND1"))
+```
+
+A significant isoform with a low class is not wrong: it is a call that the quantification does not support strongly.
+Typical reasons are shown in `reason`; a fold-change interval that crosses zero is the clearest sign.
+
+Two things stand out in these data.
+First, the isoforms with the largest fold-changes are not the ESRP targets: `OASL` and `ZC3HAV1` are interferon-stimulated genes, which is a common response to transfected siRNA (an interpretation, not something these data test), and they are also the best-determined calls (a narrow interval and a moderate class from an inferential variance of a few units).
+Second, the ESRP targets themselves are mostly in genes with dozens of annotated isoforms, where the reads cannot decide between near-identical transcripts.
+Compare the two genes of the plot above:
+
+```{r}
+conf |>
+  left_join(unc[, c("transcript_id", "unique_fraction")], by = c("feature_id" = "transcript_id")) |>
+  filter(gene_name %in% c("SCRIB", "CTNND1", "ENAH"), abs(lfc_median) > 1.5) |>
+  arrange(gene_name, desc(abs(lfc_median))) |>
+  slice_head(n = 3, by = gene_name) |>
+  select(gene_name, transcript_name, lfc_median, lfc_lo, lfc_hi, sign_agreement, mean_inf_rv, unique_fraction, confidence)
+```
+
+`SCRIB-207` is the clean case: an interval far from zero, an inferential variance of 0.3 and no ambiguous partner, so a high confidence call that the primary test also flags.
+The `CTNND1` and `ENAH` isoforms change by several log2 units with every draw agreeing on the direction, but their inferential variance is 18 to 50 against a cutoff of 0.5 and practically no fragment is unique to them (`unique_fraction` is zero or nearly): the data say that something in these genes changes, not which of the transcripts it is.
+`SCRIB` has an ambiguous pair as well (`SCRIB-201` and `SCRIB-211`, above), which `collapse_groups` handles by testing their sum as one feature.
+
+## A second dataset: the CD44 switch
+
+The H358 series is the classical case.
+Without ESRP1 and ESRP2, `CD44` moves from long variant transcripts (13 to 18 exons) to the short transcript `CD44-201` (9 exons).
+The reads tell the same story, with the confidence the quantification allows:
+
+```{r}
+lung <- read_knockdown("GSE75489")
+iso_lung <- add_uncertainty(
+  lung$iso,
+  group = "condition",
+  levels = c("control", "knockdown"),
+  equivalence = lung$equivalence
+)
+de_confidence(iso_lung, gene_name = "CD44") |>
+  left_join(
+    tx_uncertainty(iso_lung)[, c("transcript_id", "unique_fraction")],
+    by = c("feature_id" = "transcript_id")
+  ) |>
+  filter(abs(lfc_median) > 1.5) |>
+  arrange(desc(lfc_median)) |>
+  select(transcript_name, lfc_median, lfc_lo, lfc_hi, sign_agreement, mean_inf_rv, unique_fraction, confidence)
+```
+
+```{r}
+plot_de_confidence(iso_lung, gene_name = "CD44")
+```
+
+The direction of the switch is certain: the short `CD44-201` goes up, as does `CD44-248`, and the long variant transcripts `CD44-242`, `CD44-206` and `CD44-247` go down, with at least 97% of the draws agreeing on every direction.
+Which transcript carries each change is not, because the transcripts differ by single exons and none has reads of its own (`unique_fraction` is zero), so none gets better than a moderate class.
+Reporting the class next to the fold-change is the honest summary: *CD44 switches towards its short form (high agreement), but the individual variant isoforms cannot be resolved with short reads*.
+
+### Testing ambiguous isoforms as one feature
+
+When a pair cannot be told apart, test the part that can be measured, the sum.
+`collapse_groups = TRUE` sums the draws of each ambiguity group before the contrast:
+
+```{r}
+de_confidence(iso, group = "condition", levels = c("control", "knockdown"), collapse_groups = TRUE) |>
+  filter(feature_type == "group") |>
+  select(feature_id, transcript_ids, lfc_median, lfc_lo, lfc_hi, sign_agreement, mean_inf_rv, confidence)
+```
+
+### Groups from Terminus
+
+Terminus [@terminus] groups the transcripts whose abundances the reads cannot estimate separately, from the equivalence classes and the replicates of all samples, and gives one consensus grouping.
+`run_terminus()` runs it from R on the Salmon output directories, installing Terminus with `condathis` the first time, and returns the consensus groups; `add_uncertainty(groups = )` uses them in place of the groups built from the correlation of the replicates, and the confidence classes and `collapse_groups` follow them.
+Terminus needs replicates and equivalence classes with their weights (`--dumpEq --dumpEqWeights`), which `salmon_quant()` writes; `run_terminus()` checks them before it starts.
+
+```{r}
+#| eval: false
+groups <- run_terminus(quant_dirs, output_dir = "terminus", workers = 4)
+iso <- add_uncertainty(iso, paths = quant_dirs, group = "condition", groups = groups)
+
+# Groups from an earlier run, or from Terminus run outside R
+groups <- read_terminus_groups("terminus/sample1")
+```
+
+On the six prostate samples (`data-raw/knockdown/compare_terminus.R`, Terminus 0.1.0), the consensus holds 14,029 groups of 52,911 transcripts.
+The two groupings point at the same isoforms but differ in reach:
+
+```{r}
+read_split("terminus_comparison")
+```
+
+Two thirds of the transcripts that the correlation rule groups are also in a Terminus group, and the same share of its pairs fall in the same group.
+Terminus groups more transcripts (20,703 against 8,076 of the assessed ones), and the isoforms it groups are the most uncertain (median inferential relative variance 15.5, against 8.6 for the correlation groups and 1.4 for the isoforms in neither).
+Among the large changes the high class stays at 203 isoforms, and about 900 isoforms move from moderate to low because a Terminus group counts as an ambiguous sibling.
+Both groupings are heuristics built from the same replicates; neither is the truth, and the Terminus groups come from the 12 million read pairs of these samples.
+
+### Trees from TreeTerminus
+
+A flat group either collapses isoforms or does not.
+TreeTerminus [@treeterminus] builds trees instead: the leaves are isoforms and every node is the sum of the isoforms below it, so the resolution can change from one isoform to the next.
+`read_treeterminus()` reads the trees and `cut_transcript_trees()` cuts them with the replicates in the object: an isoform the reads determine stays itself, one they do not is replaced by its lowest ancestor whose inferential relative variance is below the cutoff, and nested choices are merged so that no isoform is in two groups.
+
+```{r}
+#| eval: false
+# treeterminus group -d <folder with the Salmon runs> -o tt --mean_inf true
+trees <- read_treeterminus("tt", salmon_dir = quant_dirs[[1]])
+groups <- cut_transcript_trees(trees, iso, cutoff = 0.5)
+iso <- add_uncertainty(iso, group = "condition", groups = groups)
+```
+
+On the six prostate samples (`data-raw/knockdown/compare_treeterminus.R`; TreeTerminus Mean trees of the six samples), the three groupings compare as follows:
+
+```{r}
+read_split("grouping_comparison")
+```
+
+The trees reach many more of the uncertain isoforms (58,225 are left alone, against 67,138 with Terminus and 78,892 with the correlation rule), and the features they produce are the ones the reads determine: the median inferential relative variance of a group is 0.19, against 2.87 for the Terminus groups, most of which stay uncertain after summing.
+Grouping more isoforms also flags more of them as ambiguous, so fewer large changes stay in the high class (159 against 203).
+The isoforms still left alone are those whose whole tree stays above the cutoff; `unresolved = "root"` merges such trees into one group each.
+TreeTerminus needed 24 minutes and 18 GB of memory for the six samples; reading and cutting the trees took about four minutes.
+
+## Does the confidence predict what does not reproduce?
+
+A confidence class is only useful if it separates the calls that hold up from those that do not.
+The prostate dataset allows a direct check, because a library can be quantified twice.
+Each of the six libraries was split into its first and second 6 million read pairs and quantified separately (`data-raw/knockdown/split_halves.sh`, `data-raw/knockdown/validate_uncertainty.R`), which gives technical replicates and two kinds of contrast:
+
+- **null contrasts**, half 1 against half 2 of the same libraries, for the controls and for the knockdowns, where every difference is noise;
+- **the real contrast** (control against knockdown), called in half 1 and checked in half 2.
+
+**Stability alone is not enough.**
+The null contrasts contain hundreds of transcripts whose fold-change exceeds two-fold and is stable over the draws (at least 95% of them agree on the direction), because the draws describe the quantification and the two halves differ in the reads that were sampled.
+Nearly all of them are demoted by the confidence class:
+
+```{r}
+read_split("null_stable")
+```
+
+**Uncertain isoforms reproduce less.**
+Among the isoforms called by `edgeR` in half 1, the share that goes the same way in half 2 and that is called again falls from the high to the low class:
+
+```{r}
+read_split("replication_class")
+```
+
+The inferential relative variance shows the same gradient on every large, stable change, and puts a scale on the cutoff: the direction agrees in 98% of the isoforms below 0.5, which is the default cutoff for `uncertain`, and in 78% of those above 10.
+
+```{r}
+read_split("replication_rv")
+```
+
+## Dividing out the uncertainty
+
+The classes describe a call after the test.
+The same replicates can also go into the test: `inferential_overdispersion()` estimates how much more variable than Poisson the count of each isoform is because of the read ambiguity, as `edgeR::catchSalmon()` does [@baldoni2024], and `scale_counts()` divides the counts by it.
+The scaled counts can then be given to any count-based test.
+In the null contrasts above, `edgeR` on the raw counts calls about twice as many transcripts at a p-value below 0.001 as chance allows, and on the scaled counts it calls fewer than chance allows:
+
+```{r}
+read_split("null_calls")
+```
+
+The scaled test is conservative here, with fewer transcripts passing the expression filter (13,800 against 32,000), and these null contrasts compare technical replicates of the same libraries, a favourable case; no biological variability is involved.
+The classes and the scaling answer different questions and can be used together.
+
+```{r}
+#| eval: !expr requireNamespace("edgeR", quietly = TRUE)
+overdispersion <- inferential_overdispersion(iso)
+summary(overdispersion$overdispersion)
+
+iso <- scale_counts(iso)
+scaled <- edgeR::DGEList(assay(iso, "counts_scaled"), group = col_data(iso)$condition)
+design <- stats::model.matrix(~group, scaled$samples)
+scaled <- edgeR::estimateDisp(scaled, design)
+fit <- edgeR::glmQLFit(scaled, design)
+scaled_test <- edgeR::topTags(edgeR::glmQLFTest(fit, coef = 2), n = 5)$table
+scaled_test |>
+  tibble::rownames_to_column("transcript_id") |>
+  left_join(unc[, c("transcript_id", "gene_name", "transcript_name", "mean_inf_rv")], by = "transcript_id") |>
+  select(gene_name, transcript_name, logFC, FDR, mean_inf_rv)
+```
+
+## Testing transcript usage
+
+The tests above ask whether an isoform changes.
+Switches are also tested as a change in the *share* of a gene that an isoform carries.
+`test_usage()` runs `edgeR` `diffSplice`, `satuRn` or `DEXSeq` on the counts, divided by the overdispersion of the replicates when the object has them, and returns the same table for the three backends.
+With more than two groups it tests every level against the first, or every pair with `contrasts = "pairwise"`, and the `contrast` column says which comparison each row belongs to; `contrasts = "omnibus"` gives one p-value per isoform for a difference among any of the groups:
+
+```{r}
+#| eval: !expr requireNamespace("edgeR", quietly = TRUE)
+usage <- test_usage(iso, group = "condition", levels = c("control", "knockdown"), method = "diffsplice")
+usage |>
+  filter(gene_qvalue < 0.05) |>
+  select(gene_name, transcript_name, usage_log2FC, qvalue, gene_qvalue, scaled) |>
+  head(8)
+```
+
+The division matters.
+In the null contrasts of the read-split experiment, where every call is a false positive, the unscaled `diffSplice` and `DEXSeq` call dozens to hundreds of transcripts.
+The calls of the real contrast made in one half of the reads go the same way in the other half in 47% of the cases for unscaled `diffSplice`, which is chance, and in 65% for `DEXSeq`.
+With the scaling the false positives nearly vanish, and the calls reproduce (100% and 94%):
+
+```{r}
+read_split("usage_null") |>
+  select(contrast, method, scaled, transcripts, q_below_0.05, p_below_0.001, expected_p_below_0.001)
+read_split("usage_replication")
+```
+
+`satuRn` is the most conservative of the three without the scaling, and still gains calls that reproduce with it.
+The scaled runs test fewer transcripts, because fewer pass the expression filter once the counts are divided; the false positives are fewer partly for that reason.
+These are technical replicates of the same libraries, which is the most favourable comparison for a usage test: biological variability is absent, so they say how well a method resists read ambiguity and nothing else.
+
+### Against IsoformSwitchAnalyzeR
+
+IsoformSwitchAnalyzeR (version 2.10.0) tests isoform usage with `DEXSeq` too, adds its own expression and effect-size filters, and calls an isoform a switch when its adjusted p-value is below 0.05 and its usage changes by at least 0.1.
+Run on the same six prostate samples (`data-raw/knockdown/compare_isar.R`), with the same two thresholds applied to `test_usage()`, it gives:
+
+```{r}
+read_split("isar_comparison") |>
+  select(tool, tested, calls, shared_with_isar, uncertain, ambiguous, unstable, high_confidence)
+```
+
+There is no ground truth for this contrast, so the table says how the tools differ and not which is right.
+The three call sets overlap very little: eight of the 372 calls on raw counts are also IsoformSwitchAnalyzeR switches, and one of the 139 calls on scaled counts.
+The tools tested different isoforms (79,463 for IsoformSwitchAnalyzeR against 19,171 and 8,779 here, which apply their expression filters at different points), so part of the disagreement is the filters.
+
+What the uncertainty tables add is a way to read each call.
+Most calls of every tool (88% to 98%) are on isoforms with an inferential relative variance of at least 0.5, as usage switches mostly occur in genes with many near-identical isoforms.
+The calls differ in their stability over the replicates: 17 of the 40 switches of IsoformSwitchAnalyzeR and 181 of the 372 calls on raw counts have a fold-change that fewer than 95% of the replicates agree on, against 25 of the 139 calls on scaled counts, which are also the calls that reproduce between read halves above.
+
+## Using the confidence downstream
+
+Isoform switches count significant isoforms, which is where ambiguous quantification does most damage.
+With the confidence stored, `isoform_switches()` reports how many significant isoforms of each gene are confident and `confident_only = TRUE` keeps only those:
+
+```{r}
+isoform_switches(iso) |>
+  select(gene_name, n_det_sig, n_det_confident, switch_type) |>
+  head(8)
+isoform_switches(iso, confident_only = TRUE) |>
+  select(gene_name, n_det_sig, n_det_confident, switch_type) |>
+  head(8)
+```
+
+`dominant_isoform()` adds the uncertainty of the dominant isoform (`dominant_inf_rv`, `dominant_ambiguous`), and `productive_fraction()` uses the same draws to put an uncertainty on the share of expression carried by productive isoforms (see the [productivity article](isoformic-productivity.html)).
+
+```{r}
+dominant_isoform(iso, group = "condition") |>
+  filter(dominant_switch) |>
+  select(gene_name, condition, dominant_transcript_name, dominant_fraction, dominant_inf_rv, dominant_ambiguous) |>
+  head(6)
+```
+
+## Reporting the uncertainty
+
+Report the numbers next to the classes, and the settings that produced them.
+`uncertainty_report()` collects the tables a methods or results section needs:
+
+```{r}
+report <- uncertainty_report(iso)
+names(report)
+report$transcripts
+report$de
+report$switches
+```
+
+- **Results.** State how many of the significant isoforms have each confidence class and why the others do not (`report$de`: unstable fold-change, uncertain quantification, ambiguous sibling), and how many switches or genes remain once only confident isoforms are kept (`report$switches`).
+- **Tables.** For every isoform you discuss, give the fold-change with its interval (`lfc_median`, `lfc_lo`, `lfc_hi`), `sign_agreement`, `mean_inf_rv`, `unique_fraction` and the ambiguous partner, if any, next to the p-value of the primary test.
+- **Figures.** `plot_de_confidence()` for the isoforms of a gene, `plot_isoform_correlation()` for the ambiguous ones.
+- **Methods.** `uncertainty_methods()` writes a paragraph with the Salmon version, the number of draws and the cutoffs; edit it to fit.
+
+```{r}
+uncertainty_methods(iso)
+```
+
+Some cautions belong in the text as well.
+The draws describe the uncertainty of the quantification only; they do not replace biological replicates, and an isoform with a stable fold-change can still be a false positive of the primary test.
+The cutoffs (`inf_rv_cutoff`, `cor_cutoff`, `min_agreement`) are heuristics: rerun `add_uncertainty()` with other values and report how the numbers change.
+The classes are calibrated against nothing but the data at hand.
+Finally, the contrast repeated on each draw is a screening statistic (a Welch test on the log scale, with a pseudocount of 5) and does not replace `swish` or `DESeq2`.
+
+## Saving
+
+The tables, the settings and the run metadata are saved with the object; the draws are not, and are re-read from the Salmon directories with `add_uncertainty(iso, paths = )` when the tables need to be recomputed.
+
+```{r}
+out_dir <- fs::path(tempdir(), "knockdown_uncertainty")
+invisible(write_isoformic(iso, out_dir, overwrite = TRUE))
+fs::dir_ls(fs::path(out_dir, "dea"))
+tx_uncertainty(read_isoformic(out_dir)) |> head(3)
+```
+
+## Session information
+
+```{r}
+#| label: session-info
+sessionInfo()
+```
+
+## References

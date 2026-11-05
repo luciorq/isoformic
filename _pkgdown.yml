@@ -4,3 +4,122 @@ template:
   bootstrap: 5
   light-switch: true
   llm-docs: true
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github, lightswitch]
+
+articles:
+  - title: Get started
+    navbar: Get started
+    contents:
+      - articles/isoformic-introduction
+      - articles/isoformic-preprocess
+  - title: Analyses
+    navbar: Analyses
+    contents:
+      - articles/isoformic-diversity
+      - articles/isoformic-uncertainty
+      - articles/isoformic-quantification-stability
+      - articles/isoformic-productivity
+      - articles/isoformic-polyadenylation
+      - articles/isoformic-enrichment
+      - articles/isoformic-plots
+  - title: Annotations and tables
+    navbar: Annotations and tables
+    contents:
+      - articles/isoformic-references
+      - articles/isoformic-tables
+
+reference:
+  - title: The IsoformicExperiment class
+    desc: >
+      Transcript, gene and exon level data for the same samples, backed by
+      Parquet files.
+    contents:
+      - IsoformicExperiment
+      - IsoformicExperiment-accessors
+      - example_isoformic
+  - title: Creating experiments
+    contents:
+      - read_salmon
+      - read_oarfish
+      - read_oarfish_sc_counts
+      - isoformic-conversion
+      - isoformic-io
+  - title: Annotation
+    contents:
+      - prepare_isoformic_annotation
+      - prepare_annotation
+      - prepare_exon_annotation
+      - make_tx_to_gene
+      - merge_annotations
+      - add_annotation_columns
+      - add_fantom_cat_tables
+      - add_sqanti_classification
+  - title: Reference downloads
+    contents:
+      - download_reference
+      - download_reference_url
+      - download_hprc_annotation
+      - download_fantom_cat_tables
+      - get_isoformic_cache
+      - isoformic-options
+  - title: Quantification uncertainty
+    desc: >
+      Inferential replicates, equivalence classes and run metadata from Salmon
+      turned into uncertainty, ambiguity and confidence of isoform-level
+      results.
+    contents:
+      - inferential-io
+      - uncertainty
+      - uncertainty-plots
+      - inferential-overdispersion
+      - read_terminus_groups
+      - run_terminus
+      - treeterminus
+      - test_usage
+  - title: Isoform structure and productivity
+    contents:
+      - transcript_features
+      - transcript_sequences
+      - transcript_orfs
+      - productivity
+      - productivity_evidence
+      - domain_retention
+      - gtex_reference
+      - polyadenylation
+  - title: Frozen evidence datasets
+    desc: >
+      Reference tables pinned to a source version (APPRIS, Ribo-seq ORFs,
+      validated NMD exons, PolyASite, GTEx) and the coding potential model.
+    contents:
+      - frozen_data
+      - build_frozen_data
+      - build_coding_model
+  - title: Differential expression
+    contents:
+      - dea
+      - join_DEG_DET
+      - is_deg_sig
+  - title: Transcriptomic diversity
+    contents:
+      - diversity
+  - title: Plots
+    contents:
+      - plot_log2fc
+      - profiles
+      - prepare_profile_data
+      - plot_genomic_context
+      - tx_type_palette
+      - productivity_palette
+  - title: Enrichment
+    contents:
+      - enrichment
+  - title: Parquet and quantification tools
+    contents:
+      - parquet
+      - summarize_to_gene
+      - salmon_index
+      - salmon_quant

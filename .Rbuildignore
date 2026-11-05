@@ -43,4 +43,9 @@
 ^\.vscode$
 ^PLAN\.md$
 ^TODO\.md$
+^\.lintr$
+^\.rumdl_cache$
+^\.lintr_cache$
 
+^CLAUDE\.md$
+^jarl\.toml$

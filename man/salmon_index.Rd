@@ -29,7 +29,8 @@ salmon_index(
 (default is "salmon-env").}
 
 \item{is_gencode}{Logical indicating if the FASTA is from GENCODE
-(default is \code{FALSE}).}
+(default is \code{FALSE}); the transcript names are then truncated at the
+first \code{|} so that they match the annotation.}
 
 \item{decoy_fasta}{Optional path to a FASTA file containing decoy sequences
 (default is \code{NULL}).}
@@ -42,4 +43,10 @@ processx style output list.
 }
 \description{
 Create a Salmon index from a reference transcriptome FASTA file.
+}
+\details{
+The index must be built with the same Salmon major version used for
+\code{salmon_quant()}: Salmon 2 (the Rust rewrite) cannot read indices built by
+Salmon 1.x and rejects them with an error. Rebuild the index after
+upgrading.
 }

@@ -1,0 +1,115 @@
+---
+title: "Working with plain tables"
+date: 2026-10-17
+date-modified: 2026-10-17
+date-format: long
+author:
+  - name: Izabela Mamede Conceição
+  - name: Lucio Rezende Queiroz
+format:
+  html:
+    toc: true
+bibliography: library.bib
+vignette: |
+  %\VignetteIndexEntry{Working with plain tables}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: "#>"
+    fig-width: 8
+    fig-height: 5
+---
+
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Every analysis in the other articles is a method of the `IsoformicExperiment` object, and each has a table-based counterpart for data that does not fit in the object, for example results already joined in a spreadsheet or a single gene exported from another tool.
+This article shows those counterparts on the tables of the [introduction](isoformic-introduction.html).
+
+```{r}
+#| message: false
+library(isoformic)
+library(dplyr)
+
+extdata <- fs::path_package("isoformic", "extdata")
+abundance <- read_parquet(fs::path(extdata, "pe_abundance.parquet"))
+col_data <- read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+det <- read_parquet(fs::path(extdata, "pe_det.parquet"))
+deg <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+```
+
+## Transcript-to-gene table
+
+`make_tx_to_gene()` builds the transcript-to-gene table from an annotation directory, a GENCODE transcript FASTA or a GFF3 file.
+
+```{r}
+tx2gene <- make_tx_to_gene(annot_dir)
+head(tx2gene)
+```
+
+## Differential expression tables
+
+`join_DEG_DET()` builds the long table that `plot_log2fc()` consumes from gene-level and transcript-level results, and `is_deg_sig()` flags significance with the same cutoffs the object uses.
+
+```{r}
+de_long <- join_DEG_DET(
+  deg_table = left_join(deg, distinct(tx2gene, gene_id, gene_name), by = "gene_id"),
+  det_table = left_join(det, tx2gene, by = "transcript_id"),
+  logfc_cut = 1,
+  pval_cut = 0.05
+)
+head(de_long)
+plot_log2fc(de_long, feature = "RBPJ")
+```
+
+## Expression profiles
+
+`prepare_profile_data()` builds the table for `plot_tx_expr()` from the abundance table, the sample metadata and the transcript-to-gene table.
+
+```{r}
+profile <- prepare_profile_data(
+  txi_transcript = abundance,
+  sample_metadata = col_data,
+  tx_to_gene = tx2gene,
+  de_result_gene = deg,
+  de_result_transcript = det,
+  var = "condition",
+  gene_name = "RBPJ"
+)
+head(profile)
+plot_tx_expr(profile, gene_name = "RBPJ", group = "condition")
+```
+
+## Exon structures
+
+`prepare_exon_annotation()` extracts the exon table of a set of genes from a GFF3 or GTF file for `plot_genomic_context()`; here from the small GFF3 bundled with the package.
+
+```{r}
+#| fig-height: 7
+gff <- fs::path(extdata, "example.gff3")
+exons <- prepare_exon_annotation("RBPJ", gff, output_path = tempdir())
+head(exons)
+plot_genomic_context(exons, gene_name = "RBPJ")
+```
+
+## Structural features and enrichment
+
+`transcript_features()`, `transcript_orfs()`, `transcript_productivity()` and `polya_sites()` accept an annotation directory in place of the object, and `run_enrichment()` accepts a transcript table together with a `tx_to_gene` table.
+
+```{r}
+feats <- transcript_features(annot_dir, gene_name = "RBPJ")
+feats[, c("transcript_name", "orf_length", "utr3_length", "nmd_predicted", "tss_group")]
+```
+
+## Session information
+
+```{r}
+#| label: session-info
+sessionInfo()
+```

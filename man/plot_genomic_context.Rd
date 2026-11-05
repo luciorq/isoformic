@@ -2,58 +2,86 @@
 % Please edit documentation in R/plot_genomic_context.R
 \name{plot_genomic_context}
 \alias{plot_genomic_context}
-\title{Plot Transcripts Genomic Context}
+\alias{plot_tx_context}
+\title{Plot the Genomic Context of a Gene's Isoforms}
 \usage{
 plot_genomic_context(
-  gene_name,
-  context_data,
-  limit_label = TRUE,
-  show_guides = FALSE,
-  y_offset = 0,
-  height_offset = 0,
-  downstream_offset = 0,
+  self,
+  gene_name = NULL,
+  assay = "abundance",
+  highlight_de = TRUE,
+  color_palette = NULL,
+  expression = NULL,
+  highlight = NULL,
+  highlight_poison_exons = TRUE,
   upstream_offset = 0,
-  ideogram_reference = c("hg38", "hg19", "mm11", "mm10", "none")
+  downstream_offset = 0,
+  exon_height = 0.6,
+  ncol = 1L,
+  ...
 )
+
+plot_tx_context(exon_table, ...)
 }
 \arguments{
-\item{gene_name}{Character string specifying the name of the gene to plot.}
+\item{self}{An \link{IsoformicExperiment} or an exon table.}
 
-\item{context_data}{A \code{ContextData} object containing genomic context information.}
+\item{gene_name}{Character vector of gene names or IDs.}
 
-\item{limit_label}{Logical indicating whether to limit the length of
-transcript labels to avoid overlap (default is \code{TRUE}).}
+\item{assay}{Name of the assay used to label transcripts with their mean
+expression; \code{NULL} disables the labels.}
 
-\item{show_guides}{Logical indicating whether to show guide lines on the plot
-(default is \code{FALSE}).}
+\item{highlight_de}{Logical, outline isoforms flagged as significant in
+the stored transcript-level results.}
 
-\item{y_offset}{Numeric value to adjust the vertical position of the plot
-(default is \code{0}).}
+\item{color_palette}{Named colour vector per transcript type; defaults
+to the object's palette or \code{\link[=tx_type_palette]{tx_type_palette()}}.}
 
-\item{height_offset}{Numeric value to adjust the height of the plot
-(default is \code{0}).}
+\item{expression}{Optional named numeric vector (by transcript ID) used
+to label transcripts (data frame method).}
 
-\item{downstream_offset}{Numeric value to extend the downstream region
-beyond the gene's end position (default is \code{0}).}
+\item{highlight}{Optional character vector of transcript IDs or names to
+outline (data frame method).}
 
-\item{upstream_offset}{Numeric value to extend the upstream region
-beyond the gene's start position (default is \code{0}).}
+\item{highlight_poison_exons}{Logical, outline exons found only in
+unproductive isoforms of the gene (see \code{\link[=poison_exons]{poison_exons()}}).}
 
-\item{ideogram_reference}{Character string specifying the reference genome
-for the ideogram. Options include "hg38", "hg19", "mm11",
-"mm10", or "none" (default is "hg38").}
+\item{upstream_offset, downstream_offset}{Extra genomic span (bp) shown
+before and after the gene.}
+
+\item{exon_height}{Height of exon boxes (0-1).}
+
+\item{ncol}{Number of facet columns when several genes are plotted.}
+
+\item{...}{Passed on to methods.}
+
+\item{exon_table}{Legacy argument of \code{plot_tx_context()}.}
 }
 \value{
-A \code{plotgardener} object representing the genomic context plot.
+A \code{ggplot} object.
 }
 \description{
-Generate a genomic context plot for a specified gene, displaying its transcripts
-along with their types and annotations.
-The function utilizes the \code{plotgardener} package to create a detailed
-visualization of the genomic context, including an ideogram, chromosome
-highlight, and transcript structures.
-It requires a \code{ContextData} object that contains the necessary genomic
-information and annotations.
-The plot can be customized with various parameters such as offsets,
-label limits, and ideogram references.
+Draws the exon-intron structure of every annotated transcript of one or
+more genes along the genome, one row per transcript, coloured by
+transcript type, with introns as lines carrying strand arrows. This is a
+pure \code{ggplot2} implementation reading the exon table of the annotation
+directory, so it needs no genome packages. The \link{IsoformicExperiment}
+method can annotate each transcript with its mean expression and
+highlight differentially expressed isoforms.
+
+The data frame method takes an exon table as returned by \code{\link[=exon_table]{exon_table()}}
+or \code{\link[=prepare_exon_annotation]{prepare_exon_annotation()}} (columns \code{transcript_id}, \code{start_pos},
+\code{end_pos}, and optionally \code{transcript_name}, \code{transcript_type},
+\code{gene_name}, \code{seqid}, \code{strand}). \code{plot_tx_context()} is kept as an alias
+of that method accepting the legacy column names \code{tx_id}, \code{exon_left}
+and \code{exon_right}.
+}
+\examples{
+iso <- example_isoformic()
+plot_genomic_context(iso, gene_name = "RBPJ")
+plot_genomic_context(iso, gene_name = "EGFR", assay = NULL, highlight_de = FALSE)
+
+# Table-based
+plot_genomic_context(exon_table(iso, "PNCK"))
+
 }

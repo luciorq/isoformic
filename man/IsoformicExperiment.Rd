@@ -2,106 +2,131 @@
 % Please edit documentation in R/IsoformicExperiment-class.R
 \name{IsoformicExperiment}
 \alias{IsoformicExperiment}
-\alias{col_data}
-\alias{annot_data_transcripts}
-\alias{annot_data_genes}
-\alias{annot_data_exons}
-\alias{annot_data}
-\alias{annot_row_names}
-\alias{col_names}
-\alias{row_names}
-\alias{tx_to_gene}
-\alias{row_data}
-\alias{tx_annot}
-\alias{de_tx}
-\alias{de_gene}
-\title{IsoformicExperiment Class}
+\title{IsoformicExperiment: Transcript, Gene and Exon Level Data in One Object}
 \usage{
 IsoformicExperiment(
-  experiment_name = NA_character_,
-  data_path = NULL,
+  experiment_name = NULL,
   annot_path = NULL,
-  assay = NULL,
+  assays = list(),
   col_data = NULL,
-  annot_metadata = NULL,
-  dea = NULL,
-  gsea = NULL,
-  tx_type_palette = character(0)
+  gene_assays = list(),
+  dea = list(),
+  gsea = list(),
+  metadata = list(),
+  data_path = NULL,
+  tx_type_palette = NULL
 )
-
-col_data(self, ...)
-
-annot_data_transcripts(self, ...)
-
-annot_data_genes(self, ...)
-
-annot_data_exons(self, ...)
-
-annot_data(self, ...)
-
-annot_row_names(self, ...)
-
-col_names(self, ...)
-
-row_names(self, ...)
-
-tx_to_gene(self, ...)
-
-row_data(self, ...)
-
-tx_annot(self, ...)
-
-de_tx(self, ...)
-
-de_gene(self, ...)
 }
 \arguments{
-\item{experiment_name}{Character string specifying the name of the experiment.
-This name is used for caching the assays experiment.
-If a name is not provided a random identifier is used.}
+\item{experiment_name}{Single string naming the experiment.}
 
-\item{data_path}{Character string specifying the path to the data directory.}
+\item{annot_path}{Annotation directory or GFF3/GTF file.}
 
-\item{annot_path}{Character string specifying the path to the annotation
-database directory.}
+\item{assays}{Named list of transcript-level matrices (or data frames
+with a \code{transcript_id} column).}
 
-\item{assay}{A list of matrices or data frames containing assay data,
-with transcript IDs as row names and sample IDs as column names.
-Each element of the list represents a different assay (e.g., TPM, counts).}
+\item{col_data}{Data frame of sample metadata with a \code{sample_id} column
+(or sample IDs as row names / first column).}
 
-\item{col_data}{A data frame containing sample metadata.
-First column must be \code{sample_id} matching the column names of the assays.}
+\item{gene_assays}{Optional named list of gene-level matrices.}
 
-\item{annot_metadata}{A list containing metadata about the annotation,
-such as source, version, and date.}
+\item{dea}{Optional list of differential expression results.}
 
-\item{dea}{A list containing differential expression analysis results
-for transcripts and genes.}
+\item{gsea}{Optional named list of enrichment results.}
 
-\item{gsea}{A list containing gene set enrichment analysis results.}
+\item{metadata}{Optional named list of free-form metadata.}
 
-\item{tx_type_palette}{A named character vector specifying the color
-palette for different transcript types.}
+\item{data_path}{Optional on-disk location of the experiment.}
 
-\item{self}{An \code{IsoformicExperiment} object.}
-
-\item{...}{Additional arguments passed to methods.}
-
-\item{annot_data_transcripts}{A property that retrieves transcript
-annotation data.}
-
-\item{annot_data_genes}{A property that retrieves gene annotation data.}
-
-\item{annot_data_exons}{A property that retrieves exon annotation data.}
-
-\item{annot_data}{A property that aggregates transcript, gene,
-and exon annotation data.}
+\item{tx_type_palette}{Optional named colour vector per transcript type.}
+}
+\value{
+An \code{IsoformicExperiment} object.
 }
 \description{
-The \code{IsoformicExperiment} class encapsulates the core data structure
-for transcriptomic analyses in the \code{isoformic} package.
-It holds the path to the dataset, sample metadata, and provides
-access to transcript, gene, and exon annotations through properties.
-The preferred way to construct an object of this class is through the
-\code{\link[=IsoformicExperiment]{IsoformicExperiment()}} constructor.
+\code{IsoformicExperiment} is an S7 class modelled after
+\code{SummarizedExperiment}, but organised around \emph{transcriptomic diversity}:
+the same samples are described at three levels that are kept consistent
+by construction.
+\itemize{
+\item \strong{Transcript level}: assays are numeric matrices with transcript IDs
+as row names and sample IDs as column names (for example \code{abundance},
+\code{counts}, \code{length}). All assays share the same dimnames.
+\item \strong{Gene level}: gene assays are derived from the transcript assays by
+summing the isoforms of each gene (abundance-weighted means for
+\code{length}), cached, and can be overridden with \link{gene_assays<-}.
+\item \strong{Exon level}: exon structures come from the annotation and are
+available through \code{\link[=annot_data_exons]{annot_data_exons()}}, \code{\link[=exon_table]{exon_table()}} and
+\code{\link[=exon_diversity]{exon_diversity()}}.
+}
+
+Annotation is never copied into the object. The \code{annot_path} property
+points to an \emph{annotation directory} of Parquet files created by
+\code{\link[=prepare_isoformic_annotation]{prepare_isoformic_annotation()}} (a GFF3/GTF file is accepted and
+converted on the fly). Tables are read with DuckDB on first access and
+cached in memory keyed by file path, size and modification time, so a
+re-created annotation is picked up automatically and several objects
+sharing one annotation share one copy of the tables.
+
+Derived results (gene assays, row data, isoform fractions) are cached per
+object in the \code{.cache} environment, keyed by a hash of their inputs, and
+therefore survive copies but never go stale. See \code{\link[=clear_cache]{clear_cache()}}.
+
+Objects persist to disk as a directory of Parquet files with
+\code{\link[=write_isoformic]{write_isoformic()}} and are restored with \code{\link[=read_isoformic]{read_isoformic()}}.
+}
+\section{Properties}{
+
+\describe{
+\item{\code{experiment_name}}{Single string. Generated when not supplied.}
+\item{\code{annot_path}}{Path to the annotation directory, or \code{NULL} for an
+empty object.}
+\item{\code{data_path}}{Directory the object was written to or read from
+(see \code{\link[=write_isoformic]{write_isoformic()}}), or \code{NULL}.}
+\item{\code{assays}}{Named list of transcript-level matrices.}
+\item{\code{gene_assays}}{Named list of gene-level matrices. Derived from
+\code{assays} when not set explicitly.}
+\item{\code{col_data}}{Tibble of sample metadata; its \code{sample_id} column
+matches the assay column names.}
+\item{\code{dea}}{List with differential expression results: \code{det}
+(transcripts), \code{deg} (genes) and \code{cutoffs}. Use \link{de_tx<-} and
+\link{de_gene<-} to set them.}
+\item{\code{gsea}}{Named list of enrichment result tables.}
+\item{\code{metadata}}{Free-form named list.}
+\item{\code{annot_metadata}}{Named list describing the annotation source,
+read from the annotation directory unless set explicitly.}
+\item{\code{tx_type_palette}}{Named character vector of colours per
+transcript type, used by all plots. Defaults to \code{\link[=tx_type_palette]{tx_type_palette()}}.}
+\item{\code{annot_data_transcripts}, \code{annot_data_genes},
+\code{annot_data_exons}}{Read-only, cached annotation tables.}
+}
+}
+
+\examples{
+iso <- example_isoformic()
+iso
+dim(iso)
+assay_names(iso)
+head(row_data(iso))
+head(gene_assay(iso, "abundance"))
+
+# Subset like a SummarizedExperiment
+iso[1:10, c("SRR11498039", "SRR11498063")]
+
+# Build one from matrices
+annot <- system.file("extdata", "example_experiment", "annotation", package = "isoformic")
+tpm <- assay(iso, "abundance")[1:5, 1:3]
+small <- IsoformicExperiment(
+  experiment_name = "tiny",
+  annot_path = annot,
+  assays = list(abundance = tpm),
+  col_data = data.frame(sample_id = colnames(tpm), condition = c("a", "a", "b"))
+)
+small
+
+}
+\seealso{
+\code{\link[=example_isoformic]{example_isoformic()}} for a ready-made object,
+\code{\link[=read_salmon]{read_salmon()}} and \code{\link[=as_isoformic]{as_isoformic()}} to create one from quantifications,
+\link{IsoformicExperiment-accessors} for the accessor generics.
 }

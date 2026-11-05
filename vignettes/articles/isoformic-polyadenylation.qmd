@@ -1,0 +1,92 @@
+---
+title: "Alternative polyadenylation"
+date: 2026-10-17
+date-modified: 2026-10-17
+date-format: long
+author:
+  - name: Lucio Rezende Queiroz
+  - name: Izabela Mamede Conceição
+format:
+  html:
+    toc: true
+bibliography: library.bib
+vignette: |
+  %\VignetteIndexEntry{Alternative polyadenylation}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: "#>"
+    fig-width: 8
+    fig-height: 5
+---
+
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+A change of 3' end does not change the protein but changes the 3' UTR, its miRNA and RNA-binding protein sites, and sometimes the last exon.
+This article ranks the 3' ends of every gene, classifies each isoform by the kind of alternative polyadenylation (APA) it represents, quantifies the usage of the distal site and tests its shift between conditions.
+
+It starts from the object built in the [introduction](isoformic-introduction.html), with the transcript sequences added in the [productivity article](isoformic-productivity.html) (they are optional here; without them the poly(A) signal columns are `NA`):
+
+```{r}
+#| message: false
+library(isoformic)
+library(dplyr)
+
+extdata <- fs::path_package("isoformic", "extdata")
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+extract_transcript_sequences(
+  annot_dir,
+  transcript_fasta = download_reference(version = "33", file_type = "fasta")
+)
+iso <- IsoformicExperiment(
+  experiment_name = "preeclampsia_placenta",
+  annot_path = annot_dir,
+  assays = list(abundance = read_parquet(fs::path(extdata, "pe_abundance.parquet"))),
+  col_data = read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+)
+```
+
+## Poly(A) sites per isoform
+
+`polya_sites()` ranks the 3' ends of each gene along the direction of transcription (`tes_rank`, 1 for the most proximal), classifies every isoform relative to the canonical one and reads the poly(A) signal hexamer closest to the end from the sequence:
+
+- `same_end`: ends at the canonical site;
+- `tandem_utr`: same last exon, different cleavage site;
+- `alternative_last_exon`: ends in another last exon;
+- `intronic`: ends inside an intron of the canonical isoform;
+- `other`.
+
+```{r}
+pa <- polya_sites(iso, gene_name = "RBPJ")
+pa[, c("transcript_name", "tes_rank", "n_tes_groups", "apa_type", "utr3_length", "polya_signal", "polya_signal_distance")]
+```
+
+With `polya_atlas = "polyasite"` the ends are checked against the PolyASite 2.0 atlas (one of the frozen datasets, downloaded once); the GENCODE poly(A) feature file (`download_reference(file_type = "polya")`) or any table of cleavage positions work the same way:
+
+```{r}
+#| eval: false
+polya_sites(iso, polya_atlas = "polyasite")[, c("transcript_name", "pas_supported", "pas_class", "pas_distance")]
+```
+
+## Distal usage per gene
+
+`apa_usage()` quantifies, per gene and group, the share of expression ending at the distal-most site and the abundance-weighted 3' UTR length; `test_apa()` tests the shift in distal usage between two groups with the same quasi-binomial model as `test_productive_fraction()`.
+The test runs on `counts` when the object has them; this object only carries TPM.
+
+```{r}
+head(apa_usage(iso, group = "condition"))
+head(test_apa(iso, group = "condition", assay = "abundance"))
+```
+
+## Session information
+
+```{r}
+#| label: session-info
+sessionInfo()
+```

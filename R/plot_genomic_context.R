@@ -1,274 +1,423 @@
-#' Plot Transcripts Genomic Context
+#' Plot the Genomic Context of a Gene's Isoforms
 #'
-#' Generate a genomic context plot for a specified gene, displaying its transcripts
-#' along with their types and annotations.
-#' The function utilizes the `plotgardener` package to create a detailed
-#' visualization of the genomic context, including an ideogram, chromosome
-#' highlight, and transcript structures.
-#' It requires a `ContextData` object that contains the necessary genomic
-#' information and annotations.
-#' The plot can be customized with various parameters such as offsets,
-#' label limits, and ideogram references.
+#' @description
+#' Draws the exon-intron structure of every annotated transcript of one or
+#' more genes along the genome, one row per transcript, coloured by
+#' transcript type, with introns as lines carrying strand arrows. This is a
+#' pure `ggplot2` implementation reading the exon table of the annotation
+#' directory, so it needs no genome packages. The [IsoformicExperiment]
+#' method can annotate each transcript with its mean expression and
+#' highlight differentially expressed isoforms.
 #'
-#' @param gene_name Character string specifying the name of the gene to plot.
-#' @param context_data A `ContextData` object containing genomic context information.
-#' @param limit_label Logical indicating whether to limit the length of
-#' transcript labels to avoid overlap (default is `TRUE`).
-#' @param show_guides Logical indicating whether to show guide lines on the plot
-#' (default is `FALSE`).
-#' @param y_offset Numeric value to adjust the vertical position of the plot
-#' (default is `0`).
-#' @param height_offset Numeric value to adjust the height of the plot
-#' (default is `0`).
-#' @param downstream_offset Numeric value to extend the downstream region
-#' beyond the gene's end position (default is `0`).
-#' @param upstream_offset Numeric value to extend the upstream region
-#' beyond the gene's start position (default is `0`).
-#' @param ideogram_reference Character string specifying the reference genome
-#' for the ideogram. Options include "hg38", "hg19", "mm11",
-#' "mm10", or "none" (default is "hg38").
-#' @returns A `plotgardener` object representing the genomic context plot.
+#' The data frame method takes an exon table as returned by [exon_table()]
+#' or [prepare_exon_annotation()] (columns `transcript_id`, `start_pos`,
+#' `end_pos`, and optionally `transcript_name`, `transcript_type`,
+#' `gene_name`, `seqid`, `strand`). `plot_tx_context()` is kept as an alias
+#' of that method accepting the legacy column names `tx_id`, `exon_left`
+#' and `exon_right`.
+#'
+#' @param self An [IsoformicExperiment] or an exon table.
+#' @param gene_name Character vector of gene names or IDs.
+#' @param assay Name of the assay used to label transcripts with their mean
+#'   expression; `NULL` disables the labels.
+#' @param highlight_de Logical, outline isoforms flagged as significant in
+#'   the stored transcript-level results.
+#' @param highlight_poison_exons Logical, outline exons found only in
+#'   unproductive isoforms of the gene (see [poison_exons()]).
+#' @param color_palette Named colour vector per transcript type; defaults
+#'   to the object's palette or [tx_type_palette()].
+#' @param upstream_offset,downstream_offset Extra genomic span (bp) shown
+#'   before and after the gene.
+#' @param exon_height Height of exon boxes (0-1).
+#' @param highlight Optional character vector of transcript IDs or names to
+#'   outline (data frame method).
+#' @param expression Optional named numeric vector (by transcript ID) used
+#'   to label transcripts (data frame method).
+#' @param ncol Number of facet columns when several genes are plotted.
+#' @param exon_table Legacy argument of `plot_tx_context()`.
+#' @param ... Passed on to methods.
+#'
+#' @returns A `ggplot` object.
+#'
+#' @examples
+#' iso <- example_isoformic()
+#' plot_genomic_context(iso, gene_name = "RBPJ")
+#' plot_genomic_context(iso, gene_name = "EGFR", assay = NULL, highlight_de = FALSE)
+#'
+#' # Table-based
+#' plot_genomic_context(exon_table(iso, "PNCK"))
+#'
+#' @name plot_genomic_context
+#' @rdname plot_genomic_context
 #' @export
-plot_genomic_context <- function(
-  gene_name,
-  context_data,
-  limit_label = TRUE,
-  show_guides = FALSE,
-  y_offset = 0,
-  height_offset = 0,
-  downstream_offset = 0,
+plot_genomic_context <- S7::new_generic(
+  "plot_genomic_context",
+  "self",
+  function(
+    self,
+    gene_name = NULL,
+    assay = "abundance",
+    highlight_de = TRUE,
+    color_palette = NULL,
+    expression = NULL,
+    highlight = NULL,
+    highlight_poison_exons = TRUE,
+    upstream_offset = 0,
+    downstream_offset = 0,
+    exon_height = 0.6,
+    ncol = 1L,
+    ...
+  ) {
+    S7::S7_dispatch()
+  }
+)
+
+S7::method(plot_genomic_context, IsoformicExperiment) <- function(
+  self,
+  gene_name = NULL,
+  assay = "abundance",
+  highlight_de = TRUE,
+  color_palette = NULL,
+  expression = NULL,
+  highlight = NULL,
+  highlight_poison_exons = TRUE,
   upstream_offset = 0,
-  ideogram_reference = c("hg38", "hg19", "mm11", "mm10", "none")
+  downstream_offset = 0,
+  exon_height = 0.6,
+  ncol = 1L,
+  ...
 ) {
-  rlang::check_required(gene_name)
-  rlang::check_required(context_data)
-  ideogram_reference <- rlang::arg_match(ideogram_reference)
-
-  if (rlang::is_character(gene_name)) {
-    context_data@gene_name <- gene_name
-  } else {
-    cli::cli_abort("`gene_name` must be a character vector.")
-  }
-
-  rlang::check_installed("plotgardener")
-  rlang::check_installed(c("GenomicFeatures", "IRanges"))
-
-  if (identical(ideogram_reference, "hg38")) {
-    hg38_deps <- c(
-      # "BSgenome.Hsapiens.NCBI.GRCh38",
-      "TxDb.Hsapiens.UCSC.hg38.knownGene",
-      "AnnotationHub",
-      "org.Hs.eg.db"
+  if (is.null(gene_name)) {
+    cli::cli_abort(
+      message = c(
+        x = "{.arg gene_name} is required for an {.cls IsoformicExperiment}."
+      ),
+      class = "isoformic_gene_not_found"
     )
-    has_deps <- check_installed(pkgs = hg38_deps)
-
-    if (isFALSE(has_deps)) {
-      cli::cli_inform(c(
-        `i` = "To use {.code ideogram_reference = 'hg38'}, please install the following packages: {.code {hg38_deps}}",
-        `*` = "falling back to {.code ideogram_reference = 'none'}."
-      ))
-      ideogram_reference <- "none"
+  }
+  exons <- exon_table(self, gene_name)
+  if ((is.null(expression)) && (!is.null(assay) && length(assay_names(self)))) {
+    assay <- resolve_assay_name(self, assay)
+    mat <- assay(self, assay)
+    ids <- intersect(unique(exons$transcript_id), rownames(mat))
+    if (length(ids)) {
+      expression <- rowMeans(mat[ids, , drop = FALSE])
     }
   }
-
-  custom_assembly <- plotgardener::assembly(
-    # Genome = "hg38_GENCODE34",
-    Genome = paste(
-      context_data@assembly_name,
-      context_data@annotation_name,
-      sep = "_"
-    ),
-    TxDb = context_data@txdb,
-    OrgDb = context_data@orgdb_package,
-    BSgenome = context_data@bsgenome_package,
-    gene.id.column = "TXSYMBOL",
-    display.column = "TXSYMBOL"
+  if (
+    is.null(highlight) && isTRUE(highlight_de) && !is.null(self@dea[["det"]])
+  ) {
+    det <- de_tx(self)
+    highlight <- det$transcript_id[det$det_sig == "yes"]
+  }
+  poison <- NULL
+  if (isTRUE(highlight_poison_exons)) {
+    poison <- poison_exons(self, gene_name = gene_name)
+  }
+  plot_exon_table(
+    exons,
+    color_palette = color_palette %||% self@tx_type_palette,
+    expression = expression,
+    highlight = highlight,
+    poison = poison,
+    upstream_offset = upstream_offset,
+    downstream_offset = downstream_offset,
+    exon_height = exon_height,
+    ncol = ncol
   )
+}
 
-  tx_biotype_df <- context_data@txdb$conn |>
-    dplyr::tbl("transcript") |>
-    dplyr::collect() |>
-    dplyr::mutate(
-      gene_symbol = stringr::str_replace(.data$tx_symbol, "-\\d+$", "")
+# nolint start: object_name_linter.
+S7::method(plot_genomic_context, S7::class_data.frame) <- function(
+  self,
+  gene_name = NULL,
+  assay = "abundance",
+  highlight_de = TRUE,
+  color_palette = NULL,
+  expression = NULL,
+  highlight = NULL,
+  highlight_poison_exons = TRUE,
+  upstream_offset = 0,
+  downstream_offset = 0,
+  exon_height = 0.6,
+  ncol = 1L,
+  ...
+) {
+  exons <- standardize_exon_table(self)
+  if (!is.null(gene_name) && "gene_name" %in% colnames(exons)) {
+    exons <- exons[
+      exons$gene_name %in% gene_name | exons$gene_id %in% gene_name,
+    ]
+  }
+  plot_exon_table(
+    exons,
+    color_palette = color_palette %||% tx_type_palette(),
+    expression = expression,
+    highlight = highlight,
+    upstream_offset = upstream_offset,
+    downstream_offset = downstream_offset,
+    exon_height = exon_height,
+    ncol = ncol
+  )
+}
+# nolint end
+
+#' @rdname plot_genomic_context
+#' @export
+plot_tx_context <- function(exon_table, ...) {
+  plot_genomic_context(standardize_exon_table(exon_table), ...)
+}
+
+#' Accept legacy exon table column names and fill optional columns
+#' @keywords internal
+#' @noRd
+standardize_exon_table <- function(exons) {
+  exons <- tibble::as_tibble(exons)
+  renames <- c(
+    transcript_id = "tx_id",
+    start_pos = "exon_left",
+    end_pos = "exon_right",
+    seqid = "chr"
+  )
+  for (new in names(renames)) {
+    old <- renames[[new]]
+    if (!new %in% colnames(exons) && old %in% colnames(exons)) {
+      names(exons)[names(exons) == old] <- new
+    }
+  }
+  required <- c("transcript_id", "start_pos", "end_pos")
+  missing_cols <- setdiff(required, colnames(exons))
+  if (length(missing_cols)) {
+    cli::cli_abort(
+      message = c(
+        x = "Exon table is missing column{?s}: {.field {missing_cols}}."
+      ),
+      class = "isoformic_invalid_exon_table"
+    )
+  }
+  exons$start_pos <- as.integer(exons$start_pos)
+  exons$end_pos <- as.integer(exons$end_pos)
+  if (!"transcript_name" %in% colnames(exons)) {
+    exons$transcript_name <- exons$transcript_id
+  }
+  if (!"transcript_type" %in% colnames(exons)) {
+    exons$transcript_type <- "unknown"
+  }
+  exons$transcript_type <- unknown_type(exons$transcript_type)
+  if ("haplotype" %in% colnames(exons) && !all(is.na(exons$haplotype))) {
+    exons$gene_name <- ifelse(
+      is.na(exons$haplotype),
+      exons$gene_name,
+      paste0(exons$gene_name, " (", exons$haplotype, ")")
+    )
+  }
+  if (!"gene_name" %in% colnames(exons)) {
+    exons$gene_name <- if ("gene_id" %in% colnames(exons)) {
+      exons$gene_id
+    } else {
+      "gene"
+    }
+  }
+  if (!"gene_id" %in% colnames(exons)) {
+    exons$gene_id <- exons$gene_name
+  }
+  if (!"seqid" %in% colnames(exons)) {
+    exons$seqid <- NA_character_
+  }
+  if (!"strand" %in% colnames(exons)) {
+    exons$strand <- "+"
+  }
+  exons
+}
+
+#' Draw transcript structures from a standardised exon table
+#' @keywords internal
+#' @noRd
+plot_exon_table <- function(
+  exons,
+  color_palette,
+  expression = NULL,
+  highlight = NULL,
+  poison = NULL,
+  upstream_offset = 0,
+  downstream_offset = 0,
+  exon_height = 0.6,
+  ncol = 1L
+) {
+  if (!nrow(exons)) {
+    cli::cli_abort(
+      c(x = "No exons to plot."),
+      class = "isoformic_empty_plot_data"
+    )
+  }
+  exons <- dplyr::arrange(
+    exons,
+    .data$gene_name,
+    .data$transcript_type,
+    .data$start_pos
+  )
+  tx <- exons |>
+    dplyr::group_by(.data$gene_name, .data$transcript_id) |>
+    dplyr::summarise(
+      transcript_name = dplyr::first(.data$transcript_name),
+      transcript_type = dplyr::first(.data$transcript_type),
+      seqid = dplyr::first(.data$seqid),
+      strand = dplyr::first(.data$strand),
+      tx_start = min(.data$start_pos),
+      tx_end = max(.data$end_pos),
+      .groups = "drop"
     ) |>
-    dplyr::filter(.data$gene_symbol %in% context_data@gene_name) |>
-    dplyr::select("tx_symbol", "tx_biotype", "tx_ensemblid")
-
-  tx_type_color_list <- context_data@tx_type_palette
-  tx_type_color_df <- tibble::tibble(
-    tx_biotype = names(tx_type_color_list),
-    color = unname(tx_type_color_list)
-  )
-
-  tx_color_df <- tx_biotype_df |>
-    dplyr::left_join(tx_type_color_df, by = "tx_biotype") |>
-    dplyr::rename(
-      transcript = "tx_symbol",
-      tx_name = "tx_ensemblid"
+    dplyr::arrange(.data$gene_name, .data$transcript_type, .data$tx_start) |>
+    dplyr::mutate(y = rev(seq_len(dplyr::n())), .by = "gene_name")
+  tx$label <- tx$transcript_name
+  if (!is.null(expression)) {
+    expr <- expression[tx$transcript_id]
+    has <- !is.na(expr)
+    tx$label[has] <- sprintf(
+      "%s  (%s)",
+      tx$transcript_name[has],
+      format(signif(expr[has], 3), trim = TRUE)
     )
-
-  transcript_highlights <- data.frame(
-    transcript = tx_color_df$transcript,
-    color = tx_color_df$color
-  )
-  exons_gr_list <- GenomicFeatures::exonsBy(
-    context_data@txdb,
-    by = "tx",
-    use.names = TRUE
-  )
-  selected_exons_gr_list <- exons_gr_list[unique(tx_color_df$transcript)]
-  start_value <- min(unlist(lapply(selected_exons_gr_list, \(x) {
-    IRanges::start(IRanges::ranges(x))
-  })))
-  end_value <- max(unlist(lapply(selected_exons_gr_list, \(x) {
-    IRanges::end(IRanges::ranges(x))
-  })))
-
-  start_value <- as.integer(
-    round(start_value - (0.1 * ((end_value - start_value) + upstream_offset)))
-  )
-  end_value <- as.integer(
-    round(end_value + (0.1 * ((end_value - start_value) + downstream_offset)))
-  )
-  chr_string <- as.character(selected_exons_gr_list[[1]]@seqnames@values)
-
-  # ===========================================================================
-  # Plot start here
-  # ===========================================================================
-  # rlang::is_bare_numeric(y_offset)
-
-  plotgardener::pageCreate(
-    width = 7.5,
-    height = 5.0 + height_offset,
-    default.units = "inches",
-    showGuides = show_guides
-  )
-
-  plotgardener::plotText(
-    label = stringr::str_replace(chr_string, "chr", "Chromosome "),
-    fontcolor = "dark grey",
-    x = 6.5 + 0.5,
-    y = 0.9,
-    just = "right"
-  )
-
-  if (isTRUE((end_value - start_value) < 100000)) {
-    end_value_highlight <- start_value + 150000
-  } else {
-    end_value_highlight <- end_value
   }
-  region_param <- plotgardener::pgParams(
-    chrom = chr_string,
-    chromstart = start_value,
-    chromend = end_value_highlight
+  tx$highlight <- tx$transcript_id %in%
+    highlight |
+    tx$transcript_name %in% highlight
+  exons <- dplyr::left_join(
+    exons,
+    tx[, c("transcript_id", "y", "highlight")],
+    by = "transcript_id"
   )
+  introns <- exons |>
+    dplyr::arrange(.data$transcript_id, .data$start_pos) |>
+    dplyr::mutate(
+      next_start = dplyr::lead(.data$start_pos),
+      .by = "transcript_id"
+    ) |>
+    dplyr::filter(
+      !is.na(.data$next_start) & .data$next_start > .data$end_pos
+    ) |>
+    dplyr::mutate(
+      x = dplyr::if_else(.data$strand == "-", .data$next_start, .data$end_pos),
+      xend = dplyr::if_else(
+        .data$strand == "-",
+        .data$end_pos,
+        .data$next_start
+      )
+    )
+  half <- exon_height / 2
+  palette <- complete_palette(color_palette, unique(exons$transcript_type))
+  xlim <- tx |>
+    dplyr::group_by(.data$gene_name) |>
+    dplyr::summarise(
+      xmin = min(.data$tx_start) - upstream_offset,
+      xmax = max(.data$tx_end) + downstream_offset,
+      .groups = "drop"
+    )
+  pad <- (xlim$xmax - xlim$xmin) * 0.02
+  xlim$xmin <- xlim$xmin - pad
+  xlim$xmax <- xlim$xmax + pad
+  chrom <- unique(stats::na.omit(tx$seqid))
+  x_label <- if (length(chrom) == 1L) {
+    paste0(chrom, " position (Mb)")
+  } else {
+    "Genomic position (Mb)"
+  }
 
-  # TODO: @luciorq - Check which other assemblies would be supported
-  # + by plotgardener
-  if (identical(ideogram_reference, "none")) {
-    chr_length <- context_data@txdb$conn |>
-      dplyr::tbl("chrominfo") |>
-      dplyr::filter(.data$chrom == chr_string) |>
-      dplyr::pull(length)
-
-    if (isTRUE(is.na(chr_length))) {
-      chr_length <- context_data@txdb$conn |>
-        dplyr::tbl("transcript") |>
-        dplyr::filter(.data$tx_chrom == chr_string) |>
-        dplyr::slice_max(order_by = .data$tx_end) |>
-        dplyr::pull("tx_end")
+  p <- ggplot2::ggplot() +
+    ggplot2::geom_blank(data = xlim, ggplot2::aes(x = .data$xmin)) +
+    ggplot2::geom_blank(data = xlim, ggplot2::aes(x = .data$xmax)) +
+    ggplot2::geom_segment(
+      data = introns,
+      ggplot2::aes(x = .data$x, xend = .data$xend, y = .data$y, yend = .data$y),
+      color = "grey45",
+      linewidth = 0.4,
+      arrow = grid::arrow(length = grid::unit(1.6, "mm"), type = "open")
+    ) +
+    # A same-colour outline keeps short exons visible when a gene spans
+    # hundreds of kilobases and an exon is narrower than one pixel.
+    ggplot2::geom_rect(
+      data = exons,
+      ggplot2::aes(
+        xmin = .data$start_pos,
+        xmax = .data$end_pos,
+        ymin = .data$y - half,
+        ymax = .data$y + half,
+        fill = .data$transcript_type,
+        color = .data$transcript_type
+      ),
+      linewidth = 0.5
+    )
+  if (!is.null(poison) && nrow(poison)) {
+    poison_key <- paste(poison$seqid, poison$start_pos, poison$end_pos)
+    exon_key <- paste(exons$seqid, exons$start_pos, exons$end_pos)
+    poison_rows <- exons[exon_key %in% poison_key, ]
+    if (nrow(poison_rows)) {
+      p <- p +
+        ggplot2::geom_rect(
+          data = poison_rows,
+          ggplot2::aes(
+            xmin = .data$start_pos,
+            xmax = .data$end_pos,
+            ymin = .data$y - half - 0.05,
+            ymax = .data$y + half + 0.05
+          ),
+          fill = NA,
+          color = "black",
+          linewidth = 0.8
+        )
     }
-    chrom_plot <- plotgardener::plotGenomeLabel(
-      chrom = chr_string,
-      chromstart = 0L,
-      chromend = chr_length,
-      assembly = custom_assembly,
-      fontcolor = "dark grey",
-      x = 0.5,
-      y = 0.5,
-      length = 6.5,
-      default.units = "inches",
-      scale = "Mb"
-    )
-  } else {
-    chrom_plot <- plotgardener::plotIdeogram(
-      chrom = chr_string,
-      assembly = ideogram_reference,
-      orientation = "h",
-      x = 0.5,
-      y = 0.5, # grid::unit(0.25, "npc"),
-      width = 6.5,
-      height = 0.3,
-      just = c("left", "top"),
-      default.units = "inches"
-    )
   }
-
-  plotgardener::annoHighlight(
-    plot = chrom_plot,
-    params = region_param,
-    fill = "red",
-    y = 0.3,
-    height = 0.7,
-    just = c("left", "top"),
-    default.units = "inches"
-  )
-
-  plotgardener::annoZoomLines(
-    plot = chrom_plot,
-    params = region_param,
-    y0 = 1,
-    x1 = c(0.5, 6.5),
-    y1 = 1.6,
-    default.units = "inches",
-    just = c("left", "top")
-  )
-
-  plotgardener::plotGenomeLabel(
-    chrom = chr_string,
-    chromstart = start_value,
-    chromend = end_value,
-    assembly = custom_assembly,
-    x = 0.5,
-    y = 4.5 + height_offset,
-    length = 6.5,
-    default.units = "inches"
-  )
-
-  transcripts_res <- plotgardener::plotTranscripts(
-    chrom = chr_string,
-    chromstart = start_value,
-    chromend = end_value,
-    assembly = custom_assembly,
-    labels = "transcript",
-    just = c("center", "center"),
-    x = 7.5 / 2,
-    y = ((4.5 + y_offset) / 2),
-    width = 6.5,
-    height = 3.6 + (height_offset * 2),
-    # draw = TRUE,
-    limitLabel = limit_label,
-    fill = "grey",
-    colorbyStrand = FALSE,
-    transcriptHighlights = transcript_highlights,
-    strandSplit = TRUE,
-    fontsize = 10,
-    boxHeight = grid::unit(3.5, "mm"),
-    stroke = 0.05
-  )
-
-  plotgardener::plotLegend(
-    legend = unique(tx_color_df$tx_biotype),
-    fill = unique(tx_color_df$color),
-    border = FALSE,
-    x = 0.6,
-    y = 4.0 + height_offset,
-    width = 1.3 * length(unique(tx_color_df$tx_biotype)),
-    height = 0.5,
-    just = c("left", "top"),
-    orientation = "h",
-    draw = TRUE
-  )
-
-  return(invisible(transcripts_res))
+  if (any(tx$highlight)) {
+    tx_hl <- tx[tx$highlight, ]
+    p <- p +
+      ggplot2::geom_rect(
+        data = tx_hl,
+        ggplot2::aes(
+          xmin = .data$tx_start,
+          xmax = .data$tx_end,
+          ymin = .data$y - half - 0.08,
+          ymax = .data$y + half + 0.08
+        ),
+        fill = NA,
+        color = "black",
+        linewidth = 0.4,
+        linetype = "dashed"
+      )
+  }
+  p <- p +
+    ggplot2::geom_text(
+      data = tx,
+      ggplot2::aes(x = -Inf, y = .data$y, label = .data$label),
+      hjust = 0,
+      size = 3,
+      color = "grey20",
+      position = ggplot2::position_nudge(y = half + 0.3)
+    ) +
+    ggplot2::scale_fill_manual(values = palette, name = "Transcript type") +
+    ggplot2::scale_color_manual(values = palette, guide = "none") +
+    ggplot2::scale_x_continuous(
+      labels = scales::label_number(scale = 1e-6, accuracy = 0.001),
+      expand = ggplot2::expansion(mult = c(0.01, 0.02))
+    ) +
+    ggplot2::scale_y_continuous(
+      breaks = NULL,
+      expand = ggplot2::expansion(add = c(0.6, 0.9))
+    ) +
+    ggplot2::labs(x = x_label, y = NULL) +
+    isoformic_theme() +
+    ggplot2::theme(
+      panel.grid.major.y = ggplot2::element_blank(),
+      legend.position = "bottom"
+    )
+  if (length(unique(tx$gene_name)) > 1L) {
+    p <- p +
+      ggplot2::facet_wrap(
+        ggplot2::vars(.data$gene_name),
+        scales = "free",
+        ncol = ncol
+      )
+  } else {
+    p <- p + ggplot2::labs(title = unique(tx$gene_name))
+  }
+  p
 }

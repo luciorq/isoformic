@@ -1,0 +1,7 @@
+# StringTie version 2.2.1
+chr1	StringTie	transcript	100	2000	1000	+	.	gene_id "STRG.1"; transcript_id "STRG.1.1"; reference_id "ENST00000001.1"; ref_gene_id "ENSG00000001.1"; ref_gene_name "GENEA"; cov "10.5"; FPKM "3.2"; TPM "5.1";
+chr1	StringTie	exon	100	500	1000	+	.	gene_id "STRG.1"; transcript_id "STRG.1.1"; exon_number "1"; reference_id "ENST00000001.1"; ref_gene_id "ENSG00000001.1"; ref_gene_name "GENEA"; cov "10.5";
+chr1	StringTie	exon	1500	2000	1000	+	.	gene_id "STRG.1"; transcript_id "STRG.1.1"; exon_number "2"; reference_id "ENST00000001.1"; ref_gene_id "ENSG00000001.1"; ref_gene_name "GENEA"; cov "10.5";
+chr1	StringTie	transcript	100	2200	1000	+	.	gene_id "STRG.1"; transcript_id "STRG.1.2"; cov "2.1"; FPKM "0.8"; TPM "1.2";
+chr1	StringTie	exon	100	500	1000	+	.	gene_id "STRG.1"; transcript_id "STRG.1.2"; exon_number "1"; cov "2.1";
+chr1	StringTie	exon	1700	2200	1000	+	.	gene_id "STRG.1"; transcript_id "STRG.1.2"; exon_number "2"; cov "2.1";

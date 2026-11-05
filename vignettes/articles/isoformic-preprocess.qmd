@@ -1,11 +1,15 @@
 ---
-title: "Preprocessing Short-Read Sequencing Files for Isoformic"
+title: "From Salmon quantifications to an IsoformicExperiment"
 date: 2025-10-02
-date-modified: 2025-11-11
+date-modified: 2026-10-17
 date-format: long
 author:
   - name: Lucio Rezende Queiroz
   - name: Izabela Mamede Conceição
+format:
+  html:
+    toc: true
+bibliography: library.bib
 vignette: |
   %\VignetteIndexEntry{Preprocessing Sequencing Files}
   %\VignetteEngine{quarto::html}
@@ -14,6 +18,8 @@ knitr:
   opts_chunk:
     collapse: true
     comment: "#>"
+    fig-width: 8
+    fig-height: 5
 ---
 
 ```{r}
@@ -22,144 +28,122 @@ knitr:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-##  Salmon: command command line interface anatomy
+This article goes from FASTQ files to an `IsoformicExperiment` with transcript-level and gene-level differential expression results.
+The [introduction](isoformic-introduction.html) starts one step later, from ready-made tables, and the other articles analyse the object.
 
-### From the Terminal - Salmon Command Line Interface
+## Quantifying with Salmon
 
-Below is a single-sample invocation (to be run in a Bash shell) showing the
-typical arguments we used when making the mini dataset used in this vignette.
+We recommend [Salmon][salmon-ref] [@salmon] in selective-alignment mode against the GENCODE transcriptome, with inferential replicates so that `swish` [@swish] can be used for transcript-level differential expression.
 
-Replace the paths with yours if you want to reproduce.
+Salmon 2 is a from-scratch rewrite in Rust (2.8.0 at the time of writing).
+The workflow (`salmon index`, `salmon quant`, `quant.sf`) and the output files are the same, so `read_salmon()`, `tximeta`, `tximport` and `swish` work unchanged, but the index format is new: an index built with Salmon 1.x is rejected and must be rebuilt (the last C++ release, 1.12.0, remains available as the `salmon-cpp` conda package).
+Other changes worth knowing: selective alignment is the only mapping mode (`--validateMappings` is a no-op), quantification is deterministic by default (identical output for any thread count), decoy sequences no longer appear in `quant.sf`, and `--ignoreTxVersion` matches transcript identifiers without their version suffix when a gene map is given.
+The Salmon [migration guide][salmon-migration-ref] lists every removed or ignored option.
 
-More thorough information can be found on: <https://combine-lab.github.io/salmon/>.
+A typical single-sample invocation from a shell is below: `--libType A` detects the library type, the index is built from the GENCODE transcript FASTA with `salmon index --gencode` (which truncates the transcript names at the first `|`), `--posBias --seqBias --gcBias` correct the biases, `--dumpEq --dumpEqWeights` keep the equivalence classes and `--numGibbsSamples` writes the inferential replicates that `swish` needs into `aux_info/bootstrap/`.
 
 ``` bash
-# Not needed as of Salmon 1.10.3:
-  # --validateMappings \               # selective-alignment (more specific, recommended)
+salmon index \
+  --transcripts gencode.v49.transcripts.fa.gz \
+  --index salmon_index \
+  --gencode \
+  --threads 8
 
 salmon quant \
-  --libType A \                      # A -> autodetect library type from the reads
-  --index /path/to/index \           # Transcriptome index (here: index built from the FASTA annotation file)
-  --mates1 /path/SRR..._1.fastq \    # R1 FASTQ
-  --mates2 /path/SRR..._2.fastq \    # R2 FASTQ
-  --output /path/SRR..._quant \      # Output folder (contains quant.sf, aux_info/)
-  --threads 8 \                      # Number of parallel threads used
-  --disableChainingHeuristic \       # improve mapping sensitivity, but slower
-  --allowDovetail \
-  --softclipOverhangs \              # softclip reads that overhang transcripts start and end
-  --dumpEq \
-  --dumpEqWeights \                  # dump equivalent class information, needed by Terminus
-  --posBias --seqBias --gcBias \     # bias corrections (positional, sequence, GC)
-  --numGibbsSamples 100              # draw inferential replicates; required for fishpond/Swish
+  --libType A \
+  --index salmon_index \
+  --mates1 /path/SRR..._1.fastq.gz \
+  --mates2 /path/SRR..._2.fastq.gz \
+  --output /path/SRR..._quant \
+  --threads 8 \
+  --allowDovetail --softclipOverhangs \
+  --dumpEq --dumpEqWeights \
+  --posBias --seqBias --gcBias \
+  --numGibbsSamples 30
 ```
 
-### From R - `condathis` wrapper for Salmon
-
-Caveats: currently [Salmon](https://anaconda.org/bioconda/salmon) is only available for macOS and Linux on the [Bioconda](https://bioconda.github.io/) channel.
-
-Therefore, this example will not work natively on Windows.
-But you can use WSL2 (Windows Subsystem for Linux) on Windows 10/11 to run it.
+The same can be driven from R through the `condathis` package, which installs Salmon from Bioconda into a conda environment (Linux and macOS, or WSL2 on Windows).
+`salmon_index()` and `salmon_quant()` run the commands above; the first call creates the environment with Salmon 2.8.0:
 
 ```{r}
 #| eval: false
 library(isoformic)
-tx_fasta_path <- download_reference(version = "49", file_type = "fasta")
-genome_fasta_path <- download_reference(version = "49", file_type = "genome_fasta")
+tx_fasta <- download_reference(version = "49", file_type = "fasta")
 gff_path <- download_reference(version = "49", file_type = "gff")
 
-base_dir <- fs::path("data-raw", "vignette_data")
-
-index_path <- fs::path(base_dir, "salmon_index_k15")
-salmon_index(
-  fasta_path = tx_fasta_path,
-  index_path = index_path,
-  kmer_len = 15,
-  num_threads = 8,
-  is_gencode = TRUE,
-  decoy_fasta = genome_fasta_path
+salmon_index(fasta_path = tx_fasta, index_path = "salmon_index", is_gencode = TRUE, num_threads = 8)
+salmon_quant(
+  input_r1 = "sample_1.fastq.gz",
+  input_r2 = "sample_2.fastq.gz",
+  index_path = "salmon_index",
+  output_dir = "quants/sample_quant",
+  num_threads = 8
 )
-
-fastq_files <- fs::dir_ls("data-raw/mini_data/sub_fastq/")
-
-sample_names <- fs::path_file(fastq_files) |>
-  stringr::str_remove("_sub_[1-2].fastq.gz$") |>
-  unique() |>
-  sort()
-
-for (i in seq_along(sample_names)) {
-  sample_name <- sample_names[i]
-
-  salmon_output <- fs::path(base_dir, "salmon_quants", paste0(sample_name, "_quant"))
-  fastq_r1 <- fs::dir_ls("data-raw/mini_data/sub_fastq/", regexp = paste0(sample_name, "_sub_1.fastq.gz$"))
-  fastq_r2 <- fs::dir_ls("data-raw/mini_data/sub_fastq/", regexp = paste0(sample_name, "_sub_2.fastq.gz$"))
-  # fs::file_exists(fastq_r1)
-  # fs::file_exists(fastq_r2)
-
-  salmon_quant(
-    index_path = index_path,
-    input_r1 = fastq_r1,
-    input_r2 = fastq_r2,
-    output_dir = salmon_output,
-    num_threads = 8,
-    num_gibbs = 20,
-    min_score_fraction = "0.65"
-  )
-}
 ```
 
-## Load Data and Create IsoformicExperiment Object
+`salmon_quant()` draws 30 Gibbs samples per sample by default (`num_gibbs = 0` skips them).
+Besides `swish`, they quantify how well the reads determine each isoform, which isoforms cannot be told apart and how confident each differential expression call is; `read_salmon(inferential = TRUE)` reads them and the [uncertainty article](isoformic-uncertainty.html) explains how to use and report them.
+
+For a decoy-aware index (recommended by the Salmon authors), build the `gentrome` FASTA and `decoys.txt` from the genome as described in the Salmon documentation and pass `--decoys decoys.txt` to `salmon index`.
+
+## Reading quantifications directly
+
+`read_salmon()` reads any number of `quant.sf` files with DuckDB and returns an `IsoformicExperiment` with `abundance` (TPM), `counts` and `length` assays.
+The package ships a down-sampled dataset of six placenta samples quantified against GENCODE v49.
 
 ```{r}
-suppressPackageStartupMessages({
-  library(tximeta)
-  library(SummarizedExperiment)
-  library(fishpond)
-  library(DESeq2)
-})
-
+#| message: false
 library(isoformic)
 
-# Where extdata lives
-extdata_dir <- system.file("extdata", package = "isoformic")
-
-quants_dir <- file.path(extdata_dir, "mini_quants")
-
-gff_path <- download_reference(version = "49", file_type = "gff")
-```
-
-## Load Salmon Quantification with tximport
-
-Point to Salmon's `quant.sf` output files.
-
-```{r}
-# discover sample folders like SRR11498039_quant, etc.
-sample_dirs <- list.dirs(quants_dir, full.names = FALSE, recursive = FALSE)
-
-# keep only *_quant and strip the suffix for sample names
-sample_names <- sub("_quant$", "", sample_dirs)
-stopifnot(length(sample_names) == 6)
-
-# define groups: "control" = first 3, "treatment" = last 3 (sorted by sample ID)
-sample_names <- sort(sample_names)
-condition <- c(rep("control", 3), rep("treatment", 3))
-
-quant_files <- file.path(quants_dir, paste0(sample_names, "_quant"), "quant.sf")
-names(quant_files) <- sample_names
-stopifnot(all(file.exists(quant_files)))
+quants_dir <- fs::path_package("isoformic", "extdata", "mini_quants")
+quant_dirs <- fs::dir_ls(quants_dir, type = "directory")
+names(quant_dirs) <- sub("_quant$", "", fs::path_file(quant_dirs))
 
 col_data <- tibble::tibble(
-  files = quant_files,
-  names = sample_names,
-  condition = factor(condition, levels = c("control", "treatment"))
+  sample_id = names(quant_dirs),
+  condition = factor(c(rep("control", 3), rep("treatment", 3)), levels = c("control", "treatment"))
 )
 col_data
 ```
 
-Import transcriptomics data with tximport.
+The annotation must match the reference used for quantification, GENCODE v49 here.
+For real data it is downloaded once into the package cache and converted to Parquet once:
 
 ```{r}
+#| eval: false
+gff_path <- download_reference(version = "49", file_type = "gff")
+annot_dir <- prepare_isoformic_annotation(gff_path)
+```
+
+The package bundles the subset of that annotation covering the transcripts of the mini dataset.
+
+```{r}
+annot_dir <- fs::path_package("isoformic", "extdata", "mini_annotation")
+
+iso <- read_salmon(quant_dirs, annot_path = annot_dir, col_data = col_data, experiment_name = "mini_placenta")
+iso
+assay_names(iso)
+head(row_data(iso))
+```
+
+## Transcript-level differential expression with swish
+
+`swish` needs the inferential replicates, which `tximeta` imports from the Salmon output (the bundled quantifications carry them separately to keep the package small).
+
+```{r}
+#| message: false
+suppressPackageStartupMessages({
+  library(SummarizedExperiment)
+  library(fishpond)
+})
+
+tximeta_coldata <- data.frame(
+  files = fs::path(quant_dirs, "quant.sf"),
+  names = names(quant_dirs),
+  condition = col_data$condition
+)
 se_tx <- tximeta::tximeta(
-  coldata = col_data,
+  coldata = tximeta_coldata,
   type = "salmon",
   txOut = TRUE,
   skipMeta = TRUE,
@@ -167,147 +151,137 @@ se_tx <- tximeta::tximeta(
   ignoreAfterBar = TRUE,
   skipSeqinfo = TRUE
 )
+mini_draws <- as_inferential_replicates(
+  read_parquet(fs::path_package("isoformic", "extdata", "mini_draws.parquet"))
+)
+names(mini_draws) <- paste0("infRep", seq_along(mini_draws))
+assays(se_tx) <- c(as.list(assays(se_tx)), mini_draws)
 
-mini_inf_reps <- readRDS(system.file("extdata/mini_inf_reps.rds", package = "isoformic"))
-assays(se_tx) <- c(assays(se_tx), mini_inf_reps)
-```
-
-Convert to IsoformicExperiment object.
-
-```{r}
-iso <- as_isoformic(se_tx, gff_path)
-iso
-```
-
-```{r}
-tx_to_gene_df <- tx_to_gene(iso)
-head(tx_to_gene_df)
-
-# rowData(se_tx) <- row_data(iso)
-iso
-```
-
-Perform transcript-level Differential Expression Analysis with fishpond.
-
-```{r}
-y <- se_tx
-y <- fishpond::scaleInfReps(y)
-
+y <- fishpond::scaleInfReps(se_tx)
 y <- fishpond::labelKeep(y, minCount = 10, minN = 3)
-# y <- y[mcols(y)$keep, ]
-
-colData(y)$condition <- factor(col_data$condition, levels = c("control", "treatment"))
-# y$condition <- factor(y$condition, levels = c("control", "treatment"))
-colData(y)
-
-# run Swish
+set.seed(20261029) # swish uses permutations
 y <- fishpond::swish(y, x = "condition")
 
-dea_tx_res <- mcols(y) |>
-  base::as.data.frame() |>
-  tibble::rownames_to_column("transcript_id") |>
-  tibble::as_tibble()
-
-iso@dea$det <- dea_tx_res
-
-de_tx(iso)
+swish_results <- mcols(y) |>
+  as.data.frame() |>
+  tibble::rownames_to_column("transcript_id")
+head(swish_results)
 ```
 
-Summarize Transcript SummarizedExperiment to Gene level.
+The results are attached to the object; `tximeta` objects can also be converted directly with `as_isoformic(se_tx, annot_path = annot_dir)`.
 
 ```{r}
-se_gene <- tximeta::summarizeToGene(
-  se_tx,
-  tx2gene = dplyr::select(row_data(iso), transcript_id, gene_id),
-  skipRanges = TRUE
-)
+de_tx(iso) <- swish_results
+head(de_tx(iso))
 ```
 
-Perform Gene level Differential Expression with DESeq2.
+## Gene-level differential expression with DESeq2
+
+`as_summarized_experiment()` exports the gene-level assays (isoforms summed, lengths averaged by abundance) so that `DESeq2` can run on them.
 
 ```{r}
-colData(se_gene)$condition <- factor(colData(se_gene)$condition, levels = c("control", "treatment"))
-
-assays(se_gene)$counts <- round(assays(se_gene)$counts)
+#| message: false
+#| warning: false
+se_gene <- as_summarized_experiment(iso, level = "gene")
+assay(se_gene, "counts") <- round(assay(se_gene, "counts"))
+se_gene$condition <- factor(se_gene$condition, levels = c("control", "treatment"))
 
 dds <- DESeq2::DESeqDataSet(se_gene, design = ~condition)
 dds <- dds[rowSums(DESeq2::counts(dds) >= 10) >= 3, ]
-dds <- DESeq2::DESeq(dds)
-
+dds <- DESeq2::DESeq(dds, quiet = TRUE)
 res <- DESeq2::results(dds, contrast = c("condition", "treatment", "control"))
+shrink_type <- if (rlang::is_installed("apeglm")) "apeglm" else "normal"
+res_shr <- DESeq2::lfcShrink(dds, coef = "condition_treatment_vs_control", res = res, type = shrink_type, quiet = TRUE)
 
-# shrink for stability on small example
-if (rlang::is_installed("apeglm")) {
-  message("apeglm is installed")
-  shrink_type <- "apeglm"
-} else {
-  message("apeglm is NOT installed")
-  shrink_type <- "normal"
-}
-
-res_shr <- DESeq2::lfcShrink(
-  dds,
-  coef = "condition_treatment_vs_control",
-  res = res,
-  type = shrink_type
-)
-
-# res
-# res_shr
-dea_gene_res <- base::as.data.frame(res_shr) |>
-  tibble::rownames_to_column("gene_id") |>
-  tibble::as_tibble() |>
-  dplyr::rename(
-    log2FC = log2FoldChange,
-    pvalue = pvalue,
-    qvalue = padj
-  )
-
-
-iso@dea$deg <- dea_gene_res
-
-de_gene(iso)
+de_gene(iso) <- as.data.frame(res_shr)
+head(de_gene(iso))
+iso
 ```
 
-Plot examples.
+## Looking at the results
 
 ```{r}
-top_de_gene <- de_gene(iso) |>
+top_gene <- de_gene(iso) |>
   dplyr::arrange(qvalue) |>
   dplyr::slice_head(n = 1) |>
   dplyr::pull(gene_id)
+gene_name <- gene_data(iso)$gene_name[gene_data(iso)$gene_id == top_gene]
+gene_name
 
-plot_log2fc(
-  iso,
-  feature = top_de_gene,
-  feature_column = "gene_id"
-)
+plot_log2fc(iso, feature = gene_name)
+plot_tx_expr(iso, gene_name = gene_name, group = "condition")
+plot_genomic_context(iso, gene_name = gene_name)
+isoform_switches(iso) |> head()
 ```
 
-By gene name
+## Saving
+
+The object, with both result tables, is written as a directory of Parquet files and restored with `read_isoformic()`.
 
 ```{r}
-gene_to_plot <- row_data(iso) |>
-  dplyr::filter(gene_id %in% top_de_gene) |>
-  dplyr::slice_head(n = 1) |>
-  dplyr::pull(gene_name)
-
-plot_log2fc(
-  iso,
-  feature = gene_to_plot,
-  feature_column = "gene_name"
-)
+out_dir <- fs::path(tempdir(), "mini_placenta")
+iso <- write_isoformic(iso, out_dir, overwrite = TRUE)
+iso@data_path
+fs::dir_ls(out_dir)
 ```
 
-Top DE transcripts
+## Long reads with Oarfish
+
+Oxford Nanopore and PacBio reads are quantified with Oarfish, which writes bootstrap replicates and a table of unique and shared reads next to the counts.
+`read_oarfish()` reads them like `read_salmon()` and the uncertainty functions of the [uncertainty article](isoformic-uncertainty.html) work on them unchanged.
+The three samples below are simulated nanopore reads of the RBPJ transcripts, quantified with Oarfish 0.10.3 and 30 bootstrap replicates (`data-raw/oarfish/`), so they only show the file layout and the functions, not a real library.
 
 ```{r}
-row_data(iso) |>
-  dplyr::filter(gene_name %in% "MTG2")
+oarfish_dir <- fs::path_package("isoformic", "extdata", "oarfish")
+prefixes <- fs::path(oarfish_dir, c("control_1", "control_2", "treated_1"))
+names(prefixes) <- fs::path_file(prefixes)
+fs::dir_ls(oarfish_dir, regexp = "treated_1")
 
-plot_log2fc(
-  iso,
-  feature = "MTG2",
-  feature_column = "gene_name"
+iso_long <- read_oarfish(
+  prefixes,
+  annot_path = fs::path_package("isoformic", "extdata", "example_experiment", "annotation"),
+  inferential = TRUE
 )
+iso_long
+tx_uncertainty(iso_long) |>
+  dplyr::arrange(dplyr::desc(mean_inf_rv)) |>
+  dplyr::select(transcript_name, mean_count, mean_inf_rv, unique_fraction) |>
+  head(6)
 ```
+
+The Oarfish output has no TPM, so the `abundance` assay is computed from the read counts and the transcript lengths.
+`unique_fraction` comes from the unique and shared read counts of `.ambig_info.tsv`; Oarfish has no equivalence classes, so `n_classes` is not available.
+Samples quantified by Oarfish and by Salmon cannot be read together.
+
+In single-cell mode (`--single-cell`, on a transcriptome-aligned BAM whose reads carry their cell barcode in the `CB:Z` tag) Oarfish writes a cell by transcript count matrix and no replicates.
+`read_oarfish_sc()` sums the cells of each sample, given a table of barcodes and samples, so the isoform analyses apply to samples or to cell types (give each combination of sample and cell type its own `sample_id`).
+The example has 60 simulated cells in three samples:
+
+```{r}
+sc_dir <- fs::path_package("isoformic", "extdata", "oarfish_sc")
+cells <- read.delim(fs::path(sc_dir, "cells.tsv"))
+head(cells, 3)
+iso_sc <- read_oarfish_sc(
+  fs::path(sc_dir, "out"),
+  cells = cells,
+  annot_path = fs::path_package("isoformic", "extdata", "example_experiment", "annotation")
+)
+col_data(iso_sc)
+```
+
+## Next steps
+
+From here the object is analysed like the one of the introduction: [transcriptomic diversity](isoformic-diversity.html), [isoform structure and productivity](isoformic-productivity.html), [alternative polyadenylation](isoformic-polyadenylation.html), [enrichment by transcript type](isoformic-enrichment.html) and [plots](isoformic-plots.html).
+The inferential replicates imported above can be stored in `metadata(iso)$inf_reps` so that `productive_fraction()` reports the uncertainty of each fraction.
+
+## Session information
+
+```{r}
+#| label: session-info
+sessionInfo()
+```
+
+## References
+
+[salmon-ref]: <https://github.com/COMBINE-lab/salmon>
+[salmon-migration-ref]: <https://github.com/COMBINE-lab/salmon/blob/master/MIGRATION.md>

@@ -6,6 +6,17 @@
 \usage{
 tx_type_palette()
 }
+\value{
+A named character vector of hexadecimal colours.
+}
 \description{
-Default color palette for transcript types.
+Default colour palette for transcript types: the GENCODE/Ensembl biotypes
+used by the workflow, the \code{gene} level, generic labels for annotations
+without biotypes (\code{unknown}, \code{novel}) and the SQANTI3 structural
+categories assigned by \code{\link[=add_sqanti_classification]{add_sqanti_classification()}} to long-read
+transcript catalogs.
+}
+\examples{
+head(tx_type_palette())
+
 }

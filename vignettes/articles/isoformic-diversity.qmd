@@ -1,0 +1,117 @@
+---
+title: "Transcriptomic diversity"
+date: 2026-10-17
+date-modified: 2026-10-17
+date-format: long
+author:
+  - name: Lucio Rezende Queiroz
+  - name: Izabela Mamede Conceição
+format:
+  html:
+    toc: true
+bibliography: library.bib
+vignette: |
+  %\VignetteIndexEntry{Transcriptomic diversity}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: "#>"
+    fig-width: 8
+    fig-height: 5
+---
+
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+A gene-level analysis sums the isoforms of a gene and asks whether the sum changes.
+This article asks how the expression of a gene is distributed across its isoforms, whether the dominant isoform is the canonical one, whether it differs between conditions and where the transcript-level and gene-level calls disagree.
+
+It starts from the object built in the [introduction](isoformic-introduction.html):
+
+```{r}
+#| message: false
+library(isoformic)
+library(dplyr)
+library(ggplot2)
+
+extdata <- fs::path_package("isoformic", "extdata")
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+iso <- IsoformicExperiment(
+  experiment_name = "preeclampsia_placenta",
+  annot_path = annot_dir,
+  assays = list(abundance = read_parquet(fs::path(extdata, "pe_abundance.parquet"))),
+  col_data = read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+)
+de_tx(iso) <- read_parquet(fs::path(extdata, "pe_det.parquet"))
+de_gene(iso) <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+```
+
+## Isoform usage per gene
+
+`tx_diversity()` summarises how each gene uses its isoforms: how many are annotated, assayed and expressed, how many transcript types they span, which isoform dominates and the *effective number of isoforms* (1 when a single isoform carries all the expression, equal to the number of isoforms when they are expressed evenly).
+
+```{r}
+diversity <- tx_diversity(iso, min_expr = 1, min_samples = 3)
+head(diversity)
+
+diversity |>
+  filter(n_tx_expressed >= 2) |>
+  ggplot(aes(effective_isoforms)) +
+  geom_histogram(bins = 40, fill = "#8da0cb") +
+  labs(x = "Effective number of expressed isoforms per gene", y = "Genes") +
+  theme_minimal()
+```
+
+## Dominant isoforms
+
+`dominant_isoform()` finds the dominant isoform of each gene per condition and flags genes whose dominant isoform differs between conditions.
+Transcripts carry their annotation `tags` (`MANE_Select`, `Ensembl_canonical`, `basic`, ...) and an `is_canonical` flag, so the table also tells whether the dominant isoform of a gene is its canonical transcript.
+
+```{r}
+dominant <- dominant_isoform(iso, group = "condition")
+dominant |>
+  filter(dominant_switch, gene_expr > 10) |>
+  head(10)
+
+dominant_isoform(iso, gene_name = c("RBPJ", "EGFR", "FLT1"))[, c("gene_name", "dominant_transcript_name", "dominant_is_canonical", "dominant_fraction")]
+```
+
+`min_expr` sets the expression floor below which a sample does not vote for a dominant isoform.
+
+## Isoform switches
+
+`isoform_switches()` relates the transcript-level and gene-level calls: genes with significant isoforms moving in opposite directions, or with significant isoforms but no gene-level change, are the ones a gene-level analysis would miss.
+
+```{r}
+switches <- isoform_switches(iso)
+table(switches$switch_type)
+head(switches)
+```
+
+The expression profile plot makes a switch visible as crossing lines (see the [plots article](isoformic-plots.html)):
+
+```{r}
+plot_tx_expr(iso, gene_name = "RBPJ", group = "condition")
+```
+
+## Exon-level diversity
+
+The exon level adds structural diversity: how many distinct exons a gene has and how many are shared by all of its isoforms.
+
+```{r}
+exon_diversity(iso, gene_name = c("RBPJ", "EGFR", "FLT1"))
+```
+
+What those structural differences do to the protein is the subject of the [productivity article](isoformic-productivity.html).
+
+## Session information
+
+```{r}
+#| label: session-info
+sessionInfo()
+```

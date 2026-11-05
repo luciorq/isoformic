@@ -1,0 +1,62 @@
+{
+  "prob_model": "no_coverage",
+  "alignment_source": "from_raw_reads",
+  "alignment_time": {
+    "comment": "Time to parse (in alignment mode) or generate (in raw read mode) alignments, as well as apply filters, and compute conditional probabilities.",
+    "human_time": "2s 206ms 528us 990ns",
+    "seconds": 2.20652899
+  },
+  "bin_width": 100,
+  "filter_options": {
+    "five_prime_clip": 4294967295,
+    "three_prime_clip": 4294967295,
+    "score_threshold": 0.949999988079071,
+    "min_aligned_fraction": 0.5,
+    "min_aligned_len": 50,
+    "which_strand": "Unknown",
+    "model_coverage": false,
+    "logistic_growth_rate": 2.0,
+    "write_assignment_probs": false,
+    "write_assignment_probs_type": null,
+    "score_prob_denom": 5.0
+  },
+  "discard_table": {
+    "discard_5p": 0,
+    "discard_3p": 0,
+    "discard_score": 8433,
+    "discard_aln_frac": 0,
+    "discard_aln_len": 0,
+    "discard_ori": 0,
+    "discard_supp": 0,
+    "no_mapping": 0,
+    "no_valid_aln": 0,
+    "valid_best_aln": 3000
+  },
+  "alignments": null,
+  "output": "oarfish_out/treated_1",
+  "verbose": false,
+  "single_cell": false,
+  "quiet": false,
+  "em_max_iter": 1000,
+  "em_convergence_thresh": 0.001,
+  "threads": 4,
+  "filter_group": null,
+  "write_assignment_probs": null,
+  "short_quant": null,
+  "num_bootstraps": 30,
+  "digest": {
+    "annotated_transcripts_digest": {
+      "seqcol_digest": {
+        "level": 1,
+        "names": "9RJXzt43zzj0NY8iCmRrD11X4cc_XDaA",
+        "lengths": "suvWgAsLnWZhyPRVAlC0JKzdH1JNWR_A",
+        "sequences": "3u_zfpTzotNY_ykMeayeF1GfyRg26o2I",
+        "sorted_name_length_pairs": "aiOkaSJdrWTGbRl8Yofxxqv9rBhngOuX"
+      },
+      "sha256_digests": {
+        "sha256_names": "1719e767440ee4153d51daaab8c87d9db8ee4c6db6f9ed26b3faa959aaa3d893",
+        "sha256_seqs": "f8b7dc13d16da4a8da252d1fcf61a20e2b3ab761e18fe6ecd4996ed16650e51c"
+      }
+    }
+  }
+}

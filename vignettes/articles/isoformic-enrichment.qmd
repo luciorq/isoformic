@@ -1,0 +1,100 @@
+---
+title: "Functional enrichment by transcript type"
+date: 2026-10-17
+date-modified: 2026-10-17
+date-format: long
+author:
+  - name: Lucio Rezende Queiroz
+  - name: Izabela Mamede Conceição
+format:
+  html:
+    toc: true
+bibliography: library.bib
+vignette: |
+  %\VignetteIndexEntry{Functional enrichment by transcript type}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: "#>"
+    fig-width: 8
+    fig-height: 5
+---
+
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+A transcript-level table has many more significant features than a gene-level one, and most functional annotations are defined on genes.
+This article runs gene set enrichment on the transcript-level results, separately for protein coding transcripts and for the unproductive transcript types, so that a pathway enriched only in unproductive isoforms stands out.
+
+It starts from the object built in the [introduction](isoformic-introduction.html):
+
+```{r}
+#| message: false
+library(isoformic)
+library(dplyr)
+
+extdata <- fs::path_package("isoformic", "extdata")
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+iso <- IsoformicExperiment(
+  experiment_name = "preeclampsia_placenta",
+  annot_path = annot_dir,
+  assays = list(abundance = read_parquet(fs::path(extdata, "pe_abundance.parquet"))),
+  col_data = read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+)
+de_tx(iso) <- read_parquet(fs::path(extdata, "pe_det.parquet"))
+de_gene(iso) <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+```
+
+## Gene sets
+
+`read_gmt()` reads a GMT file into a named list of gene symbols; the package bundles a subset of the Reactome collection of MSigDB.
+
+```{r}
+genesets <- read_gmt(fs::path(extdata, "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"))
+length(genesets)
+head(names(genesets))
+```
+
+## Enrichment per transcript category
+
+`run_enrichment()` expands gene sets to all transcripts of their genes and runs gene set enrichment analysis (`fgsea`) separately for protein coding transcripts and for the *unproductive* categories (retained intron, nonsense-mediated decay and transcripts without a defined coding sequence), both combined and individually.
+The result can be stored in the object so that it is saved with it.
+
+```{r}
+#| warning: false
+set.seed(42)
+enrichment <- run_enrichment(iso, genesets, pval_cutoff = 0.05)
+iso@gsea$reactome <- enrichment
+table(enrichment$experiment)
+head(enrichment)
+```
+
+`plot_enrichment()` draws the pathways side by side for each transcript category.
+
+```{r}
+#| fig-height: 8
+#| fig-width: 10
+plot_enrichment(enrichment, n = 30, experiments = c("protein_coding", "unproductive"), nes_cutoff = 1.5)
+```
+
+```{r}
+#| fig-height: 8
+#| fig-width: 10
+plot_enrichment(enrichment, n = 20, experiments = c("retained_intron", "nonsense_mediated_decay", "processed_transcript"), nes_cutoff = 1.5)
+```
+
+## Enrichment on the productive fraction
+
+Ranking genes by the change in their productive fraction rather than by fold-change targets regulated unproductive splicing; `run_productivity_enrichment()` is described in the [productivity article](isoformic-productivity.html).
+
+## Session information
+
+```{r}
+#| label: session-info
+sessionInfo()
+```
