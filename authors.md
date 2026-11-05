@@ -5,8 +5,6 @@
 - **Lucio Rezende Queiroz**. Author, maintainer, copyright holder.
   [](https://orcid.org/0000-0002-6090-1834)
 
-- **Lucio Rezende Queiroz**. Author, contributor.
-
 - **Izabela Mamede Conceicao**. Author, contributor.
   [](https://orcid.org/0000-0002-0707-5588)
 

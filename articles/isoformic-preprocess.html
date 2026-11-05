@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Preprocessing Short-Read Sequencing Files for Isoformic • isoformic</title>
+<title>From Salmon quantifications to an IsoformicExperiment • isoformic</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
@@ -17,7 +17,7 @@
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><script src="isoformic-preprocess_files/libs/quarto-html/popper.min.js"></script><script src="isoformic-preprocess_files/libs/quarto-html/tippy.umd.min.js"></script><link href="isoformic-preprocess_files/libs/quarto-html/tippy.css" rel="stylesheet">
 <link href="isoformic-preprocess_files/libs/quarto-html/light-border.css" rel="stylesheet">
-<!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Preprocessing Short-Read Sequencing Files for Isoformic">
+<!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="From Salmon quantifications to an IsoformicExperiment">
 <meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png">
 </head>
 <body>
@@ -28,7 +28,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9019</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9022</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,8 +41,23 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/isoformic-preprocess.html">Preprocessing Short-Read Sequencing Files for Isoformic</a></li>
-    <li><a class="dropdown-item" href="../articles/isoformic-table-based.html">Isoformic: Isoform-level biological interpretation of transcriptomic data</a></li>
+<li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Get started</h6></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-introduction.html">Introduction to isoformic</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-preprocess.html">From Salmon quantifications to an IsoformicExperiment</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyses</h6></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-plots.html">Plots</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Annotations and tables</h6></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-references.html">Other annotations: T2T-CHM13, Ensembl, RefSeq, haplotypes, FANTOM CAT and long reads</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-tables.html">Working with plain tables</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -68,7 +83,7 @@
 </nav><div class="container template-quarto">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>Preprocessing Short-Read Sequencing Files for Isoformic</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>From Salmon quantifications to an IsoformicExperiment</h1>
 
       <p class="author">Lucio Rezende QueirozIzabela Mamede Conceição</p>
       <p class="date">October 2, 2025</p>
@@ -82,143 +97,178 @@
 
 
 
-    <section class="level2"><h2 id="salmon-command-command-line-interface-anatomy">Salmon: command command line interface anatomy<a class="anchor" aria-label="anchor" href="#salmon-command-command-line-interface-anatomy"></a>
+    <p>This article goes from FASTQ files to an <code>IsoformicExperiment</code> with transcript-level and gene-level differential expression results. The <a href="isoformic-introduction.html">introduction</a> starts one step later, from ready-made tables, and the other articles analyse the object.</p>
+<section class="level2"><h2 id="quantifying-with-salmon">Quantifying with Salmon<a class="anchor" aria-label="anchor" href="#quantifying-with-salmon"></a>
 </h2>
-<section class="level3"><h3 id="from-the-terminal---salmon-command-line-interface">From the Terminal - Salmon Command Line Interface<a class="anchor" aria-label="anchor" href="#from-the-terminal---salmon-command-line-interface"></a>
-</h3>
-<p>Below is a single-sample invocation (to be run in a Bash shell) showing the typical arguments we used when making the mini dataset used in this vignette.</p>
-<p>Replace the paths with yours if you want to reproduce.</p>
-<p>More thorough information can be found on: <a href="https://combine-lab.github.io/salmon/" class="external-link uri">https://combine-lab.github.io/salmon/</a>.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Not needed as of Salmon 1.10.3:</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># --validateMappings \               # selective-alignment (more specific, recommended)</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">salmon</span> quant <span class="dt">\</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">--libType</span> A <span class="dt">\ </span>                     <span class="co"># A -&gt; autodetect library type from the reads</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="ex">--index</span> /path/to/index <span class="dt">\ </span>          <span class="co"># Transcriptome index (here: index built from the FASTA annotation file)</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="ex">--mates1</span> /path/SRR..._1.fastq <span class="dt">\ </span>   <span class="co"># R1 FASTQ</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="ex">--mates2</span> /path/SRR..._2.fastq <span class="dt">\ </span>   <span class="co"># R2 FASTQ</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="ex">--output</span> /path/SRR..._quant <span class="dt">\ </span>     <span class="co"># Output folder (contains quant.sf, aux_info/)</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="ex">--threads</span> 8 <span class="dt">\ </span>                     <span class="co"># Number of parallel threads used</span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="ex">--disableChainingHeuristic</span> <span class="dt">\ </span>      <span class="co"># improve mapping sensitivity, but slower</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="ex">--allowDovetail</span> <span class="dt">\</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">--softclipOverhangs</span> <span class="dt">\ </span>             <span class="co"># softclip reads that overhang transcripts start and end</span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="ex">--dumpEq</span> <span class="dt">\</span></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">--dumpEqWeights</span> <span class="dt">\ </span>                 <span class="co"># dump equivalent class information, needed by Terminus</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="ex">--posBias</span> <span class="at">--seqBias</span> <span class="at">--gcBias</span> <span class="dt">\ </span>    <span class="co"># bias corrections (positional, sequence, GC)</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="ex">--numGibbsSamples</span> 100              <span class="co"># draw inferential replicates; required for fishpond/Swish</span></span></code></pre></div>
-</section><section class="level3"><h3 id="from-r---condathis-wrapper-for-salmon">From R - <code>condathis</code> wrapper for Salmon<a class="anchor" aria-label="anchor" href="#from-r---condathis-wrapper-for-salmon"></a>
-</h3>
-<p>Caveats: currently <a href="https://anaconda.org/bioconda/salmon" class="external-link">Salmon</a> is only available for macOS and Linux on the <a href="https://bioconda.github.io/" class="external-link">Bioconda</a> channel.</p>
-<p>Therefore, this example will not work natively on Windows. But you can use WSL2 (Windows Subsystem for Linux) on Windows 10/11 to run it.</p>
+<p>We recommend <a href="https://github.com/COMBINE-lab/salmon" class="external-link">Salmon</a> <span class="citation" data-cites="salmon">(<a href="#ref-salmon" role="doc-biblioref">Patro et al. 2017</a>)</span> in selective-alignment mode against the GENCODE transcriptome, with inferential replicates so that <code>swish</code> <span class="citation" data-cites="swish">(<a href="#ref-swish" role="doc-biblioref">Zhu et al. 2019</a>)</span> can be used for transcript-level differential expression.</p>
+<p>Salmon 2 is a from-scratch rewrite in Rust (2.8.0 at the time of writing). The workflow (<code>salmon index</code>, <code>salmon quant</code>, <code>quant.sf</code>) and the output files are the same, so <code><a href="../reference/read_salmon.html">read_salmon()</a></code>, <code>tximeta</code>, <code>tximport</code> and <code>swish</code> work unchanged, but the index format is new: an index built with Salmon 1.x is rejected and must be rebuilt (the last C++ release, 1.12.0, remains available as the <code>salmon-cpp</code> conda package). Other changes worth knowing: selective alignment is the only mapping mode (<code>--validateMappings</code> is a no-op), quantification is deterministic by default (identical output for any thread count), decoy sequences no longer appear in <code>quant.sf</code>, and <code>--ignoreTxVersion</code> matches transcript identifiers without their version suffix when a gene map is given. The Salmon <a href="https://github.com/COMBINE-lab/salmon/blob/master/MIGRATION.md" class="external-link">migration guide</a> lists every removed or ignored option.</p>
+<p>A typical single-sample invocation from a shell is below: <code>--libType A</code> detects the library type, the index is built from the GENCODE transcript FASTA with <code>salmon index --gencode</code> (which truncates the transcript names at the first <code>|</code>), <code>--posBias --seqBias --gcBias</code> correct the biases, <code>--dumpEq --dumpEqWeights</code> keep the equivalence classes and <code>--numGibbsSamples</code> writes the inferential replicates that <code>swish</code> needs into <code>aux_info/bootstrap/</code>.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">salmon</span> index <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--transcripts</span> gencode.v49.transcripts.fa.gz <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--index</span> salmon_index <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--gencode</span> <span class="dt">\</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">--threads</span> 8</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="ex">salmon</span> quant <span class="dt">\</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">--libType</span> A <span class="dt">\</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">--index</span> salmon_index <span class="dt">\</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">--mates1</span> /path/SRR..._1.fastq.gz <span class="dt">\</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">--mates2</span> /path/SRR..._2.fastq.gz <span class="dt">\</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output</span> /path/SRR..._quant <span class="dt">\</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">--threads</span> 8 <span class="dt">\</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">--allowDovetail</span> <span class="at">--softclipOverhangs</span> <span class="dt">\</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">--dumpEq</span> <span class="at">--dumpEqWeights</span> <span class="dt">\</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">--posBias</span> <span class="at">--seqBias</span> <span class="at">--gcBias</span> <span class="dt">\</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">--numGibbsSamples</span> 30</span></code></pre></div>
+<p>The same can be driven from R through the <code>condathis</code> package, which installs Salmon from Bioconda into a conda environment (Linux and macOS, or WSL2 on Windows). <code><a href="../reference/salmon_index.html">salmon_index()</a></code> and <code><a href="../reference/salmon_quant.html">salmon_quant()</a></code> run the commands above; the first call creates the environment with Salmon 2.8.0:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/luciorq/isoformic" class="external-link">isoformic</a></span><span class="op">)</span></span>
-<span><span class="va">tx_fasta_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"49"</span>, file_type <span class="op">=</span> <span class="st">"fasta"</span><span class="op">)</span></span>
-<span><span class="va">genome_fasta_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"49"</span>, file_type <span class="op">=</span> <span class="st">"genome_fasta"</span><span class="op">)</span></span>
+<span><span class="va">tx_fasta</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"49"</span>, file_type <span class="op">=</span> <span class="st">"fasta"</span><span class="op">)</span></span>
 <span><span class="va">gff_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"49"</span>, file_type <span class="op">=</span> <span class="st">"gff"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">base_dir</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="st">"data-raw"</span>, <span class="st">"vignette_data"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">index_path</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">base_dir</span>, <span class="st">"salmon_index_k15"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/salmon_index.html">salmon_index</a></span><span class="op">(</span></span>
-<span>  fasta_path <span class="op">=</span> <span class="va">tx_fasta_path</span>,</span>
-<span>  index_path <span class="op">=</span> <span class="va">index_path</span>,</span>
-<span>  kmer_len <span class="op">=</span> <span class="fl">15</span>,</span>
-<span>  num_threads <span class="op">=</span> <span class="fl">8</span>,</span>
-<span>  is_gencode <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  decoy_fasta <span class="op">=</span> <span class="va">genome_fasta_path</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">fastq_files</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/dir_ls.html" class="external-link">dir_ls</a></span><span class="op">(</span><span class="st">"data-raw/mini_data/sub_fastq/"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">sample_names</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_file.html" class="external-link">path_file</a></span><span class="op">(</span><span class="va">fastq_files</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">stringr</span><span class="fu">::</span><span class="fu"><a href="https://stringr.tidyverse.org/reference/str_remove.html" class="external-link">str_remove</a></span><span class="op">(</span><span class="st">"_sub_[1-2].fastq.gz$"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">sample_names</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">sample_name</span> <span class="op">&lt;-</span> <span class="va">sample_names</span><span class="op">[</span><span class="va">i</span><span class="op">]</span></span>
-<span></span>
-<span>  <span class="va">salmon_output</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">base_dir</span>, <span class="st">"salmon_quants"</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">sample_name</span>, <span class="st">"_quant"</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="va">fastq_r1</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/dir_ls.html" class="external-link">dir_ls</a></span><span class="op">(</span><span class="st">"data-raw/mini_data/sub_fastq/"</span>, regexp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">sample_name</span>, <span class="st">"_sub_1.fastq.gz$"</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="va">fastq_r2</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/dir_ls.html" class="external-link">dir_ls</a></span><span class="op">(</span><span class="st">"data-raw/mini_data/sub_fastq/"</span>, regexp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">sample_name</span>, <span class="st">"_sub_2.fastq.gz$"</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="co"># fs::file_exists(fastq_r1)</span></span>
-<span>  <span class="co"># fs::file_exists(fastq_r2)</span></span>
-<span></span>
-<span>  <span class="fu"><a href="../reference/salmon_quant.html">salmon_quant</a></span><span class="op">(</span></span>
-<span>    index_path <span class="op">=</span> <span class="va">index_path</span>,</span>
-<span>    input_r1 <span class="op">=</span> <span class="va">fastq_r1</span>,</span>
-<span>    input_r2 <span class="op">=</span> <span class="va">fastq_r2</span>,</span>
-<span>    output_dir <span class="op">=</span> <span class="va">salmon_output</span>,</span>
-<span>    num_threads <span class="op">=</span> <span class="fl">8</span>,</span>
-<span>    num_gibbs <span class="op">=</span> <span class="fl">20</span>,</span>
-<span>    min_score_fraction <span class="op">=</span> <span class="st">"0.65"</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/salmon_index.html">salmon_index</a></span><span class="op">(</span>fasta_path <span class="op">=</span> <span class="va">tx_fasta</span>, index_path <span class="op">=</span> <span class="st">"salmon_index"</span>, is_gencode <span class="op">=</span> <span class="cn">TRUE</span>, num_threads <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/salmon_quant.html">salmon_quant</a></span><span class="op">(</span></span>
+<span>  input_r1 <span class="op">=</span> <span class="st">"sample_1.fastq.gz"</span>,</span>
+<span>  input_r2 <span class="op">=</span> <span class="st">"sample_2.fastq.gz"</span>,</span>
+<span>  index_path <span class="op">=</span> <span class="st">"salmon_index"</span>,</span>
+<span>  output_dir <span class="op">=</span> <span class="st">"quants/sample_quant"</span>,</span>
+<span>  num_threads <span class="op">=</span> <span class="fl">8</span></span>
+<span><span class="op">)</span></span></code></pre></div>
 </div>
-</section></section><section class="level2"><h2 id="load-data-and-create-isoformicexperiment-object">Load Data and Create IsoformicExperiment Object<a class="anchor" aria-label="anchor" href="#load-data-and-create-isoformicexperiment-object"></a>
+<p><code><a href="../reference/salmon_quant.html">salmon_quant()</a></code> draws 30 Gibbs samples per sample by default (<code>num_gibbs = 0</code> skips them). Besides <code>swish</code>, they quantify how well the reads determine each isoform, which isoforms cannot be told apart and how confident each differential expression call is; <code>read_salmon(inferential = TRUE)</code> reads them and the <a href="isoformic-uncertainty.html">uncertainty article</a> explains how to use and report them.</p>
+<p>For a decoy-aware index (recommended by the Salmon authors), build the <code>gentrome</code> FASTA and <code>decoys.txt</code> from the genome as described in the Salmon documentation and pass <code>--decoys decoys.txt</code> to <code>salmon index</code>.</p>
+</section><section class="level2"><h2 id="reading-quantifications-directly">Reading quantifications directly<a class="anchor" aria-label="anchor" href="#reading-quantifications-directly"></a>
 </h2>
+<p><code><a href="../reference/read_salmon.html">read_salmon()</a></code> reads any number of <code>quant.sf</code> files with DuckDB and returns an <code>IsoformicExperiment</code> with <code>abundance</code> (TPM), <code>counts</code> and <code>length</code> assays. The package ships a down-sampled dataset of six placenta samples quantified against GENCODE v49.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressPackageStartupMessages</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/thelovelab/tximeta" class="external-link">tximeta</a></span><span class="op">)</span></span>
-<span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bioconductor.org/packages/SummarizedExperiment" class="external-link">SummarizedExperiment</a></span><span class="op">)</span></span>
-<span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://thelovelab.github.io/fishpond" class="external-link">fishpond</a></span><span class="op">)</span></span>
-<span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/thelovelab/DESeq2" class="external-link">DESeq2</a></span><span class="op">)</span></span>
-<span><span class="op">}</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/luciorq/isoformic" class="external-link">isoformic</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/luciorq/isoformic" class="external-link">isoformic</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Where extdata lives</span></span>
-<span><span class="va">extdata_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">quants_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">extdata_dir</span>, <span class="st">"mini_quants"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">gff_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"49"</span>, file_type <span class="op">=</span> <span class="st">"gff"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; ✔ '/home/runner/.cache/R/isoformic/gencode.v49.chr_patch_hapl_scaff.annotation.gff3.gz'</span></span>
-<span><span class="co">#&gt;   successfully downloaded.</span></span></code></pre></div>
-</div>
-</section><section class="level2"><h2 id="load-salmon-quantification-with-tximport">Load Salmon Quantification with tximport<a class="anchor" aria-label="anchor" href="#load-salmon-quantification-with-tximport"></a>
-</h2>
-<p>Point to Salmon’s <code>quant.sf</code> output files.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># discover sample folders like SRR11498039_quant, etc.</span></span>
-<span><span class="va">sample_dirs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.dirs</a></span><span class="op">(</span><span class="va">quants_dir</span>, full.names <span class="op">=</span> <span class="cn">FALSE</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># keep only *_quant and strip the suffix for sample names</span></span>
-<span><span class="va">sample_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"_quant$"</span>, <span class="st">""</span>, <span class="va">sample_dirs</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">sample_names</span><span class="op">)</span> <span class="op">==</span> <span class="fl">6</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># define groups: "control" = first 3, "treatment" = last 3 (sorted by sample ID)</span></span>
-<span><span class="va">sample_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="va">sample_names</span><span class="op">)</span></span>
-<span><span class="va">condition</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="fl">3</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"treatment"</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">quant_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">quants_dir</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">sample_names</span>, <span class="st">"_quant"</span><span class="op">)</span>, <span class="st">"quant.sf"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">quant_files</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">sample_names</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">quant_files</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">quants_dir</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"mini_quants"</span><span class="op">)</span></span>
+<span><span class="va">quant_dirs</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/dir_ls.html" class="external-link">dir_ls</a></span><span class="op">(</span><span class="va">quants_dir</span>, type <span class="op">=</span> <span class="st">"directory"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">quant_dirs</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"_quant$"</span>, <span class="st">""</span>, <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_file.html" class="external-link">path_file</a></span><span class="op">(</span><span class="va">quant_dirs</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">col_data</span> <span class="op">&lt;-</span> <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span></span>
-<span>  files <span class="op">=</span> <span class="va">quant_files</span>,</span>
-<span>  names <span class="op">=</span> <span class="va">sample_names</span>,</span>
-<span>  condition <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">condition</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"treatment"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  sample_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">quant_dirs</span><span class="op">)</span>,</span>
+<span>  condition <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="fl">3</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"treatment"</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"treatment"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">col_data</span></span>
-<span><span class="co">#&gt; # A tibble: 6 × 3</span></span>
-<span><span class="co">#&gt;   files                                                          names condition</span></span>
-<span><span class="co">#&gt;   &lt;chr&gt;                                                          &lt;chr&gt; &lt;fct&gt;    </span></span>
-<span><span class="co">#&gt; 1 /home/runner/work/_temp/Library/isoformic/extdata/mini_quants… SRR1… control  </span></span>
-<span><span class="co">#&gt; 2 /home/runner/work/_temp/Library/isoformic/extdata/mini_quants… SRR1… control  </span></span>
-<span><span class="co">#&gt; 3 /home/runner/work/_temp/Library/isoformic/extdata/mini_quants… SRR1… control  </span></span>
-<span><span class="co">#&gt; 4 /home/runner/work/_temp/Library/isoformic/extdata/mini_quants… SRR1… treatment</span></span>
-<span><span class="co">#&gt; 5 /home/runner/work/_temp/Library/isoformic/extdata/mini_quants… SRR1… treatment</span></span>
-<span><span class="co">#&gt; 6 /home/runner/work/_temp/Library/isoformic/extdata/mini_quants… SRR1… treatment</span></span></code></pre></div>
+<span><span class="co">#&gt; # A tibble: 6 × 2</span></span>
+<span><span class="co">#&gt;   sample_id   condition</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;       &lt;fct&gt;    </span></span>
+<span><span class="co">#&gt; 1 SRR11498039 control  </span></span>
+<span><span class="co">#&gt; 2 SRR11498040 control  </span></span>
+<span><span class="co">#&gt; 3 SRR11498041 control  </span></span>
+<span><span class="co">#&gt; 4 SRR11498079 treatment</span></span>
+<span><span class="co">#&gt; 5 SRR11498080 treatment</span></span>
+<span><span class="co">#&gt; 6 SRR11498081 treatment</span></span></code></pre></div>
 </div>
-<p>Import transcriptomics data with tximport.</p>
+<p>The annotation must match the reference used for quantification, GENCODE v49 here. For real data it is downloaded once into the package cache and converted to Parquet once:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">gff_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"49"</span>, file_type <span class="op">=</span> <span class="st">"gff"</span><span class="op">)</span></span>
+<span><span class="va">annot_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_isoformic_annotation.html">prepare_isoformic_annotation</a></span><span class="op">(</span><span class="va">gff_path</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>The package bundles the subset of that annotation covering the transcripts of the mini dataset.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">se_tx</span> <span class="op">&lt;-</span> <span class="fu">tximeta</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tximeta/man/tximeta.html" class="external-link">tximeta</a></span><span class="op">(</span></span>
-<span>  coldata <span class="op">=</span> <span class="va">col_data</span>,</span>
+<code class="sourceCode R"><span><span class="va">annot_dir</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"mini_annotation"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_salmon.html">read_salmon</a></span><span class="op">(</span><span class="va">quant_dirs</span>, annot_path <span class="op">=</span> <span class="va">annot_dir</span>, col_data <span class="op">=</span> <span class="va">col_data</span>, experiment_name <span class="op">=</span> <span class="st">"mini_placenta"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; Warning in duckdb_post_execute(res, out): NAs introduced by coercion</span></span>
+<span><span class="co">#&gt; Warning in duckdb_post_execute(res, out): NAs introduced by coercion</span></span>
+<span><span class="co">#&gt; Warning in duckdb_post_execute(res, out): NAs introduced by coercion</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="va">iso</span></span>
+<span><span class="co">#&gt; &lt;IsoformicExperiment&gt; mini_placenta</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt;   annotation : gencode_v49_mini_subset (15 genes, 111 transcripts, 1,071 exons)</span></span>
+<span><span class="co">#&gt;   samples    : 6 [condition]</span></span>
+<span><span class="co">#&gt;   transcripts: 111 assayed from 15 genes</span></span>
+<span><span class="co">#&gt;   assays     : abundance, counts, length</span></span>
+<span><span class="co">#&gt;   gene assays: derived from transcript assays on demand</span></span>
+<span><span class="co">#&gt;   DE results : &lt;none&gt;</span></span>
+<span><span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">assay_names</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "abundance" "counts"    "length"</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">row_data</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; # A tibble: 6 × 19</span></span>
+<span><span class="co">#&gt;   transcript_id      transcript_name transcript_type gene_id gene_name gene_type</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;              &lt;chr&gt;           &lt;chr&gt;           &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;    </span></span>
+<span><span class="co">#&gt; 1 ENST00000216797.10 NFKBIA-201      protein_coding  ENSG00… NFKBIA    protein_…</span></span>
+<span><span class="co">#&gt; 2 ENST00000225831.4  CCL2-201        protein_coding  ENSG00… CCL2      protein_…</span></span>
+<span><span class="co">#&gt; 3 ENST00000258743.10 IL6-201         protein_coding  ENSG00… IL6       protein_…</span></span>
+<span><span class="co">#&gt; 4 ENST00000263341.7  IL1B-201        protein_coding  ENSG00… IL1B      protein_…</span></span>
+<span><span class="co">#&gt; 5 ENST00000264832.8  ICAM1-201       protein_coding  ENSG00… ICAM1     protein_…</span></span>
+<span><span class="co">#&gt; 6 ENST00000306602.3  CXCL10-201      protein_coding  ENSG00… CXCL10    protein_…</span></span>
+<span><span class="co">#&gt; # ℹ 13 more variables: source_gene_id &lt;chr&gt;, source_transcript_id &lt;chr&gt;,</span></span>
+<span><span class="co">#&gt; #   tags &lt;chr&gt;, coding_status &lt;chr&gt;, transcript_support_level &lt;chr&gt;,</span></span>
+<span><span class="co">#&gt; #   tie_score &lt;dbl&gt;, cds_start &lt;int&gt;, cds_end &lt;int&gt;, cds_length &lt;int&gt;,</span></span>
+<span><span class="co">#&gt; #   is_canonical &lt;lgl&gt;, haplotype &lt;chr&gt;, n_exons &lt;int&gt;, tx_length &lt;int&gt;</span></span></code></pre></div>
+</div>
+</section><section class="level2"><h2 id="transcript-level-differential-expression-with-swish">Transcript-level differential expression with swish<a class="anchor" aria-label="anchor" href="#transcript-level-differential-expression-with-swish"></a>
+</h2>
+<p><code>swish</code> needs the inferential replicates, which <code>tximeta</code> imports from the Salmon output (the bundled quantifications carry them separately to keep the package small).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressPackageStartupMessages</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bioconductor.org/packages/SummarizedExperiment" class="external-link">SummarizedExperiment</a></span><span class="op">)</span></span>
+<span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://thelovelab.github.io/fishpond" class="external-link">fishpond</a></span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">tximeta_coldata</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  files <span class="op">=</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">quant_dirs</span>, <span class="st">"quant.sf"</span><span class="op">)</span>,</span>
+<span>  names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">quant_dirs</span><span class="op">)</span>,</span>
+<span>  condition <span class="op">=</span> <span class="va">col_data</span><span class="op">$</span><span class="va">condition</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">se_tx</span> <span class="op">&lt;-</span> <span class="fu">tximeta</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tximeta/man/tximeta.html" class="external-link">tximeta</a></span><span class="op">(</span></span>
+<span>  coldata <span class="op">=</span> <span class="va">tximeta_coldata</span>,</span>
 <span>  type <span class="op">=</span> <span class="st">"salmon"</span>,</span>
 <span>  txOut <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  skipMeta <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -226,259 +276,572 @@
 <span>  ignoreAfterBar <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  skipSeqinfo <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; importing salmon quantification files</span></span>
-<span><span class="co">#&gt; reading in files with read_tsv</span></span>
-<span><span class="co">#&gt; 1 2 3 4 5 6</span></span>
+<span><span class="va">mini_draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/inferential-io.html">as_inferential_replicates</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"mini_draws.parquet"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">mini_draws</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"infRep"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">mini_draws</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">assays</a></span><span class="op">(</span><span class="va">se_tx</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">as.list</a></span><span class="op">(</span><span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">assays</a></span><span class="op">(</span><span class="va">se_tx</span><span class="op">)</span><span class="op">)</span>, <span class="va">mini_draws</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">mini_inf_reps</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/mini_inf_reps.rds"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assays</a></span><span class="op">(</span><span class="va">se_tx</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assays</a></span><span class="op">(</span><span class="va">se_tx</span><span class="op">)</span>, <span class="va">mini_inf_reps</span><span class="op">)</span></span></code></pre></div>
-</div>
-<p>Convert to IsoformicExperiment object.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as_isoformic.html">as_isoformic</a></span><span class="op">(</span><span class="va">se_tx</span>, <span class="va">gff_path</span><span class="op">)</span></span>
-<span><span class="va">iso</span></span>
-<span><span class="co">#&gt; &lt;IsoformicExperiment&gt;</span></span>
-<span><span class="co">#&gt;  Experiment Name: 8cfae35ed7f0a8223eda10215885456f</span></span>
-<span><span class="co">#&gt;  Data Path: /home/runner/.cache/R/isoformic/8cfae35ed7f0a8223eda10215885456f</span></span>
-<span><span class="co">#&gt;  Assays: counts, abundance, length, infRep1, infRep2, infRep3, infRep4, infRep5, infRep6, infRep7, infRep8, infRep9, infRep10, infRep11, infRep12, infRep13, infRep14, infRep15, infRep16, infRep17, infRep18, infRep19, infRep20</span></span>
-<span><span class="co">#&gt;  Samples: 6</span></span>
-<span><span class="co">#&gt;  Transcripts in Assay: 111</span></span>
-<span><span class="co">#&gt;  Annotation Name: gencode_v49_chr_patch_hapl_scaff_annotation_gff3</span></span>
-<span><span class="co">#&gt;  Annotation Path: /home/runner/.cache/R/isoformic/gencode_v49_chr_patch_hapl_scaff_annotation_gff3</span></span>
-<span><span class="co">#&gt;  Transcripts in Annotation: 533740</span></span>
-<span><span class="co">#&gt;  Genes in Annotation: 86369</span></span>
-<span><span class="co">#&gt;  Exons in Annotation: 3823521</span></span>
-<span><span class="co">#&gt;  Annotation Metadata: 6 slots</span></span></code></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tx_to_gene_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/IsoformicExperiment.html">tx_to_gene</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">tx_to_gene_df</span><span class="op">)</span></span>
-<span><span class="co">#&gt; # A tibble: 6 × 2</span></span>
-<span><span class="co">#&gt;   transcript_id     gene_id          </span></span>
-<span><span class="co">#&gt;   &lt;chr&gt;             &lt;chr&gt;            </span></span>
-<span><span class="co">#&gt; 1 ENST00000832824.1 ENSG00000290825.2</span></span>
-<span><span class="co">#&gt; 2 ENST00000832825.1 ENSG00000290825.2</span></span>
-<span><span class="co">#&gt; 3 ENST00000832826.1 ENSG00000290825.2</span></span>
-<span><span class="co">#&gt; 4 ENST00000832827.1 ENSG00000290825.2</span></span>
-<span><span class="co">#&gt; 5 ENST00000832828.1 ENSG00000290825.2</span></span>
-<span><span class="co">#&gt; 6 ENST00000832829.1 ENSG00000290825.2</span></span>
-<span></span>
-<span><span class="co"># rowData(se_tx) &lt;- row_data(iso)</span></span>
-<span><span class="va">iso</span></span>
-<span><span class="co">#&gt; &lt;IsoformicExperiment&gt;</span></span>
-<span><span class="co">#&gt;  Experiment Name: 8cfae35ed7f0a8223eda10215885456f</span></span>
-<span><span class="co">#&gt;  Data Path: /home/runner/.cache/R/isoformic/8cfae35ed7f0a8223eda10215885456f</span></span>
-<span><span class="co">#&gt;  Assays: counts, abundance, length, infRep1, infRep2, infRep3, infRep4, infRep5, infRep6, infRep7, infRep8, infRep9, infRep10, infRep11, infRep12, infRep13, infRep14, infRep15, infRep16, infRep17, infRep18, infRep19, infRep20</span></span>
-<span><span class="co">#&gt;  Samples: 6</span></span>
-<span><span class="co">#&gt;  Transcripts in Assay: 111</span></span>
-<span><span class="co">#&gt;  Annotation Name: gencode_v49_chr_patch_hapl_scaff_annotation_gff3</span></span>
-<span><span class="co">#&gt;  Annotation Path: /home/runner/.cache/R/isoformic/gencode_v49_chr_patch_hapl_scaff_annotation_gff3</span></span>
-<span><span class="co">#&gt;  Transcripts in Annotation: 533740</span></span>
-<span><span class="co">#&gt;  Genes in Annotation: 86369</span></span>
-<span><span class="co">#&gt;  Exons in Annotation: 3823521</span></span>
-<span><span class="co">#&gt;  Annotation Metadata: 6 slots</span></span></code></pre></div>
-</div>
-<p>Perform transcript-level Differential Expression Analysis with fishpond.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">y</span> <span class="op">&lt;-</span> <span class="va">se_tx</span></span>
-<span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu">fishpond</span><span class="fu">::</span><span class="fu"><a href="https://thelovelab.github.io/fishpond/reference/scaleInfReps.html" class="external-link">scaleInfReps</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span></span>
-<span></span>
+<span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu">fishpond</span><span class="fu">::</span><span class="fu"><a href="https://thelovelab.github.io/fishpond/reference/scaleInfReps.html" class="external-link">scaleInfReps</a></span><span class="op">(</span><span class="va">se_tx</span><span class="op">)</span></span>
 <span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu">fishpond</span><span class="fu">::</span><span class="fu"><a href="https://thelovelab.github.io/fishpond/reference/labelKeep.html" class="external-link">labelKeep</a></span><span class="op">(</span><span class="va">y</span>, minCount <span class="op">=</span> <span class="fl">10</span>, minN <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="co"># y &lt;- y[mcols(y)$keep, ]</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">colData</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span><span class="op">$</span><span class="va">condition</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">col_data</span><span class="op">$</span><span class="va">condition</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"treatment"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co"># y$condition &lt;- factor(y$condition, levels = c("control", "treatment"))</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">colData</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span></span>
-<span><span class="co">#&gt; DataFrame with 6 rows and 2 columns</span></span>
-<span><span class="co">#&gt;                   names condition</span></span>
-<span><span class="co">#&gt;             &lt;character&gt;  &lt;factor&gt;</span></span>
-<span><span class="co">#&gt; SRR11498039 SRR11498039 control  </span></span>
-<span><span class="co">#&gt; SRR11498040 SRR11498040 control  </span></span>
-<span><span class="co">#&gt; SRR11498041 SRR11498041 control  </span></span>
-<span><span class="co">#&gt; SRR11498079 SRR11498079 treatment</span></span>
-<span><span class="co">#&gt; SRR11498080 SRR11498080 treatment</span></span>
-<span><span class="co">#&gt; SRR11498081 SRR11498081 treatment</span></span>
-<span></span>
-<span><span class="co"># run Swish</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">20261029</span><span class="op">)</span> <span class="co"># swish uses permutations</span></span>
 <span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu">fishpond</span><span class="fu">::</span><span class="fu"><a href="https://thelovelab.github.io/fishpond/reference/swish.html" class="external-link">swish</a></span><span class="op">(</span><span class="va">y</span>, x <span class="op">=</span> <span class="st">"condition"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">dea_tx_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/S4Vectors/man/Vector-class.html" class="external-link">mcols</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">base</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/rownames.html" class="external-link">rownames_to_column</a></span><span class="op">(</span><span class="st">"transcript_id"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/as_tibble.html" class="external-link">as_tibble</a></span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">iso</span><span class="op">@</span><span class="va">dea</span><span class="op">$</span><span class="va">det</span> <span class="op">&lt;-</span> <span class="va">dea_tx_res</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/IsoformicExperiment.html">de_tx</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span></span>
-<span><span class="co">#&gt; # A tibble: 111 × 9</span></span>
-<span><span class="co">#&gt;    transcript_id      log10mean keep   stat log2FC pvalue locfdr qvalue det_sig</span></span>
-<span><span class="co">#&gt;    &lt;chr&gt;                  &lt;dbl&gt; &lt;lgl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;  </span></span>
-<span><span class="co">#&gt;  1 ENST00000263341.7       3.59 TRUE   3.25   6.63 0.0542  0.437  0.176 no     </span></span>
-<span><span class="co">#&gt;  2 ENST00000651122.1       2.72 TRUE   3.5    4.91 0.0431  0.380  0.176 no     </span></span>
-<span><span class="co">#&gt;  3 ENST00000306602.3       2.44 TRUE  -3.3   -3.75 0.0515  0.424  0.176 no     </span></span>
-<span><span class="co">#&gt;  4 ENST00000392322.7       2.61 TRUE   2.45   2.62 0.147   0.818  0.382 no     </span></span>
-<span><span class="co">#&gt;  5 ENST00000698141.1       2.45 TRUE   2      2.24 0.247   1      0.494 no     </span></span>
-<span><span class="co">#&gt;  6 ENST00000697958.1       2.52 TRUE  -3.65  -2.01 0.0335  0.327  0.176 no     </span></span>
-<span><span class="co">#&gt;  7 ENST00000673858.1       2.18 TRUE   2.1    1.98 0.232   1      0.494 no     </span></span>
-<span><span class="co">#&gt;  8 ENST00000367468.10      2.92 TRUE   1.85   1.82 0.300   1      0.555 no     </span></span>
-<span><span class="co">#&gt;  9 ENST00000557389.1       2.75 TRUE  -3.8   -1.67 0.0308  0.312  0.176 no     </span></span>
-<span><span class="co">#&gt; 10 ENST00000330871.3       3.57 TRUE   1.5    1.63 0.363   1      0.555 no     </span></span>
-<span><span class="co">#&gt; # ℹ 101 more rows</span></span></code></pre></div>
+<span><span class="va">swish_results</span> <span class="op">&lt;-</span> <span class="fu">mcols</span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/rownames.html" class="external-link">rownames_to_column</a></span><span class="op">(</span><span class="st">"transcript_id"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">swish_results</span><span class="op">)</span></span>
+<span><span class="co">#&gt;        transcript_id log10mean  keep stat   log2FC    pvalue locfdr    qvalue</span></span>
+<span><span class="co">#&gt; 1 ENST00000367468.10  2.923578  TRUE 1.85 1.821603 0.3115385      1 0.5785714</span></span>
+<span><span class="co">#&gt; 2  ENST00000681605.1  2.553906 FALSE   NA       NA        NA     NA        NA</span></span>
+<span><span class="co">#&gt; 3  ENST00000680451.1  2.350137 FALSE   NA       NA        NA     NA        NA</span></span>
+<span><span class="co">#&gt; 4  ENST00000490885.6  2.225321 FALSE   NA       NA        NA     NA        NA</span></span>
+<span><span class="co">#&gt; 5  ENST00000559627.1  1.959647 FALSE   NA       NA        NA     NA        NA</span></span>
+<span><span class="co">#&gt; 6  ENST00000466691.1  1.607356 FALSE   NA       NA        NA     NA        NA</span></span></code></pre></div>
 </div>
-<p>Summarize Transcript SummarizedExperiment to Gene level.</p>
+<p>The results are attached to the object; <code>tximeta</code> objects can also be converted directly with <code>as_isoformic(se_tx, annot_path = annot_dir)</code>.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">se_gene</span> <span class="op">&lt;-</span> <span class="fu">tximeta</span><span class="fu">::</span><span class="fu">summarizeToGene</span><span class="op">(</span></span>
-<span>  <span class="va">se_tx</span>,</span>
-<span>  tx2gene <span class="op">=</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="fu"><a href="../reference/IsoformicExperiment.html">row_data</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span>, <span class="va">transcript_id</span>, <span class="va">gene_id</span><span class="op">)</span>,</span>
-<span>  skipRanges <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span>
-<span><span class="co">#&gt; summarizing abundance</span></span>
-<span><span class="co">#&gt; summarizing counts</span></span>
-<span><span class="co">#&gt; summarizing length</span></span>
-<span><span class="co">#&gt; summarizing inferential replicates</span></span></code></pre></div>
+<div class="sourceCode cell-code" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/dea.html">de_tx</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">swish_results</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="../reference/dea.html">de_tx</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 6 × 9</span></span>
+<span><span class="co">#&gt;   transcript_id     log10mean keep   stat log2FC pvalue locfdr qvalue det_sig</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;                 &lt;dbl&gt; &lt;lgl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;  </span></span>
+<span><span class="co">#&gt; 1 ENST00000263341.7      3.59 TRUE   3.25   6.63 0.0727  0.529  0.234 no     </span></span>
+<span><span class="co">#&gt; 2 ENST00000651122.1      2.72 TRUE   3.5    4.91 0.0562  0.455  0.234 no     </span></span>
+<span><span class="co">#&gt; 3 ENST00000306602.3      2.44 TRUE  -3.3   -3.75 0.0673  0.506  0.234 no     </span></span>
+<span><span class="co">#&gt; 4 ENST00000392322.7      2.61 TRUE   2.45   2.62 0.157   0.839  0.407 no     </span></span>
+<span><span class="co">#&gt; 5 ENST00000698141.1      2.45 TRUE   2      2.24 0.264   1      0.528 no     </span></span>
+<span><span class="co">#&gt; 6 ENST00000697958.1      2.52 TRUE  -3.65  -2.01 0.0423  0.388  0.234 no</span></span></code></pre></div>
 </div>
-<p>Perform Gene level Differential Expression with DESeq2.</p>
+</section><section class="level2"><h2 id="gene-level-differential-expression-with-deseq2">Gene-level differential expression with DESeq2<a class="anchor" aria-label="anchor" href="#gene-level-differential-expression-with-deseq2"></a>
+</h2>
+<p><code><a href="../reference/isoformic-conversion.html">as_summarized_experiment()</a></code> exports the gene-level assays (isoforms summed, lengths averaged by abundance) so that <code>DESeq2</code> can run on them.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">colData</a></span><span class="op">(</span><span class="va">se_gene</span><span class="op">)</span><span class="op">$</span><span class="va">condition</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">colData</a></span><span class="op">(</span><span class="va">se_gene</span><span class="op">)</span><span class="op">$</span><span class="va">condition</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"treatment"</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assays</a></span><span class="op">(</span><span class="va">se_gene</span><span class="op">)</span><span class="op">$</span><span class="va">counts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assays</a></span><span class="op">(</span><span class="va">se_gene</span><span class="op">)</span><span class="op">$</span><span class="va">counts</span><span class="op">)</span></span>
+<div class="sourceCode cell-code" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">se_gene</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/isoformic-conversion.html">as_summarized_experiment</a></span><span class="op">(</span><span class="va">iso</span>, level <span class="op">=</span> <span class="st">"gene"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">assay</a></span><span class="op">(</span><span class="va">se_gene</span>, <span class="st">"counts"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">assay</a></span><span class="op">(</span><span class="va">se_gene</span>, <span class="st">"counts"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">se_gene</span><span class="op">$</span><span class="va">condition</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">se_gene</span><span class="op">$</span><span class="va">condition</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"treatment"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">dds</span> <span class="op">&lt;-</span> <span class="fu">DESeq2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/DESeq2/man/DESeqDataSet.html" class="external-link">DESeqDataSet</a></span><span class="op">(</span><span class="va">se_gene</span>, design <span class="op">=</span> <span class="op">~</span><span class="va">condition</span><span class="op">)</span></span>
-<span><span class="co">#&gt; using counts and average transcript lengths from tximeta</span></span>
 <span><span class="va">dds</span> <span class="op">&lt;-</span> <span class="va">dds</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/pkg/MatrixGenerics/man/rowSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="fu">DESeq2</span><span class="fu">::</span><span class="fu">counts</span><span class="op">(</span><span class="va">dds</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="fl">10</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="fl">3</span>, <span class="op">]</span></span>
-<span><span class="va">dds</span> <span class="op">&lt;-</span> <span class="fu">DESeq2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/DESeq2/man/DESeq.html" class="external-link">DESeq</a></span><span class="op">(</span><span class="va">dds</span><span class="op">)</span></span>
-<span><span class="co">#&gt; estimating size factors</span></span>
-<span><span class="co">#&gt; using 'avgTxLength' from assays(dds), correcting for library size</span></span>
-<span><span class="co">#&gt; estimating dispersions</span></span>
-<span><span class="co">#&gt; gene-wise dispersion estimates</span></span>
-<span><span class="co">#&gt; mean-dispersion relationship</span></span>
-<span><span class="co">#&gt; final dispersion estimates</span></span>
-<span><span class="co">#&gt; fitting model and testing</span></span>
-<span></span>
+<span><span class="va">dds</span> <span class="op">&lt;-</span> <span class="fu">DESeq2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/DESeq2/man/DESeq.html" class="external-link">DESeq</a></span><span class="op">(</span><span class="va">dds</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu">DESeq2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/DESeq2/man/results.html" class="external-link">results</a></span><span class="op">(</span><span class="va">dds</span>, contrast <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"condition"</span>, <span class="st">"treatment"</span>, <span class="st">"control"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">shrink_type</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu">rlang</span><span class="fu">::</span><span class="fu"><a href="https://rlang.r-lib.org/reference/is_installed.html" class="external-link">is_installed</a></span><span class="op">(</span><span class="st">"apeglm"</span><span class="op">)</span><span class="op">)</span> <span class="st">"apeglm"</span> <span class="kw">else</span> <span class="st">"normal"</span></span>
+<span><span class="va">res_shr</span> <span class="op">&lt;-</span> <span class="fu">DESeq2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/DESeq2/man/lfcShrink.html" class="external-link">lfcShrink</a></span><span class="op">(</span><span class="va">dds</span>, coef <span class="op">=</span> <span class="st">"condition_treatment_vs_control"</span>, res <span class="op">=</span> <span class="va">res</span>, type <span class="op">=</span> <span class="va">shrink_type</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># shrink for stability on small example</span></span>
-<span><span class="kw">if</span> <span class="op">(</span><span class="fu">rlang</span><span class="fu">::</span><span class="fu"><a href="https://rlang.r-lib.org/reference/is_installed.html" class="external-link">is_installed</a></span><span class="op">(</span><span class="st">"apeglm"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"apeglm is installed"</span><span class="op">)</span></span>
-<span>  <span class="va">shrink_type</span> <span class="op">&lt;-</span> <span class="st">"apeglm"</span></span>
-<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"apeglm is NOT installed"</span><span class="op">)</span></span>
-<span>  <span class="va">shrink_type</span> <span class="op">&lt;-</span> <span class="st">"normal"</span></span>
-<span><span class="op">}</span></span>
-<span><span class="co">#&gt; apeglm is installed</span></span>
-<span></span>
-<span><span class="va">res_shr</span> <span class="op">&lt;-</span> <span class="fu">DESeq2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/DESeq2/man/lfcShrink.html" class="external-link">lfcShrink</a></span><span class="op">(</span></span>
-<span>  <span class="va">dds</span>,</span>
-<span>  coef <span class="op">=</span> <span class="st">"condition_treatment_vs_control"</span>,</span>
-<span>  res <span class="op">=</span> <span class="va">res</span>,</span>
-<span>  type <span class="op">=</span> <span class="va">shrink_type</span></span>
-<span><span class="op">)</span></span>
-<span><span class="co">#&gt; using 'apeglm' for LFC shrinkage. If used in published research, please cite:</span></span>
-<span><span class="co">#&gt;     Zhu, A., Ibrahim, J.G., Love, M.I. (2018) Heavy-tailed prior distributions for</span></span>
-<span><span class="co">#&gt;     sequence count data: removing the noise and preserving large differences.</span></span>
-<span><span class="co">#&gt;     Bioinformatics. https://doi.org/10.1093/bioinformatics/bty895</span></span>
-<span></span>
-<span><span class="co"># res</span></span>
-<span><span class="co"># res_shr</span></span>
-<span><span class="va">dea_gene_res</span> <span class="op">&lt;-</span> <span class="fu">base</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">res_shr</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/rownames.html" class="external-link">rownames_to_column</a></span><span class="op">(</span><span class="st">"gene_id"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/as_tibble.html" class="external-link">as_tibble</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html" class="external-link">rename</a></span><span class="op">(</span></span>
-<span>    log2FC <span class="op">=</span> <span class="va">log2FoldChange</span>,</span>
-<span>    pvalue <span class="op">=</span> <span class="va">pvalue</span>,</span>
-<span>    qvalue <span class="op">=</span> <span class="va">padj</span></span>
-<span>  <span class="op">)</span></span>
-<span></span>
-<span></span>
-<span><span class="va">iso</span><span class="op">@</span><span class="va">dea</span><span class="op">$</span><span class="va">deg</span> <span class="op">&lt;-</span> <span class="va">dea_gene_res</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/IsoformicExperiment.html">de_gene</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span></span>
-<span><span class="co">#&gt; # A tibble: 12 × 7</span></span>
-<span><span class="co">#&gt;    gene_id            baseMean       log2FC   lfcSE    pvalue   qvalue deg_sig</span></span>
-<span><span class="co">#&gt;    &lt;chr&gt;                 &lt;dbl&gt;        &lt;dbl&gt;   &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt; &lt;chr&gt;  </span></span>
-<span><span class="co">#&gt;  1 ENSG00000125538.12   107.    3.09        1.47     0.000633  0.00570 yes    </span></span>
-<span><span class="co">#&gt;  2 ENSG00000115415.22   464.    0.00000215  0.00144  0.432     0.668   no     </span></span>
-<span><span class="co">#&gt;  3 ENSG00000271503.7  21812.   -0.00000141  0.00144  0.330     0.668   no     </span></span>
-<span><span class="co">#&gt;  4 ENSG00000100906.13  1298.   -0.00000139  0.00144  0.393     0.668   no     </span></span>
-<span><span class="co">#&gt;  5 ENSG00000169429.13 25857.   -0.000000744 0.00144 NA        NA       no     </span></span>
-<span><span class="co">#&gt;  6 ENSG00000184557.5    254.    0.000000697 0.00144  0.680     0.765   no     </span></span>
-<span><span class="co">#&gt;  7 ENSG00000169245.6     23.3  -0.000000495 0.00144  0.138     0.620   no     </span></span>
-<span><span class="co">#&gt;  8 ENSG00000073756.13    63.7   0.000000483 0.00144  0.561     0.722   no     </span></span>
-<span><span class="co">#&gt;  9 ENSG00000090339.10   188.   -0.000000378 0.00144  0.822     0.822   no     </span></span>
-<span><span class="co">#&gt; 10 ENSG00000136244.13     6.34 -0.000000337 0.00144  0.445     0.668   no     </span></span>
-<span><span class="co">#&gt; 11 ENSG00000108691.10    46.5   0.000000294 0.00144 NA        NA       no     </span></span>
-<span><span class="co">#&gt; 12 ENSG00000274233.4    908.    0.000000130 0.00144 NA        NA       no</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/dea.html">de_gene</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">res_shr</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="../reference/dea.html">de_gene</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 6 × 7</span></span>
+<span><span class="co">#&gt;   gene_id            baseMean       log2FC   lfcSE   pvalue  qvalue deg_sig</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;                 &lt;dbl&gt;        &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;  </span></span>
+<span><span class="co">#&gt; 1 ENSG00000125538.12    140.   3.94        1.55    0.000218 0.00196 yes    </span></span>
+<span><span class="co">#&gt; 2 ENSG00000115415.22    435.   0.00000191  0.00144 0.452    0.614   no     </span></span>
+<span><span class="co">#&gt; 3 ENSG00000100906.13   1212.  -0.00000132  0.00144 0.362    0.614   no     </span></span>
+<span><span class="co">#&gt; 4 ENSG00000271503.7   20364.  -0.000000869 0.00144 0.477    0.614   no     </span></span>
+<span><span class="co">#&gt; 5 ENSG00000184557.5     241.   0.000000810 0.00144 0.586    0.659   no     </span></span>
+<span><span class="co">#&gt; 6 ENSG00000073756.13     63.9  0.000000600 0.00144 0.438    0.614   no</span></span>
+<span><span class="va">iso</span></span>
+<span><span class="co">#&gt; &lt;IsoformicExperiment&gt; mini_placenta</span></span>
+<span><span class="co">#&gt;   annotation : gencode_v49_mini_subset (15 genes, 111 transcripts, 1,071 exons)</span></span>
+<span><span class="co">#&gt;   samples    : 6 [condition]</span></span>
+<span><span class="co">#&gt;   transcripts: 111 assayed from 15 genes</span></span>
+<span><span class="co">#&gt;   assays     : abundance, counts, length</span></span>
+<span><span class="co">#&gt;   gene assays: derived from transcript assays on demand</span></span>
+<span><span class="co">#&gt;   DE results : det (111 transcripts), deg (12 genes)</span></span></code></pre></div>
 </div>
-<p>Plot examples.</p>
+</section><section class="level2"><h2 id="looking-at-the-results">Looking at the results<a class="anchor" aria-label="anchor" href="#looking-at-the-results"></a>
+</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">top_de_gene</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/IsoformicExperiment.html">de_gene</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<div class="sourceCode cell-code" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">top_gene</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dea.html">de_gene</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">qvalue</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/slice.html" class="external-link">slice_head</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/pull.html" class="external-link">pull</a></span><span class="op">(</span><span class="va">gene_id</span><span class="op">)</span></span>
+<span><span class="va">gene_name</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">gene_data</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">$</span><span class="va">gene_name</span><span class="op">[</span><span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">gene_data</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">$</span><span class="va">gene_id</span> <span class="op">==</span> <span class="va">top_gene</span><span class="op">]</span></span>
+<span><span class="va">gene_name</span></span>
+<span><span class="co">#&gt; [1] "IL1B"</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/plot_log2FC.html">plot_log2fc</a></span><span class="op">(</span></span>
-<span>  <span class="va">iso</span>,</span>
-<span>  feature <span class="op">=</span> <span class="va">top_de_gene</span>,</span>
-<span>  feature_column <span class="op">=</span> <span class="st">"gene_id"</span></span>
-<span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: Removed 7 rows containing missing values or values outside the scale range</span></span>
-<span><span class="co">#&gt; (`geom_bar()`).</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/plot_log2fc.html">plot_log2fc</a></span><span class="op">(</span><span class="va">iso</span>, feature <span class="op">=</span> <span class="va">gene_name</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
-<figure><p><img src="isoformic-preprocess_files/figure-html/unnamed-chunk-10-1.png" width="672"></p>
+<figure><p><img src="isoformic-preprocess_files/figure-html/unnamed-chunk-8-1.png" width="768"></p>
 </figure>
 </div>
 </div>
+<div class="sourceCode cell-code" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/profiles.html">plot_tx_expr</a></span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="va">gene_name</span>, group <span class="op">=</span> <span class="st">"condition"</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div>
+<figure><p><img src="isoformic-preprocess_files/figure-html/unnamed-chunk-8-2.png" width="768"></p>
+</figure>
 </div>
-<p>By gene name</p>
-<div class="cell">
+</div>
+<div class="sourceCode cell-code" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_genomic_context.html">plot_genomic_context</a></span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="va">gene_name</span><span class="op">)</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span></code></pre></div>
+<div class="cell-output-display">
+<div>
+<figure><p><img src="isoformic-preprocess_files/figure-html/unnamed-chunk-8-3.png" width="768"></p>
+</figure>
+</div>
+</div>
 <div class="sourceCode cell-code" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">gene_to_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/IsoformicExperiment.html">row_data</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">gene_id</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">top_de_gene</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/slice.html" class="external-link">slice_head</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/pull.html" class="external-link">pull</a></span><span class="op">(</span><span class="va">gene_name</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/plot_log2FC.html">plot_log2fc</a></span><span class="op">(</span></span>
-<span>  <span class="va">iso</span>,</span>
-<span>  feature <span class="op">=</span> <span class="va">gene_to_plot</span>,</span>
-<span>  feature_column <span class="op">=</span> <span class="st">"gene_name"</span></span>
-<span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: Removed 7 rows containing missing values or values outside the scale range</span></span>
-<span><span class="co">#&gt; (`geom_bar()`).</span></span></code></pre></div>
-<div class="cell-output-display">
-<div>
-<figure><p><img src="isoformic-preprocess_files/figure-html/unnamed-chunk-11-1.png" width="672"></p>
-</figure>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/diversity.html">isoform_switches</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 0 × 12</span></span>
+<span><span class="co">#&gt; # ℹ 12 variables: gene_id &lt;chr&gt;, gene_name &lt;chr&gt;, gene_type &lt;chr&gt;,</span></span>
+<span><span class="co">#&gt; #   n_tx_tested &lt;int&gt;, n_det_sig &lt;int&gt;, n_det_up &lt;int&gt;, n_det_down &lt;int&gt;,</span></span>
+<span><span class="co">#&gt; #   det_sig_types &lt;chr&gt;, max_abs_log2FC &lt;dbl&gt;, gene_log2FC &lt;dbl&gt;,</span></span>
+<span><span class="co">#&gt; #   deg_sig &lt;chr&gt;, switch_type &lt;chr&gt;</span></span></code></pre></div>
 </div>
-</div>
-</div>
-<p>Top DE transcripts</p>
+</section><section class="level2"><h2 id="saving">Saving<a class="anchor" aria-label="anchor" href="#saving"></a>
+</h2>
+<p>The object, with both result tables, is written as a directory of Parquet files and restored with <code><a href="../reference/isoformic-io.html">read_isoformic()</a></code>.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/IsoformicExperiment.html">row_data</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">gene_name</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="st">"MTG2"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; # A tibble: 0 × 6</span></span>
-<span><span class="co">#&gt; # ℹ 6 variables: transcript_id &lt;chr&gt;, transcript_name &lt;chr&gt;,</span></span>
-<span><span class="co">#&gt; #   transcript_type &lt;chr&gt;, gene_id &lt;chr&gt;, gene_name &lt;chr&gt;, gene_type &lt;chr&gt;</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/plot_log2FC.html">plot_log2fc</a></span><span class="op">(</span></span>
-<span>  <span class="va">iso</span>,</span>
-<span>  feature <span class="op">=</span> <span class="st">"MTG2"</span>,</span>
-<span>  feature_column <span class="op">=</span> <span class="st">"gene_name"</span></span>
-<span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: No shared levels found between `names(values)` of the manual scale and the</span></span>
-<span><span class="co">#&gt; data's fill values.</span></span></code></pre></div>
-<div class="cell-output-display">
-<div>
-<figure><p><img src="isoformic-preprocess_files/figure-html/unnamed-chunk-12-1.png" width="672"></p>
-</figure>
+<code class="sourceCode R"><span><span class="va">out_dir</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"mini_placenta"</span><span class="op">)</span></span>
+<span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/isoformic-io.html">write_isoformic</a></span><span class="op">(</span><span class="va">iso</span>, <span class="va">out_dir</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="va">iso</span><span class="op">@</span><span class="va">data_path</span></span>
+<span><span class="co">#&gt; [1] "/tmp/RtmphiuWoR/mini_placenta"</span></span>
+<span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/dir_ls.html" class="external-link">dir_ls</a></span><span class="op">(</span><span class="va">out_dir</span><span class="op">)</span></span>
+<span><span class="co">#&gt; /tmp/RtmphiuWoR/mini_placenta/assays</span></span>
+<span><span class="co">#&gt; /tmp/RtmphiuWoR/mini_placenta/col_data.parquet</span></span>
+<span><span class="co">#&gt; /tmp/RtmphiuWoR/mini_placenta/dea</span></span>
+<span><span class="co">#&gt; /tmp/RtmphiuWoR/mini_placenta/experiment.parquet</span></span>
+<span><span class="co">#&gt; /tmp/RtmphiuWoR/mini_placenta/tx_type_palette.parquet</span></span></code></pre></div>
 </div>
+</section><section class="level2"><h2 id="long-reads-with-oarfish">Long reads with Oarfish<a class="anchor" aria-label="anchor" href="#long-reads-with-oarfish"></a>
+</h2>
+<p>Oxford Nanopore and PacBio reads are quantified with Oarfish, which writes bootstrap replicates and a table of unique and shared reads next to the counts. <code><a href="../reference/read_oarfish.html">read_oarfish()</a></code> reads them like <code><a href="../reference/read_salmon.html">read_salmon()</a></code> and the uncertainty functions of the <a href="isoformic-uncertainty.html">uncertainty article</a> work on them unchanged. The three samples below are simulated nanopore reads of the RBPJ transcripts, quantified with Oarfish 0.10.3 and 30 bootstrap replicates (<code>data-raw/oarfish/</code>), so they only show the file layout and the functions, not a real library.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">oarfish_dir</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"oarfish"</span><span class="op">)</span></span>
+<span><span class="va">prefixes</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">oarfish_dir</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control_1"</span>, <span class="st">"control_2"</span>, <span class="st">"treated_1"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">prefixes</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_file.html" class="external-link">path_file</a></span><span class="op">(</span><span class="va">prefixes</span><span class="op">)</span></span>
+<span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/dir_ls.html" class="external-link">dir_ls</a></span><span class="op">(</span><span class="va">oarfish_dir</span>, regexp <span class="op">=</span> <span class="st">"treated_1"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; /home/runner/work/_temp/Library/isoformic/extdata/oarfish/treated_1.ambig_info.tsv</span></span>
+<span><span class="co">#&gt; /home/runner/work/_temp/Library/isoformic/extdata/oarfish/treated_1.infreps.pq</span></span>
+<span><span class="co">#&gt; /home/runner/work/_temp/Library/isoformic/extdata/oarfish/treated_1.meta_info.json</span></span>
+<span><span class="co">#&gt; /home/runner/work/_temp/Library/isoformic/extdata/oarfish/treated_1.quant</span></span>
+<span></span>
+<span><span class="va">iso_long</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_oarfish.html">read_oarfish</a></span><span class="op">(</span></span>
+<span>  <span class="va">prefixes</span>,</span>
+<span>  annot_path <span class="op">=</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"example_experiment"</span>, <span class="st">"annotation"</span><span class="op">)</span>,</span>
+<span>  inferential <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="va">iso_long</span></span>
+<span><span class="co">#&gt; &lt;IsoformicExperiment&gt; isoformic_b5ab31fd12</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt;   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)</span></span>
+<span><span class="co">#&gt;   samples    : 3 [oarfish_num_processed, oarfish_num_mapped, oarfish_percent_mapped, oarfish_replicate_type, oarfish_num_replicates, oarfish_optimiser, oarfish_alignment_source, oarfish_prob_model, oarfish_qc_flag]</span></span>
+<span><span class="co">#&gt;   transcripts: 72 assayed from 3 genes</span></span>
+<span><span class="co">#&gt;   assays     : abundance, counts, length</span></span>
+<span><span class="co">#&gt;   gene assays: derived from transcript assays on demand</span></span>
+<span><span class="co">#&gt;   DE results : &lt;none&gt;</span></span>
+<span><span class="fu"><a href="../reference/uncertainty.html">tx_uncertainty</a></span><span class="op">(</span><span class="va">iso_long</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/desc.html" class="external-link">desc</a></span><span class="op">(</span><span class="va">mean_inf_rv</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">transcript_name</span>, <span class="va">mean_count</span>, <span class="va">mean_inf_rv</span>, <span class="va">unique_fraction</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fl">6</span><span class="op">)</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; # A tibble: 6 × 4</span></span>
+<span><span class="co">#&gt;   transcript_name mean_count mean_inf_rv unique_fraction</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;                &lt;dbl&gt;       &lt;dbl&gt;           &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt; 1 PNCK-201             46.6         2.17         0      </span></span>
+<span><span class="co">#&gt; 2 PNCK-230             18.1         1.83         0.0455 </span></span>
+<span><span class="co">#&gt; 3 PNCK-203             41.9         1.76         0.00234</span></span>
+<span><span class="co">#&gt; 4 PNCK-220              9.35        1.76         0      </span></span>
+<span><span class="co">#&gt; 5 PNCK-223              2.49        1.69         0      </span></span>
+<span><span class="co">#&gt; 6 RBPJ-205             56.2         1.64         0</span></span></code></pre></div>
+</div>
+<p>The Oarfish output has no TPM, so the <code>abundance</code> assay is computed from the read counts and the transcript lengths. <code>unique_fraction</code> comes from the unique and shared read counts of <code>.ambig_info.tsv</code>; Oarfish has no equivalence classes, so <code>n_classes</code> is not available. Samples quantified by Oarfish and by Salmon cannot be read together.</p>
+<p>In single-cell mode (<code>--single-cell</code>, on a transcriptome-aligned BAM whose reads carry their cell barcode in the <code>CB:Z</code> tag) Oarfish writes a cell by transcript count matrix and no replicates. <code><a href="../reference/read_oarfish_sc_counts.html">read_oarfish_sc()</a></code> sums the cells of each sample, given a table of barcodes and samples, so the isoform analyses apply to samples or to cell types (give each combination of sample and cell type its own <code>sample_id</code>). The example has 60 simulated cells in three samples:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sc_dir</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"oarfish_sc"</span><span class="op">)</span></span>
+<span><span class="va">cells</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.delim</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">sc_dir</span>, <span class="st">"cells.tsv"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">cells</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;            barcode sample_id</span></span>
+<span><span class="co">#&gt; 1 CGGCGCGAACCACCTC control_1</span></span>
+<span><span class="co">#&gt; 2 GTCTAGCTCGACCATC control_1</span></span>
+<span><span class="co">#&gt; 3 GAAAACTGGCGGAAAG control_1</span></span>
+<span><span class="va">iso_sc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_oarfish_sc_counts.html">read_oarfish_sc</a></span><span class="op">(</span></span>
+<span>  <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">sc_dir</span>, <span class="st">"out"</span><span class="op">)</span>,</span>
+<span>  cells <span class="op">=</span> <span class="va">cells</span>,</span>
+<span>  annot_path <span class="op">=</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"example_experiment"</span>, <span class="st">"annotation"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; ℹ /tmp/RtmphiuWoR/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; • Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; • Secrets are lost.</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; ℹ See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">col_data</a></span><span class="op">(</span><span class="va">iso_sc</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 3 × 3</span></span>
+<span><span class="co">#&gt;   sample_id n_cells n_reads</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;       &lt;int&gt;   &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt; 1 control_1      20   3000.</span></span>
+<span><span class="co">#&gt; 2 control_2      20   3000.</span></span>
+<span><span class="co">#&gt; 3 treated_1      20   3000.</span></span></code></pre></div>
+</div>
+</section><section class="level2"><h2 id="next-steps">Next steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
+</h2>
+<p>From here the object is analysed like the one of the introduction: <a href="isoformic-diversity.html">transcriptomic diversity</a>, <a href="isoformic-productivity.html">isoform structure and productivity</a>, <a href="isoformic-polyadenylation.html">alternative polyadenylation</a>, <a href="isoformic-enrichment.html">enrichment by transcript type</a> and <a href="isoformic-plots.html">plots</a>. The inferential replicates imported above can be stored in <code>metadata(iso)$inf_reps</code> so that <code><a href="../reference/productivity.html">productive_fraction()</a></code> reports the uncertainty of each fraction.</p>
+</section><section class="level2"><h2 id="session-information">Session information<a class="anchor" aria-label="anchor" href="#session-information"></a>
+</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; R version 4.6.2 (2026-10-29)</span></span>
+<span><span class="co">#&gt; Platform: x86_64-pc-linux-gnu</span></span>
+<span><span class="co">#&gt; Running under: Ubuntu 24.04.5 LTS</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Matrix products: default</span></span>
+<span><span class="co">#&gt; BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 </span></span>
+<span><span class="co">#&gt; LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so;  LAPACK version 3.12.0</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; locale:</span></span>
+<span><span class="co">#&gt;  [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       </span></span>
+<span><span class="co">#&gt;  [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   </span></span>
+<span><span class="co">#&gt;  [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          </span></span>
+<span><span class="co">#&gt; [10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; time zone: UTC</span></span>
+<span><span class="co">#&gt; tzcode source: system (glibc)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; attached base packages:</span></span>
+<span><span class="co">#&gt; [1] stats4    stats     graphics  grDevices utils     datasets  methods  </span></span>
+<span><span class="co">#&gt; [8] base     </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; other attached packages:</span></span>
+<span><span class="co">#&gt;  [1] fishpond_2.18.0             SummarizedExperiment_1.42.0</span></span>
+<span><span class="co">#&gt;  [3] Biobase_2.72.0              GenomicRanges_1.64.0       </span></span>
+<span><span class="co">#&gt;  [5] Seqinfo_1.2.0               IRanges_2.46.0             </span></span>
+<span><span class="co">#&gt;  [7] S4Vectors_0.50.3            BiocGenerics_0.58.1        </span></span>
+<span><span class="co">#&gt;  [9] generics_0.1.4              MatrixGenerics_1.24.0      </span></span>
+<span><span class="co">#&gt; [11] matrixStats_1.5.0           isoformic_0.1.2.9022       </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
+<span><span class="co">#&gt;   [1] DBI_1.3.0                   bitops_1.1-0               </span></span>
+<span><span class="co">#&gt;   [3] httr2_1.3.0                 biomaRt_2.68.0             </span></span>
+<span><span class="co">#&gt;   [5] rlang_1.3.0                 magrittr_2.0.5             </span></span>
+<span><span class="co">#&gt;   [7] otel_0.2.0                  compiler_4.6.2             </span></span>
+<span><span class="co">#&gt;   [9] RSQLite_3.53.3              GenomicFeatures_1.64.0     </span></span>
+<span><span class="co">#&gt;  [11] reshape2_1.4.5              png_0.1-9                  </span></span>
+<span><span class="co">#&gt;  [13] vctrs_0.7.3                 txdbmaker_1.8.0            </span></span>
+<span><span class="co">#&gt;  [15] stringr_1.6.0               ProtGenerics_1.44.0        </span></span>
+<span><span class="co">#&gt;  [17] pkgconfig_2.0.3             crayon_1.5.3               </span></span>
+<span><span class="co">#&gt;  [19] fastmap_1.2.0               dbplyr_2.6.0               </span></span>
+<span><span class="co">#&gt;  [21] XVector_0.52.0              labeling_0.4.3             </span></span>
+<span><span class="co">#&gt;  [23] utf8_1.2.6                  Rsamtools_2.28.0           </span></span>
+<span><span class="co">#&gt;  [25] rmarkdown_2.32              UCSC.utils_1.8.0           </span></span>
+<span><span class="co">#&gt;  [27] bit_4.6.0                   xfun_0.62                  </span></span>
+<span><span class="co">#&gt;  [29] cachem_1.1.0                cigarillo_1.2.1            </span></span>
+<span><span class="co">#&gt;  [31] GenomeInfoDb_1.48.0         jsonlite_2.0.0             </span></span>
+<span><span class="co">#&gt;  [33] progress_1.2.3              blob_1.3.0                 </span></span>
+<span><span class="co">#&gt;  [35] DelayedArray_0.38.2         BiocParallel_1.46.0        </span></span>
+<span><span class="co">#&gt;  [37] parallel_4.6.2              prettyunits_1.2.0          </span></span>
+<span><span class="co">#&gt;  [39] R6_2.6.1                    RColorBrewer_1.1-3         </span></span>
+<span><span class="co">#&gt;  [41] stringi_1.8.9               rtracklayer_1.72.0         </span></span>
+<span><span class="co">#&gt;  [43] numDeriv_2016.8-1.1         Rcpp_1.1.2                 </span></span>
+<span><span class="co">#&gt;  [45] knitr_1.52                  splines_4.6.2              </span></span>
+<span><span class="co">#&gt;  [47] Matrix_1.7-6                tidyselect_1.2.1           </span></span>
+<span><span class="co">#&gt;  [49] qvalue_2.44.0               abind_1.4-8                </span></span>
+<span><span class="co">#&gt;  [51] yaml_2.3.12                 codetools_0.2-20           </span></span>
+<span><span class="co">#&gt;  [53] svMisc_1.4.3                curl_8.1.0                 </span></span>
+<span><span class="co">#&gt;  [55] plyr_1.8.9                  lattice_0.23-1             </span></span>
+<span><span class="co">#&gt;  [57] tibble_3.3.1                withr_3.0.3                </span></span>
+<span><span class="co">#&gt;  [59] KEGGREST_1.52.2             S7_0.2.2                   </span></span>
+<span><span class="co">#&gt;  [61] coda_0.19-4.1               evaluate_1.0.5             </span></span>
+<span><span class="co">#&gt;  [63] BiocFileCache_3.2.0         Biostrings_2.80.2          </span></span>
+<span><span class="co">#&gt;  [65] pillar_1.11.1               BiocManager_1.30.27        </span></span>
+<span><span class="co">#&gt;  [67] filelock_1.0.3              RCurl_1.98-1.20            </span></span>
+<span><span class="co">#&gt;  [69] emdbook_1.3.14              BiocVersion_3.23.1         </span></span>
+<span><span class="co">#&gt;  [71] ensembldb_2.36.1            hms_1.1.4                  </span></span>
+<span><span class="co">#&gt;  [73] ggplot2_4.0.3               scales_1.4.0               </span></span>
+<span><span class="co">#&gt;  [75] gtools_3.9.5                glue_1.8.1                 </span></span>
+<span><span class="co">#&gt;  [77] lazyeval_0.2.3              apeglm_1.34.0              </span></span>
+<span><span class="co">#&gt;  [79] tools_4.6.2                 AnnotationHub_4.2.2        </span></span>
+<span><span class="co">#&gt;  [81] BiocIO_1.22.0               tximeta_1.30.1             </span></span>
+<span><span class="co">#&gt;  [83] locfit_1.5-9.12             GenomicAlignments_1.48.0   </span></span>
+<span><span class="co">#&gt;  [85] mvtnorm_1.4-2               fs_2.1.0                   </span></span>
+<span><span class="co">#&gt;  [87] XML_3.99-0.25               grid_4.6.2                 </span></span>
+<span><span class="co">#&gt;  [89] bbmle_1.0.26                bdsmatrix_1.3-7            </span></span>
+<span><span class="co">#&gt;  [91] AnnotationDbi_1.74.0        SingleCellExperiment_1.34.0</span></span>
+<span><span class="co">#&gt;  [93] duckdb_2.0.0                restfulr_0.0.17            </span></span>
+<span><span class="co">#&gt;  [95] cli_3.6.6                   rappdirs_0.3.4             </span></span>
+<span><span class="co">#&gt;  [97] S4Arrays_1.12.1             dplyr_1.2.1                </span></span>
+<span><span class="co">#&gt;  [99] AnnotationFilter_1.36.0     gtable_0.3.6               </span></span>
+<span><span class="co">#&gt; [101] DESeq2_1.52.0               digest_0.6.39              </span></span>
+<span><span class="co">#&gt; [103] ggrepel_0.9.8               SparseArray_1.12.3         </span></span>
+<span><span class="co">#&gt; [105] tximport_1.40.0             farver_2.1.2               </span></span>
+<span><span class="co">#&gt; [107] rjson_0.2.23                memoise_2.0.1              </span></span>
+<span><span class="co">#&gt; [109] htmltools_0.5.9             lifecycle_1.0.5            </span></span>
+<span><span class="co">#&gt; [111] httr_1.4.9                  MASS_7.3-66                </span></span>
+<span><span class="co">#&gt; [113] bit64_4.8.6</span></span></code></pre></div>
+</div>
+</section><section class="level2 unnumbered"><h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+</h2>
+<div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-salmon" class="csl-entry" role="listitem">
+Patro, R, G Duggal, MI Love, RA Irizarry, and C Kingsford. 2017. <span>“Salmon Provides Fast and Bias-Aware Quantification of Transcript Expression.”</span> <em>Nature Methods</em> 14: 417–19. <a href="https://doi.org/10.1038/nmeth.4197" class="external-link">https://doi.org/10.1038/nmeth.4197</a>.
+</div>
+<div id="ref-swish" class="csl-entry" role="listitem">
+Zhu, A, A Srivastava, JG Ibrahim, R Patro, and MI Love. 2019. <span>“<span class="nocase">Nonparametric expression analysis using inferential replicate counts</span>.”</span> <em>Nucleic Acids Research</em> 47: e105. <a href="https://doi.org/10.1093/nar/gkz622" class="external-link">https://doi.org/10.1093/nar/gkz622</a>.
 </div>
 </div>
 </section><script id="quarto-html-after-body" type="application/javascript">
@@ -490,7 +853,8 @@
           return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
       }
       // Inspect non-navigation links and adorn them if external
-     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      window.quartoDecorateExternalLinks = function (root) {
+     var links = (root || window.document).querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
       for (var i=0; i<links.length; i++) {
         const link = links[i];
         if (!isInternal(link.href)) {
@@ -499,8 +863,69 @@
           if (link.dataset.originalHref !== undefined) {
             link.href = link.dataset.originalHref;
           }
+          if (!link.classList.contains('no-external-icon')) {
+          }
         }
       }
+      };
+      window.quartoDecorateExternalLinks(window.document);
+    // Esc closes the popup (WCAG 1.4.13) and focus leaving both trigger and
+    // popup closes it (WCAG 2.4.11); tippy handles neither for interactive popups.
+    const hideOnEscAndFocusOut = {
+      name: 'hideOnEscAndFocusOut',
+      defaultValue: true,
+      fn(instance) {
+        const dismiss = () => {
+          // A show scheduled by the trigger delay would otherwise reopen it
+          instance.clearDelayTimeouts();
+          instance.hide();
+        };
+        const onKeyDown = (event) => {
+          if (event.key !== 'Escape') {
+            return;
+          }
+          // Keep Esc from also reaching page handlers (e.g. reveal.js overview),
+          // except an open reveal.js slide menu, which Esc should close too.
+          // The menu handles keys only when its keyboard option is on.
+          const menuHandlesEsc = window.Reveal?.getPlugin?.('menu')?.isOpen() &&
+            window.Reveal.getConfig().menu?.keyboard !== false;
+          if (!menuHandlesEsc) {
+            event.stopPropagation();
+          }
+          if (instance.popper.contains(window.document.activeElement)) {
+            // Disabled while refocusing so the focus trigger does not reopen it
+            instance.disable();
+            instance.reference.focus();
+            instance.enable();
+          }
+          dismiss();
+        };
+        const onFocusOut = (event) => {
+          const target = event.relatedTarget;
+          if (target && !instance.reference.contains(target) &&
+              !instance.popper.contains(target)) {
+            dismiss();
+          }
+        };
+        // On the trigger too: a click trigger (code-annotations: select) has no
+        // blur handling. Attached for the instance's lifetime so leaving the
+        // trigger also cancels a show still pending on the trigger delay.
+        instance.reference.addEventListener('focusout', onFocusOut);
+        return {
+          onShow() {
+            window.document.addEventListener('keydown', onKeyDown, true);
+            instance.popper.addEventListener('focusout', onFocusOut);
+          },
+          onHide() {
+            window.document.removeEventListener('keydown', onKeyDown, true);
+            instance.popper.removeEventListener('focusout', onFocusOut);
+          },
+          onDestroy() {
+            instance.reference.removeEventListener('focusout', onFocusOut);
+          },
+        };
+      },
+    };
     function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
       const config = {
         allowHTML: true,
@@ -514,6 +939,7 @@
         interactiveBorder: 10,
         theme: 'light-border',
         placement: 'bottom-start',
+        plugins: [hideOnEscAndFocusOut],
       };
       if (contentFn) {
         config.content = contentFn;
@@ -570,11 +996,11 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Lucio Rezende Queiroz, Lucio Rezende Queiroz, Izabela Mamede Conceicao, Carlos Mata-Machado, Luigi Marchionni, Gloria Franco.</p>
+  <p>Developed by Lucio Rezende Queiroz, Izabela Mamede Conceicao, Carlos Mata-Machado, Luigi Marchionni, Gloria Franco.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

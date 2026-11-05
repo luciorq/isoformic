@@ -1,75 +1,125 @@
-# Plot Transcripts Genomic Context
+# Plot the Genomic Context of a Gene's Isoforms
 
-Generate a genomic context plot for a specified gene, displaying its
-transcripts along with their types and annotations. The function
-utilizes the `plotgardener` package to create a detailed visualization
-of the genomic context, including an ideogram, chromosome highlight, and
-transcript structures. It requires a `ContextData` object that contains
-the necessary genomic information and annotations. The plot can be
-customized with various parameters such as offsets, label limits, and
-ideogram references.
+Draws the exon-intron structure of every annotated transcript of one or
+more genes along the genome, one row per transcript, coloured by
+transcript type, with introns as lines carrying strand arrows. This is a
+pure `ggplot2` implementation reading the exon table of the annotation
+directory, so it needs no genome packages. The
+[IsoformicExperiment](https://luciorq.github.io/isoformic/reference/IsoformicExperiment.md)
+method can annotate each transcript with its mean expression and
+highlight differentially expressed isoforms.
+
+The data frame method takes an exon table as returned by
+[`exon_table()`](https://luciorq.github.io/isoformic/reference/IsoformicExperiment-accessors.md)
+or
+[`prepare_exon_annotation()`](https://luciorq.github.io/isoformic/reference/prepare_exon_annotation.md)
+(columns `transcript_id`, `start_pos`, `end_pos`, and optionally
+`transcript_name`, `transcript_type`, `gene_name`, `seqid`, `strand`).
+`plot_tx_context()` is kept as an alias of that method accepting the
+legacy column names `tx_id`, `exon_left` and `exon_right`.
 
 ## Usage
 
 ``` r
 plot_genomic_context(
-  gene_name,
-  context_data,
-  limit_label = TRUE,
-  show_guides = FALSE,
-  y_offset = 0,
-  height_offset = 0,
-  downstream_offset = 0,
+  self,
+  gene_name = NULL,
+  assay = "abundance",
+  highlight_de = TRUE,
+  color_palette = NULL,
+  expression = NULL,
+  highlight = NULL,
+  highlight_poison_exons = TRUE,
   upstream_offset = 0,
-  ideogram_reference = c("hg38", "hg19", "mm11", "mm10", "none")
+  downstream_offset = 0,
+  exon_height = 0.6,
+  ncol = 1L,
+  ...
 )
+
+plot_tx_context(exon_table, ...)
 ```
 
 ## Arguments
 
+- self:
+
+  An
+  [IsoformicExperiment](https://luciorq.github.io/isoformic/reference/IsoformicExperiment.md)
+  or an exon table.
+
 - gene_name:
 
-  Character string specifying the name of the gene to plot.
+  Character vector of gene names or IDs.
 
-- context_data:
+- assay:
 
-  A `ContextData` object containing genomic context information.
+  Name of the assay used to label transcripts with their mean
+  expression; `NULL` disables the labels.
 
-- limit_label:
+- highlight_de:
 
-  Logical indicating whether to limit the length of transcript labels to
-  avoid overlap (default is `TRUE`).
+  Logical, outline isoforms flagged as significant in the stored
+  transcript-level results.
 
-- show_guides:
+- color_palette:
 
-  Logical indicating whether to show guide lines on the plot (default is
-  `FALSE`).
+  Named colour vector per transcript type; defaults to the object's
+  palette or
+  [`tx_type_palette()`](https://luciorq.github.io/isoformic/reference/tx_type_palette.md).
 
-- y_offset:
+- expression:
 
-  Numeric value to adjust the vertical position of the plot (default is
-  `0`).
+  Optional named numeric vector (by transcript ID) used to label
+  transcripts (data frame method).
 
-- height_offset:
+- highlight:
 
-  Numeric value to adjust the height of the plot (default is `0`).
+  Optional character vector of transcript IDs or names to outline (data
+  frame method).
 
-- downstream_offset:
+- highlight_poison_exons:
 
-  Numeric value to extend the downstream region beyond the gene's end
-  position (default is `0`).
+  Logical, outline exons found only in unproductive isoforms of the gene
+  (see
+  [`poison_exons()`](https://luciorq.github.io/isoformic/reference/productivity.md)).
 
-- upstream_offset:
+- upstream_offset, downstream_offset:
 
-  Numeric value to extend the upstream region beyond the gene's start
-  position (default is `0`).
+  Extra genomic span (bp) shown before and after the gene.
 
-- ideogram_reference:
+- exon_height:
 
-  Character string specifying the reference genome for the ideogram.
-  Options include "hg38", "hg19", "mm11", "mm10", or "none" (default is
-  "hg38").
+  Height of exon boxes (0-1).
+
+- ncol:
+
+  Number of facet columns when several genes are plotted.
+
+- ...:
+
+  Passed on to methods.
+
+- exon_table:
+
+  Legacy argument of `plot_tx_context()`.
 
 ## Value
 
-A `plotgardener` object representing the genomic context plot.
+A `ggplot` object.
+
+## Examples
+
+``` r
+iso <- example_isoformic()
+plot_genomic_context(iso, gene_name = "RBPJ")
+#> Warning: ! 1 transcript has a sequence length differing from the exon length; its ORF is
+#>   skipped.
+
+plot_genomic_context(iso, gene_name = "EGFR", assay = NULL, highlight_de = FALSE)
+
+
+# Table-based
+plot_genomic_context(exon_table(iso, "PNCK"))
+
+```

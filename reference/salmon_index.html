@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9019</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9022</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -18,8 +18,23 @@
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/isoformic-preprocess.html">Preprocessing Short-Read Sequencing Files for Isoformic</a></li>
-    <li><a class="dropdown-item" href="../articles/isoformic-table-based.html">Isoformic: Isoform-level biological interpretation of transcriptomic data</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Get started</h6></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-introduction.html">Introduction to isoformic</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-preprocess.html">From Salmon quantifications to an IsoformicExperiment</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyses</h6></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-plots.html">Plots</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Annotations and tables</h6></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-references.html">Other annotations: T2T-CHM13, Ensembl, RefSeq, haplotypes, FANTOM CAT and long reads</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-tables.html">Working with plain tables</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -89,7 +104,8 @@
 
 <dt id="arg-is-gencode">is_gencode<a class="anchor" aria-label="anchor" href="#arg-is-gencode"></a></dt>
 <dd><p>Logical indicating if the FASTA is from GENCODE
-(default is <code>FALSE</code>).</p></dd>
+(default is <code>FALSE</code>); the transcript names are then truncated at the
+first <code>|</code> so that they match the annotation.</p></dd>
 
 
 <dt id="arg-decoy-fasta">decoy_fasta<a class="anchor" aria-label="anchor" href="#arg-decoy-fasta"></a></dt>
@@ -106,17 +122,24 @@
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>processx style output list.</p>
     </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>The index must be built with the same Salmon major version used for
+<code><a href="salmon_quant.html">salmon_quant()</a></code>: Salmon 2 (the Rust rewrite) cannot read indices built by
+Salmon 1.x and rejects them with an error. Rebuild the index after
+upgrading.</p>
+    </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Lucio Rezende Queiroz, Lucio Rezende Queiroz, Izabela Mamede Conceicao, Carlos Mata-Machado, Luigi Marchionni, Gloria Franco.</p>
+  <p>Developed by Lucio Rezende Queiroz, Izabela Mamede Conceicao, Carlos Mata-Machado, Luigi Marchionni, Gloria Franco.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

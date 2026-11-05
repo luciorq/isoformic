@@ -1,90 +1,89 @@
 # Merge Gene and Transcript Level Differential Expression Tables
 
-Combines gene-level and transcript-level differential expression results
-into a single table, annotates the combined data with significance
-labels based on specified cutoffs, and filters transcripts based on
-their types.
+Table-based helper combining gene-level and transcript-level results
+into the long format used by
+[`plot_log2fc()`](https://luciorq.github.io/isoformic/reference/plot_log2fc.md).
+With an
+[IsoformicExperiment](https://luciorq.github.io/isoformic/reference/IsoformicExperiment.md),
+[`de_table()`](https://luciorq.github.io/isoformic/reference/dea.md)
+produces the same table from the stored results.
 
 ## Usage
 
 ``` r
-join_DEG_DET(deg_table, det_table, logfc_cut, pval_cut)
+join_DEG_DET(
+  deg_table,
+  det_table,
+  logfc_cut = 1,
+  pval_cut = 0.05,
+  use_fdr = FALSE,
+  transcript_types = default_transcript_types()
+)
 ```
 
 ## Arguments
 
 - deg_table:
 
-  A `data.frame` or `tibble` containing gene-level differential
-  expression results, including `gene_id`, `gene_name`, `log2FC`, and
-  `pvalue` columns.
+  Gene-level results with `gene_id`, `gene_name`, `log2FC` and `pvalue`
+  columns.
 
 - det_table:
 
-  A `data.frame` or `tibble` containing transcript-level differential
-  expression results, including `transcript_id`, `transcript_name`,
-  `transcript_type`, `log2FC`, and `pvalue` columns.
+  Transcript-level results with `transcript_id`, `transcript_name`,
+  `transcript_type`, `log2FC` and `pvalue` columns.
 
 - logfc_cut:
 
-  A numeric value specifying the absolute log2 fold-change cutoff for
-  significance.
+  Absolute log2 fold-change cutoff for significance.
 
 - pval_cut:
 
-  A numeric value specifying the p-value cutoff for significance.
+  P-value cutoff for significance. Like the cutoffs of
+  [`de_tx()`](https://luciorq.github.io/isoformic/reference/dea.md), a
+  feature is significant when `abs(log2FC) >= logfc_cut` and the p-value
+  is `<= pval_cut`.
+
+- use_fdr:
+
+  Logical, test the `qvalue` column instead of `pvalue` (when present),
+  as the stored cutoffs of an
+  [IsoformicExperiment](https://luciorq.github.io/isoformic/reference/IsoformicExperiment.md)
+  do.
+
+- transcript_types:
+
+  Transcript types to keep. `NULL` keeps all.
 
 ## Value
 
-A `tibble` combining gene and transcript differential expression
-results, with additional columns:
-
-- `id`: gene or transcript ID.
-
-- `name`: gene or transcript name.
-
-- `transcript_type`: type of transcript or `"gene"` for gene-level
-  entries.
-
-- `abs_log2FC`: absolute value of log2 fold-change.
-
-- `significance`: `"sig"` if significant based on cutoffs, `"not_sig"`
-  otherwise.
+A tibble with `feature_id`, `feature_name`, `feature_type`, `gene_name`,
+`log2FC`, `pvalue` (and `qvalue` when present) and `is_de`.
 
 ## Examples
 
 ``` r
-# Sample gene-level data
 deg_table <- data.frame(
   gene_id = c("gene1", "gene2"),
   gene_name = c("GeneA", "GeneB"),
   log2FC = c(1.5, -2.0),
   pvalue = c(0.01, 0.04)
 )
-
-# Sample transcript-level data
 det_table <- data.frame(
   transcript_id = c("tx1", "tx2", "tx3"),
   transcript_name = c("Transcript1", "Transcript2", "Transcript3"),
   transcript_type = c("protein_coding", "lncRNA", "processed_transcript"),
+  gene_name = c("GeneA", "GeneA", "GeneB"),
   log2FC = c(1.2, -1.8, 0.5),
   pvalue = c(0.02, 0.03, 0.2)
 )
-
-# Merge and annotate differential expression results
-deg_det_table <- join_DEG_DET(
-  deg_table = deg_table,
-  det_table = det_table,
-  logfc_cut = 1,
-  pval_cut = 0.05
-)
-
-# View the result
-print(deg_det_table)
-#>   feature_id feature_name log2FC pvalue         feature_type significance is_de
-#> 1      gene1        GeneA    1.5   0.01                 gene          sig   yes
-#> 2      gene2        GeneB   -2.0   0.04                 gene          sig   yes
-#> 3        tx1  Transcript1    1.2   0.02       protein_coding          sig   yes
-#> 4        tx2  Transcript2   -1.8   0.03               lncRNA          sig   yes
-#> 5        tx3  Transcript3    0.5   0.20 processed_transcript      not_sig    no
+join_DEG_DET(deg_table, det_table, logfc_cut = 1, pval_cut = 0.05)
+#> # A tibble: 5 × 8
+#>   feature_id feature_name feature_type     gene_id gene_name log2FC pvalue is_de
+#>   <chr>      <chr>        <chr>            <chr>   <chr>      <dbl>  <dbl> <chr>
+#> 1 gene1      GeneA        gene             gene1   GeneA        1.5   0.01 yes  
+#> 2 gene2      GeneB        gene             gene2   GeneB       -2     0.04 yes  
+#> 3 tx1        Transcript1  protein_coding   NA      GeneA        1.2   0.02 yes  
+#> 4 tx2        Transcript2  lncRNA           NA      GeneA       -1.8   0.03 yes  
+#> 5 tx3        Transcript3  processed_trans… NA      GeneB        0.5   0.2  no   
 ```

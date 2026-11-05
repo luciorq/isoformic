@@ -42,7 +42,9 @@ salmon_index(
 
 - is_gencode:
 
-  Logical indicating if the FASTA is from GENCODE (default is `FALSE`).
+  Logical indicating if the FASTA is from GENCODE (default is `FALSE`);
+  the transcript names are then truncated at the first `|` so that they
+  match the annotation.
 
 - decoy_fasta:
 
@@ -56,3 +58,10 @@ salmon_index(
 ## Value
 
 processx style output list.
+
+## Details
+
+The index must be built with the same Salmon major version used for
+[`salmon_quant()`](https://luciorq.github.io/isoformic/reference/salmon_quant.md):
+Salmon 2 (the Rust rewrite) cannot read indices built by Salmon 1.x and
+rejects them with an error. Rebuild the index after upgrading.

@@ -1,6 +1,11 @@
 # isoformic: Isoform-Level Biological Interpretation of Transcriptomic Data
 
-Isoform-level biological interpretation of transcriptomic data.
+Isoform-level biological interpretation of transcriptomic data. Provides
+the 'IsoformicExperiment' class, a disk-backed (Parquet) container
+holding transcript, gene and exon level data for the same samples, fast
+DuckDB based readers for annotations and quantifications, summaries of
+isoform usage and diversity, and plots of isoform-level differential
+expression, expression profiles and genomic context.
 
 ## See also
 
@@ -21,8 +26,6 @@ Authors:
 
 - Lucio Rezende Queiroz <luciorqueiroz@gmail.com>
   ([ORCID](https://orcid.org/0000-0002-6090-1834)) \[copyright holder\]
-
-- Lucio Rezende Queiroz <lrq4001@med.cornell.edu> \[contributor\]
 
 - Izabela Mamede Conceicao <iza.mamede@gmail.com>
   ([ORCID](https://orcid.org/0000-0002-0707-5588)) \[contributor\]

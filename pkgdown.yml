@@ -1,10 +1,19 @@
 pandoc: 3.8.3
-pkgdown: 2.2.0
+pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
+  articles/isoformic-diversity: isoformic-diversity.html
+  articles/isoformic-enrichment: isoformic-enrichment.html
+  articles/isoformic-introduction: isoformic-introduction.html
+  articles/isoformic-plots: isoformic-plots.html
+  articles/isoformic-polyadenylation: isoformic-polyadenylation.html
   articles/isoformic-preprocess: isoformic-preprocess.html
-  articles/isoformic-table-based: isoformic-table-based.html
-last_built: 2026-07-07T14:35Z
+  articles/isoformic-productivity: isoformic-productivity.html
+  articles/isoformic-quantification-stability: isoformic-quantification-stability.html
+  articles/isoformic-references: isoformic-references.html
+  articles/isoformic-tables: isoformic-tables.html
+  articles/isoformic-uncertainty: isoformic-uncertainty.html
+last_built: 2026-11-05T04:21Z
 urls:
   reference: https://luciorq.github.io/isoformic/reference
   article: https://luciorq.github.io/isoformic/articles

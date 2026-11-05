@@ -16,8 +16,8 @@
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Isoform-Level Biological Interpretation of Transcriptomic Data">
-<meta name="description" content="Isoform-level biological interpretation of transcriptomic data.">
-<meta property="og:description" content="Isoform-level biological interpretation of transcriptomic data.">
+<meta name="description" content="Isoform-level biological interpretation of transcriptomic data. Provides the IsoformicExperiment class, a disk-backed (Parquet) container holding transcript, gene and exon level data for the same samples, fast DuckDB based readers for annotations and quantifications, summaries of isoform usage and diversity, and plots of isoform-level differential expression, expression profiles and genomic context.">
+<meta property="og:description" content="Isoform-level biological interpretation of transcriptomic data. Provides the IsoformicExperiment class, a disk-backed (Parquet) container holding transcript, gene and exon level data for the same samples, fast DuckDB based readers for annotations and quantifications, summaries of isoform usage and diversity, and plots of isoform-level differential expression, expression profiles and genomic context.">
 <meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png">
 </head>
 <body>
@@ -28,7 +28,7 @@
 
     <a class="navbar-brand me-2" href="index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9019</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9022</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,8 +41,23 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="articles/isoformic-preprocess.html">Preprocessing Short-Read Sequencing Files for Isoformic</a></li>
-    <li><a class="dropdown-item" href="articles/isoformic-table-based.html">Isoformic: Isoform-level biological interpretation of transcriptomic data</a></li>
+<li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Get started</h6></li>
+    <li><a class="dropdown-item" href="articles/isoformic-introduction.html">Introduction to isoformic</a></li>
+    <li><a class="dropdown-item" href="articles/isoformic-preprocess.html">From Salmon quantifications to an IsoformicExperiment</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyses</h6></li>
+    <li><a class="dropdown-item" href="articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
+    <li><a class="dropdown-item" href="articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
+    <li><a class="dropdown-item" href="articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
+    <li><a class="dropdown-item" href="articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
+    <li><a class="dropdown-item" href="articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
+    <li><a class="dropdown-item" href="articles/isoformic-plots.html">Plots</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Annotations and tables</h6></li>
+    <li><a class="dropdown-item" href="articles/isoformic-references.html">Other annotations: T2T-CHM13, Ensembl, RefSeq, haplotypes, FANTOM CAT and long reads</a></li>
+    <li><a class="dropdown-item" href="articles/isoformic-tables.html">Working with plain tables</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -74,8 +89,85 @@
 </div>
 <!-- badges: start -->
 
-<p>Welcome to <code>isoformic</code>, a workflow for isoform-level biological interpretation of transcriptomic data.</p>
-<p>This workflow uses known annotated transcripts to produce biologically relevant results based on the different types of transcripts for any comparison of case versus control transcriptomic data.</p>
+<p><code>isoformic</code> is a workflow for isoform-level biological interpretation of transcriptomic data. It uses annotated transcripts and their types (protein coding, retained intron, nonsense-mediated decay, …) to describe how expression is distributed across the isoforms of each gene, and how that distribution changes between conditions.</p>
+<p>The package is organised around the <code>IsoformicExperiment</code> class: a <code>SummarizedExperiment</code>-like container that keeps transcript, gene and exon level data for the same samples consistent, backed by Parquet files on disk and read through DuckDB.</p>
+<div class="section level2">
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+</h2>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"isoformic"</span>, repos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"https://luciorq.r-universe.dev"</span>, <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"repos"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The development version can be installed from <a href="https://github.com/luciorq/isoformic" class="external-link">GitHub</a>:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"luciorq/isoformic"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="quick-start">Quick start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
+</h2>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/luciorq/isoformic" class="external-link">isoformic</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># A bundled experiment: isoforms of 69 genes, 25 placenta samples, GENCODE v33</span></span>
+<span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/example_isoformic.html">example_isoformic</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">iso</span></span>
+<span><span class="co">#&gt; &lt;IsoformicExperiment&gt; pe_placenta_example</span></span>
+<span><span class="co">#&gt;   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)</span></span>
+<span><span class="co">#&gt;   samples    : 25 [condition]</span></span>
+<span><span class="co">#&gt;   transcripts: 499 assayed from 69 genes</span></span>
+<span><span class="co">#&gt;   assays     : abundance, counts</span></span>
+<span><span class="co">#&gt;   gene assays: derived from transcript assays on demand</span></span>
+<span><span class="co">#&gt;   DE results : det (499 transcripts), deg (69 genes)</span></span>
+<span></span>
+<span><span class="co"># Three levels, one object</span></span>
+<span><span class="fu"><a href="reference/IsoformicExperiment-accessors.html">assay</a></span><span class="op">(</span><span class="va">iso</span>, <span class="st">"abundance"</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>   <span class="co"># transcripts x samples</span></span>
+<span><span class="fu"><a href="reference/IsoformicExperiment-accessors.html">gene_assay</a></span><span class="op">(</span><span class="va">iso</span>, <span class="st">"abundance"</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span> <span class="co"># genes x samples, summed from isoforms</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="reference/IsoformicExperiment-accessors.html">exon_table</a></span><span class="op">(</span><span class="va">iso</span>, <span class="st">"RBPJ"</span><span class="op">)</span><span class="op">)</span>        <span class="co"># exon structures from the annotation</span></span>
+<span></span>
+<span><span class="co"># Transcriptomic diversity</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="reference/diversity.html">tx_diversity</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span>               <span class="co"># expressed isoforms, dominant isoform, effective number</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="reference/transcript_features.html">transcript_features</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span>        <span class="co"># ORF, UTRs, NMD rule, promoters, splicing events vs canonical</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="reference/productivity.html">transcript_productivity</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span>    <span class="co"># productive / altered / unproductive / noncoding, with reasons</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="reference/productivity.html">productive_fraction</a></span><span class="op">(</span><span class="va">iso</span>, group <span class="op">=</span> <span class="st">"condition"</span><span class="op">)</span><span class="op">)</span> <span class="co"># productive share of each gene and its change</span></span>
+<span><span class="fu"><a href="reference/diversity.html">dominant_isoform</a></span><span class="op">(</span><span class="va">iso</span>, group <span class="op">=</span> <span class="st">"condition"</span><span class="op">)</span> <span class="co"># dominance switches between groups</span></span>
+<span><span class="fu"><a href="reference/diversity.html">isoform_switches</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span>                 <span class="co"># transcript vs gene level differential expression</span></span>
+<span></span>
+<span><span class="co"># Plots</span></span>
+<span><span class="fu"><a href="reference/plot_log2fc.html">plot_log2fc</a></span><span class="op">(</span><span class="va">iso</span>, feature <span class="op">=</span> <span class="st">"RBPJ"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/profiles.html">plot_tx_expr</a></span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"RBPJ"</span>, group <span class="op">=</span> <span class="st">"condition"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/plot_genomic_context.html">plot_genomic_context</a></span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"RBPJ"</span><span class="op">)</span></span></code></pre></div>
+<p>Any GFF3/GTF annotation works: GENCODE (GRCh38, GRCm39), Ensembl (all divisions), NCBI RefSeq (any assembly accession), MANE, FANTOM CAT / FANTOM6 (<code>download_reference(reference = "fantom")</code>, <code><a href="reference/add_fantom_cat_tables.html">add_fantom_cat_tables()</a></code>), the telomere-to-telomere T2T-CHM13 annotations (<code>download_reference(reference = "t2t")</code>, or the consortium’s Liftoff/CAT files whose GRCh38 identifiers are kept), HPRC per-haplotype CAT annotations (<code><a href="reference/download_hprc_annotation.html">download_hprc_annotation()</a></code> + <code><a href="reference/merge_annotations.html">merge_annotations()</a></code> + <code><a href="reference/diversity.html">haplotype_summary()</a></code>), and long-read catalogs (StringTie, Bambu, FLAIR, with SQANTI3 categories through <code><a href="reference/add_sqanti_classification.html">add_sqanti_classification()</a></code>).</p>
+<p>Your own data enters through one of three doors:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">annot</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/prepare_isoformic_annotation.html">prepare_isoformic_annotation</a></span><span class="op">(</span><span class="st">"gencode.v49.annotation.gff3.gz"</span><span class="op">)</span> <span class="co"># once, cached as Parquet</span></span>
+<span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_salmon.html">read_salmon</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>sample1 <span class="op">=</span> <span class="st">"quants/sample1"</span>, sample2 <span class="op">=</span> <span class="st">"quants/sample2"</span><span class="op">)</span>, annot_path <span class="op">=</span> <span class="va">annot</span><span class="op">)</span></span>
+<span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/isoformic-conversion.html">as_isoformic</a></span><span class="op">(</span><span class="va">se_from_tximeta</span>, annot_path <span class="op">=</span> <span class="va">annot</span><span class="op">)</span></span>
+<span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/IsoformicExperiment.html">IsoformicExperiment</a></span><span class="op">(</span>annot_path <span class="op">=</span> <span class="va">annot</span>, assays <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>abundance <span class="op">=</span> <span class="va">tpm_matrix</span><span class="op">)</span>, col_data <span class="op">=</span> <span class="va">samples</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/dea.html">de_tx</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">swish_results</span>    <span class="co"># any tool's columns are standardised</span></span>
+<span><span class="fu"><a href="reference/dea.html">de_gene</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">deseq2_results</span></span>
+<span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/isoformic-io.html">write_isoformic</a></span><span class="op">(</span><span class="va">iso</span>, <span class="st">"my_experiment"</span><span class="op">)</span> <span class="co"># Parquet directory, restored with read_isoformic()</span></span></code></pre></div>
+<p>See the articles on the <a href="https://luciorq.github.io/isoformic/">package website</a> for the full workflow, from Salmon quantification to enrichment of transcript types.</p>
+</div>
+<div class="section level2">
+<h2 id="how-confident-are-we-in-an-isoform-level-result">How confident are we in an isoform-level result?<a class="anchor" aria-label="anchor" href="#how-confident-are-we-in-an-isoform-level-result"></a>
+</h2>
+<p>Salmon draws replicates from the posterior of the abundances (<code><a href="reference/salmon_quant.html">salmon_quant()</a></code> asks for 30 Gibbs samples) and writes the equivalence classes. <code>read_salmon(inferential = TRUE)</code> or <code><a href="reference/uncertainty.html">add_uncertainty()</a></code> turn them into the uncertainty of each isoform (<code><a href="reference/uncertainty.html">tx_uncertainty()</a></code>), the pairs of isoforms that cannot be told apart (<code><a href="reference/uncertainty.html">isoform_ambiguity()</a></code>) and the stability of every fold-change over the draws (<code><a href="reference/uncertainty.html">de_confidence()</a></code>, with a <code>high</code>/<code>moderate</code>/<code>low</code> class), with plots (<code><a href="reference/uncertainty-plots.html">plot_de_confidence()</a></code>, <code><a href="reference/uncertainty-plots.html">plot_isoform_correlation()</a></code>), summary tables (<code><a href="reference/uncertainty.html">uncertainty_report()</a></code>) and a methods paragraph (<code><a href="reference/uncertainty.html">uncertainty_methods()</a></code>) for reporting. <code>isoform_switches(confident_only = TRUE)</code> keeps only the confident calls. <code><a href="reference/inferential-overdispersion.html">inferential_overdispersion()</a></code> and <code><a href="reference/inferential-overdispersion.html">scale_counts()</a></code> divide the read-ambiguity overdispersion out of the counts, <code><a href="reference/test_usage.html">test_usage()</a></code> tests differential transcript usage with <code>edgeR</code> <code>diffSplice</code>, <code>satuRn</code> or <code>DEXSeq</code> on those counts, <code><a href="reference/read_terminus_groups.html">read_terminus_groups()</a></code> brings in the groups of Terminus, and <code><a href="reference/read_oarfish.html">read_oarfish()</a></code> reads long-read quantifications from Oarfish with their bootstrap replicates. The <a href="https://luciorq.github.io/isoformic/articles/isoformic-uncertainty.html">uncertainty article</a> works through two real ESRP knockdown datasets (prostate cancer GSE129540 and H358 cells GSE75489): <code>SCRIB-207</code> is a high confidence call, while the <code>CD44</code> and <code>CTNND1</code> switches have a certain direction but isoforms that the reads cannot tell apart.</p>
+</div>
+<div class="section level2">
+<h2 id="productive-versus-unproductive-transcription">Productive versus unproductive transcription<a class="anchor" aria-label="anchor" href="#productive-versus-unproductive-transcription"></a>
+</h2>
+<p>With transcript sequences in the annotation (<code><a href="reference/transcript_sequences.html">extract_transcript_sequences()</a></code> from a genome or transcript FASTA), productivity is computed from the sequence rather than read from the biotype: the canonical start codon is projected onto every isoform, translated, and checked for premature stops, frameshifts, non-stop decay and uORFs. External evidence (APPRIS principal isoforms, GENCODE Ribo-seq ORFs, validated NMD exons, GTEx tissue baselines, Pfam domain retention) comes from frozen, versioned datasets:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/example_isoformic.html">example_isoformic</a></span><span class="op">(</span><span class="op">)</span>                     <span class="co"># ships with sequences</span></span>
+<span><span class="fu"><a href="reference/transcript_orfs.html">transcript_orfs</a></span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"RBPJ"</span><span class="op">)</span>       <span class="co"># ORF, NMD class, coding probability</span></span>
+<span><span class="fu"><a href="reference/productivity.html">transcript_productivity</a></span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"RBPJ"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/productivity.html">test_productive_fraction</a></span><span class="op">(</span><span class="va">iso</span>, group <span class="op">=</span> <span class="st">"condition"</span><span class="op">)</span>   <span class="co"># quasi-binomial test per gene</span></span>
+<span><span class="fu"><a href="reference/polyadenylation.html">polya_sites</a></span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"RBPJ"</span><span class="op">)</span>           <span class="co"># alternative polyadenylation events</span></span>
+<span><span class="fu"><a href="reference/polyadenylation.html">apa_usage</a></span><span class="op">(</span><span class="va">iso</span>, group <span class="op">=</span> <span class="st">"condition"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/productivity_evidence.html">add_appris</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span>; <span class="fu"><a href="reference/productivity_evidence.html">add_riboseq_orfs</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span>; <span class="fu"><a href="reference/productivity_evidence.html">add_nmd_exons</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span>   <span class="co"># frozen datasets</span></span>
+<span><span class="fu"><a href="reference/productivity.html">productive_fraction</a></span><span class="op">(</span><span class="va">iso</span>, group <span class="op">=</span> <span class="st">"condition"</span>, reference <span class="op">=</span> <span class="st">"Whole Blood"</span><span class="op">)</span></span></code></pre></div>
+</div>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
@@ -83,33 +175,12 @@
 <p>Izabela Mamede, Lucio R Queiroz, Carlos Mata-Machado, Júlia Teixeira Rodrigues, Thomaz Luscher-Dias, Nayara E de Toledo, Paulo P Amaral, Luigi Marchionni, Gloria R Franco, <strong>Isoformic</strong>: a workflow for transcript-level RNA-seq interpretation, <em>NAR Genomics and Bioinformatics</em>, Volume 7, Issue 4, December 2025, lqaf176, <a href="https://doi.org/10.1093/nargab/lqaf176" class="external-link">https://doi.org/10.1093/nargab/lqaf176</a></p>
 </div>
 <div class="section level2">
-<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
-</h2>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"isoformic"</span>, repos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"https://luciorq.r-universe.dev"</span>, <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"repos"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>You can install the development version of <code>isoformic</code> from <a href="https://github.com/" class="external-link">GitHub</a> with:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"remotes"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"luciorq/isoformic"</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
+<h2 id="motivation">Motivation<a class="anchor" aria-label="anchor" href="#motivation"></a>
 </h2>
 <div class="float">
 <img src="https://i.imgur.com/UWoAr0k.png" alt="Types of Transcripts"><div class="figcaption">Types of Transcripts</div>
 </div>
-</div>
-<div class="section level2">
-<h2 id="motivation">Motivation<a class="anchor" aria-label="anchor" href="#motivation"></a>
-</h2>
-<p>Performing differential expression analysis at the isoform level, rather than at the gene level, is important for gaining a more detailed understanding of gene regulation and functional differences in biological systems.</p>
-<p>While gene-level analysis provides insights into the overall expression changes of genes, it fails to capture the complex dynamics occurring at the isoform level. Isoforms, resulting from alternative splicing or alternative transcription start sites, can possess distinct structural features and functional properties.</p>
-<p>By examining isoform-level expression changes, researchers can identify and characterize specific isoforms that may have unique roles in cellular processes, such as isoform-specific protein-protein interactions or protein functions.</p>
-<p>This granularity enables a more accurate interpretation of complex biological phenomena, such as tissue-specific expression patterns, cell differentiation, or disease progression.</p>
-<p>Additionally, isoform-level analysis can help uncover regulatory mechanisms and identify potential biomarkers or therapeutic targets that may be missed when solely relying on gene-level analysis. Therefore, considering the isoform-level expression changes provides a more comprehensive view of transcriptional dynamics and enhances our understanding of gene regulation in a given biological context.</p>
-<hr>
+<p>Differential expression at the isoform level, rather than at the gene level, captures regulation that gene-level summaries hide: alternative splicing and alternative transcription start sites produce isoforms with distinct structures and functions, and a gene whose total expression does not change can still switch from a protein coding isoform to an unproductive one. <code>isoformic</code> makes those changes visible by keeping transcript types, exon structures and gene-level summaries together and by testing each transcript category on its own during functional enrichment.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
@@ -147,7 +218,6 @@
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
 <li>Lucio Rezende Queiroz <br><small class="roles"> Author, maintainer, copyright holder </small> <a href="https://orcid.org/0000-0002-6090-1834" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
-<li>Lucio Rezende Queiroz <br><small class="roles"> Author, contributor </small>   </li>
 <li>Izabela Mamede Conceicao <br><small class="roles"> Author, contributor </small> <a href="https://orcid.org/0000-0002-0707-5588" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
 <li>Carlos Mata-Machado <br><small class="roles"> Author, contributor </small> <a href="https://orcid.org/0009-0005-6615-6563" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
 <li>Luigi Marchionni <br><small class="roles"> Author, contributor </small> <a href="https://orcid.org/0000-0002-7336-8071" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
@@ -159,6 +229,7 @@
 <h2 data-toc-skip>Dev status</h2>
 <ul class="list-unstyled">
 <li><a href="https://github.com/luciorq/isoformic/actions/workflows/r-cmd-check.yaml" class="external-link"><img src="https://github.com/luciorq/isoformic/actions/workflows/r-cmd-check.yaml/badge.svg" alt="r-cmd-check"></a></li>
+<li><a href="https://github.com/luciorq/isoformic/actions/workflows/lint.yaml" class="external-link"><img src="https://github.com/luciorq/isoformic/actions/workflows/lint.yaml/badge.svg" alt="lint"></a></li>
 </ul>
 </div>
 
@@ -167,11 +238,11 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Lucio Rezende Queiroz, Lucio Rezende Queiroz, Izabela Mamede Conceicao, Carlos Mata-Machado, Luigi Marchionni, Gloria Franco.</p>
+  <p>Developed by Lucio Rezende Queiroz, Izabela Mamede Conceicao, Carlos Mata-Machado, Luigi Marchionni, Gloria Franco.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

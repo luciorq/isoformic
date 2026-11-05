@@ -1,24 +1,27 @@
-# Prepare Data for Gene and Transcript Expression Profile Plot
+# Prepare Expression Profile Data From Loose Tables
 
-This function processes gene and transcript-level expression data, along
-with differential expression results, to prepare a tidy data frame
-suitable for plotting expression profiles across different sample
-groups.
+Table-based counterpart of
+[`profile_data()`](https://luciorq.github.io/isoformic/reference/profiles.md):
+combines a transcript expression table, sample metadata, a
+transcript-to-gene table and differential expression results into the
+long profile table consumed by
+[`plot_tx_expr()`](https://luciorq.github.io/isoformic/reference/profiles.md).
+Gene expression is the sum of the isoform values unless `txi_gene` is
+supplied.
 
 ## Usage
 
 ``` r
 prepare_profile_data(
-  txi_gene = NULL,
   txi_transcript,
   sample_metadata,
   tx_to_gene,
-  de_result_gene,
-  de_result_transcript,
+  de_result_gene = NULL,
+  de_result_transcript = NULL,
   var,
-  var_levels,
-  gene_col = "gene_name",
-  tx_col = "transcript_name",
+  var_levels = NULL,
+  txi_gene = NULL,
+  gene_name = NULL,
   pvalue_cutoff = 0.05,
   lfc_cutoff = 1,
   use_fdr = TRUE
@@ -27,123 +30,81 @@ prepare_profile_data(
 
 ## Arguments
 
-- txi_gene:
-
-  A `tibble` or `tximport` output containing gene-level expression
-  abundances. If `NULL`, gene-level abundances will be summarized from
-  `txi_transcript`. Default is `NULL`.
-
 - txi_transcript:
 
-  A `tibble` or `tximport` output containing transcript-level expression
-  abundances.
+  Transcript expression: a matrix or data frame with transcript IDs as
+  row names or in a `transcript_id` column, or a `tximport` list (its
+  `abundance` element is used).
 
 - sample_metadata:
 
-  A `data.frame` or `tibble` containing sample metadata. The first
-  column should contain sample names matching the column names in
-  `txi_gene` and `txi_transcript`.
+  Data frame whose first column (or `sample_id` column) holds the sample
+  IDs and that contains the `var` column.
 
 - tx_to_gene:
 
-  A `data.frame` or `tibble` containing transcript-to-gene mapping
-  information. Must include columns specified by `gene_col` and
-  `tx_col`.
+  Data frame with `transcript_id`, `gene_id`, `transcript_name`,
+  `gene_name` and `transcript_type` columns (see
+  [`make_tx_to_gene()`](https://luciorq.github.io/isoformic/reference/make_tx_to_gene.md)).
 
 - de_result_gene:
 
-  A `data.frame` or `tibble` containing differential expression results
-  at the gene level. Must include `gene_name`, `log2FC`, and `qvalue`
-  columns.
+  Gene-level results with `gene_id` or `gene_name`, `log2FC` and
+  `qvalue`/`pvalue` columns. May be `NULL`.
 
 - de_result_transcript:
 
-  A `data.frame` or `tibble` containing differential expression results
-  at the transcript level. Must include `transcript_name`, `log2FC`, and
-  `qvalue` columns.
+  Transcript-level results with `transcript_id` or `transcript_name`,
+  `log2FC` and `qvalue`/`pvalue` columns. May be `NULL`.
 
 - var:
 
-  A string specifying the column name in `sample_metadata` that
-  indicates the grouping variable (e.g., treatment, condition).
+  Name of the grouping column in `sample_metadata`.
 
 - var_levels:
 
-  A character vector specifying the levels of `var` to include in the
-  contrasts.
+  Order of the group levels. `NULL` uses the order of appearance.
 
-- gene_col:
+- txi_gene:
 
-  A string specifying the column name in `tx_to_gene` that contains gene
-  names. Default is `"gene_name"`.
+  Optional gene expression table (same formats as `txi_transcript`, with
+  gene IDs).
 
-- tx_col:
+- gene_name:
 
-  A string specifying the column name in `tx_to_gene` that contains
-  transcript names. Default is `"transcript_name"`.
+  Optional genes to keep (names or IDs); `NULL` keeps all.
 
-- pvalue_cutoff:
+- pvalue_cutoff, lfc_cutoff, use_fdr:
 
-  A numeric value specifying the p-value cutoff for determining
-  significant differential expression. Default is `0.05`.
-
-- lfc_cutoff:
-
-  A numeric value specifying the log2 fold-change cutoff for determining
-  significant differential expression. Default is `1`.
-
-- use_fdr:
-
-  A logical value indicating whether to use the false discovery rate
-  (`qvalue`) instead of p-value for significance cutoff. Default is
-  `TRUE`.
+  Significance cutoffs.
 
 ## Value
 
-A `tibble` containing processed expression data and differential
-expression flags, ready for plotting.
-
-## Details
-
-The function combines gene and transcript expression data with
-differential expression results to generate a tidy data frame. It
-filters significant genes and transcripts based on specified cutoffs and
-prepares the data for plotting expression profiles across specified
-sample groups.
+A tibble in the format described in
+[`profile_data()`](https://luciorq.github.io/isoformic/reference/profiles.md).
 
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-# Assuming txi_gene, txi_transcript, sample_metadata, tx_to_gene, de_result_gene,
-# and de_result_transcript are pre-loaded data frames:
-
-# Prepare data for plotting
-if (FALSE) {
-  expr_df <- prepare_profile_data(
-    txi_gene = txi_gene,
-    txi_transcript = txi_transcript,
-    sample_metadata = sample_metadata,
-    tx_to_gene = tx_to_gene,
-    de_result_gene = de_result_gene,
-    de_result_transcript = de_result_transcript,
-    var = "condition",
-    var_levels = c("control", "treatment"),
-    gene_col = "gene_name",
-    tx_col = "transcript_name",
-    pvalue_cutoff = 0.05,
-    lfc_cutoff = 1,
-    use_fdr = TRUE
-  )
-
-  # View the prepared data
-  utils::head(expr_df)
-
-  # Plotting example (assuming ggplot2 is installed)
-  library(ggplot2)
-  ggplot(expr_df, aes(x = condition, y = mean_TPM, fill = DE)) +
-    geom_bar(stat = "identity", position = position_dodge()) +
-    facet_wrap(~ parent_gene + transcript_type)
-}
-} # }
+iso <- example_isoformic()
+prof <- prepare_profile_data(
+  txi_transcript = assay(iso, "abundance"),
+  sample_metadata = col_data(iso),
+  tx_to_gene = tx_annot(iso),
+  de_result_gene = de_gene(iso),
+  de_result_transcript = de_tx(iso),
+  var = "condition",
+  gene_name = "RBPJ"
+)
+head(prof)
+#> # A tibble: 6 × 10
+#>   feature_id feature_name feature_type gene_id gene_name group mean_expr sd_expr
+#>   <chr>      <chr>        <chr>        <chr>   <chr>     <fct>     <dbl>   <dbl>
+#> 1 ENSG00000… RBPJ         gene         ENSG00… RBPJ      pree…   1297.    427.  
+#> 2 ENSG00000… RBPJ         gene         ENSG00… RBPJ      cont…   1367.    195.  
+#> 3 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      pree…     11.2    25.1 
+#> 4 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      cont…      3.95    8.30
+#> 5 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      pree…    838.    303.  
+#> 6 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      cont…   1095.    169.  
+#> # ℹ 2 more variables: n_samples <int>, is_de <chr>
 ```

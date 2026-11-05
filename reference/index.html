@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9019</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9022</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -18,8 +18,23 @@
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/isoformic-preprocess.html">Preprocessing Short-Read Sequencing Files for Isoformic</a></li>
-    <li><a class="dropdown-item" href="../articles/isoformic-table-based.html">Isoformic: Isoform-level biological interpretation of transcriptomic data</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Get started</h6></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-introduction.html">Introduction to isoformic</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-preprocess.html">From Salmon quantifications to an IsoformicExperiment</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Analyses</h6></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-plots.html">Plots</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Annotations and tables</h6></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-references.html">Other annotations: T2T-CHM13, Ensembl, RefSeq, haplotypes, FANTOM CAT and long reads</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-tables.html">Working with plain tables</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -42,7 +57,37 @@
     </div>
 
     <div class="section level2">
-      <h2 id="all-functions">All functions<a class="anchor" aria-label="anchor" href="#all-functions"></a></h2>
+      <h2 id="the-isoformicexperiment-class">The IsoformicExperiment class<a class="anchor" aria-label="anchor" href="#the-isoformicexperiment-class"></a></h2>
+
+      <div class="section-desc"><p>Transcript, gene and exon level data for the same samples, backed by Parquet files.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="IsoformicExperiment.html">IsoformicExperiment()</a></code>
+
+        </dt>
+        <dd>IsoformicExperiment: Transcript, Gene and Exon Level Data in One Object</dd>
+
+        <dt>
+
+          <code><a href="IsoformicExperiment-accessors.html">col_data()</a></code> <code><a href="IsoformicExperiment-accessors.html">`col_data&lt;-`()</a></code> <code><a href="IsoformicExperiment-accessors.html">col_names()</a></code> <code><a href="IsoformicExperiment-accessors.html">assays()</a></code> <code><a href="IsoformicExperiment-accessors.html">assay_names()</a></code> <code><a href="IsoformicExperiment-accessors.html">assay()</a></code> <code><a href="IsoformicExperiment-accessors.html">`assay&lt;-`()</a></code> <code><a href="IsoformicExperiment-accessors.html">row_names()</a></code> <code><a href="IsoformicExperiment-accessors.html">row_data()</a></code> <code><a href="IsoformicExperiment-accessors.html">tx_annot()</a></code> <code><a href="IsoformicExperiment-accessors.html">tx_to_gene()</a></code> <code><a href="IsoformicExperiment-accessors.html">gene_assays()</a></code> <code><a href="IsoformicExperiment-accessors.html">`gene_assays&lt;-`()</a></code> <code><a href="IsoformicExperiment-accessors.html">gene_assay()</a></code> <code><a href="IsoformicExperiment-accessors.html">gene_names()</a></code> <code><a href="IsoformicExperiment-accessors.html">gene_data()</a></code> <code><a href="IsoformicExperiment-accessors.html">annot_data_transcripts()</a></code> <code><a href="IsoformicExperiment-accessors.html">annot_data_genes()</a></code> <code><a href="IsoformicExperiment-accessors.html">annot_data_exons()</a></code> <code><a href="IsoformicExperiment-accessors.html">annot_data()</a></code> <code><a href="IsoformicExperiment-accessors.html">annot_metadata()</a></code> <code><a href="IsoformicExperiment-accessors.html">exon_table()</a></code> <code><a href="IsoformicExperiment-accessors.html">clear_cache()</a></code>
+
+        </dt>
+        <dd>Accessors for IsoformicExperiment Objects</dd>
+
+        <dt>
+
+          <code><a href="example_isoformic.html">example_isoformic()</a></code>
+
+        </dt>
+        <dd>Example IsoformicExperiment</dd>
+      </dl></div><div class="section level2">
+      <h2 id="creating-experiments">Creating experiments<a class="anchor" aria-label="anchor" href="#creating-experiments"></a></h2>
 
 
 
@@ -53,31 +98,140 @@
 
       <dl><dt>
 
-          <code><a href="IsoformicExperiment.html">IsoformicExperiment()</a></code> <code><a href="IsoformicExperiment.html">col_data()</a></code> <code><a href="IsoformicExperiment.html">annot_data_transcripts()</a></code> <code><a href="IsoformicExperiment.html">annot_data_genes()</a></code> <code><a href="IsoformicExperiment.html">annot_data_exons()</a></code> <code><a href="IsoformicExperiment.html">annot_data()</a></code> <code><a href="IsoformicExperiment.html">annot_row_names()</a></code> <code><a href="IsoformicExperiment.html">col_names()</a></code> <code><a href="IsoformicExperiment.html">row_names()</a></code> <code><a href="IsoformicExperiment.html">tx_to_gene()</a></code> <code><a href="IsoformicExperiment.html">row_data()</a></code> <code><a href="IsoformicExperiment.html">tx_annot()</a></code> <code><a href="IsoformicExperiment.html">de_tx()</a></code> <code><a href="IsoformicExperiment.html">de_gene()</a></code>
+          <code><a href="read_salmon.html">read_salmon()</a></code>
 
         </dt>
-        <dd>IsoformicExperiment Class</dd>
+        <dd>Read Salmon Quantifications Into an IsoformicExperiment</dd>
 
         <dt>
 
-          <code><a href="as_isoformic.html">as_isoformic()</a></code>
+          <code><a href="read_oarfish.html">read_oarfish()</a></code>
 
         </dt>
-        <dd>Convert a SummarizedExperiment to an IsoformicExperiment Object</dd>
+        <dd>Read Oarfish Quantifications Into an IsoformicExperiment</dd>
 
         <dt>
 
-          <code><a href="create_context_data.html">create_context_data()</a></code>
+          <code><a href="read_oarfish_sc_counts.html">read_oarfish_sc_counts()</a></code> <code><a href="read_oarfish_sc_counts.html">read_oarfish_sc()</a></code>
 
         </dt>
-        <dd>Create ContextData Object</dd>
+        <dd>Read Oarfish single-cell quantifications</dd>
 
         <dt>
+
+          <code><a href="isoformic-conversion.html">as_isoformic()</a></code> <code><a href="isoformic-conversion.html">as_summarized_experiment()</a></code>
+
+        </dt>
+        <dd>Convert Between IsoformicExperiment and SummarizedExperiment</dd>
+
+        <dt>
+
+          <code><a href="isoformic-io.html">write_isoformic()</a></code> <code><a href="isoformic-io.html">read_isoformic()</a></code>
+
+        </dt>
+        <dd>Save and Restore IsoformicExperiment Objects as Parquet</dd>
+      </dl></div><div class="section level2">
+      <h2 id="annotation">Annotation<a class="anchor" aria-label="anchor" href="#annotation"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="prepare_isoformic_annotation.html">prepare_isoformic_annotation()</a></code>
+
+        </dt>
+        <dd>Convert a GFF3/GTF Annotation to Parquet Files</dd>
+
+        <dt>
+
+          <code><a href="prepare_annotation.html">prepare_annotation()</a></code>
+
+        </dt>
+        <dd>Read a Prepared Annotation into Memory</dd>
+
+        <dt>
+
+          <code><a href="prepare_exon_annotation.html">prepare_exon_annotation()</a></code>
+
+        </dt>
+        <dd>Exon Table for Selected Genes From an Annotation</dd>
+
+        <dt>
+
+          <code><a href="make_tx_to_gene.html">make_tx_to_gene()</a></code>
+
+        </dt>
+        <dd>Create a Transcript-to-Gene Mapping Table</dd>
+
+        <dt>
+
+          <code><a href="merge_annotations.html">merge_annotations()</a></code>
+
+        </dt>
+        <dd>Merge Per-Haplotype Annotations Into One Annotation Directory</dd>
+
+        <dt>
+
+          <code><a href="add_annotation_columns.html">add_annotation_columns()</a></code>
+
+        </dt>
+        <dd>Attach Extra Columns to the Annotation Tables</dd>
+
+        <dt>
+
+          <code><a href="add_fantom_cat_tables.html">add_fantom_cat_tables()</a></code>
+
+        </dt>
+        <dd>Attach FANTOM CAT Tables to an Annotation</dd>
+
+        <dt>
+
+          <code><a href="add_sqanti_classification.html">add_sqanti_classification()</a></code>
+
+        </dt>
+        <dd>Add SQANTI3 Structural Categories to an Annotation</dd>
+      </dl></div><div class="section level2">
+      <h2 id="reference-downloads">Reference downloads<a class="anchor" aria-label="anchor" href="#reference-downloads"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
 
           <code><a href="download_reference.html">download_reference()</a></code>
 
         </dt>
-        <dd>Download Reference Files from GENCODE</dd>
+        <dd>Download Reference Annotations and Sequences</dd>
+
+        <dt>
+
+          <code><a href="download_reference_url.html">download_reference_url()</a></code>
+
+        </dt>
+        <dd>Download Any Reference File by URL</dd>
+
+        <dt>
+
+          <code><a href="download_hprc_annotation.html">download_hprc_annotation()</a></code>
+
+        </dt>
+        <dd>Download HPRC Per-Haplotype CAT Annotations</dd>
+
+        <dt>
+
+          <code><a href="download_fantom_cat_tables.html">download_fantom_cat_tables()</a></code>
+
+        </dt>
+        <dd>Download the FANTOM CAT Companion Tables</dd>
 
         <dt>
 
@@ -88,10 +242,186 @@
 
         <dt>
 
-          <code><a href="is_deg_sig.html">is_deg_sig()</a></code>
+          <code><a href="isoformic-options.html">isoformic-options</a></code> <code><a href="isoformic-options.html">isoformic_options</a></code> <code><a href="isoformic-options.html">isoformic.frozen_mirrors</a></code>
 
         </dt>
-        <dd>Annotate Transcripts with Differential Gene Expression Significance</dd>
+        <dd>Options and environment variables used by isoformic</dd>
+      </dl></div><div class="section level2">
+      <h2 id="quantification-uncertainty">Quantification uncertainty<a class="anchor" aria-label="anchor" href="#quantification-uncertainty"></a></h2>
+
+      <div class="section-desc"><p>Inferential replicates, equivalence classes and run metadata from Salmon turned into uncertainty, ambiguity and confidence of isoform-level results.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="inferential-io.html">read_inferential_replicates()</a></code> <code><a href="inferential-io.html">equivalence_support()</a></code> <code><a href="inferential-io.html">salmon_run_qc()</a></code> <code><a href="inferential-io.html">inferential_replicates_table()</a></code> <code><a href="inferential-io.html">as_inferential_replicates()</a></code>
+
+        </dt>
+        <dd>Read the inferential uncertainty that Salmon writes</dd>
+
+        <dt>
+
+          <code><a href="uncertainty.html">add_uncertainty()</a></code> <code><a href="uncertainty.html">tx_uncertainty()</a></code> <code><a href="uncertainty.html">isoform_ambiguity()</a></code> <code><a href="uncertainty.html">de_confidence()</a></code> <code><a href="uncertainty.html">uncertainty_report()</a></code> <code><a href="uncertainty.html">uncertainty_methods()</a></code>
+
+        </dt>
+        <dd>Quantify and report the uncertainty of isoform-level results</dd>
+
+        <dt>
+
+          <code><a href="uncertainty-plots.html">confidence_palette()</a></code> <code><a href="uncertainty-plots.html">plot_de_confidence()</a></code> <code><a href="uncertainty-plots.html">plot_isoform_correlation()</a></code> <code><a href="uncertainty-plots.html">plot_inf_rv()</a></code>
+
+        </dt>
+        <dd>Plot the uncertainty of isoform-level results</dd>
+
+        <dt>
+
+          <code><a href="inferential-overdispersion.html">inferential_overdispersion()</a></code> <code><a href="inferential-overdispersion.html">scale_counts()</a></code>
+
+        </dt>
+        <dd>Put the quantification uncertainty into the counts</dd>
+
+        <dt>
+
+          <code><a href="read_terminus_groups.html">read_terminus_groups()</a></code>
+
+        </dt>
+        <dd>Read the transcript groups that Terminus builds</dd>
+
+        <dt>
+
+          <code><a href="run_terminus.html">run_terminus()</a></code>
+
+        </dt>
+        <dd>Run Terminus on Salmon output from R</dd>
+
+        <dt>
+
+          <code><a href="treeterminus.html">read_treeterminus()</a></code> <code><a href="treeterminus.html">cut_transcript_trees()</a></code>
+
+        </dt>
+        <dd>Read and cut the transcript trees of TreeTerminus</dd>
+
+        <dt>
+
+          <code><a href="test_usage.html">test_usage()</a></code>
+
+        </dt>
+        <dd>Test differential transcript usage</dd>
+      </dl></div><div class="section level2">
+      <h2 id="isoform-structure-and-productivity">Isoform structure and productivity<a class="anchor" aria-label="anchor" href="#isoform-structure-and-productivity"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="transcript_features.html">transcript_features()</a></code> <code><a href="transcript_features.html">splicing_events()</a></code>
+
+        </dt>
+        <dd>Structural and Coding Features of Transcripts</dd>
+
+        <dt>
+
+          <code><a href="transcript_sequences.html">extract_transcript_sequences()</a></code> <code><a href="transcript_sequences.html">has_sequences()</a></code> <code><a href="transcript_sequences.html">transcript_sequences()</a></code>
+
+        </dt>
+        <dd>Extract Transcript Sequences into an Annotation Directory</dd>
+
+        <dt>
+
+          <code><a href="transcript_orfs.html">transcript_orfs()</a></code> <code><a href="transcript_orfs.html">coding_potential()</a></code>
+
+        </dt>
+        <dd>Open Reading Frames of Transcripts from Their Sequences</dd>
+
+        <dt>
+
+          <code><a href="productivity.html">productivity_palette()</a></code> <code><a href="productivity.html">transcript_productivity()</a></code> <code><a href="productivity.html">productive_fraction()</a></code> <code><a href="productivity.html">productivity_fractions()</a></code> <code><a href="productivity.html">test_productive_fraction()</a></code> <code><a href="productivity.html">run_productivity_enrichment()</a></code> <code><a href="productivity.html">poison_exons()</a></code> <code><a href="productivity.html">benchmark_productivity()</a></code>
+
+        </dt>
+        <dd>Productivity of Transcripts and Genes</dd>
+
+        <dt>
+
+          <code><a href="productivity_evidence.html">add_appris()</a></code> <code><a href="productivity_evidence.html">add_riboseq_orfs()</a></code> <code><a href="productivity_evidence.html">add_nmd_exons()</a></code>
+
+        </dt>
+        <dd>Attach External Productivity Evidence to an Annotation</dd>
+
+        <dt>
+
+          <code><a href="domain_retention.html">domain_retention()</a></code>
+
+        </dt>
+        <dd>Protein Domain Retention of Isoforms</dd>
+
+        <dt>
+
+          <code><a href="gtex_reference.html">gtex_reference()</a></code> <code><a href="gtex_reference.html">gtex_tissues()</a></code>
+
+        </dt>
+        <dd>Tissue Reference Values from GTEx</dd>
+
+        <dt>
+
+          <code><a href="polyadenylation.html">polya_sites()</a></code> <code><a href="polyadenylation.html">read_polya_gff()</a></code> <code><a href="polyadenylation.html">apa_usage()</a></code> <code><a href="polyadenylation.html">test_apa()</a></code>
+
+        </dt>
+        <dd>Poly(A) Sites and Alternative Polyadenylation of Transcripts</dd>
+      </dl></div><div class="section level2">
+      <h2 id="frozen-evidence-datasets">Frozen evidence datasets<a class="anchor" aria-label="anchor" href="#frozen-evidence-datasets"></a></h2>
+
+      <div class="section-desc"><p>Reference tables pinned to a source version (APPRIS, Ribo-seq ORFs, validated NMD exons, PolyASite, GTEx) and the coding potential model.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="frozen_data.html">frozen_datasets()</a></code> <code><a href="frozen_data.html">frozen_mirrors()</a></code> <code><a href="frozen_data.html">fetch_frozen_data()</a></code> <code><a href="frozen_data.html">read_frozen_data()</a></code> <code><a href="frozen_data.html">bundle_frozen_data()</a></code>
+
+        </dt>
+        <dd>Frozen Reference Datasets</dd>
+
+        <dt>
+
+          <code><a href="build_frozen_data.html">build_frozen_appris()</a></code> <code><a href="build_frozen_data.html">build_frozen_appris_domains()</a></code> <code><a href="build_frozen_data.html">build_frozen_riboseq_orfs()</a></code> <code><a href="build_frozen_data.html">build_frozen_nmd_exons()</a></code> <code><a href="build_frozen_data.html">build_frozen_polyasite()</a></code> <code><a href="build_frozen_data.html">build_frozen_gtex()</a></code>
+
+        </dt>
+        <dd>Build the Frozen Datasets from Their Sources</dd>
+
+        <dt>
+
+          <code><a href="build_coding_model.html">build_coding_model()</a></code>
+
+        </dt>
+        <dd>Train the Coding Potential Model</dd>
+      </dl></div><div class="section level2">
+      <h2 id="differential-expression">Differential expression<a class="anchor" aria-label="anchor" href="#differential-expression"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="dea.html">de_tx()</a></code> <code><a href="dea.html">de_gene()</a></code> <code><a href="dea.html">`de_tx&lt;-`()</a></code> <code><a href="dea.html">`de_gene&lt;-`()</a></code> <code><a href="dea.html">de_cutoffs()</a></code> <code><a href="dea.html">`de_cutoffs&lt;-`()</a></code> <code><a href="dea.html">de_table()</a></code>
+
+        </dt>
+        <dd>Differential Expression Results in an IsoformicExperiment</dd>
 
         <dt>
 
@@ -102,80 +432,116 @@
 
         <dt>
 
-          <code><a href="make_tx_to_gene.html">make_tx_to_gene()</a></code>
+          <code><a href="is_deg_sig.html">is_deg_sig()</a></code>
 
         </dt>
-        <dd>Create Transcript-to-Gene Relationship Table</dd>
+        <dd>Flag Transcripts Whose Gene Is Differentially Expressed</dd>
+      </dl></div><div class="section level2">
+      <h2 id="transcriptomic-diversity">Transcriptomic diversity<a class="anchor" aria-label="anchor" href="#transcriptomic-diversity"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="diversity.html">isoform_fraction()</a></code> <code><a href="diversity.html">tx_diversity()</a></code> <code><a href="diversity.html">dominant_isoform()</a></code> <code><a href="diversity.html">isoform_switches()</a></code> <code><a href="diversity.html">exon_diversity()</a></code> <code><a href="diversity.html">haplotype_summary()</a></code>
+
+        </dt>
+        <dd>Transcriptomic Diversity Summaries</dd>
+      </dl></div><div class="section level2">
+      <h2 id="plots">Plots<a class="anchor" aria-label="anchor" href="#plots"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="plot_log2fc.html">plot_log2fc()</a></code> <code><a href="plot_log2fc.html">plot_log2FC()</a></code>
+
+        </dt>
+        <dd>Plot Log2 Fold-Changes of a Gene and Its Isoforms</dd>
 
         <dt>
 
-          <code><a href="plot_genomic_context.html">plot_genomic_context()</a></code>
+          <code><a href="profiles.html">profile_data()</a></code> <code><a href="profiles.html">plot_tx_expr()</a></code>
 
         </dt>
-        <dd>Plot Transcripts Genomic Context</dd>
-
-        <dt>
-
-          <code><a href="plot_log2FC.html">plot_log2FC()</a></code> <code><a href="plot_log2FC.html">plot_log2fc()</a></code>
-
-        </dt>
-        <dd>Plot Log2 Fold-Change Results for Transcripts of Selected Genes</dd>
-
-        <dt>
-
-          <code><a href="plot_tx_context.html">plot_tx_context()</a></code>
-
-        </dt>
-        <dd>Plot Transcript Genomic Context</dd>
-
-        <dt>
-
-          <code><a href="plot_tx_expr.html">plot_tx_expr()</a></code>
-
-        </dt>
-        <dd>Plot Transcript per gene expression</dd>
-
-        <dt>
-
-          <code><a href="prepare_annotation.html">prepare_annotation()</a></code>
-
-        </dt>
-        <dd>Prepare Annotation</dd>
-
-        <dt>
-
-          <code><a href="prepare_annotation_db.html">prepare_annotation_db()</a></code>
-
-        </dt>
-        <dd>Write Parquet File from GFF</dd>
-
-        <dt>
-
-          <code><a href="prepare_exon_annotation.html">prepare_exon_annotation()</a></code>
-
-        </dt>
-        <dd>Prepare Exon based Position Annotation Table</dd>
-
-        <dt>
-
-          <code><a href="prepare_isoformic_annotation.html">prepare_isoformic_annotation()</a></code>
-
-        </dt>
-        <dd>Write Feature Annotation to Parquet Files</dd>
+        <dd>Expression Profiles of Genes and Their Isoforms Across Groups</dd>
 
         <dt>
 
           <code><a href="prepare_profile_data.html">prepare_profile_data()</a></code>
 
         </dt>
-        <dd>Prepare Data for Gene and Transcript Expression Profile Plot</dd>
+        <dd>Prepare Expression Profile Data From Loose Tables</dd>
 
         <dt>
 
-          <code><a href="run_enrichment.html">run_enrichment()</a></code>
+          <code><a href="plot_genomic_context.html">plot_genomic_context()</a></code> <code><a href="plot_genomic_context.html">plot_tx_context()</a></code>
 
         </dt>
-        <dd>Run Gene Set Enrichment Analysis for Different Transcript Types</dd>
+        <dd>Plot the Genomic Context of a Gene's Isoforms</dd>
+
+        <dt>
+
+          <code><a href="tx_type_palette.html">tx_type_palette()</a></code>
+
+        </dt>
+        <dd>Transcript Type Color Palette</dd>
+
+        <dt>
+
+          <code><a href="productivity.html">productivity_palette()</a></code> <code><a href="productivity.html">transcript_productivity()</a></code> <code><a href="productivity.html">productive_fraction()</a></code> <code><a href="productivity.html">productivity_fractions()</a></code> <code><a href="productivity.html">test_productive_fraction()</a></code> <code><a href="productivity.html">run_productivity_enrichment()</a></code> <code><a href="productivity.html">poison_exons()</a></code> <code><a href="productivity.html">benchmark_productivity()</a></code>
+
+        </dt>
+        <dd>Productivity of Transcripts and Genes</dd>
+      </dl></div><div class="section level2">
+      <h2 id="enrichment">Enrichment<a class="anchor" aria-label="anchor" href="#enrichment"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="enrichment.html">run_enrichment()</a></code> <code><a href="enrichment.html">default_enrichment_types()</a></code> <code><a href="enrichment.html">read_gmt()</a></code> <code><a href="enrichment.html">plot_enrichment()</a></code>
+
+        </dt>
+        <dd>Transcript-Type Aware Gene Set Enrichment</dd>
+      </dl></div><div class="section level2">
+      <h2 id="parquet-and-quantification-tools">Parquet and quantification tools<a class="anchor" aria-label="anchor" href="#parquet-and-quantification-tools"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="parquet.html">read_parquet()</a></code> <code><a href="parquet.html">read_tabular()</a></code> <code><a href="parquet.html">write_parquet()</a></code>
+
+        </dt>
+        <dd>Read and Write Parquet Files</dd>
+
+        <dt>
+
+          <code><a href="summarize_to_gene.html">summarize_to_gene()</a></code>
+
+        </dt>
+        <dd>Summarize Transcript-Level Matrices to Gene Level</dd>
 
         <dt>
 
@@ -190,23 +556,17 @@
 
         </dt>
         <dd>Run Salmon Quantification</dd>
-
-        <dt>
-
-          <code><a href="tx_type_palette.html">tx_type_palette()</a></code>
-
-        </dt>
-        <dd>Transcript Type Color Palette</dd>
       </dl></div>
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Lucio Rezende Queiroz, Lucio Rezende Queiroz, Izabela Mamede Conceicao, Carlos Mata-Machado, Luigi Marchionni, Gloria Franco.</p>
+  <p>Developed by Lucio Rezende Queiroz, Izabela Mamede Conceicao, Carlos Mata-Machado, Luigi Marchionni, Gloria Franco.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>
