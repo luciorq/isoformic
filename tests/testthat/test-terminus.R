@@ -313,7 +313,8 @@ testthat::test_that("run_terminus groups samples in parallel and reads plain-tex
     },
     .package = "condathis"
   )
-  groups <- suppressMessages(run_terminus(dirs, output_dir = out, workers = 3L))
+  # R CMD check caps forked workers at 2 (`_R_CHECK_LIMIT_CORES_`).
+  groups <- suppressMessages(run_terminus(dirs, output_dir = out, workers = 2L))
   testthat::expect_identical(groups$group_id, c("NewTr1", "NewTr1"))
   testthat::expect_false(any(fs::file_exists(fs::path(
     out,

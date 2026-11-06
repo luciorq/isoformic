@@ -2,6 +2,7 @@ inst/doc
 .Rproj.user
 *.gz
 *.fa
+!inst/extdata/example_transcripts.fa.gz
 *.pdf
 /doc/
 /Meta/

@@ -718,6 +718,8 @@ build_frozen_nmd_exons <- function(
   )
   src <- frozen_sources("nmd_exons", sources_dir)
   raw <- readxl::read_excel(src[[1L]], sheet = 1L)
+  # `GeneID` (StringTie) would otherwise collide with `gene_id` (Ensembl).
+  names(raw)[names(raw) == "GeneID"] <- "stringtie_gene_id"
   names(raw) <- to_snake_case(names(raw))
   ids <- function(x) {
     vapply(
