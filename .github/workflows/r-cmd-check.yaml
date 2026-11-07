@@ -9,10 +9,14 @@
 # Check <https://github.com/luciorq/condathis/blob/main/.github/workflows/r-cmd-check.yaml> for the source of truth
 
 # The articles are in `.Rbuildignore`, so the check builds no vignettes and
-# + needs neither pandoc nor Quarto. R-devel and R-oldrel install only the
-# + hard dependencies: their Bioconductor Suggests have no binaries and took
-# + over an hour to build from source. Every example and test that needs a
-# + Suggests package skips without it.
+# + needs neither pandoc nor Quarto. No job compiles a dependency: macOS and
+# + Windows get CRAN and Bioconductor binaries; on Ubuntu 26.04, R-release
+# + takes both from the Posit Package Manager (pak's default Bioconductor
+# + mirror is source only, `R_BIOC_MIRROR` points it to the binaries) and
+# + R-devel, which Posit does not build for, takes both from the r-universe
+# + binaries (Bioconductor devel, the branch that pairs with R-devel).
+# + R-oldrel is off: no repository builds Linux binaries of its Bioconductor
+# + release, and building them from source took over an hour.
 ---
 on:
   push:
@@ -58,14 +62,13 @@ jobs:
         config:
           - {os: macos-latest,   r: 'release'}
           - {os: windows-latest, r: 'release'}
-          - {os: ubuntu-latest,  r: 'release'}
-          - {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release', dependencies: '"hard"'}
-          - {os: ubuntu-latest,  r: 'oldrel-1', dependencies: '"hard"'}
+          - {os: ubuntu-26.04,   r: 'release'}
+          - {os: ubuntu-26.04,   r: 'devel'}
+          # - {os: ubuntu-26.04, r: 'oldrel-1'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
-      _R_CHECK_FORCE_SUGGESTS_: ${{ matrix.config.dependencies == '"hard"' && 'false' || 'true' }}
 
     steps:
       - uses: actions/checkout@v7
@@ -73,16 +76,32 @@ jobs:
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: ${{ matrix.config.r }}
-          http-user-agent: ${{ matrix.config.http-user-agent }}
-          use-public-rspm: true
+          use-public-rspm: ${{ matrix.config.r != 'devel' }}
+
+      # pak takes Bioconductor from a source-only mirror; Posit Package
+      # + Manager serves Linux binaries of the same release.
+      - name: Use the Bioconductor binaries of Posit Package Manager
+        if: runner.os == 'Linux' && matrix.config.r == 'release'
+        run: |
+          . /etc/os-release
+          echo "R_BIOC_MIRROR=https://packagemanager.posit.co/bioconductor/__linux__/${VERSION_CODENAME}/latest" >> "$GITHUB_ENV"
+
+      # Only the r-universe binary repositories, for this distribution, R
+      # + version and architecture; pak's own Bioconductor repositories are
+      # + source only, so they are turned off.
+      - name: Use the CRAN and Bioconductor binaries of r-universe
+        if: runner.os == 'Linux' && matrix.config.r == 'devel'
+        run: |
+          . /etc/os-release
+          r_version="$(Rscript -e 'cat(R.version$major, sub("[.].*$", "", R.version$minor), sep = ".")')"
+          bin="bin/linux/${VERSION_CODENAME}-$(uname -m)/${r_version}"
+          echo "options(repos = c(CRAN = 'https://cran.r-universe.dev/${bin}', BioC = 'https://bioc.r-universe.dev/${bin}'))" >> "$HOME/.Rprofile"
+          echo "PKG_USE_BIOCONDUCTOR=false" >> "$GITHUB_ENV"
+          Rscript -e 'print(getOption("repos"))'
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          dependencies: ${{ matrix.config.dependencies || '"all"' }}
-          # The light Suggests run their tests on every R version.
-          extra-packages: >-
-            any::rcmdcheck, any::testthat, any::knitr, any::curl,
-            any::readxl, any::writexl, any::condathis, any::patchwork
+          extra-packages: any::rcmdcheck
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2
