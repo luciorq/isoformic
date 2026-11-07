@@ -24,13 +24,39 @@ duckdb_connect <- function(
     db_dir <- as.character(db_file_path)
   }
   con <- DBI::dbConnect(
-    drv = duckdb::duckdb(),
+    drv = duckdb::duckdb(config = duckdb_storage_config()),
     dbdir = db_dir,
     read_only = isTRUE(read_only)
   )
   withr::defer(DBI::dbDisconnect(con, shutdown = TRUE), envir = envir)
   DBI::dbExecute(con, "SET enable_progress_bar = false;")
   return(con)
+}
+
+#' Storage Locations for the DuckDB Connections
+#'
+#' isoformic uses no DuckDB extension or secret, so extensions, secrets and
+#' spill files go to a per-session directory under [tempdir()]. Setting them
+#' explicitly keeps duckdb from announcing its storage location on every new
+#' session and from offering to create `~/.duckdb` in interactive sessions.
+#' A `duckdb.home` option or `DUCKDB_R_HOME` variable set by the user wins.
+#'
+#' @returns A named list for the `config` argument of [duckdb::duckdb()].
+#'
+#' @keywords internal
+#' @noRd
+duckdb_storage_config <- function() {
+  if (
+    !is.null(getOption("duckdb.home")) || nzchar(Sys.getenv("DUCKDB_R_HOME"))
+  ) {
+    return(list())
+  }
+  root <- fs::path(tempdir(), "isoformic-duckdb")
+  list(
+    extension_directory = as.character(fs::path(root, "extensions")),
+    secret_directory = as.character(fs::path(root, "stored_secrets")),
+    temp_directory = as.character(fs::path(root, "tmp"))
+  )
 }
 
 #' Run One or More DuckDB SQL Statements

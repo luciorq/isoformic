@@ -372,7 +372,7 @@ testthat::test_that("check_terminus_env creates the environment and reports fail
   )
   check_terminus_env("my-env")
   testthat::expect_identical(created$args$env_name, "my-env")
-  testthat::expect_identical(created$args$package, "bioconda::terminus==0.1.0")
+  testthat::expect_identical(created$args$packages, "bioconda::terminus==0.1.0")
   testthat::local_mocked_bindings(
     create_env = function(...) stop("no network", call. = FALSE),
     .package = "condathis"

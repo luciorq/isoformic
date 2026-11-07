@@ -3,16 +3,31 @@
 on:
   push:
     branches: [main, master]
+    paths:
+      - 'R/**'
+      - 'tests/**'
+      - '.lintr'
+      - '.github/workflows/lint.yaml'
   pull_request:
+    paths:
+      - 'R/**'
+      - 'tests/**'
+      - '.lintr'
+      - '.github/workflows/lint.yaml'
   workflow_dispatch:
 
 name: lint
 
 permissions: read-all
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -22,8 +37,10 @@ jobs:
         with:
           use-public-rspm: true
 
+      # The linters only need the package and its imports, not the Suggests.
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
+          dependencies: '"hard"'
           extra-packages: any::lintr, any::cyclocomp, local::.
           needs: lint
 

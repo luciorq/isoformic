@@ -555,7 +555,8 @@ read_matrix_market <- function(path, envir = parent.frame()) {
       class = "isoformic_invalid_oarfish_sc"
     )
   }
-  dims <- as.integer(strsplit(trimws(line), "\\s+")[[1L]])
+  # A malformed line gives NA, reported by the error below.
+  dims <- suppressWarnings(as.integer(strsplit(trimws(line), "\\s+")[[1L]]))
   if (length(dims) != 3L || anyNA(dims)) {
     cli::cli_abort(
       message = c(

@@ -252,11 +252,13 @@ run_terminus <- function(
     invisible(folders[[i]])
   }
   if (workers > 1L && .Platform$OS.type == "unix") {
-    done <- parallel::mclapply(
+    # A failed sample comes back as a try-error, reported by the error below;
+    # mclapply's generic warning about it adds nothing.
+    done <- suppressWarnings(parallel::mclapply(
       seq_len(nrow(dirs)),
       group_one,
       mc.cores = workers
-    )
+    ))
     failed <- vapply(done, inherits, logical(1L), what = "try-error")
     if (any(failed)) {
       cli::cli_abort(
@@ -313,7 +315,7 @@ create_terminus_env <- function(
 ) {
   rlang::check_installed("condathis")
   condathis::create_env(
-    package = paste0("bioconda::terminus==", version),
+    packages = paste0("bioconda::terminus==", version),
     env_name = env_name,
     additional_channels = "bioconda",
     verbose = "output",

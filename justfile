@@ -53,6 +53,13 @@ github_org := 'luciorq'
   R -q -s -e 'withr::with_envvar(new=list(`TESTTHAT_CPUS`=4),code={withr::with_options(list(crayon.enabled=FALSE,cli.unicode=FALSE),code={devtools::load_all(quiet=TRUE);devtools::test(pkg=".");})});';
   \builtin echo "All tests passed!";
 
+# Run All Unit Tests Including The Full-Data Tests (downloads GENCODE, runs Salmon)
+@test-full:
+  #!/usr/bin/env bash
+  \builtin set -euo pipefail;
+  ISOFORMIC_FULL=true R -q -s -e 'withr::with_options(list(crayon.enabled=FALSE,cli.unicode=FALSE),code={devtools::load_all(quiet=TRUE);devtools::test(pkg=".");})';
+  \builtin echo "All tests passed!";
+
 # Run Documentation Examples
 @examples:
   #!/usr/bin/env bash
@@ -94,6 +101,12 @@ github_org := 'luciorq'
   #!/usr/bin/env bash
   \builtin set -euo pipefail;
   R -q -s -e 'devtools::load_all(quiet=TRUE);pkgdown::build_articles();';
+
+# Render Articles Locally Running The GENCODE-Based Code Too
+@render-articles-full:
+  #!/usr/bin/env bash
+  \builtin set -euo pipefail;
+  ISOFORMIC_FULL=true R -q -s -e 'devtools::load_all(quiet=TRUE);pkgdown::build_articles();';
 
 # Build and Lint README File
 @build-readme: lint

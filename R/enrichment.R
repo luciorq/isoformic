@@ -253,7 +253,7 @@ run_fgsea_by_type <- function(
     ranks <- stats::setNames(sub$log2FC, sub[[rank_id]])
     ranks <- ranks[!duplicated(names(ranks))]
     ranks <- sort(ranks)
-    res <- fgsea::fgseaMultilevel(
+    res <- fgsea_multilevel(
       pathways = tx_sets,
       stats = ranks,
       minSize = min_size,
@@ -269,6 +269,20 @@ run_fgsea_by_type <- function(
     res
   })
   dplyr::bind_rows(results)
+}
+
+#' Run `fgsea::fgseaMultilevel()` serially unless asked otherwise
+#'
+#' Without `BPPARAM` or `nproc`, fgsea uses `BiocParallel::bpparam()`, which
+#' starts socket workers (`SnowParam`) on Windows; they can hang R CMD check.
+#' @keywords internal
+#' @noRd
+fgsea_multilevel <- function(...) {
+  args <- list(...)
+  if (is.null(args[["BPPARAM"]]) && is.null(args[["nproc"]])) {
+    args[["BPPARAM"]] <- BiocParallel::SerialParam()
+  }
+  do.call(fgsea::fgseaMultilevel, args)
 }
 
 #' @rdname enrichment

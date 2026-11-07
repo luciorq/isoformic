@@ -1,0 +1,51 @@
+# Runs the full-data tests (`tests/testthat/test-full.R`): they download
+# + GENCODE and install and run Salmon through condathis, so they are off in
+# + the other workflows and run here with `ISOFORMIC_FULL=true`, weekly, on
+# + releases and on demand.
+---
+on:
+  release:
+    types: [published]
+
+  schedule:
+    # Runs every Sunday at 03 AM ET - 7:00 UTC
+    - cron: '0 7 * * 0'
+
+  workflow_dispatch:
+
+name: full-check
+
+permissions: read-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  full-check:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule' || github.repository == 'luciorq/isoformic'
+    timeout-minutes: 90
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      ISOFORMIC_FULL: 'true'
+      NOT_CRAN: 'true'
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::testthat, local::.
+          needs: check
+
+      - name: Run the tests with the full data
+        run: |
+          testthat::test_local(
+            reporter = testthat::ProgressReporter$new(show_praise = FALSE),
+            stop_on_failure = TRUE
+          )
+        shell: Rscript {0}

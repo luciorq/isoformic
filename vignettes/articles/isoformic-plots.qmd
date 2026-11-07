@@ -25,7 +25,26 @@ knitr:
 ```{r}
 #| label: setup
 #| include: false
-knitr::opts_chunk$set(echo = TRUE)
+# The code downloads and parses GENCODE: it runs only with ISOFORMIC_FULL=true.
+full_run <- identical(Sys.getenv("ISOFORMIC_FULL"), "true")
+knitr::opts_chunk$set(echo = TRUE, eval = full_run)
+```
+
+```{r}
+#| label: full-run-note
+#| echo: false
+#| eval: true
+#| results: asis
+if (!full_run) {
+  cat(
+    "::: {.callout-note}\n",
+    "The code of this article was not run for this build of the site: it ",
+    "downloads and parses the GENCODE annotation. ",
+    "Set the environment variable `ISOFORMIC_FULL=true` to run it.\n",
+    ":::\n",
+    sep = ""
+  )
+}
 ```
 
 Three plots show a gene and its isoforms from three angles: the fold-change of each isoform next to that of the gene, the expression of each isoform across conditions and the exon-intron structure of each isoform along the genome.

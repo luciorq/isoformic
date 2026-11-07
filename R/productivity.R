@@ -916,7 +916,7 @@ S7::method(run_productivity_enrichment, IsoformicExperiment) <- function(
   pf <- pf[!is.na(pf$delta_productive_fraction) & !is.na(pf$gene_name), ]
   pf <- pf[!duplicated(pf$gene_name), ]
   ranks <- sort(stats::setNames(pf$delta_productive_fraction, pf$gene_name))
-  res <- fgsea::fgseaMultilevel(
+  res <- fgsea_multilevel(
     pathways = genesets_list,
     stats = ranks,
     minSize = min_size,

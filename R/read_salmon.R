@@ -103,10 +103,13 @@ read_salmon <- function(
       .con = con
     )
   )
+  # The `IN` list makes the PIVOT a single static SELECT; without it DuckDB
+  # plans several statements and duckdb >= 2.0 warns while counting the rows.
   pivot <- function(value_col) {
     sql <- glue::glue_sql(
       "PIVOT (SELECT sample_id, transcript_id, {DBI::SQL(value_col)} AS v FROM quants)
-       ON sample_id USING first(v) ORDER BY transcript_id",
+       ON sample_id IN ({unname(sample_ids)*}) USING first(v)
+       ORDER BY transcript_id",
       .con = con
     )
     df <- DBI::dbGetQuery(con, sql)

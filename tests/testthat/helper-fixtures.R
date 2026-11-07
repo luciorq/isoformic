@@ -366,3 +366,15 @@ usage_experiment <- function(
     c_genes = sprintf("g%d", c_genes)
   )
 }
+
+# Full run gate -----------------------------------------------------------------
+#
+# Tests that download references or install and run external tools run only
+# with `ISOFORMIC_FULL=true` (`just test-full`, the `full-check` workflow).
+skip_if_not_full <- function() {
+  testthat::skip_on_cran()
+  testthat::skip_if_not(
+    identical(Sys.getenv("ISOFORMIC_FULL"), "true"),
+    message = "Full-data test; set ISOFORMIC_FULL=true to run it."
+  )
+}

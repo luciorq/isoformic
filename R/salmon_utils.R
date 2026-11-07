@@ -19,7 +19,7 @@ create_salmon_env <- function(
 ) {
   rlang::check_installed("condathis")
   condathis::create_env(
-    package = paste0("bioconda::salmon==", version),
+    packages = paste0("bioconda::salmon==", version),
     env_name = env_name,
     additional_channels = "bioconda",
     verbose = "output",

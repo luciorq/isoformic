@@ -1,5 +1,11 @@
 # Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
 # Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+
+# Pushes and pull requests build the site in the fast mode: the articles that
+# + download and parse GENCODE show their code without running it. Releases,
+# + the weekly schedule and manual dispatches (`full`, on by default) set
+# + `ISOFORMIC_FULL=true`, run every article and are the only builds that
+# + deploy, so the published site always has the full output.
 ---
 on:
   push:
@@ -19,7 +25,16 @@ on:
   release:
     types: [published]
 
+  schedule:
+    # Runs every Sunday at 02 AM ET - 6:00 UTC
+    - cron: '0 6 * * 0'
+
   workflow_dispatch:
+    inputs:
+      full:
+        description: 'Run every article (ISOFORMIC_FULL=true) and deploy'
+        type: boolean
+        default: true
 
 name: pkgdown
 
@@ -28,11 +43,14 @@ permissions: read-all
 jobs:
   pkgdown:
     runs-on: ubuntu-latest
+    if: github.event_name != 'schedule' || github.repository == 'luciorq/isoformic'
+    timeout-minutes: 120
     # Only restrict concurrency for non-PR jobs
     concurrency:
       group: pkgdown-${{ github.event_name != 'pull_request' || github.run_id }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      ISOFORMIC_FULL: ${{ (github.event_name == 'release' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.full)) && 'true' || 'false' }}
     permissions:
       contents: write
     steps:
@@ -51,12 +69,21 @@ jobs:
           extra-packages: any::pkgdown, local::.
           needs: website
 
+      # GENCODE and the annotation built from it land in the package cache;
+      # + keep them between the full builds.
+      - name: Cache the isoformic downloads
+        if: env.ISOFORMIC_FULL == 'true'
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/R/isoformic
+          key: isoformic-cache-${{ runner.os }}-gencode-v33
+
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
         shell: Rscript {0}
 
-      - name: Deploy to GitHub pages 🚀
-        if: github.event_name != 'pull_request'
+      - name: Deploy to GitHub pages
+        if: github.event_name != 'pull_request' && env.ISOFORMIC_FULL == 'true'
         uses: JamesIves/github-pages-deploy-action@v4.9.0
         with:
           clean: false
