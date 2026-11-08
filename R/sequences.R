@@ -203,13 +203,15 @@ stream_fasta <- function(path, keep, on_record, chunk_bytes = 64e6) {
       )
     }
   }
+  # The file is read in binary mode, so Windows (CRLF) line endings keep
+  # their `\r`; it is dropped together with the `\n`.
   add_sequence <- function(text) {
     if (current_kept && nzchar(text)) {
       acc$pieces[[length(acc$pieces) + 1L]] <- gsub(
-        "\n",
+        "[\r\n]+",
         "",
         text,
-        fixed = TRUE
+        perl = TRUE
       )
     }
   }

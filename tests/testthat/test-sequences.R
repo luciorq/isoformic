@@ -275,3 +275,25 @@ testthat::test_that("stream_fasta keeps records longer than 1e6 characters intac
   testthat::expect_identical(got$big2, long_seq)
   testthat::expect_identical(got$small, "ACGT")
 })
+
+testthat::test_that("stream_fasta drops the carriage returns of CRLF files", {
+  # writeLines() writes CRLF on Windows; the binary reader once kept the `\r`
+  path <- withr::local_tempfile(fileext = ".fa")
+  con <- file(path, open = "wb")
+  writeLines(
+    c(">chr1 synthetic", "ACGTACGTAC", "GTACGT", ">chr2", "TTTT"),
+    con,
+    sep = "\r\n"
+  )
+  close(con)
+  got <- new.env()
+  stream_fasta(
+    path,
+    keep = function(name) TRUE,
+    on_record = function(name, sequence) assign(name, sequence, envir = got),
+    chunk_bytes = 7
+  )
+  testthat::expect_setequal(ls(got), c("chr1", "chr2"))
+  testthat::expect_identical(got$chr1, "ACGTACGTACGTACGT")
+  testthat::expect_identical(got$chr2, "TTTT")
+})
