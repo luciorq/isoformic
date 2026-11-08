@@ -127,11 +127,11 @@ derived from the genome are what classify them as productive or not.
 sessionInfo()
 #> R version 4.6.2 (2026-10-29)
 #> Platform: x86_64-pc-linux-gnu
-#> Running under: Ubuntu 24.04.5 LTS
+#> Running under: Ubuntu 26.04.1 LTS
 #> 
 #> Matrix products: default
 #> BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
-#> LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so;  LAPACK version 3.12.0
+#> LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.32.so;  LAPACK version 3.12.0
 #> 
 #> locale:
 #>  [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
@@ -150,7 +150,7 @@ sessionInfo()
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] compiler_4.6.2  fastmap_1.2.0   cli_3.6.6       tools_4.6.2    
-#>  [5] htmltools_0.5.9 otel_0.2.0      yaml_2.3.12     rmarkdown_2.32 
+#>  [5] htmltools_0.5.9 otel_0.3.0      yaml_2.3.12     rmarkdown_2.32 
 #>  [9] knitr_1.52      S7_0.2.2        jsonlite_2.0.0  xfun_0.62      
 #> [13] digest_0.6.39   rlang_1.3.0     evaluate_1.0.5
 ```

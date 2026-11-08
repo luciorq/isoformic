@@ -88,17 +88,22 @@ from a transcript FASTA) are reported and left out.
 gff <- system.file("extdata", "example.gff3", package = "isoformic")
 fasta <- system.file("extdata", "example_transcripts.fa.gz", package = "isoformic")
 annot <- prepare_isoformic_annotation(gff, output_path = tempdir(), annot_name = "seq_demo")
-#> ℹ Parsing example.gff3 (GFF) into /tmp/Rtmp2Tt1au/seq_demo.
+#> ℹ Parsing example.gff3 (GFF) into /tmp/RtmpV2WK1u/seq_demo.
 extract_transcript_sequences(annot, transcript_fasta = fasta, overwrite = TRUE)
-#> Error in assert_file_exists(transcript_fasta): ✖ `transcript_fasta` must be the path to an existing file.
-#> ℹ Received: .
+#> ✔ Wrote 72 transcript sequences to
+#>   /tmp/RtmpV2WK1u/seq_demo/annot_data_sequences.parquet.
 has_sequences(annot)
-#> [1] FALSE
+#> [1] TRUE
 head(transcript_sequences(annot)[, c("transcript_id", "seq_length")])
-#> Error in read_annotation_table(annot_dir, "sequences"): ✖ The annotation in /tmp/Rtmp2Tt1au/seq_demo has no transcript
-#>   sequences.
-#> ℹ Add them with `extract_transcript_sequences()` from a genome or transcript
-#>   FASTA.
+#> # A tibble: 6 × 2
+#>   transcript_id     seq_length
+#>   <chr>                  <int>
+#> 1 ENST00000282397.9       7123
+#> 2 ENST00000615611.4       1476
+#> 3 ENST00000617835.4        434
+#> 4 ENST00000543394.2       1275
+#> 5 ENST00000540678.2       1927
+#> 6 ENST00000541932.5       2969
 
 if (FALSE) { # \dontrun{
 # From a genome FASTA (covers novel transcripts of any annotation)

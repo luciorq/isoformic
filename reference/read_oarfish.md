@@ -104,7 +104,7 @@ annot <- system.file(
 )
 iso <- read_oarfish(prefixes, annot_path = annot, inferential = TRUE)
 iso
-#> <IsoformicExperiment> isoformic_4052008d1e
+#> <IsoformicExperiment> isoformic_382cc0e633
 #>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)
 #>   samples    : 3 [oarfish_num_processed, oarfish_num_mapped, oarfish_percent_mapped, oarfish_replicate_type, oarfish_num_replicates, oarfish_optimiser, oarfish_alignment_source, oarfish_prob_model, oarfish_qc_flag]
 #>   transcripts: 72 assayed from 3 genes

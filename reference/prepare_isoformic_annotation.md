@@ -135,7 +135,7 @@ when no biotype attribute exists.
 ``` r
 gff <- system.file("extdata", "example.gff3", package = "isoformic")
 annot_dir <- prepare_isoformic_annotation(gff, output_path = tempdir())
-#> ℹ Using cached annotation directory /tmp/Rtmp2Tt1au/example.
+#> ℹ Using cached annotation directory /tmp/RtmpV2WK1u/example.
 list.files(annot_dir)
 #> [1] "annot_data_exons.parquet"       "annot_data_genes.parquet"      
 #> [3] "annot_data_transcripts.parquet" "annot_metadata.parquet"        

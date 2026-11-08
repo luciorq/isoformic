@@ -297,9 +297,6 @@ col_data <- data.frame(
   condition = rep(c("control", "treatment"), each = 3)
 )
 iso <- read_salmon(quant_dirs, annot_path = annot, col_data = col_data)
-#> Warning: NAs introduced by coercion
-#> Warning: NAs introduced by coercion
-#> Warning: NAs introduced by coercion
 
 # With your own data, `read_salmon(dirs, annot, inferential = TRUE)` or
 # `add_uncertainty(iso, paths = dirs)` read the replicates that

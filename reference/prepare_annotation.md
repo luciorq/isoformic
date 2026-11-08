@@ -44,7 +44,7 @@ and a named list `metadata`.
 ``` r
 gff <- system.file("extdata", "example.gff3", package = "isoformic")
 annot <- prepare_annotation(gff, output_path = tempdir())
-#> ℹ Using cached annotation directory /tmp/Rtmp2Tt1au/example.
+#> ℹ Using cached annotation directory /tmp/RtmpV2WK1u/example.
 names(annot)
 #> [1] "genes"       "transcripts" "exons"       "seq_regions" "metadata"   
 head(annot$genes)

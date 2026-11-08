@@ -74,14 +74,6 @@ type_labels <- c(
 ``` r
 
 by_type <- stability("by_type")
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpkiuR24/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 by_type |>
   select(type, isoforms, median_reads, median_isoforms_in_gene, median_unique_fraction, median_inf_rv, cutoff_flip, tree_changed)
 #> # A tibble: 6 × 8
@@ -138,14 +130,6 @@ group, the uncertain ones; for lncRNAs they are as frequent among those:
 
 stability("tree_uncertainty") |>
   filter(type %in% c("protein_coding", "retained_intron", "lncRNA"))
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpkiuR24/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 #> # A tibble: 6 × 5
 #>   type            uncertain isoforms cutoff_flip tree_changed
 #>   <chr>           <lgl>        <int>       <dbl>        <dbl>
@@ -165,14 +149,6 @@ within the three largest types:
 ``` r
 
 bins <- stability("feature_bins")
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpkiuR24/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 bins |>
   filter(
     feature %in% c("reads", "unique_fraction", "isoforms_in_gene", "tx_length", "closest_bp", "unique_bp", "n_exons", "gc"),
@@ -289,14 +265,6 @@ feature:
 ``` r
 
 importance <- stability("importance")
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpkiuR24/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 importance |>
   mutate(
     outcome = c(
@@ -319,14 +287,6 @@ importance |>
 ``` r
 
 stability("model_fit")
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpkiuR24/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 #> # A tibble: 2 × 3
 #>   outcome             r_squared isoforms
 #>   <chr>                   <dbl>    <int>
@@ -355,14 +315,6 @@ stability("model_terms") |>
   filter(!grepl("^type|Intercept", term)) |>
   select(outcome, term, estimate, p_value) |>
   tidyr::pivot_wider(names_from = outcome, values_from = c(estimate, p_value))
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpkiuR24/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 #> # A tibble: 13 × 7
 #>    term         estimate_log_inf_rv estimate_log_rv_disa…¹ estimate_tree_changed
 #>    <chr>                      <dbl>                  <dbl>                 <dbl>
@@ -427,11 +379,11 @@ from it, and reads from them, are outside this picture.
 sessionInfo()
 #> R version 4.6.2 (2026-10-29)
 #> Platform: x86_64-pc-linux-gnu
-#> Running under: Ubuntu 24.04.5 LTS
+#> Running under: Ubuntu 26.04.1 LTS
 #> 
 #> Matrix products: default
 #> BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
-#> LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so;  LAPACK version 3.12.0
+#> LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.32.so;  LAPACK version 3.12.0
 #> 
 #> locale:
 #>  [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
@@ -454,7 +406,7 @@ sessionInfo()
 #>  [9] R6_2.6.1           labeling_0.4.3     generics_0.1.4     knitr_1.52        
 #> [13] tibble_3.3.1       DBI_1.3.0          pillar_1.11.1      RColorBrewer_1.1-3
 #> [17] rlang_1.3.0        utf8_1.2.6         xfun_0.62          fs_2.1.0          
-#> [21] S7_0.2.2           otel_0.2.0         cli_3.6.6          withr_3.0.3       
+#> [21] S7_0.2.2           otel_0.3.0         cli_3.6.6          withr_3.0.3       
 #> [25] magrittr_2.0.5     digest_0.6.39      grid_4.6.2         lifecycle_1.0.5   
 #> [29] vctrs_0.7.3        evaluate_1.0.5     glue_1.8.1         farver_2.1.2      
 #> [33] duckdb_2.0.0       purrr_1.2.2        rmarkdown_2.32     tools_4.6.2       

@@ -112,11 +112,11 @@ article](https://luciorq.github.io/isoformic/articles/isoformic-productivity.md)
 sessionInfo()
 #> R version 4.6.2 (2026-10-29)
 #> Platform: x86_64-pc-linux-gnu
-#> Running under: Ubuntu 24.04.5 LTS
+#> Running under: Ubuntu 26.04.1 LTS
 #> 
 #> Matrix products: default
 #> BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
-#> LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so;  LAPACK version 3.12.0
+#> LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.32.so;  LAPACK version 3.12.0
 #> 
 #> locale:
 #>  [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
@@ -143,7 +143,7 @@ sessionInfo()
 #> [19] tibble_3.3.1        DBI_1.3.0           RColorBrewer_1.1-3 
 #> [22] pillar_1.11.1       rlang_1.3.0         utf8_1.2.6         
 #> [25] fastmatch_1.1-8     xfun_0.62           fs_2.1.0           
-#> [28] S7_0.2.2            otel_0.2.0          cli_3.6.6          
+#> [28] S7_0.2.2            otel_0.3.0          cli_3.6.6          
 #> [31] withr_3.0.3         magrittr_2.0.5      digest_0.6.39      
 #> [34] grid_4.6.2          fgsea_1.38.0        cowplot_1.2.0      
 #> [37] lifecycle_1.0.5     vctrs_0.7.3         data.table_1.18.6.1

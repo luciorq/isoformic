@@ -80,7 +80,7 @@ txi <- list(abundance = assay(iso, "abundance"), counts = assay(iso, "counts"))
 annot <- system.file("extdata", "example_experiment", "annotation", package = "isoformic")
 iso2 <- as_isoformic(txi, annot_path = annot, col_data = col_data(iso))
 iso2
-#> <IsoformicExperiment> isoformic_58980173eb
+#> <IsoformicExperiment> isoformic_8f3c1587e6
 #>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)
 #>   samples    : 25 [condition]
 #>   transcripts: 499 assayed from 69 genes

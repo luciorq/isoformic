@@ -93,9 +93,6 @@ iso <- read_salmon(
     condition = rep(c("control", "treatment"), each = 3)
   )
 )
-#> Warning: NAs introduced by coercion
-#> Warning: NAs introduced by coercion
-#> Warning: NAs introduced by coercion
 iso@metadata$inf_reps <- as_inferential_replicates(read_parquet(
   file.path(extdata, "mini_draws.parquet")
 ))
