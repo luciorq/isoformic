@@ -104,6 +104,21 @@ jobs:
           extra-packages: any::rcmdcheck
           needs: check
 
+      # On Windows, R CMD check hangs after a test failure, before it names
+      # + the failing test. Run the tests directly first, so a failure is
+      # + reported in full and stops the job.
+      - name: Run the tests directly (Windows)
+        if: runner.os == 'Windows'
+        timeout-minutes: 15
+        env:
+          NOT_CRAN: 'true'
+        run: |
+          testthat::test_local(
+            reporter = testthat::SummaryReporter$new(),
+            stop_on_failure = TRUE
+          )
+        shell: Rscript {0}
+
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
