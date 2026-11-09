@@ -274,6 +274,10 @@ col_data(iso_sc)
 From here the object is analysed like the one of the introduction: [transcriptomic diversity](isoformic-diversity.html), [isoform structure and productivity](isoformic-productivity.html), [alternative polyadenylation](isoformic-polyadenylation.html), [enrichment by transcript type](isoformic-enrichment.html) and [plots](isoformic-plots.html).
 The inferential replicates imported above can be stored in `metadata(iso)$inf_reps` so that `productive_fraction()` reports the uncertainty of each fraction.
 
+## Citing isoformic
+
+If you use `isoformic` in publications, please cite @isoformic; `citation("isoformic")` prints the reference.
+
 ## Session information
 
 ```{r}

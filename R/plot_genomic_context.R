@@ -269,6 +269,11 @@ plot_exon_table <- function(
     ) |>
     dplyr::arrange(.data$gene_name, .data$transcript_type, .data$tx_start) |>
     dplyr::mutate(y = rev(seq_len(dplyr::n())), .by = "gene_name")
+  # Each gene gets its own band of rows, so that with `scales = "free"` every
+  # facet shows only the y-axis labels of its own transcripts.
+  gene_offset <- cumsum(c(0L, utils::head(table(tx$gene_name), -1L) + 2L))
+  names(gene_offset) <- sort(unique(tx$gene_name))
+  tx$y <- tx$y + unname(gene_offset[tx$gene_name])
   tx$label <- tx$transcript_name
   if (!is.null(expression)) {
     expr <- expression[tx$transcript_id]
@@ -384,15 +389,9 @@ plot_exon_table <- function(
         linetype = "dashed"
       )
   }
+  # The transcript names are the y-axis labels: they line up with their
+  # track and never overlap a transcript that starts at the left edge.
   p <- p +
-    ggplot2::geom_text(
-      data = tx,
-      ggplot2::aes(x = -Inf, y = .data$y, label = .data$label),
-      hjust = 0,
-      size = 3,
-      color = "grey20",
-      position = ggplot2::position_nudge(y = half + 0.3)
-    ) +
     ggplot2::scale_fill_manual(values = palette, name = "Transcript type") +
     ggplot2::scale_color_manual(values = palette, guide = "none") +
     ggplot2::scale_x_continuous(
@@ -400,13 +399,16 @@ plot_exon_table <- function(
       expand = ggplot2::expansion(mult = c(0.01, 0.02))
     ) +
     ggplot2::scale_y_continuous(
-      breaks = NULL,
-      expand = ggplot2::expansion(add = c(0.6, 0.9))
+      breaks = tx$y,
+      labels = tx$label,
+      minor_breaks = NULL,
+      expand = ggplot2::expansion(add = 0.6)
     ) +
     ggplot2::labs(x = x_label, y = NULL) +
     isoformic_theme() +
     ggplot2::theme(
       panel.grid.major.y = ggplot2::element_blank(),
+      axis.text.y = ggplot2::element_text(size = 8, color = "grey20"),
       legend.position = "bottom"
     )
   if (length(unique(tx$gene_name)) > 1L) {

@@ -34,3 +34,6 @@ docs
 vignettes/_quarto.yaml
 vignettes/**/*.rmarkdown
 vignettes/**/*_files/
+
+# Local pointer to .github/devdocs/CLAUDE.md for Claude Code
+/CLAUDE.md

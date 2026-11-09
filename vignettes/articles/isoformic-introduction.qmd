@@ -206,6 +206,10 @@ de_tx(iso) <- read_parquet(fs::path(extdata, "pe_det.parquet"))
 de_gene(iso) <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
 ```
 
+## Citing isoformic
+
+If you use `isoformic` in publications, please cite @isoformic; `citation("isoformic")` prints the reference.
+
 ## Session information
 
 ```{r}

@@ -126,9 +126,15 @@ feats <- transcript_features(annot_dir, gene_name = "RBPJ")
 feats[, c("transcript_name", "orf_length", "utr3_length", "nmd_predicted", "tss_group")]
 ```
 
+## Citing isoformic
+
+If you use `isoformic` in publications, please cite @isoformic; `citation("isoformic")` prints the reference.
+
 ## Session information
 
 ```{r}
 #| label: session-info
 sessionInfo()
 ```
+
+## References

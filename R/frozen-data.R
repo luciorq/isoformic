@@ -175,7 +175,7 @@ frozen_registry <- function() {
       title = "NMD-inducing exons validated by NMD inhibition (Karousis et al. 2021)",
       version = "karousis2021",
       file = "nmd_exons_karousis2021.parquet",
-      md5 = "503dcb2a2e7d29a35f30456a303706cd",
+      md5 = "729c344fd40f8d83948ad1ebdf4d80f1",
       sources = paste0(
         "https://static-content.springer.com/esm/art%3A10.1186%2Fs13059-021-02439-3/",
         "MediaObjects/13059_2021_2439_MOESM2_ESM.xlsx"

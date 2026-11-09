@@ -47,5 +47,5 @@
 ^\.rumdl_cache$
 ^\.lintr_cache$
 
-^CLAUDE\.md$
 ^jarl\.toml$
+^CLAUDE\.md$

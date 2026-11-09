@@ -26,6 +26,11 @@ articles:
       - articles/isoformic-polyadenylation
       - articles/isoformic-enrichment
       - articles/isoformic-plots
+  - title: Case studies
+    navbar: Case studies
+    contents:
+      - articles/isoformic-case-mouse-stress
+      - articles/isoformic-case-long-reads
   - title: Annotations and tables
     navbar: Annotations and tables
     contents:
