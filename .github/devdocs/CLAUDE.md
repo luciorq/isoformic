@@ -26,3 +26,7 @@
   (`just extdata`); the coding potential model and the frozen evidence
   datasets have their own scripts and update procedure in
   `data-raw/README.md` (`just coding-model`, `just frozen-data`).
+- Case study articles (`isoformic-case-*.qmd`) run on every site build from
+  the processed bundles in `vignettes/articles/data/`; rebuild them with
+  `data-raw/case_studies/` (see the header of `build_case_studies.R`). Base
+  their text on the rebuilt results and check every number they state.

@@ -262,6 +262,15 @@ analysis and plot is now first a method on the object.
   `plot_enrichment()` and `read_gmt()`.
 * `summarize_to_gene()` is exported and sums isoforms (abundance-weighted
   mean for `length` assays, as `tximport` does).
+* Case study articles built from complete public datasets: chronic stress
+  in the male mouse adBNST (PRJNA984605, Salmon and swish with batch
+  adjustment) and a CLK inhibitor in prostate cancer cells sequenced with
+  Oxford Nanopore long reads (GSE259334, Oarfish and swish on the bootstrap
+  replicates) (#12). The processed bundles live in `vignettes/articles/data/`
+  (not installed) and are rebuilt from the SRA reads by the scripts in
+  `data-raw/case_studies/`.
+* The articles cite the isoformic paper (#24, #25) and `inst/CITATION`
+  carries its DOI.
 
 ### Changed
 
@@ -271,6 +280,11 @@ analysis and plot is now first a method on the object.
   isoforms); it no longer needs `plotgardener`, `txdbmaker`, `TxDb`, `OrgDb`
   or `BSgenome` packages. `plot_tx_context()` is now an alias of its data
   frame method and accepts the legacy column names.
+* `plot_genomic_context()` labels each transcript on the y axis, aligned
+  with its track (the labels floated above the tracks and overlapped
+  transcripts starting at the left edge), and prints expression labels
+  without padded zeros. As a plain `ggplot2` object it renders the same on
+  every graphics device, including Cairo and the RStudio plot panel (#21).
 * `plot_log2fc()` facets several genes, orders the gene bar first and uses a
   common theme; `plot_log2FC()` is kept as a wrapper.
 * `plot_tx_expr()` and `run_enrichment()` are S7 generics whose first
@@ -297,6 +311,22 @@ analysis and plot is now first a method on the object.
 * Development tooling: `jarl.toml` (all jarl rules), a `jarl-check` GitHub
   workflow, lint and test-coverage workflows, and justfile recipes aligned
   with `condathis`.
+
+### Fixed
+
+* `run_enrichment()` and `run_productivity_enrichment()` run `fgsea` with
+  `BiocParallel::SerialParam()` unless `BPPARAM` or `nproc` is given; the
+  default socket cluster failed (`serialize()` errors) or hung on Windows
+  (#9).
+* `stream_fasta()` drops the carriage returns of Windows (CRLF) FASTA files.
+* DuckDB connections set their extension, secret and temporary directories
+  under the session temporary directory, which silences the storage warnings
+  of DuckDB 2.0.
+* `build_frozen_nmd_exons()` no longer replaces the Ensembl `gene_id` with
+  the StringTie `GeneID` of the source table.
+* The default tests, examples and site build use only the bundled data;
+  everything that downloads references or runs external tools runs only with
+  `ISOFORMIC_FULL=true`.
 
 ### Removed
 

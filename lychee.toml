@@ -1,0 +1,10 @@
+# Link checker configuration (`just lint` runs `lychee --no-progress .`)
+
+# GMT gene set files are data: their second column holds the MSigDB page of
+# each set at the release they were taken from, and MSigDB removes pages of
+# renamed or retired sets.
+exclude_path = ['\.gmt(\.txt)?$']
+
+# Oxford University Press answers automated clients with 403 Forbidden;
+# its DOIs resolve in a browser.
+exclude = ['^https://doi\.org/10\.1093/', '^https://academic\.oup\.com/']

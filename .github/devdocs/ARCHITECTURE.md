@@ -140,6 +140,18 @@ Measured on 2026-10-15 with `Rscript` on a laptop.
   the draws in `compute_de_confidence()`. Equivalence classes cannot be
   subset, so the per-transcript table of `equivalence_support()` is bundled
   and passed to `add_uncertainty(equivalence = <table>)`.
+- Case study data: `vignettes/articles/data/<study>/` holds one
+  self-contained `write_isoformic()` directory per case study article
+  (`mouse_bnst`, `prostate_ont`), outside the package (`vignettes/articles`
+  is in `.Rbuildignore`). `data-raw/case_studies/quantify_*.sh` download the
+  reads from NCBI SRA (S3 mirror; ENA is far slower from the US) and run
+  Salmon or Oarfish; `build_case_studies.R` runs swish and DESeq2 on the
+  complete quantifications and keeps the full DE tables, the annotation of
+  the tested genes and the assays and exons of a gene panel (5 to 7 MB per
+  study). The mouse study adjusts both tests for two batches found in the
+  sample PCA (`col_data$batch`). The work directory of the scripts is large
+  (60 GB per study); keep it on a data disk. Oarfish takes about 5 hours
+  per nanopore sample on 8 threads.
 
 ## Benchmark of the sequence rules (GENCODE v33, 227,979 transcripts with sequence)
 

@@ -281,7 +281,9 @@ plot_exon_table <- function(
     tx$label[has] <- sprintf(
       "%s  (%s)",
       tx$transcript_name[has],
-      format(signif(expr[has], 3), trim = TRUE)
+      # drop0trailing: format() pads every label to the decimals of the
+      # smallest value ("26.9000" next to "0.0411")
+      format(signif(expr[has], 3), trim = TRUE, drop0trailing = TRUE)
     )
   }
   tx$highlight <- tx$transcript_id %in%

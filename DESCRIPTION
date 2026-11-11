@@ -1,6 +1,6 @@
 Package: isoformic
 Title: Isoform-Level Biological Interpretation of Transcriptomic Data
-Version: 0.1.2.9022
+Version: 0.1.3
 Authors@R: c(
     person("Lucio Rezende", "Queiroz", , "luciorqueiroz@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0002-6090-1834")),
@@ -13,12 +13,13 @@ Authors@R: c(
     person("Gloria", "Franco", , "gfranco@ufmg.br", role = c("aut", "ctb"),
            comment = c(ORCID = "0000-0001-5245-2365"))
   )
-Description: Isoform-level biological interpretation of transcriptomic data.
-    Provides the 'IsoformicExperiment' class, a disk-backed (Parquet)
-    container holding transcript, gene and exon level data for the same
-    samples, fast DuckDB based readers for annotations and quantifications,
-    summaries of isoform usage and diversity, and plots of isoform-level
-    differential expression, expression profiles and genomic context.
+Description: Isoform-level biological interpretation of transcriptomic
+    data.  Provides the 'IsoformicExperiment' class, a disk-backed
+    (Parquet) container holding transcript, gene and exon level data for
+    the same samples, fast DuckDB based readers for annotations and
+    quantifications, summaries of isoform usage and diversity, and plots
+    of isoform-level differential expression, expression profiles and
+    genomic context.
 License: MIT + file LICENSE
 URL: https://github.com/luciorq/isoformic,
     https://luciorq.github.io/isoformic/
