@@ -60,7 +60,11 @@
 #'   `protein_coding` and canonical transcripts called productive.
 #' * `productivity_palette()` gives colours for the classes.
 #'
-#' @param self An [IsoformicExperiment].
+#' @param self An [IsoformicExperiment]. `run_productivity_enrichment()` also
+#'   takes the table of `productive_fraction()` for two or more groups, so
+#'   that one table serves several gene set collections; the arguments that
+#'   build the table (`group`, `levels`, `assay`, `include_altered`,
+#'   `min_expr`, `inf_reps`) are then ignored.
 #' @param gene_name Optional genes (names or IDs) to restrict the result to.
 #' @param nmd_rule Distance (nt) from the stop codon to the last junction
 #'   above which NMD is predicted; default 50.
@@ -77,15 +81,29 @@
 #' @param assay Transcript assay to use (default `"abundance"`;
 #'   `"counts"` for the test).
 #' @param group Name of a `col_data` column defining groups; `NULL` for
-#'   per-sample values.
-#' @param levels Order of the group levels; the change is `last - first`.
-#'   For the tests (`test_productive_fraction()`, `test_apa()`), the two
-#'   groups to compare; samples of other groups are ignored.
+#'   per-sample values. `run_productivity_enrichment()` requires it for an
+#'   [IsoformicExperiment] and ignores it for a `productive_fraction()` table.
+#' @param levels Levels of `group` to use, in this order; the change is
+#'   `last - first`. Samples of other groups are ignored, as if the object
+#'   had been subset to these samples, so every returned value comes from
+#'   the samples kept. `NULL` takes all the levels of `group`. The tests
+#'   (`test_productive_fraction()`, `test_apa()`) need exactly two levels.
 #' @param min_expr Minimum assay value for an isoform to contribute
 #'   (default 0): isoforms below it count as zero.
 #' @param inf_reps Optional list of transcript matrices (inferential
 #'   replicates with the same dimnames as the assay); `NULL` uses
-#'   `metadata(x)$inf_reps` when present.
+#'   `metadata(x)$inf_reps` when present and `FALSE` skips the replicates,
+#'   which leaves out the standard deviations and `delta_z` and is much
+#'   faster. `run_productivity_enrichment()` reads the replicates only for
+#'   `rank_by = "delta_z"`.
+#' @param rank_by Statistic that ranks the genes in
+#'   `run_productivity_enrichment()`: `"delta"` (default), the change in
+#'   productive fraction, or `"delta_z"`, that change divided by its
+#'   standard deviation over the inferential replicates, which moves the
+#'   genes with an uncertain change towards the middle of the ranking.
+#'   `"delta_z"` needs inferential replicates; a change that is the same in
+#'   every replicate gets the largest `delta_z` of the table. It reflects the
+#'   quantification uncertainty only, not the variation between samples.
 #' @param reference Optional tibble from [gtex_reference()], or a GTEx
 #'   tissue name, giving the healthy-tissue productive fraction per gene.
 #' @param as_matrix Logical, return the genes x samples matrix of
@@ -590,17 +608,31 @@ S7::method(productive_fraction, IsoformicExperiment) <- function(
   ...
 ) {
   pm <- productivity_matrix(self, assay, min_expr, include_altered)
-  fraction_of <- function(tx_mat) {
-    total <- rowsum(tx_mat, pm$gene_ids)
-    frac <- rowsum(tx_mat * pm$is_prod, pm$gene_ids) / total
-    frac[!is.finite(frac)] <- NA_real_
-    frac[rownames(frac) %in% pm$coding_genes, , drop = FALSE]
-  }
-  frac <- fraction_of(pm$tx_mat)
+  grp <- group_samples(self, group, colnames(pm$tx_mat), levels = levels)
+  groups <- grp$groups
+  # Only the transcripts of coding genes and the samples kept are summed
+  coding <- pm$gene_ids %in% pm$coding_genes
+  tx_mat <- pm$tx_mat[coding, grp$samples, drop = FALSE]
+  # The gene order of rowsum()
+  gene_levels <- sort(
+    unique(pm$gene_ids[coding]),
+    na.last = TRUE,
+    method = "quick"
+  )
+  gene_idx <- match(pm$gene_ids[coding], gene_levels)
+  is_prod <- pm$is_prod[coding]
+  total <- gene_sums(tx_mat, gene_idx, gene_levels)
+  frac <- gene_sums(
+    tx_mat[is_prod, , drop = FALSE],
+    gene_idx[is_prod],
+    gene_levels
+  ) /
+    total
+  # A total that is not finite gives no fraction
+  frac[!is.finite(frac) | !is.finite(total)] <- NA_real_
   if (isTRUE(as_matrix)) {
     return(frac)
   }
-  total <- rowsum(pm$tx_mat, pm$gene_ids)[rownames(frac), , drop = FALSE]
   genes <- self@annot_data_genes[, c("gene_id", "gene_name")]
   res <- tibble::tibble(
     gene_id = rownames(frac) %||% character(),
@@ -609,58 +641,64 @@ S7::method(productive_fraction, IsoformicExperiment) <- function(
     productive_fraction = as.vector(rowMeans(frac, na.rm = TRUE))
   )
   res$productive_fraction[is.nan(res$productive_fraction)] <- NA_real_
-  reps <- resolve_inf_reps(self, inf_reps, pm$tx_mat)
-  rep_fracs <- NULL
-  if (!is.null(reps)) {
-    rep_fracs <- lapply(reps, function(m) {
-      if (isTRUE(min_expr > 0)) {
-        m[m < min_expr] <- 0
-      }
-      fraction_of(m)[rownames(frac), , drop = FALSE]
-    })
-    per_sample_sd <- sqrt(
-      Reduce(
-        `+`,
-        lapply(rep_fracs, function(f) {
-          (f - frac)^2
-        })
-      ) /
-        length(rep_fracs)
-    )
-    res$productive_fraction_sd <- as.vector(rowMeans(
-      per_sample_sd,
-      na.rm = TRUE
-    ))
-    res$productive_fraction_sd[is.nan(res$productive_fraction_sd)] <- NA_real_
+  cols <- if (is.null(group)) {
+    list()
+  } else {
+    group_fraction_columns(frac, groups, "productive_fraction")
   }
-  if (!is.null(group)) {
-    groups <- sample_groups(self, group, colnames(frac), levels = levels)
-    cols <- group_fraction_columns(frac, groups, "productive_fraction")
-    for (nm in names(cols)) {
-      res[[nm]] <- cols[[nm]]
-    }
-    if (!is.null(rep_fracs) && "delta_productive_fraction" %in% names(cols)) {
-      rep_delta <- vapply(
-        rep_fracs,
-        function(f) {
+  has_delta <- "delta_productive_fraction" %in% names(cols)
+  reps <- resolve_inf_reps(self, inf_reps)
+  delta_sd <- NULL
+  if (!is.null(reps)) {
+    # One draw at a time: only the running sums are kept, never the fractions
+    # of all the draws
+    sq_dev <- matrix(0, nrow(frac), ncol(frac))
+    delta_stats <- running_moments(nrow(frac))
+    for (k in seq_along(reps)) {
+      draw_frac <- draw_productive_fraction(
+        reps[[k]],
+        tx_ids = rownames(tx_mat),
+        sample_ids = colnames(tx_mat),
+        gene_idx = gene_idx,
+        gene_levels = gene_levels,
+        is_prod = is_prod,
+        min_expr = min_expr
+      )
+      sq_dev <- sq_dev + (draw_frac - frac)^2
+      if (has_delta) {
+        delta_stats <- running_moments_add(
+          delta_stats,
           group_fraction_columns(
-            f,
+            draw_frac,
             groups,
             "productive_fraction"
           )$delta_productive_fraction
-        },
-        numeric(nrow(frac))
-      )
-      rep_delta <- matrix(rep_delta, nrow = nrow(frac))
-      res$delta_productive_fraction_sd <- as.vector(apply(
-        rep_delta,
-        1L,
-        stats::sd,
-        na.rm = TRUE
-      ))
+        )
+      }
+    }
+    res$productive_fraction_sd <- as.vector(rowMeans(
+      sqrt(sq_dev / length(reps)),
+      na.rm = TRUE
+    ))
+    res$productive_fraction_sd[is.nan(res$productive_fraction_sd)] <- NA_real_
+    if (has_delta) {
+      delta_sd <- running_moments_sd(delta_stats)
+    }
+  }
+  if (!is.null(group)) {
+    for (nm in names(cols)) {
+      res[[nm]] <- cols[[nm]]
+    }
+    if (!is.null(delta_sd)) {
+      res$delta_productive_fraction_sd <- delta_sd
       res$delta_z <- res$delta_productive_fraction /
         res$delta_productive_fraction_sd
       res$delta_z[!is.finite(res$delta_z)] <- NA_real_
+      # No change in any draw is a z-score of zero, not a missing one
+      no_change <- res$delta_productive_fraction %in%
+        0 &
+        res$delta_productive_fraction_sd %in% 0
+      res$delta_z[no_change] <- 0
     }
     if ("delta_productive_fraction" %in% names(cols)) {
       res <- dplyr::arrange(
@@ -698,50 +736,135 @@ S7::method(productive_fraction, IsoformicExperiment) <- function(
   filter_genes(res, gene_name)
 }
 
-#' Inferential replicates as a list of matrices aligned with `tx_mat`
+#' Inferential replicates to use, `NULL` when there are none
+#'
+#' `inf_reps = FALSE` switches the stored replicates off. The draws are
+#' returned as they are stored: `draw_productive_fraction()` reads the rows
+#' and columns it needs from each of them, without a copy of the whole draw.
 #' @keywords internal
 #' @noRd
-resolve_inf_reps <- function(self, inf_reps, tx_mat) {
+resolve_inf_reps <- function(self, inf_reps) {
+  if (isFALSE(inf_reps)) {
+    return(NULL)
+  }
   reps <- inf_reps %||% self@metadata$inf_reps
   if (is.null(reps)) {
     return(NULL)
   }
-  if (!is.list(reps) || !length(reps)) {
+  if (!is.list(reps) || is.data.frame(reps) || !length(reps)) {
     cli::cli_abort(
       message = c(
-        x = "{.arg inf_reps} must be a non-empty list of transcript matrices."
+        x = "{.arg inf_reps} must be a non-empty list of transcript matrices, or {.code FALSE}."
       ),
       class = "isoformic_invalid_inf_reps"
     )
   }
-  lapply(reps, function(m) {
-    m <- as.matrix(m)
-    missing_tx <- setdiff(rownames(tx_mat), rownames(m))
-    if (length(missing_tx) && all(colnames(tx_mat) %in% colnames(m))) {
-      # add_uncertainty() keeps the draws of expressed transcripts only
-      m <- rbind(
-        m[, colnames(tx_mat), drop = FALSE],
-        matrix(
-          0,
-          nrow = length(missing_tx),
-          ncol = ncol(tx_mat),
-          dimnames = list(missing_tx, colnames(tx_mat))
-        )
-      )
-    }
-    if (
-      !all(rownames(tx_mat) %in% rownames(m)) ||
-        !all(colnames(tx_mat) %in% colnames(m))
-    ) {
-      cli::cli_abort(
-        message = c(
-          x = "Each inferential replicate must have the transcripts and samples of the assay in its dimnames."
-        ),
-        class = "isoformic_invalid_inf_reps"
-      )
-    }
-    m[rownames(tx_mat), colnames(tx_mat), drop = FALSE]
-  })
+  reps
+}
+
+#' Sum the rows of `mat` per gene into a genes x samples matrix
+#'
+#' `gene_idx` gives, for each row, the position of its gene in `gene_levels`.
+#' Genes without rows get zero.
+#' @keywords internal
+#' @noRd
+gene_sums <- function(mat, gene_idx, gene_levels) {
+  out <- matrix(
+    0,
+    nrow = length(gene_levels),
+    ncol = ncol(mat),
+    dimnames = list(gene_levels, colnames(mat))
+  )
+  if (nrow(mat)) {
+    sums <- rowsum(mat, gene_idx, reorder = FALSE)
+    out[as.integer(rownames(sums)), ] <- sums
+  }
+  out
+}
+
+#' Productive fraction per gene and sample of one inferential replicate
+#'
+#' Transcripts that the draw does not have count as zero ([add_uncertainty()]
+#' keeps the draws of the expressed transcripts only).
+#' @keywords internal
+#' @noRd
+draw_productive_fraction <- function(
+  draw,
+  tx_ids,
+  sample_ids,
+  gene_idx,
+  gene_levels,
+  is_prod,
+  min_expr = 0
+) {
+  if (!is.matrix(draw)) {
+    draw <- as.matrix(draw)
+  }
+  # A draw without rows has no transcript: every fraction is missing
+  if (
+    (nrow(draw) > 0L && is.null(rownames(draw))) ||
+      !all(sample_ids %in% colnames(draw))
+  ) {
+    cli::cli_abort(
+      message = c(
+        x = "Each inferential replicate must be a matrix with the transcripts and samples of the assay in its dimnames."
+      ),
+      class = "isoformic_invalid_inf_reps"
+    )
+  }
+  rows <- match(tx_ids, rownames(draw))
+  found <- !is.na(rows)
+  sub <- draw[rows[found], sample_ids, drop = FALSE]
+  if (!is.double(sub)) {
+    # Integer sums overflow to NA
+    storage.mode(sub) <- "double"
+  }
+  if (isTRUE(min_expr > 0)) {
+    sub[sub < min_expr] <- 0
+  }
+  prod_rows <- is_prod[found]
+  idx <- gene_idx[found]
+  total <- gene_sums(sub, idx, gene_levels)
+  frac <- gene_sums(
+    sub[prod_rows, , drop = FALSE],
+    idx[prod_rows],
+    gene_levels
+  ) /
+    total
+  frac[!is.finite(frac) | !is.finite(total)] <- NA_real_
+  frac
+}
+
+#' Running mean and variance of vectors that may have missing values
+#'
+#' Welford's update, per element, over the values that are not missing.
+#' `running_moments_sd()` gives the sample standard deviation (`NA` with
+#' fewer than two values).
+#' @keywords internal
+#' @noRd
+running_moments <- function(n) {
+  list(n = numeric(n), mean = numeric(n), m2 = numeric(n))
+}
+
+#' @keywords internal
+#' @noRd
+running_moments_add <- function(stats, x) {
+  ok <- !is.na(x)
+  n <- stats$n[ok] + 1
+  d <- x[ok] - stats$mean[ok]
+  mean_new <- stats$mean[ok] + d / n
+  stats$m2[ok] <- stats$m2[ok] + d * (x[ok] - mean_new)
+  stats$mean[ok] <- mean_new
+  stats$n[ok] <- n
+  stats
+}
+
+#' @keywords internal
+#' @noRd
+running_moments_sd <- function(stats) {
+  out <- sqrt(pmax(stats$m2, 0) / (stats$n - 1))
+  out[stats$n < 2] <- NA_real_
+  out
 }
 
 #' @rdname productivity
@@ -772,6 +895,9 @@ S7::method(productivity_fractions, IsoformicExperiment) <- function(
   ...
 ) {
   pm <- productivity_matrix(self, assay, min_expr, include_altered = TRUE)
+  grp <- group_samples(self, group, colnames(pm$tx_mat), levels = levels)
+  groups <- grp$groups
+  pm$tx_mat <- pm$tx_mat[, grp$samples, drop = FALSE]
   idx <- match(rownames(pm$tx_mat), pm$prod$transcript_id)
   detail <- productivity_detail(pm$prod)[idx]
   classes <- c(
@@ -787,11 +913,6 @@ S7::method(productivity_fractions, IsoformicExperiment) <- function(
   )
   total <- rowsum(pm$tx_mat, pm$gene_ids)
   genes <- self@annot_data_genes[, c("gene_id", "gene_name")]
-  groups <- if (!is.null(group)) {
-    sample_groups(self, group, colnames(total), levels = levels)
-  } else {
-    NULL
-  }
   out <- lapply(classes, function(cls) {
     frac <- rowsum(pm$tx_mat * (detail == cls), pm$gene_ids) / total
     frac[!is.finite(frac)] <- NA_real_
@@ -880,11 +1001,15 @@ run_productivity_enrichment <- S7::new_generic(
   function(
     self,
     genesets_list,
-    group,
+    group = NULL,
     levels = NULL,
     assay = "abundance",
     min_size = 15,
     max_size = 500,
+    rank_by = c("delta", "delta_z"),
+    include_altered = TRUE,
+    min_expr = 0,
+    inf_reps = NULL,
     ...
   ) {
     S7::S7_dispatch()
@@ -894,17 +1019,39 @@ run_productivity_enrichment <- S7::new_generic(
 S7::method(run_productivity_enrichment, IsoformicExperiment) <- function(
   self,
   genesets_list,
-  group,
+  group = NULL,
   levels = NULL,
   assay = "abundance",
   min_size = 15,
   max_size = 500,
+  rank_by = c("delta", "delta_z"),
+  include_altered = TRUE,
+  min_expr = 0,
+  inf_reps = NULL,
   ...
 ) {
   rlang::check_installed("fgsea")
   rlang::check_required(genesets_list)
-  rlang::check_required(group)
-  pf <- productive_fraction(self, group = group, levels = levels, assay = assay)
+  if (is.null(group)) {
+    cli::cli_abort(
+      message = c(
+        x = "{.arg group} is required to rank genes by change in productive fraction."
+      ),
+      class = "isoformic_group_levels"
+    )
+  }
+  rank_by <- rlang::arg_match(rank_by)
+  check_genesets(genesets_list)
+  pf <- productive_fraction(
+    self,
+    group = group,
+    levels = levels,
+    assay = assay,
+    include_altered = include_altered,
+    min_expr = min_expr,
+    # The change itself does not need the replicates: they are not read
+    inf_reps = if (identical(rank_by, "delta")) FALSE else inf_reps
+  )
   if (!"delta_productive_fraction" %in% colnames(pf)) {
     cli::cli_abort(
       message = c(
@@ -913,9 +1060,123 @@ S7::method(run_productivity_enrichment, IsoformicExperiment) <- function(
       class = "isoformic_group_levels"
     )
   }
-  pf <- pf[!is.na(pf$delta_productive_fraction) & !is.na(pf$gene_name), ]
+  productivity_enrichment(
+    pf,
+    genesets_list,
+    rank_by = rank_by,
+    min_size = min_size,
+    max_size = max_size,
+    ...
+  )
+}
+
+# nolint start: object_name_linter.
+S7::method(run_productivity_enrichment, S7::class_data.frame) <- function(
+  self,
+  genesets_list,
+  group = NULL,
+  levels = NULL,
+  assay = "abundance",
+  min_size = 15,
+  max_size = 500,
+  rank_by = c("delta", "delta_z"),
+  include_altered = TRUE,
+  min_expr = 0,
+  inf_reps = NULL,
+  ...
+) {
+  rlang::check_installed("fgsea")
+  rlang::check_required(genesets_list)
+  rank_by <- rlang::arg_match(rank_by)
+  check_genesets(genesets_list)
+  pf <- tibble::as_tibble(self)
+  missing_cols <- setdiff(
+    c("gene_name", "delta_productive_fraction"),
+    colnames(pf)
+  )
+  if (length(missing_cols)) {
+    cli::cli_abort(
+      message = c(
+        x = "{.arg self} is missing column{?s}: {.field {missing_cols}}.",
+        i = "Pass the result of {.fn productive_fraction} for two or more groups."
+      ),
+      class = "isoformic_invalid_productive_fraction"
+    )
+  }
+  needed <- c("delta_z", "delta_productive_fraction_sd")
+  if (identical(rank_by, "delta_z") && !all(needed %in% colnames(pf))) {
+    missing_cols <- setdiff(needed, colnames(pf))
+    cli::cli_abort(
+      message = c(
+        x = "{.code rank_by = \"delta_z\"} needs the column{?s} {.field {missing_cols}} in {.arg self}.",
+        i = "Compute the table with {.fn productive_fraction} on an object with inferential replicates."
+      ),
+      class = "isoformic_no_inferential_replicates"
+    )
+  }
+  productivity_enrichment(
+    pf,
+    genesets_list,
+    rank_by = rank_by,
+    min_size = min_size,
+    max_size = max_size,
+    ...
+  )
+}
+# nolint end
+
+#' Gene set enrichment on a `productive_fraction()` table
+#' @keywords internal
+#' @noRd
+productivity_enrichment <- function(
+  pf,
+  genesets_list,
+  rank_by,
+  min_size,
+  max_size,
+  ...
+) {
+  rank_col <- switch(
+    rank_by,
+    delta = "delta_productive_fraction",
+    delta_z = "delta_z"
+  )
+  if (
+    identical(rank_by, "delta_z") &&
+      !all(c("delta_z", "delta_productive_fraction_sd") %in% colnames(pf))
+  ) {
+    cli::cli_abort(
+      message = c(
+        x = "{.code rank_by = \"delta_z\"} needs inferential replicates.",
+        i = "Pass them with {.arg inf_reps} or store them with {.fn add_uncertainty}."
+      ),
+      class = "isoformic_no_inferential_replicates"
+    )
+  }
+  if (identical(rank_by, "delta_z")) {
+    # A change that is the same in every draw is the most certain one, not a
+    # missing one: it gets the largest finite |z| of the table
+    certain <- pf$delta_productive_fraction_sd %in%
+      0 &
+      !pf$delta_productive_fraction %in% c(0, NA)
+    finite_z <- abs(pf$delta_z[!is.na(pf$delta_z)])
+    if (!length(finite_z) && !any(certain)) {
+      cli::cli_abort(
+        message = c(
+          x = "{.code rank_by = \"delta_z\"} needs at least two inferential replicates.",
+          i = "No gene has a standard deviation of its change in productive fraction."
+        ),
+        class = "isoformic_no_inferential_replicates"
+      )
+    }
+    pf$delta_z[certain] <- sign(pf$delta_productive_fraction[certain]) *
+      max(finite_z, 1)
+  }
+  # The largest change first, so that it is the one kept for a repeated symbol
+  pf <- pf[!is.na(pf[[rank_col]]) & !is.na(pf$gene_name), ]
+  pf <- pf[order(-abs(pf[[rank_col]])), ]
   pf <- pf[!duplicated(pf$gene_name), ]
-  ranks <- sort(stats::setNames(pf$delta_productive_fraction, pf$gene_name))
+  ranks <- sort(stats::setNames(pf[[rank_col]], pf$gene_name))
   res <- fgsea_multilevel(
     pathways = genesets_list,
     stats = ranks,
@@ -926,6 +1187,7 @@ S7::method(run_productivity_enrichment, IsoformicExperiment) <- function(
   )
   res <- tibble::as_tibble(as.data.frame(res))
   res$experiment <- "productive_fraction"
+  res$rank_by <- rank_by
   res
 }
 

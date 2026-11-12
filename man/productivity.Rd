@@ -63,11 +63,15 @@ test_productive_fraction(
 run_productivity_enrichment(
   self,
   genesets_list,
-  group,
+  group = NULL,
   levels = NULL,
   assay = "abundance",
   min_size = 15,
   max_size = 500,
+  rank_by = c("delta", "delta_z"),
+  include_altered = TRUE,
+  min_expr = 0,
+  inf_reps = NULL,
   ...
 )
 
@@ -76,7 +80,11 @@ poison_exons(self, gene_name = NULL, ...)
 benchmark_productivity(self, nmd_rule = 50, use_sequence = TRUE, ...)
 }
 \arguments{
-\item{self}{An \link{IsoformicExperiment}.}
+\item{self}{An \link{IsoformicExperiment}. \code{run_productivity_enrichment()} also
+takes the table of \code{productive_fraction()} for two or more groups, so
+that one table serves several gene set collections; the arguments that
+build the table (\code{group}, \code{levels}, \code{assay}, \code{include_altered},
+\code{min_expr}, \code{inf_reps}) are then ignored.}
 
 \item{gene_name}{Optional genes (names or IDs) to restrict the result to.}
 
@@ -98,11 +106,14 @@ that could not be projected from the canonical start) is not believed
 \item{...}{Passed on to methods or to \code{fgsea::fgseaMultilevel()}.}
 
 \item{group}{Name of a \code{col_data} column defining groups; \code{NULL} for
-per-sample values.}
+per-sample values. \code{run_productivity_enrichment()} requires it for an
+\link{IsoformicExperiment} and ignores it for a \code{productive_fraction()} table.}
 
-\item{levels}{Order of the group levels; the change is \code{last - first}.
-For the tests (\code{test_productive_fraction()}, \code{test_apa()}), the two
-groups to compare; samples of other groups are ignored.}
+\item{levels}{Levels of \code{group} to use, in this order; the change is
+\code{last - first}. Samples of other groups are ignored, as if the object
+had been subset to these samples, so every returned value comes from
+the samples kept. \code{NULL} takes all the levels of \code{group}. The tests
+(\code{test_productive_fraction()}, \code{test_apa()}) need exactly two levels.}
 
 \item{assay}{Transcript assay to use (default \code{"abundance"};
 \code{"counts"} for the test).}
@@ -118,7 +129,10 @@ productive fractions instead of the summary table.}
 
 \item{inf_reps}{Optional list of transcript matrices (inferential
 replicates with the same dimnames as the assay); \code{NULL} uses
-\code{metadata(x)$inf_reps} when present.}
+\code{metadata(x)$inf_reps} when present and \code{FALSE} skips the replicates,
+which leaves out the standard deviations and \code{delta_z} and is much
+faster. \code{run_productivity_enrichment()} reads the replicates only for
+\code{rank_by = "delta_z"}.}
 
 \item{reference}{Optional tibble from \code{\link[=gtex_reference]{gtex_reference()}}, or a GTEx
 tissue name, giving the healthy-tissue productive fraction per gene.}
@@ -126,6 +140,15 @@ tissue name, giving the healthy-tissue productive fraction per gene.}
 \item{genesets_list}{Named list of gene symbol vectors (see \code{\link[=read_gmt]{read_gmt()}}).}
 
 \item{min_size, max_size}{Gene set size limits passed to \code{fgsea}.}
+
+\item{rank_by}{Statistic that ranks the genes in
+\code{run_productivity_enrichment()}: \code{"delta"} (default), the change in
+productive fraction, or \code{"delta_z"}, that change divided by its
+standard deviation over the inferential replicates, which moves the
+genes with an uncertain change towards the middle of the ranking.
+\code{"delta_z"} needs inferential replicates; a change that is the same in
+every replicate gets the largest \code{delta_z} of the table. It reflects the
+quantification uncertainty only, not the variation between samples.}
 }
 \value{
 Tibbles, a matrix for \code{productive_fraction(as_matrix = TRUE)},

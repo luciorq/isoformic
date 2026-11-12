@@ -16,8 +16,10 @@
 #' @param gene_name Character vector of gene names or IDs to profile.
 #' @param group Name of the `col_data` column defining the groups
 #'   (x axis).
-#' @param levels Optional order of the group levels. Defaults to the factor
-#'   levels or the order of appearance.
+#' @param levels Levels of `group` to show, in this order. Samples of other
+#'   groups are ignored, as if the object had been subset to these samples.
+#'   `NULL` takes all the levels of `group` (factor levels, else order of
+#'   appearance). For a profile table, the groups of the table to draw.
 #' @param assay Name of the transcript assay to summarise (default
 #'   `"abundance"`).
 #' @param log_scale Logical, show `log2(mean + 1)` on the y axis.
@@ -75,11 +77,17 @@ S7::method(profile_data, IsoformicExperiment) <- function(
     )
   }
   tx_keep <- which(annot$gene_id %in% gene_ids)
-  tx_mat <- assay(self, assay)[tx_keep, , drop = FALSE]
+  tx_mat <- assay(self, assay)
+  grp <- group_samples(self, group, colnames(tx_mat), levels = levels)
+  groups <- grp$groups
+  tx_mat <- tx_mat[tx_keep, grp$samples, drop = FALSE]
   gene_mat <- gene_assay(self, assay)
-  gene_mat <- gene_mat[intersect(gene_ids, rownames(gene_mat)), , drop = FALSE]
+  gene_mat <- gene_mat[
+    intersect(gene_ids, rownames(gene_mat)),
+    grp$samples,
+    drop = FALSE
+  ]
 
-  groups <- sample_groups(self, group, colnames(tx_mat), levels = levels)
   gene_names <- genes$gene_name[match(
     c(rownames(gene_mat), annot$gene_id[tx_keep]),
     genes$gene_id
@@ -226,9 +234,17 @@ S7::method(plot_tx_expr, S7::class_data.frame) <- function(
   ...
 ) {
   data <- self
+  group_var <- attr(data, "group_var") %||% "group"
   if (!is.null(gene_name)) {
     data <- data[data$gene_name %in% gene_name | data$gene_id %in% gene_name, ]
   }
+  if (!is.null(levels) && "group" %in% colnames(data)) {
+    # The table has its groups already: `levels` chooses and orders them
+    grp <- group_factor(data$group, group = group_var, levels = levels)
+    data <- data[grp$keep, ]
+    data$group <- grp$groups
+  }
+  attr(data, "group_var") <- group_var
   plot_profile_table(
     data,
     log_scale = log_scale,
@@ -423,7 +439,8 @@ isoformic_theme <- function(base_size = 11) {
 #'   `transcript_id` or `transcript_name`, `log2FC` and `qvalue`/`pvalue`
 #'   columns. May be `NULL`.
 #' @param var Name of the grouping column in `sample_metadata`.
-#' @param var_levels Order of the group levels. `NULL` uses the order of
+#' @param var_levels Levels of `var` to show, in this order; samples of
+#'   other groups are ignored. `NULL` uses the factor levels or the order of
 #'   appearance.
 #' @param txi_gene Optional gene expression table (same formats as
 #'   `txi_transcript`, with gene IDs).
@@ -514,16 +531,14 @@ prepare_profile_data <- function(
   }
   samples <- intersect(colnames(tx_mat), col_data$sample_id)
   values <- col_data[[var]][match(samples, col_data$sample_id)]
-  if (is.null(var_levels)) {
-    var_levels <- if (is.factor(values)) {
-      levels(values)
-    } else {
-      unique(as.character(values))
-    }
-  }
-  groups <- factor(as.character(values), levels = var_levels)
-  samples <- samples[!is.na(groups)]
-  groups <- groups[!is.na(groups)]
+  grp <- group_factor(
+    values,
+    group = var,
+    levels = var_levels,
+    arg = "var_levels"
+  )
+  groups <- grp$groups
+  samples <- samples[grp$keep]
   tx_mat <- tx_mat[, samples, drop = FALSE]
   gene_mat <- gene_mat[, samples, drop = FALSE]
 

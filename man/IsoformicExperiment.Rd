@@ -102,6 +102,19 @@ transcript type, used by all plots. Defaults to \code{\link[=tx_type_palette]{tx
 }
 }
 
+\section{Subsetting}{
+
+\code{x[i, j]} keeps the transcripts \code{i} and the samples \code{j}, given as IDs,
+positions or logical vectors, and at least one of each. Everything stored by transcript or by sample
+follows: the assays, the sample table, stored gene assays (the genes of
+the kept transcripts) and the inferential replicates in
+\code{metadata(x)$inf_reps}. The uncertainty tables of \code{\link[=add_uncertainty]{add_uncertainty()}} are
+restricted to the kept transcripts (a collapsed ambiguity group stays only
+with all its members); when samples are dropped they are not recomputed,
+and a message says so. Differential expression and enrichment
+results are kept as they are.
+}
+
 \examples{
 iso <- example_isoformic()
 iso
@@ -110,7 +123,8 @@ assay_names(iso)
 head(row_data(iso))
 head(gene_assay(iso, "abundance"))
 
-# Subset like a SummarizedExperiment
+# Subset like a SummarizedExperiment. Stored gene assays, inferential
+# replicates and uncertainty tables follow the transcripts and samples kept
 iso[1:10, c("SRR11498039", "SRR11498063")]
 
 # Build one from matrices

@@ -57,8 +57,9 @@ object.}
 
 \item{group}{Name of a \code{col_data()} column with the sample groups.}
 
-\item{levels}{The two group levels to contrast, reference first. \code{NULL}
-uses the levels of \code{group}, which must then be exactly two.}
+\item{levels}{The two group levels to contrast, reference first. Samples
+of other groups are left out of the contrast. \code{NULL} uses the levels of
+\code{group}, which must then be exactly two.}
 
 \item{n_draws}{Number of replicates to read; \code{NULL} reads all of them.}
 

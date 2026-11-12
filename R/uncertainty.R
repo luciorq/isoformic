@@ -88,8 +88,9 @@
 #'   named by sample ID. `NULL` uses the replicates already stored in the
 #'   object.
 #' @param group Name of a `col_data()` column with the sample groups.
-#' @param levels The two group levels to contrast, reference first. `NULL`
-#'   uses the levels of `group`, which must then be exactly two.
+#' @param levels The two group levels to contrast, reference first. Samples
+#'   of other groups are left out of the contrast. `NULL` uses the levels of
+#'   `group`, which must then be exactly two.
 #' @param gene_name Optional gene names or IDs to keep.
 #' @param n_draws Number of replicates to read; `NULL` reads all of them.
 #' @param min_count Minimum mean estimated count for a transcript to be
@@ -238,6 +239,10 @@ S7::method(add_uncertainty, IsoformicExperiment) <- function(
   groups = NULL,
   ...
 ) {
+  if (is.null(group)) {
+    # `levels` without `group` is an error
+    group_samples(self, NULL, character(), levels = levels)
+  }
   groups <- resolve_groups(groups)
   samples <- object_samples(self)
   equiv <- NULL
@@ -469,6 +474,7 @@ S7::method(de_confidence, IsoformicExperiment) <- function(
   ...
 ) {
   if (is.null(group)) {
+    group_samples(self, NULL, character(), levels = levels)
     res <- self@dea[["confidence"]]
     if (is.null(res)) {
       cli::cli_abort(
@@ -920,38 +926,24 @@ compute_de_confidence <- function(
   collapse_groups,
   settings
 ) {
-  samples <- dimnames(arr)[[2L]]
-  all_groups <- sample_groups(self, group, samples)
-  lv <- levels %||% base::levels(all_groups)
-  if (length(lv) != 2L || !all(lv %in% base::levels(all_groups))) {
-    cli::cli_abort(
-      message = c(
-        x = "A contrast needs exactly two group levels; {.field {group}} has {.val {base::levels(all_groups)}}.",
-        i = "Choose two with {.arg levels}, reference first."
-      ),
-      class = "isoformic_group_levels"
-    )
-  }
-  use <- as.character(all_groups) %in% lv
-  arr <- arr[, use, , drop = FALSE]
-  in_b <- as.character(all_groups)[use] == lv[2L]
-  if (sum(in_b) < 1L || sum(!in_b) < 1L) {
-    cli::cli_abort(
-      message = c(x = "Both groups need at least one sample."),
-      class = "isoformic_group_levels"
-    )
-  }
-  samples <- samples[use]
+  # The contrast uses the samples of the two levels; the uncertainty tables
+  # in `tables` describe all the samples of the object
+  setup <- two_group_setup(self, group, dimnames(arr)[[2L]], levels)
+  lv <- base::levels(setup$groups)
+  arr <- arr[, setup$keep, , drop = FALSE]
+  in_b <- as.character(setup$groups) == lv[2L]
+  samples <- setup$samples
   d <- dim(arr)[3L]
   n_tx <- dim(arr)[1L]
   tx_table <- tables$transcripts
   ids <- rownames(arr)
   amb_group <- tx_table$ambiguity_group[match(ids, tx_table$transcript_id)]
-  feature_id <- if (isTRUE(collapse_groups)) {
-    ifelse(is.na(amb_group), ids, amb_group)
-  } else {
-    ids
-  }
+  # A group is collapsed when more than one of its members is in the draws; a
+  # member left alone (after `x[i, ]`) stays a transcript, flagged as ambiguous
+  collapsible <- isTRUE(collapse_groups) &
+    !is.na(amb_group) &
+    amb_group %in% amb_group[duplicated(amb_group)]
+  feature_id <- ifelse(collapsible, amb_group, ids)
   # Features: transcripts, or ambiguous groups summed over their members
   flat <- matrix(arr, nrow = n_tx)
   sums <- rowsum(flat, feature_id, reorder = FALSE)
@@ -1019,11 +1011,8 @@ compute_de_confidence <- function(
       self@annot_data_transcripts$transcript_id
     )
   ]
-  ambiguous <- if (isTRUE(collapse_groups)) {
-    rep(FALSE, length(features))
-  } else {
-    !is.na(amb_group[match(features, ids)])
-  }
+  # Collapsed groups are not transcript IDs, so they are never matched here
+  ambiguous <- features %in% ids[!is.na(amb_group)] & !is_group
   uncertain <- mean_rv >= settings$inf_rv_cutoff
   n_fail <- as.integer(!stable) + as.integer(uncertain) + as.integer(ambiguous)
   confidence <- c("high", "moderate", "low")[pmin(n_fail, 2L) + 1L]
@@ -1456,7 +1445,14 @@ S7::method(inferential_overdispersion, IsoformicExperiment) <- function(
   prior_df = 3,
   ...
 ) {
-  moments <- draw_moments(draws_array(self))
+  compute_overdispersion(draws_array(self), prior_df = prior_df)
+}
+
+#' Overdispersion of every transcript of an array of draws
+#' @keywords internal
+#' @noRd
+compute_overdispersion <- function(arr, prior_df = 3) {
+  moments <- draw_moments(arr)
   n_draw <- moments$n
   if (n_draw < 2L) {
     cli::cli_abort(
@@ -1527,8 +1523,12 @@ S7::method(scale_counts, IsoformicExperiment) <- function(
 #' Overdispersion of the given transcripts, the prior for those without draws
 #' @keywords internal
 #' @noRd
-overdispersion_for <- function(self, transcript_ids) {
-  od <- inferential_overdispersion(self)
+overdispersion_for <- function(self, transcript_ids, samples = NULL) {
+  arr <- draws_array(self)
+  if (!is.null(samples)) {
+    arr <- arr[, samples, , drop = FALSE]
+  }
+  od <- compute_overdispersion(arr)
   factor <- od$overdispersion[match(transcript_ids, od$transcript_id)]
   factor[is.na(factor)] <- attr(od, "prior") %||% 1
   factor

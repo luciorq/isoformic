@@ -27,6 +27,7 @@ dominant_isoform(
   assay = "abundance",
   gene_name = NULL,
   min_expr = 0,
+  levels = NULL,
   ...
 )
 
@@ -39,6 +40,7 @@ haplotype_summary(
   group = NULL,
   assay = "abundance",
   gene_name = NULL,
+  levels = NULL,
   ...
 )
 }
@@ -61,6 +63,10 @@ restrict the result to.}
 
 \item{group}{Name of a \code{col_data} column defining sample groups, or
 \code{NULL} for all samples together.}
+
+\item{levels}{Levels of \code{group} to use, in this order. Samples of other
+groups are ignored, as if the object had been subset to these samples.
+\code{NULL} takes all the levels of \code{group}.}
 
 \item{confident_only}{Logical. Count only the significant isoforms with
 high confidence (see \code{\link[=de_confidence]{de_confidence()}}) in \code{isoform_switches()}.}

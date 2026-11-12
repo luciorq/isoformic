@@ -151,7 +151,13 @@ S7::method(test_usage, IsoformicExperiment) <- function(
     )
   }
   counts <- as.matrix(assays[[assay]])
-  setup <- group_setup(self, group, colnames(counts), levels)
+  setup <- group_samples(
+    self,
+    group,
+    colnames(counts),
+    levels = levels,
+    min_levels = 2L
+  )
   counts <- counts[, setup$keep, drop = FALSE]
   groups <- setup$groups
   omnibus <- identical(contrasts, "omnibus")
@@ -163,7 +169,9 @@ S7::method(test_usage, IsoformicExperiment) <- function(
   has_draws <- !is.null(self@metadata$inf_reps)
   scale <- scale %||% has_draws
   if (isTRUE(scale)) {
-    counts <- counts / overdispersion_for(self, rownames(counts))
+    # Estimated on the samples of the test, like the test itself
+    counts <- counts /
+      overdispersion_for(self, rownames(counts), samples = colnames(counts))
   }
 
   tx <- self@annot_data_transcripts

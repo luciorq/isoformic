@@ -312,8 +312,60 @@ analysis and plot is now first a method on the object.
   workflow, lint and test-coverage workflows, and justfile recipes aligned
   with `condathis`.
 
+* `group` and `levels` choose the samples in the same way in every function
+  that has them (`productive_fraction()`, `productivity_fractions()`,
+  `test_productive_fraction()`, `run_productivity_enrichment()`,
+  `apa_usage()`, `test_apa()`, `profile_data()`, `plot_tx_expr()`,
+  `dominant_isoform()`, `haplotype_summary()`, `test_usage()`,
+  `de_confidence()`, `add_uncertainty()`, `prepare_profile_data()`): samples
+  of groups outside `levels` are ignored, as if the object had been subset
+  to them, so a contrast between two of several groups needs no sub-object.
+  The summary functions aborted in this case. Every returned value,
+  including `as_matrix = TRUE` and the inferential standard deviations,
+  comes from the samples kept. A level in `levels` without samples, or
+  `levels` without `group`, is an error (`isoformic_group_levels`); samples
+  without a group value are ignored with a message; factor levels without
+  samples are not groups. `dominant_isoform()` and `haplotype_summary()`
+  gain `levels`.
+* `run_productivity_enrichment()` gains `rank_by = c("delta", "delta_z")`
+  to rank genes by the change in productive fraction divided by its
+  standard deviation over the inferential replicates, and passes
+  `include_altered`, `min_expr` and `inf_reps` on to
+  `productive_fraction()`. The result has a `rank_by` column. `delta_z` is 0,
+  not `NA`, for a gene whose productive fraction changes in no replicate; a
+  change that is the same in every replicate is ranked with the largest
+  `delta_z`.
+* `productive_fraction()` reads the inferential replicates one at a time
+  and keeps only running sums, restricted to the transcripts of coding genes
+  and the samples of the `levels`, instead of holding the fractions of all
+  the replicates: about 18 times faster with a fraction of the memory on
+  295,000 transcripts, 12 samples and 100 replicates, with the same results.
+  `inf_reps = FALSE` skips the stored replicates. With the default
+  `rank_by = "delta"`, `run_productivity_enrichment()` does not read them.
+* `run_productivity_enrichment()` also takes the table of
+  `productive_fraction()`, so that one table serves several gene set
+  collections.
+* `x[i, j]` subsets everything stored by transcript or by sample: the
+  inferential replicates in `metadata(x)$inf_reps` and stored gene assays
+  follow the assays, and the uncertainty tables are restricted to the kept
+  transcripts. Dropping samples leaves the uncertainty tables as computed
+  and says so (`add_uncertainty(x)` recomputes them from the subset
+  replicates). Subscripts are checked (`isoformic_invalid_subset`), and must
+  keep at least one transcript and one sample.
+* `test_usage()` estimates the inferential overdispersion on the samples of
+  the test, not on all the samples of the object.
+
 ### Fixed
 
+* `x[, j]` no longer fails on an object with stored gene assays, and a
+  factor subscript is read as IDs, not as its integer codes.
+* `dominant_isoform()` and `haplotype_summary()` failed with a single group.
+* `de_confidence(collapse_groups = TRUE)` labelled a transcript with the ID
+  of its ambiguity group when it was the only member left in the object.
+* `isoform_fraction()` returned cached fractions after `gene_assays<-`.
+* Stored gene assays whose columns are in another order than the transcript
+  assays gave wrong fractions in `isoform_fraction()`, `dominant_isoform()`
+  and `profile_data()`; the matrices are now matched by sample ID.
 * `run_enrichment()` and `run_productivity_enrichment()` run `fgsea` with
   `BiocParallel::SerialParam()` unless `BPPARAM` or `nproc` is given; the
   default socket cluster failed (`serialize()` errors) or hung on Windows

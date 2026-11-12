@@ -55,9 +55,11 @@
 #'   poly(A) signal (default 50 nt).
 #' @param group Name of a `col_data` column defining groups; `NULL` for
 #'   per-sample values.
-#' @param levels Order of the group levels; the change is `last - first`.
-#'   For the tests (`test_productive_fraction()`, `test_apa()`), the two
-#'   groups to compare; samples of other groups are ignored.
+#' @param levels Levels of `group` to use, in this order; the change is
+#'   `last - first`. Samples of other groups are ignored, as if the object
+#'   had been subset to these samples, so every returned value comes from
+#'   the samples kept. `NULL` takes all the levels of `group`. The tests
+#'   (`test_productive_fraction()`, `test_apa()`) need exactly two levels.
 #' @param assay Transcript assay to use (`"abundance"` for usage,
 #'   `"counts"` for the test).
 #' @param min_expr Minimum assay value for an isoform to count (default 0).
@@ -446,6 +448,9 @@ S7::method(apa_usage, IsoformicExperiment) <- function(
   assay <- resolve_assay_name(self, assay)
   pa <- polya_sites(self)
   tx_mat <- assay(self, assay)
+  grp <- group_samples(self, group, colnames(tx_mat), levels = levels)
+  groups <- grp$groups
+  tx_mat <- tx_mat[, grp$samples, drop = FALSE]
   tx_mat[tx_mat < min_expr] <- 0
   idx <- match(rownames(tx_mat), pa$transcript_id)
   gene_ids <- pa$gene_id[idx]
@@ -488,7 +493,6 @@ S7::method(apa_usage, IsoformicExperiment) <- function(
   res$distal_fraction[is.nan(res$distal_fraction)] <- NA_real_
   res$weighted_utr3_length[is.nan(res$weighted_utr3_length)] <- NA_real_
   if (!is.null(group)) {
-    groups <- sample_groups(self, group, colnames(frac), levels = levels)
     cols <- c(
       group_fraction_columns(frac, groups, "distal_fraction"),
       group_fraction_columns(w_utr, groups, "weighted_utr3_length")

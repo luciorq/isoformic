@@ -61,9 +61,11 @@ poly(A) signal (default 50 nt).}
 \item{group}{Name of a \code{col_data} column defining groups; \code{NULL} for
 per-sample values.}
 
-\item{levels}{Order of the group levels; the change is \code{last - first}.
-For the tests (\code{test_productive_fraction()}, \code{test_apa()}), the two
-groups to compare; samples of other groups are ignored.}
+\item{levels}{Levels of \code{group} to use, in this order; the change is
+\code{last - first}. Samples of other groups are ignored, as if the object
+had been subset to these samples, so every returned value comes from
+the samples kept. \code{NULL} takes all the levels of \code{group}. The tests
+(\code{test_productive_fraction()}, \code{test_apa()}) need exactly two levels.}
 
 \item{assay}{Transcript assay to use (\code{"abundance"} for usage,
 \code{"counts"} for the test).}

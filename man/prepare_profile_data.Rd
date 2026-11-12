@@ -40,7 +40,8 @@ columns. May be \code{NULL}.}
 
 \item{var}{Name of the grouping column in \code{sample_metadata}.}
 
-\item{var_levels}{Order of the group levels. \code{NULL} uses the order of
+\item{var_levels}{Levels of \code{var} to show, in this order; samples of
+other groups are ignored. \code{NULL} uses the factor levels or the order of
 appearance.}
 
 \item{txi_gene}{Optional gene expression table (same formats as

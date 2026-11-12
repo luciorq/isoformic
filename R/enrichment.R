@@ -208,6 +208,21 @@ default_enrichment_types <- function(annotation_types = NULL) {
     ))
 }
 
+#' Abort unless `genesets_list` is a named list of gene symbol vectors
+#' @keywords internal
+#' @noRd
+check_genesets <- function(genesets_list) {
+  if (!is.list(genesets_list) || is.null(names(genesets_list))) {
+    cli::cli_abort(
+      message = c(
+        x = "{.arg genesets_list} must be a named list of gene symbol vectors."
+      ),
+      class = "isoformic_invalid_genesets"
+    )
+  }
+  invisible(genesets_list)
+}
+
 #' Run fgsea once per transcript category
 #' @keywords internal
 #' @noRd
@@ -224,14 +239,7 @@ run_fgsea_by_type <- function(
   ...
 ) {
   rlang::check_installed("fgsea")
-  if (!is.list(genesets_list) || is.null(names(genesets_list))) {
-    cli::cli_abort(
-      message = c(
-        x = "{.arg genesets_list} must be a named list of gene symbol vectors."
-      ),
-      class = "isoformic_invalid_genesets"
-    )
-  }
+  check_genesets(genesets_list)
   # Expand gene-symbol sets to transcript IDs once (vectorised join)
   sets_long <- tibble::tibble(
     term = rep(names(genesets_list), lengths(genesets_list)),

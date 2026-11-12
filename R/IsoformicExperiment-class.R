@@ -58,6 +58,17 @@
 #'     `annot_data_exons`}{Read-only, cached annotation tables.}
 #' }
 #'
+#' @section Subsetting:
+#' `x[i, j]` keeps the transcripts `i` and the samples `j`, given as IDs,
+#' positions or logical vectors, and at least one of each. Everything stored by transcript or by sample
+#' follows: the assays, the sample table, stored gene assays (the genes of
+#' the kept transcripts) and the inferential replicates in
+#' `metadata(x)$inf_reps`. The uncertainty tables of [add_uncertainty()] are
+#' restricted to the kept transcripts (a collapsed ambiguity group stays only
+#' with all its members); when samples are dropped they are not recomputed,
+#' and a message says so. Differential expression and enrichment
+#' results are kept as they are.
+#'
 #' @param experiment_name Single string naming the experiment.
 #' @param annot_path Annotation directory or GFF3/GTF file.
 #' @param assays Named list of transcript-level matrices (or data frames
@@ -85,7 +96,8 @@
 #' head(row_data(iso))
 #' head(gene_assay(iso, "abundance"))
 #'
-#' # Subset like a SummarizedExperiment
+#' # Subset like a SummarizedExperiment. Stored gene assays, inferential
+#' # replicates and uncertainty tables follow the transcripts and samples kept
 #' iso[1:10, c("SRR11498039", "SRR11498063")]
 #'
 #' # Build one from matrices
@@ -629,6 +641,14 @@ assays_signature <- function(self) {
     rlang::hash(attr(self, "assays", exact = TRUE))
 }
 
+#' Signature of the stored (explicitly set) gene assays
+#' @keywords internal
+#' @noRd
+gene_assays_signature <- function(self) {
+  stored <- attr(self, "gene_assays", exact = TRUE)
+  if (length(stored) > 0L) rlang::hash(stored) else "derived"
+}
+
 #' Fetch a derived value from the per-object cache
 #' @keywords internal
 #' @noRd
@@ -851,19 +871,14 @@ S7::method(`[`, IsoformicExperiment) <- function(x, i, j, ..., drop = FALSE) {
   }
   has_i <- !missing(i)
   has_j <- !missing(j)
-  subset_mat <- function(m) {
-    if (has_i && has_j) {
-      m[i, j, drop = FALSE]
-    } else if (has_i) {
-      m[i, , drop = FALSE]
-    } else if (has_j) {
-      m[, j, drop = FALSE]
-    } else {
-      m
-    }
-  }
-  new_assays <- lapply(assays, subset_mat)
-  sample_ids <- colnames(new_assays[[1L]])
+  all_tx <- rownames(assays[[1L]])
+  all_samples <- colnames(assays[[1L]])
+  # Everything below is subset by ID, never by position
+  tx_ids <- if (has_i) subset_ids(i, all_tx, "transcript") else all_tx
+  sample_ids <- if (has_j) subset_ids(j, all_samples, "sample") else all_samples
+  new_assays <- lapply(assays, function(m) {
+    m[tx_ids, sample_ids, drop = FALSE]
+  })
   col_data <- attr(x, "col_data", exact = TRUE)
   new_col_data <- col_data[
     match(sample_ids, col_data$sample_id),
@@ -871,15 +886,181 @@ S7::method(`[`, IsoformicExperiment) <- function(x, i, j, ..., drop = FALSE) {
     drop = FALSE
   ]
   stored_gene <- attr(x, "gene_assays", exact = TRUE)
-  if (length(stored_gene) && has_j) {
+  if (length(stored_gene)) {
+    gene_ids <- rownames(stored_gene[[1L]])
+    if (has_i) {
+      gene_ids <- intersect(gene_ids, gene_ids_of(x, tx_ids))
+    }
+    # Stored gene assays may hold some of the samples only
     stored_gene <- lapply(stored_gene, function(m) {
-      m[, sample_ids, drop = FALSE]
+      m[
+        gene_ids[gene_ids %in% rownames(m)],
+        sample_ids[sample_ids %in% colnames(m)],
+        drop = FALSE
+      ]
     })
+    if (any(vapply(stored_gene, function(m) min(dim(m)), integer(1L)) == 0L)) {
+      # Nothing stored is left: the gene assays are derived again
+      stored_gene <- list()
+    }
   }
+  metadata <- attr(x, "metadata", exact = TRUE)
+  if (!is.null(metadata$inf_reps)) {
+    metadata$inf_reps <- subset_inf_reps(metadata$inf_reps, tx_ids, sample_ids)
+  }
+  dea <- attr(x, "dea", exact = TRUE)
+  has_tables <- any(uncertainty_table_names() %in% names(dea))
+  if (has_tables && has_i) {
+    dea <- subset_uncertainty_tables(dea, tx_ids)
+    if (!is.null(dea[["uncertainty"]])) {
+      metadata$uncertainty_n_assessed <- sum(dea[["uncertainty"]]$assessed)
+    }
+  }
+  if (has_tables && !setequal(sample_ids, all_samples)) {
+    cli::cli_inform(
+      message = c(
+        i = "The stored uncertainty tables are not recomputed for this subset of the samples.",
+        i = "Recompute them with {.code add_uncertainty(x)} (and {.arg group}) if they must follow the subset."
+      ),
+      class = "isoformic_stale_uncertainty"
+    )
+  }
+  # The stored gene assays go first: the validation of the sample table checks
+  # them against the new samples
+  attr(x, "gene_assays") <- stored_gene
+  attr(x, "metadata") <- metadata
+  attr(x, "dea") <- dea
   x@assays <- new_assays
   x@col_data <- new_col_data
-  attr(x, "gene_assays") <- stored_gene
   x
+}
+
+#' IDs selected by a subscript of `[`
+#'
+#' Accepts what a matrix accepts (positions, negative positions, logical,
+#' IDs); a factor is read as IDs, not as its integer codes.
+#' @keywords internal
+#' @noRd
+subset_ids <- function(index, ids, what) {
+  if (is.factor(index)) {
+    index <- as.character(index)
+  }
+  if (is.logical(index) && length(index) > length(ids)) {
+    cli::cli_abort(
+      message = c(
+        x = "The logical {what} subscript has {length(index)} values, but the object has {length(ids)} {what}{?s}."
+      ),
+      class = "isoformic_invalid_subset"
+    )
+  }
+  positions <- stats::setNames(seq_along(ids), ids)
+  picked <- tryCatch(positions[index], error = function(cnd) NA_integer_)
+  if (anyNA(picked)) {
+    cli::cli_abort(
+      message = c(
+        x = "The {what} subscript selects {what}s that are not in the object.",
+        i = "Use {what} IDs, positions or a logical vector without missing values."
+      ),
+      class = "isoformic_invalid_subset"
+    )
+  }
+  if (anyDuplicated(picked)) {
+    cli::cli_abort(
+      message = c(x = "The {what} subscript selects a {what} more than once."),
+      class = "isoformic_invalid_subset"
+    )
+  }
+  if (!length(picked)) {
+    cli::cli_abort(
+      message = c(
+        x = "The {what} subscript selects no {what}.",
+        i = "An {.cls IsoformicExperiment} needs at least one transcript and one sample."
+      ),
+      class = "isoformic_invalid_subset"
+    )
+  }
+  ids[unname(picked)]
+}
+
+#' Inferential replicates of the given transcripts and samples
+#'
+#' The draws may hold fewer transcripts than the assays ([add_uncertainty()]
+#' keeps the expressed ones), so rows are matched by ID. Draws that do not
+#' have every sample are left as they are; their consumers report them.
+#' @keywords internal
+#' @noRd
+subset_inf_reps <- function(reps, tx_ids, sample_ids) {
+  if (!is.list(reps) || !length(reps)) {
+    return(reps)
+  }
+  extra <- attributes(reps)
+  out <- lapply(reps, function(m) {
+    if (
+      is.null(dim(m)) ||
+        is.null(rownames(m)) ||
+        !all(sample_ids %in% colnames(m))
+    ) {
+      return(m)
+    }
+    m[tx_ids[tx_ids %in% rownames(m)], sample_ids, drop = FALSE]
+  })
+  is_empty <- vapply(
+    out,
+    function(m) !is.null(dim(m)) && nrow(m) == 0L,
+    logical(1L)
+  )
+  if (all(is_empty)) {
+    # No kept transcript has draws: the object has no replicates left
+    return(NULL)
+  }
+  attributes(out) <- extra
+  out
+}
+
+#' Uncertainty tables of the given transcripts
+#' @keywords internal
+#' @noRd
+subset_uncertainty_tables <- function(dea, tx_ids) {
+  unc <- dea[["uncertainty"]]
+  if (is.data.frame(unc) && "transcript_id" %in% colnames(unc)) {
+    dea[["uncertainty"]] <- unc[unc$transcript_id %in% tx_ids, , drop = FALSE]
+  }
+  pairs <- dea[["ambiguity"]]
+  if (
+    is.data.frame(pairs) &&
+      all(c("transcript_id_1", "transcript_id_2") %in% colnames(pairs))
+  ) {
+    dea[["ambiguity"]] <- pairs[
+      pairs$transcript_id_1 %in% tx_ids & pairs$transcript_id_2 %in% tx_ids,
+      ,
+      drop = FALSE
+    ]
+  }
+  conf <- dea[["confidence"]]
+  if (
+    is.data.frame(conf) &&
+      all(c("feature_id", "feature_type") %in% colnames(conf))
+  ) {
+    # A collapsed ambiguity group is kept only when all its members are
+    keep <- conf$feature_id %in% tx_ids
+    is_group <- conf$feature_type %in% "group"
+    if (any(is_group) && "transcript_ids" %in% colnames(conf)) {
+      members <- strsplit(
+        as.character(conf$transcript_ids[is_group]),
+        ";",
+        fixed = TRUE
+      )
+      keep[is_group] <- vapply(
+        members,
+        function(ids) all(ids %in% tx_ids),
+        logical(1L)
+      )
+    } else {
+      keep[is_group] <- TRUE
+    }
+    dea[["confidence"]] <- conf[keep, , drop = FALSE]
+  }
+  dea
 }
 
 #' Map transcript IDs to gene IDs using the cached annotation

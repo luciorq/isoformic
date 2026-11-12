@@ -52,6 +52,9 @@
 #'   be expressed to count as expressed.
 #' @param group Name of a `col_data` column defining sample groups, or
 #'   `NULL` for all samples together.
+#' @param levels Levels of `group` to use, in this order. Samples of other
+#'   groups are ignored, as if the object had been subset to these samples.
+#'   `NULL` takes all the levels of `group`.
 #' @param gene_name Optional character vector of gene names or IDs to
 #'   restrict the result to.
 #' @param confident_only Logical. Count only the significant isoforms with
@@ -88,12 +91,17 @@ S7::method(isoform_fraction, IsoformicExperiment) <- function(
   ...
 ) {
   assay <- resolve_assay_name(self, assay)
-  signature <- paste(assay, assays_signature(self), annot_full_signature(self))
+  signature <- paste(
+    assay,
+    assays_signature(self),
+    gene_assays_signature(self),
+    annot_full_signature(self)
+  )
   object_cache_fetch(self, "isoform_fraction", signature, function() {
     tx_mat <- assay(self, assay)
     gene_mat <- gene_assay(self, assay)
     gene_ids <- gene_ids_of(self, rownames(tx_mat))
-    gene_tot <- gene_mat[gene_ids, , drop = FALSE]
+    gene_tot <- gene_mat[gene_ids, colnames(tx_mat), drop = FALSE]
     frac <- tx_mat / gene_tot
     frac[!is.finite(frac)] <- NA_real_
     dimnames(frac) <- dimnames(tx_mat)
@@ -285,6 +293,7 @@ dominant_isoform <- S7::new_generic(
     assay = "abundance",
     gene_name = NULL,
     min_expr = 0,
+    levels = NULL,
     ...
   ) {
     S7::S7_dispatch()
@@ -297,10 +306,13 @@ S7::method(dominant_isoform, IsoformicExperiment) <- function(
   assay = "abundance",
   gene_name = NULL,
   min_expr = 0,
+  levels = NULL,
   ...
 ) {
   assay <- resolve_assay_name(self, assay)
   tx_mat <- assay(self, assay)
+  grp <- group_samples(self, group, colnames(tx_mat), levels = levels)
+  tx_mat <- tx_mat[, grp$samples, drop = FALSE]
   annot <- row_data(self)
   gene_ids <- annot$gene_id
   if (isTRUE(min_expr > 0)) {
@@ -308,10 +320,10 @@ S7::method(dominant_isoform, IsoformicExperiment) <- function(
     tx_mat[tx_mat < min_expr] <- 0
     gene_mat <- rowsum(tx_mat, gene_ids, reorder = TRUE)
   } else {
-    gene_mat <- gene_assay(self, assay)
+    gene_mat <- gene_assay(self, assay)[, grp$samples, drop = FALSE]
   }
-  group_means <- group_row_means(self, tx_mat, group)
-  gene_means <- group_row_means(self, gene_mat, group)
+  group_means <- group_row_means(tx_mat, grp$groups)
+  gene_means <- group_row_means(gene_mat, grp$groups)
   frac <- group_means / gene_means[gene_ids, , drop = FALSE]
   frac[!is.finite(frac)] <- NA_real_
 
@@ -391,10 +403,13 @@ S7::method(dominant_isoform, IsoformicExperiment) <- function(
 }
 
 #' Row means per sample group via an indicator matrix (one BLAS call)
+#'
+#' `groups` is the factor of the columns of `mat` (see `group_samples()`);
+#' `NULL` averages all the columns.
 #' @keywords internal
 #' @noRd
-group_row_means <- function(self, mat, group = NULL) {
-  if (is.null(group)) {
+group_row_means <- function(mat, groups = NULL) {
+  if (is.null(groups)) {
     res <- matrix(
       rowMeans(mat),
       ncol = 1L,
@@ -402,26 +417,56 @@ group_row_means <- function(self, mat, group = NULL) {
     )
     return(res)
   }
-  groups <- sample_groups(self, group, colnames(mat))
-  indicator <- stats::model.matrix(~ 0 + groups)
+  # Not `model.matrix()`: it rejects a factor with a single level
+  indicator <- outer(as.integer(groups), seq_len(nlevels(groups)), `==`) * 1
   colnames(indicator) <- levels(groups)
   sums <- mat %*% indicator
   sweep(sums, 2L, colSums(indicator), "/")
 }
 
-#' Factor of sample groups aligned with assay columns
+#' Samples and group factor of a `group` + `levels` request
 #'
-#' With `allow_na = TRUE`, samples whose value is outside `levels` (or missing)
-#' get `NA` instead of an error, so that a subset of the groups can be used.
+#' The single place where the functions with `group` and `levels` arguments
+#' choose their samples, so that all of them behave like a call on
+#' `x[, samples]`:
+#'
+#' * `levels = NULL` takes every level that has samples (factor order, else
+#'   order of appearance).
+#' * With `levels`, samples of other groups are dropped. Every requested
+#'   level must have samples.
+#' * Samples without a `group` value are dropped, with a message when
+#'   `levels` is `NULL`.
+#'
+#' Returns `keep` (logical, along `sample_ids`), `samples` (the kept IDs) and
+#' `groups` (factor of the kept samples without empty levels; `NULL` when
+#' `group` is `NULL`). The number of levels must be between `min_levels` and
+#' `max_levels`.
 #' @keywords internal
 #' @noRd
-sample_groups <- function(
+group_samples <- function(
   self,
   group,
   sample_ids,
   levels = NULL,
-  allow_na = FALSE
+  min_levels = 1L,
+  max_levels = Inf
 ) {
+  if (is.null(group)) {
+    if (!is.null(levels)) {
+      cli::cli_abort(
+        message = c(
+          x = "{.arg levels} needs {.arg group}, the {.fn col_data} column it refers to."
+        ),
+        class = "isoformic_group_levels"
+      )
+    }
+    res <- list(
+      keep = rep(TRUE, length(sample_ids)),
+      samples = sample_ids,
+      groups = NULL
+    )
+    return(res)
+  }
   check_string(group)
   col_data <- self@col_data
   if (!group %in% colnames(col_data)) {
@@ -434,23 +479,98 @@ sample_groups <- function(
     )
   }
   values <- col_data[[group]][match(sample_ids, col_data$sample_id)]
+  res <- group_factor(
+    values,
+    group = group,
+    levels = levels,
+    min_levels = min_levels,
+    max_levels = max_levels
+  )
+  res$samples <- sample_ids[res$keep]
+  res
+}
+
+#' Group factor of a vector of group values (see `group_samples()`)
+#' @keywords internal
+#' @noRd
+group_factor <- function(
+  values,
+  group,
+  levels = NULL,
+  min_levels = 1L,
+  max_levels = Inf,
+  arg = "levels"
+) {
+  observed <- unique(as.character(values[!is.na(values)]))
+  if (!length(observed)) {
+    cli::cli_abort(
+      message = c(x = "No sample has a {.field {group}} value."),
+      class = "isoformic_group_levels"
+    )
+  }
   if (is.null(levels)) {
-    levels <- if (is.factor(values)) {
-      levels(values)
-    } else {
-      unique(as.character(values))
+    lv <- if (is.factor(values)) levels(values) else observed
+    lv <- lv[lv %in% observed]
+    n_missing <- sum(is.na(values))
+    if (n_missing > 0L) {
+      cli::cli_inform(
+        message = c(
+          i = "Ignoring {n_missing} sample{?s} without a {.field {group}} value."
+        ),
+        class = "isoformic_group_missing_values"
+      )
+    }
+  } else {
+    lv <- as.character(levels)
+    if ((is.numeric(levels) || is.numeric(values)) && !all(lv %in% observed)) {
+      # 1e5 and 100000 are the same level, whatever their text
+      hit <- match(
+        suppressWarnings(as.numeric(lv)),
+        suppressWarnings(as.numeric(observed))
+      )
+      as_number <- !lv %in% observed & !is.na(hit)
+      lv[as_number] <- observed[hit[as_number]]
+    }
+    if (!length(lv) || anyNA(lv) || anyDuplicated(lv)) {
+      cli::cli_abort(
+        message = c(
+          x = "{.arg {arg}} must be distinct, non-missing values of {.field {group}}."
+        ),
+        class = "isoformic_group_levels"
+      )
+    }
+    absent <- setdiff(lv, observed)
+    if (length(absent)) {
+      cli::cli_abort(
+        message = c(
+          x = "No sample has {.field {group}} equal to {.or {.val {absent}}}.",
+          i = "Available values: {.val {observed}}."
+        ),
+        class = "isoformic_group_levels"
+      )
     }
   }
-  groups <- factor(as.character(values), levels = levels)
-  if (anyNA(groups) && !isTRUE(allow_na)) {
+  n_lv <- length(lv)
+  if (n_lv < min_levels || n_lv > max_levels) {
+    wanted <- if (min_levels == max_levels) {
+      "exactly {min_levels} group{?s}"
+    } else if (is.finite(max_levels)) {
+      "{min_levels} to {max_levels} groups"
+    } else {
+      "at least {min_levels} group{?s}"
+    }
+    wanted <- cli::pluralize(wanted)
     cli::cli_abort(
       message = c(
-        x = "Some samples have a {.field {group}} value outside {.arg levels} or missing."
+        x = "{.field {group}} must give {wanted}; it has {.val {lv}}.",
+        i = "Choose them with {.arg {arg}}, reference first."
       ),
       class = "isoformic_group_levels"
     )
   }
-  groups
+  groups <- factor(as.character(values), levels = lv)
+  keep <- !is.na(groups)
+  list(keep = keep, groups = groups[keep])
 }
 
 #' @rdname diversity
@@ -630,6 +750,7 @@ haplotype_summary <- S7::new_generic(
     group = NULL,
     assay = "abundance",
     gene_name = NULL,
+    levels = NULL,
     ...
   ) {
     S7::S7_dispatch()
@@ -641,6 +762,7 @@ S7::method(haplotype_summary, IsoformicExperiment) <- function(
   group = NULL,
   assay = "abundance",
   gene_name = NULL,
+  levels = NULL,
   ...
 ) {
   assay <- resolve_assay_name(self, assay)
@@ -656,7 +778,11 @@ S7::method(haplotype_summary, IsoformicExperiment) <- function(
     )
   }
   tx_mat <- assay(self, assay)
-  group_means <- group_row_means(self, tx_mat, group)
+  grp <- group_samples(self, group, colnames(tx_mat), levels = levels)
+  group_means <- group_row_means(
+    tx_mat[, grp$samples, drop = FALSE],
+    grp$groups
+  )
   levels_g <- colnames(group_means)
   gene_key <- dplyr::coalesce(
     annot$source_gene_id,
@@ -732,59 +858,16 @@ S7::method(haplotype_summary, IsoformicExperiment) <- function(
   res
 }
 
-#' Samples of the requested groups, for a test between groups
-#'
-#' Returns the logical vector of the columns to keep and their group factor.
-#' Samples outside `levels` are dropped, so a contrast between some of the
-#' groups is possible. `n_levels` is the number of levels required: `2` for a
-#' two-group test, `NULL` for two or more.
-#' @keywords internal
-#' @noRd
-group_setup <- function(
-  self,
-  group,
-  sample_ids,
-  levels = NULL,
-  n_levels = NULL
-) {
-  groups <- sample_groups(
-    self,
-    group,
-    sample_ids,
-    levels = levels,
-    allow_na = TRUE
-  )
-  observed <- unique(as.character(groups[!is.na(groups)]))
-  groups <- factor(
-    as.character(groups),
-    levels = intersect(levels(groups), observed)
-  )
-  ok <- if (is.null(n_levels)) {
-    nlevels(groups) >= 2L
-  } else {
-    nlevels(groups) == n_levels
-  }
-  if (!ok) {
-    wanted <- if (is.null(n_levels)) {
-      "at least two groups"
-    } else {
-      "exactly two groups"
-    }
-    cli::cli_abort(
-      message = c(
-        x = "The test needs {wanted}; {.field {group}} has {.val {levels(groups)}}.",
-        i = "Choose them with {.arg levels}, reference first."
-      ),
-      class = "isoformic_group_levels"
-    )
-  }
-  keep <- !is.na(groups)
-  list(keep = keep, groups = droplevels(groups[keep]))
-}
-
 #' Samples of exactly two groups, for a two-group test
 #' @keywords internal
 #' @noRd
 two_group_setup <- function(self, group, sample_ids, levels = NULL) {
-  group_setup(self, group, sample_ids, levels = levels, n_levels = 2L)
+  group_samples(
+    self,
+    group,
+    sample_ids,
+    levels = levels,
+    min_levels = 2L,
+    max_levels = 2L
+  )
 }

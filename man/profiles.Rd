@@ -30,8 +30,10 @@ profile table produced by \code{profile_data()}/\code{\link[=prepare_profile_dat
 \item{group}{Name of the \code{col_data} column defining the groups
 (x axis).}
 
-\item{levels}{Optional order of the group levels. Defaults to the factor
-levels or the order of appearance.}
+\item{levels}{Levels of \code{group} to show, in this order. Samples of other
+groups are ignored, as if the object had been subset to these samples.
+\code{NULL} takes all the levels of \code{group} (factor levels, else order of
+appearance). For a profile table, the groups of the table to draw.}
 
 \item{assay}{Name of the transcript assay to summarise (default
 \code{"abundance"}).}

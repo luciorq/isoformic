@@ -142,6 +142,8 @@ head(test_productive_fraction(iso, group = "condition", assay = "abundance"))
 ## Poison exons and enrichment
 
 Genes ranked by the change in productive fraction can be tested for enrichment directly, which targets regulated unproductive splicing such as AS-NMD.
+With inferential replicates, `rank_by = "delta_z"` ranks by the change divided by its standard deviation over the replicates, and `levels` chooses the two groups when the object has more.
+The function also takes the table of `productive_fraction()`, which avoids computing it again for each gene set collection; `inf_reps = FALSE` skips stored replicates when only the fractions are needed.
 Exons found only in unproductive isoforms (poison exons) are listed by `poison_exons()` and outlined in the genomic context plot:
 
 ```{r}
