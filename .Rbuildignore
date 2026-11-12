@@ -50,3 +50,7 @@
 ^jarl\.toml$
 ^CLAUDE\.md$
 ^lychee\.toml$
+^pixi\.toml$
+^pixi\.lock$
+^\.pixi$
+^\.gitattributes$

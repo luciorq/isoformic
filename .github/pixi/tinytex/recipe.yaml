@@ -1,0 +1,69 @@
+# TinyTeX (https://yihui.org/tinytex/), a small TeX Live distribution, as a
+# conda package. It is the LaTeX that `R CMD check` needs to build the PDF
+# manual. conda-forge has no TeX distribution with LaTeX packages
+# (`texlive-core` is the programs alone), so this recipe repackages the
+# release bundle. Nothing is compiled.
+#
+# To update: set `version` to a release of
+# https://github.com/rstudio/tinytex-releases and replace each `sha256` with
+# the digest that the release page shows for that file. Then run `pixi lock`
+# and `pixi run check`.
+schema_version: 1
+
+context:
+  version: "2026.11"
+  release: https://github.com/rstudio/tinytex-releases/releases/download/v${{ version }}
+
+package:
+  name: tinytex
+  version: ${{ version }}
+
+# The `TinyTeX` bundle. The smaller `TinyTeX-1` bundle has no `makeindex`,
+# which the manual needs. `target_directory` keeps the TeX tree apart from
+# the files that the build tool writes to the work directory.
+source:
+  - if: linux and x86_64
+    then:
+      url: ${{ release }}/TinyTeX-linux-x86_64-v${{ version }}.tar.xz
+      sha256: 50e68059058db770a28bcca44d5a323cb57fc10d470017c858404aafeaac9dd7
+      target_directory: tinytex
+  - if: osx
+    then:
+      url: ${{ release }}/TinyTeX-darwin-v${{ version }}.tar.xz
+      sha256: a54a3a16aca1717580b1cc0e4965791487c0650a450d1502dda457dd68e41962
+      target_directory: tinytex
+
+build:
+  number: 0
+  # The programs find the TeX tree relative to their own location, so the
+  # files must stay as released.
+  dynamic_linking:
+    binary_relocation: false
+  script: |
+    set -eu
+    test -d tinytex/texmf-dist
+    dest="${PREFIX}/opt/tinytex"
+    mkdir -p "${PREFIX}/opt" "${PREFIX}/bin"
+    mv tinytex "${dest}"
+    # TeX writes the fonts that it generates to TEXMFVAR. Point it at a
+    # directory that is not part of the package: pixi links the package
+    # files from its cache, so they must not change.
+    sed 's|^TEXMFVAR = .*|TEXMFVAR = $SELFAUTOPARENT/texmf-cache|' \
+      "${dest}/texmf.cnf" > texmf.cnf.new
+    grep -q '^TEXMFVAR = \$SELFAUTOPARENT/texmf-cache$' texmf.cnf.new
+    mv texmf.cnf.new "${dest}/texmf.cnf"
+    # Put the programs on PATH. `tlmgr` stays out, because it would change
+    # the package files. To add a LaTeX package, update this recipe.
+    for exe in "${dest}"/bin/*/*; do
+      name=$(basename "${exe}")
+      arch=$(basename "$(dirname "${exe}")")
+      if [ "${name}" != "tlmgr" ]; then
+        ln -s "../opt/tinytex/bin/${arch}/${name}" "${PREFIX}/bin/${name}"
+      fi
+    done
+
+about:
+  homepage: https://yihui.org/tinytex/
+  repository: https://github.com/rstudio/tinytex-releases
+  summary: TinyTeX, a small TeX Live distribution, for the PDF manual
+  license: LicenseRef-TeX-Live

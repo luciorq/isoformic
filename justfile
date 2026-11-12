@@ -5,6 +5,10 @@ package_name := 'isoformic'
 
 github_org := 'luciorq'
 
+# CRAN mirror for the recipes that install packages or query CRAN. They set
+# + it themselves, so they do not depend on a user `.Rprofile`.
+cran_mirror := 'https://cloud.r-project.org'
+
 @default:
   just --choose
 
@@ -116,7 +120,7 @@ github_org := 'luciorq'
   [[ -f ./README.Rmd ]] && cat ./README.Rmd | rumdl check --stdin --disable 'MD046' || true;
   [[ -f ./README.qmd ]] && cat ./README.qmd | rumdl check --stdin --disable 'MD046' || true;
   just install-deps;
-  R -q -s -e 'pak::local_install(upgrade=TRUE, dependencies=TRUE);';
+  R -q -s -e 'options(repos=c(CRAN="{{ cran_mirror }}"));pak::local_install(upgrade=TRUE, dependencies=TRUE);';
   # R -q -s -e 'devtools::install(pkg = ".", build_vignettes = TRUE, dependencies = c("Imports", "Suggests", "Depends"), upgrade = "always");';
   [[ -f ./README.Rmd ]] && R -q -s -e 'devtools::load_all(quiet=TRUE);if(file.exists("README.Rmd"))rmarkdown::render("README.Rmd", encoding = "UTF-8")' || true;
   [[ -f ./README.qmd ]] && quarto render README.qmd --to gfm || true;
@@ -146,11 +150,11 @@ github_org := 'luciorq'
   #!/usr/bin/env bash
   \builtin set -euo pipefail;
   if [[ $(\builtin command -v qpdf) ]]; then
-    R -q -s -e 'withr::with_envvar(new=list(`_R_CHECK_SYSTEM_CLOCK_`="0"),code={rcmdcheck::rcmdcheck(args = c("--as-cran"), repos = c(CRAN = "https://cloud.r-project.org"));});';
+    R -q -s -e 'withr::with_envvar(new=list(`_R_CHECK_SYSTEM_CLOCK_`="0"),code={rcmdcheck::rcmdcheck(args = c("--as-cran"), repos = c(CRAN = "{{ cran_mirror }}"));});';
   else
     \builtin echo -ne '\n\nNOTE: LaTeX and PDF handling tools missing, skipping the manual.\n';
     \builtin echo -ne '  - Try `R -q -s -e "tinytex::install_tinytex()"` and `pixi global install qpdf ghostscript`.\n\n';
-    R -q -s -e 'withr::with_envvar(new=list(`_R_CHECK_SYSTEM_CLOCK_`="0"),code={rcmdcheck::rcmdcheck(args = c("--as-cran", "--no-manual"), repos = c(CRAN = "https://cloud.r-project.org"));});';
+    R -q -s -e 'withr::with_envvar(new=list(`_R_CHECK_SYSTEM_CLOCK_`="0"),code={rcmdcheck::rcmdcheck(args = c("--as-cran", "--no-manual"), repos = c(CRAN = "{{ cran_mirror }}"));});';
   fi
 
 # Force GitHub Actions Checks to start for the main branch
@@ -190,34 +194,34 @@ github_org := 'luciorq'
   # TODO: `devtools::install()` changed completely its signature by using
   # + `pak::local_install_deps()` for managing dependencies.
   # R -q -s -e 'devtools::install(pkg = ".", build_vignettes = TRUE, dependencies = c("Imports", "Suggests", "Depends"), upgrade = "always");';
-  R -q -s -e 'devtools::install(pkg = ".", build_vignettes = TRUE, dependencies = TRUE, upgrade = TRUE);';
+  R -q -s -e 'options(repos=c(CRAN="{{ cran_mirror }}"));devtools::install(pkg = ".", build_vignettes = TRUE, dependencies = TRUE, upgrade = TRUE);';
   R -q -s -e 'print(vignette(package = "{{ package_name }}"));';
 
 # Install Package Development Dependencies Including Suggests
 @install-deps:
   #!/usr/bin/env bash
   \builtin set -euo pipefail;
-  R -q -e 'if(!requireNamespace("pak", quietly=TRUE)) {install.packages("pak")};';
-  R -q -e 'pak::local_install_dev_deps(upgrade=TRUE, dependencies=TRUE);';
+  R -q -e 'options(repos=c(CRAN="{{ cran_mirror }}"));if(!requireNamespace("pak", quietly=TRUE)) {install.packages("pak")};';
+  R -q -e 'options(repos=c(CRAN="{{ cran_mirror }}"));pak::local_install_dev_deps(upgrade=TRUE, dependencies=TRUE);';
 
 # Install Local Version of the Package With All Dependencies
 @install-local:
   #!/usr/bin/env bash
   \builtin set -euo pipefail;
-  R -q -s -e 'if(!requireNamespace("pak", quietly=TRUE)) {install.packages("pak")};';
-  R -q -s -e 'pak::local_install(upgrade=TRUE, dependencies=TRUE);';
+  R -q -s -e 'options(repos=c(CRAN="{{ cran_mirror }}"));if(!requireNamespace("pak", quietly=TRUE)) {install.packages("pak")};';
+  R -q -s -e 'options(repos=c(CRAN="{{ cran_mirror }}"));pak::local_install(upgrade=TRUE, dependencies=TRUE);';
 
 # Install Dev Environment Dependencies
 @install-dev-deps: install-deps
   #!/usr/bin/env bash
   \builtin set -euo pipefail;
-  R -q -s -e 'pak::local_install_dev_deps(dependencies="Config/Needs/dev", upgrade=TRUE)';
+  R -q -s -e 'options(repos=c(CRAN="{{ cran_mirror }}"));pak::local_install_dev_deps(dependencies="Config/Needs/dev", upgrade=TRUE)';
 
 # Build the pkgdown Website
 @build-pkgdown-website: install-deps
   #!/usr/bin/env bash
   \builtin set -euo pipefail;
-  R -q -s -e 'pak::pak("pkgdown", upgrade=TRUE, dependencies=TRUE);';
+  R -q -s -e 'options(repos=c(CRAN="{{ cran_mirror }}"));pak::pak("pkgdown", upgrade=TRUE, dependencies=TRUE);';
   R -q -s -e 'pkgdown::build_favicons(overwrite=FALSE);';
   R -q -s -e 'devtools::document(quiet=TRUE);devtools::load_all(quiet=TRUE);pkgdown::build_site();';
   # Steps for manually deploying the pkgdown website,
@@ -259,7 +263,7 @@ github_org := 'luciorq'
   R -q -e 'urlchecker::url_check()';
   # R -q -e 'devtools::build_readme()';
   just build-readme;
-  R -q -e 'withr::with_options(list(repos = c(CRAN = "https://cloud.r-project.org")), {devtools::check(remote = TRUE, manual = TRUE)})';
+  R -q -e 'withr::with_options(list(repos = c(CRAN = "{{ cran_mirror }}")), {devtools::check(remote = TRUE, manual = TRUE)})';
   R -q -e 'devtools::check_win_devel()';
   # R -q -s -e 'if(!requireNamespace("revdepcheck", quietly=TRUE)) pak::pak("r-lib/revdepcheck");';
   # R -q -e 'revdepcheck::revdep_reset();';

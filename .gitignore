@@ -35,3 +35,6 @@ vignettes/**/*.rmarkdown
 vignettes/**/*_files/
 # Local pointer to .github/devdocs/CLAUDE.md for Claude Code
 /CLAUDE.md
+# pixi environments
+.pixi/*
+!.pixi/config.toml

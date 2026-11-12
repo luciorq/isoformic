@@ -1,0 +1,185 @@
+# Isolated development environment for isoformic, managed by pixi
+# (https://pixi.prefix.dev). `pixi-build` is a preview feature, so this
+# manifest may need changes when pixi is upgraded.
+#
+#   pixi install          create the environments
+#   pixi run test         run a task
+#   pixi shell            open a shell with R and the dev tools on PATH
+#
+# Linux and macOS take every R package from conda-forge and bioconda, and
+# LaTeX from the recipe in `.github/pixi/tinytex`. Windows has no bioconda
+# and no current conda-forge build of duckdb: see the `win-64` tables below.
+[workspace]
+name = "isoformic"
+channels = ["conda-forge", "bioconda"]
+platforms = ["linux-64", "osx-arm64", "win-64"]
+preview = ["pixi-build"]
+requires-pixi = ">=0.82.1"
+
+# The package itself. The pixi-build-r backend reads `Depends` and `Imports`
+# (with their minimum versions) from DESCRIPTION; the version also comes
+# from there.
+[package]
+name = "r-isoformic"
+
+[package.build.backend]
+name = "pixi-build-r"
+version = "0.2.*"
+channels = ["conda-forge"]
+
+# The backend solves the host environment without the `r-base` of the
+# workspace, so it can build against a newer R
+# (https://github.com/prefix-dev/pixi/issues/7214). Pin R here, and keep
+# the pin in step with `r-base` in `[dependencies]`.
+[package.host-dependencies]
+r-base = "4.5.*"
+
+# Default environment: installs the dependencies of isoformic without
+# building or installing isoformic itself. Use `devtools::load_all()`.
+[target.unix.dev]
+r-isoformic = { path = "." }
+
+[dependencies]
+# Bioconductor 3.22 is the release for R 4.5, on bioconda and in
+# `.github/pixi/windows-packages.R`. Change the three together.
+r-base = "4.5.*"
+
+# `Suggests` in DESCRIPTION that are on CRAN. The backend does not read
+# `Suggests`, so they are listed here.
+r-curl = "*"
+r-jsonlite = "*"
+r-knitr = "*"
+r-matrix = "*"
+r-patchwork = "*"
+r-readr = "*"
+r-readxl = "*"
+r-testthat = ">=3.0.0"
+r-writexl = "*"
+
+# `Config/Needs/dev` and `Config/Needs/website` in DESCRIPTION.
+r-covr = "*"
+r-devtools = "*"
+r-lintr = "*"
+r-pak = "*"
+r-pkgdown = "*"
+r-pkgload = "*"
+r-quarto = "*"
+r-rcmdcheck = "*"
+# Keep in step with `Config/roxygen2/version` in DESCRIPTION.
+r-roxygen2 = "8.1.*"
+r-tidyr = "*"
+r-urlchecker = "*"
+r-usethis = "*"
+
+# Command line tools called by the justfile.
+air = "*"
+ghostscript = "*"
+jarl = "*"
+just = "*"
+lychee = "*"
+markdownlint-cli2 = "*"
+qpdf = "*"
+quarto = "*"
+rumdl = "*"
+
+# `Suggests` in DESCRIPTION that are not on conda-forge. The backend cannot
+# map Bioconductor packages to their bioconda names.
+[target.unix.dependencies]
+bioconductor-apeglm = "*"
+bioconductor-biocparallel = "*"
+bioconductor-deseq2 = "*"
+bioconductor-dexseq = "*"
+bioconductor-edger = "*"
+bioconductor-fgsea = "*"
+bioconductor-fishpond = "*"
+bioconductor-limma = "*"
+bioconductor-saturn = "*"
+bioconductor-summarizedexperiment = "*"
+bioconductor-tximeta = "*"
+bioconductor-tximport = "*"
+# condathis is not on conda-forge; build it from the commit that
+# https://luciorq.r-universe.dev/api/packages/condathis reports as RemoteSha.
+r-condathis = { git = "https://github.com/luciorq/condathis", rev = "ecc46447b094aba91e5fc1cd61493fa97f0194a0", package = { build.backend = { name = "pixi-build-r", version = "0.2.*" }, host-dependencies = { r-base = "4.5.*" } } }
+# LaTeX for the PDF manual that `R CMD check` builds. conda-forge has no TeX
+# distribution with LaTeX packages, so the recipe in `.github/pixi/tinytex`
+# repackages a pinned TinyTeX release (a download of about 150 MB).
+tinytex = { path = ".github/pixi/tinytex", package.build.backend = { name = "pixi-build-rattler-build", version = "0.4.*" } }
+
+# Windows: the `[dev]` table cannot be solved there, because it asks for a
+# duckdb that conda-forge does not build for Windows. The `Imports` that
+# conda-forge has are listed here. `pixi run r-packages` installs the rest of
+# `Imports` and `Suggests` (duckdb, condathis, Bioconductor) as binary
+# packages from CRAN, r-universe and Bioconductor; `pixi.lock` does not
+# record those.
+[target.win-64.dependencies]
+r-cli = "*"
+r-dbi = "*"
+r-dplyr = "*"
+r-fs = "*"
+r-ggplot2 = "*"
+r-ggrepel = "*"
+r-glue = "*"
+r-rlang = "*"
+r-s7 = "*"
+r-scales = "*"
+r-tibble = "*"
+r-withr = "*"
+
+# `pkg` environment: the default environment plus isoformic built and
+# installed as a conda package. The articles need it, because Quarto runs
+# them in a separate R process that calls `library(isoformic)`.
+[feature.pkg]
+platforms = ["linux-64", "osx-arm64"]
+
+[feature.pkg.dependencies]
+r-isoformic = { path = "." }
+
+[environments]
+pkg = ["pkg"]
+
+# Keep a user library (`~/R/...`) out of `.libPaths()`. The empty `R_*`
+# variables keep the R startup files of the user out too: R reads no user
+# `.Rprofile`, `.Renviron` or `Makevars` when they are set and empty, so R
+# has no CRAN mirror unless the code sets one (the justfile recipes do). The
+# `TEXMF*` variables do the same for LaTeX: a shell that exports them (an XDG
+# setup, for example) would make TinyTeX read and write TeX trees in the
+# home directory. The values repeat `opt/tinytex/texmf.cnf`.
+[target.unix.activation.env]
+R_ENVIRON_USER = ""
+R_LIBS_USER = "$CONDA_PREFIX/lib/R/library"
+R_MAKEVARS_USER = ""
+R_PROFILE_USER = ""
+TEXMFCONFIG = "$CONDA_PREFIX/opt/tinytex/texmf-config"
+TEXMFHOME = "$CONDA_PREFIX/opt/tinytex/texmf-local"
+TEXMFVAR = "$CONDA_PREFIX/opt/tinytex/texmf-cache"
+
+# Not tested on Windows, where an empty value may unset the variable. R then
+# reads the startup files of the user as it does without pixi.
+[target.win-64.activation.env]
+R_ENVIRON_USER = ""
+R_LIBS_USER = "%CONDA_PREFIX%\\Lib\\R\\library"
+R_MAKEVARS_USER = ""
+R_PROFILE_USER = ""
+
+# The tasks delegate to the justfile, whose recipes are bash scripts.
+[target.unix.tasks]
+check = "just check"
+document = "just document"
+examples = "just examples"
+format = "just format"
+lint = "just lint"
+test = "just test"
+test-full = "just test-full"
+
+[feature.pkg.tasks]
+render-articles = "just render-articles"
+render-articles-full = "just render-articles-full"
+
+# Windows runs R directly, without bash.
+[target.win-64.tasks]
+r-packages = "Rscript .github/pixi/windows-packages.R"
+check = { cmd = "Rscript -e \"rcmdcheck::rcmdcheck(args='--no-manual',error_on='warning')\"", depends-on = ["r-packages"] }
+document = { cmd = "Rscript -e \"devtools::document()\"", depends-on = ["r-packages"] }
+examples = { cmd = "Rscript -e \"devtools::run_examples()\"", depends-on = ["r-packages"] }
+format = "air format ./R/ ./tests/ ./data-raw/"
+test = { cmd = "Rscript -e \"devtools::test(stop_on_failure=TRUE)\"", depends-on = ["r-packages"] }

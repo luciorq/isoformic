@@ -1,0 +1,75 @@
+# Install the pixi development environment (`pixi.toml`, `pixi.lock`) on
+# + every platform it declares and run the tests in it. Linux and macOS take
+# + all R packages from conda-forge and bioconda, and LaTeX from the TinyTeX
+# + recipe in `.github/pixi/tinytex`. Windows also installs binary packages
+# + from CRAN, r-universe and Bioconductor with
+# + `.github/pixi/windows-packages.R`.
+---
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'pixi.toml'
+      - 'pixi.lock'
+      - 'DESCRIPTION'
+      - '.github/pixi/**'
+      - '.github/workflows/pixi.yaml'
+
+  pull_request:
+    paths:
+      - 'pixi.toml'
+      - 'pixi.lock'
+      - 'DESCRIPTION'
+      - '.github/pixi/**'
+      - '.github/workflows/pixi.yaml'
+
+  workflow_dispatch:
+
+name: pixi
+
+permissions: read-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pixi:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+
+    name: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-26.04, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Installs the default environment from `pixi.lock` and fails when the
+      # + lock file does not match `pixi.toml`.
+      - uses: prefix-dev/setup-pixi@v0.11.3
+        with:
+          pixi-version: v0.84.2
+          locked: true
+          cache: true
+
+      - name: Install the R packages that conda lacks (Windows)
+        if: runner.os == 'Windows'
+        run: pixi run r-packages
+
+      # `just test` does not fail the job when a test fails.
+      - name: Run the tests
+        timeout-minutes: 20
+        run: pixi run Rscript -e "devtools::test(stop_on_failure=TRUE)"
+
+      # The environment has LaTeX on Linux and macOS alone. This is the step
+      # + of `R CMD check` that needs it.
+      - name: Build the PDF manual
+        if: runner.os != 'Windows'
+        timeout-minutes: 10
+        run: >-
+          pixi run R CMD Rd2pdf --no-preview --force
+          --output="${RUNNER_TEMP}/isoformic.pdf" .

@@ -271,6 +271,15 @@ analysis and plot is now first a method on the object.
   `data-raw/case_studies/`.
 * The articles cite the isoformic paper (#24, #25) and `inst/CITATION`
   carries its DOI.
+* `pixi.toml` and `pixi.lock` define an isolated development environment
+  for Linux, macOS (Apple silicon) and Windows: `pixi install`, then
+  `pixi run test`. Linux and macOS take all R packages from conda-forge and
+  bioconda. On Windows, `pixi run r-packages` installs the packages that
+  conda lacks there (`duckdb`, `condathis` and the Bioconductor packages) as
+  binary packages from CRAN, r-universe and Bioconductor 3.22. On Linux and
+  macOS the environment also has LaTeX (a pinned TinyTeX release, packaged
+  by the recipe in `.github/pixi/tinytex`), so `pixi run check` builds the
+  PDF manual.
 
 ### Changed
 
@@ -354,6 +363,13 @@ analysis and plot is now first a method on the object.
   keep at least one transcript and one sample.
 * `test_usage()` estimates the inferential overdispersion on the samples of
   the test, not on all the samples of the object.
+* The imported packages have minimum versions, those the package is
+  developed and tested with: `cli` 3.6.6, `DBI` 1.3.0, `dplyr` 1.2.1,
+  `duckdb` 1.5.4, `fs` 2.1.0, `ggplot2` 4.0.3, `ggrepel` 0.9.8, `glue` 1.8.1,
+  `rlang` 1.3.0, `S7` 0.2.2, `scales` 1.4.0, `tibble` 3.3.1 and `withr`
+  3.0.3. The tests also pass with `duckdb` 2.0.0.
+* `jsonlite` and `readr` are in `Suggests`. The test that compares the
+  inferential overdispersion with `edgeR::catchSalmon()` needs them.
 
 ### Fixed
 
