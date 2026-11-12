@@ -54,3 +54,4 @@
 ^pixi\.lock$
 ^\.pixi$
 ^\.gitattributes$
+^\.env$

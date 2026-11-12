@@ -78,6 +78,7 @@ reference:
       results.
     contents:
       - inferential-io
+      - equivalence_identifiability
       - uncertainty
       - uncertainty-plots
       - inferential-overdispersion
@@ -89,6 +90,7 @@ reference:
     contents:
       - transcript_features
       - transcript_sequences
+      - splice_sites
       - transcript_orfs
       - productivity
       - productivity_evidence

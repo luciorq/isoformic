@@ -6,6 +6,7 @@
 \alias{read_polya_gff}
 \alias{apa_usage}
 \alias{test_apa}
+\alias{run_apa_enrichment}
 \title{Poly(A) Sites and Alternative Polyadenylation of Transcripts}
 \usage{
 polya_sites(
@@ -37,6 +38,19 @@ test_apa(
   assay = "counts",
   min_expr = 0,
   gene_name = NULL,
+  ...
+)
+
+run_apa_enrichment(
+  self,
+  genesets_list,
+  group = NULL,
+  levels = NULL,
+  assay = "abundance",
+  min_size = 15,
+  max_size = 500,
+  rank_by = c("delta", "utr3_length"),
+  min_expr = 0,
   ...
 )
 }
@@ -74,10 +88,25 @@ the samples kept. \code{NULL} takes all the levels of \code{group}. The tests
 
 \item{as_matrix}{Logical, return the genes x samples matrix of distal
 fractions instead of the summary table.}
+
+\item{genesets_list}{Named list of character vectors (gene symbols), as
+returned by \code{\link[=read_gmt]{read_gmt()}}, or a named list of such lists: each collection
+is then tested on its own and the result has a \code{collection} column (see
+\code{\link[=run_enrichment]{run_enrichment()}}).}
+
+\item{min_size, max_size}{Minimum and maximum gene set size passed to
+\code{fgsea}.}
+
+\item{rank_by}{Statistic that ranks the genes in \code{run_apa_enrichment()}:
+\code{"delta"} (default), the change in distal fraction, or \code{"utr3_length"},
+the change in weighted 3' UTR length.}
 }
 \value{
 Tibbles with one row per transcript (\code{polya_sites()}) or per gene
 (\code{apa_usage()}, \code{test_apa()}); a matrix for \code{as_matrix = TRUE}.
+\code{run_apa_enrichment()} returns the \code{fgsea} table with the columns
+\code{experiment} (\code{"distal_fraction"} or \code{"weighted_utr3_length"}),
+\code{rank_by} and, for several collections, \code{collection}.
 }
 \description{
 \code{polya_sites()} describes the 3' end of every assayed transcript:
@@ -114,6 +143,15 @@ groups: the share of expression ending at the distal-most 3' end
 between the last and the first group level. \code{test_apa()} tests the change
 in distal usage between two groups with the quasi-binomial test used by
 \code{\link[=test_productive_fraction]{test_productive_fraction()}}, on counts.
+
+\code{run_apa_enrichment()} runs a gene set enrichment analysis
+(\code{fgsea::fgseaMultilevel()}) on the genes ranked by their change in
+distal usage (\code{rank_by = "delta"}, the \code{delta_distal_fraction} of
+\code{apa_usage()}) or in weighted 3' UTR length (\code{rank_by = "utr3_length"},
+\code{delta_weighted_utr3_length}): a positive score is a gene set whose genes
+move to distal 3' ends, or to longer 3' UTRs, in the last group level. It
+also takes the table of \code{apa_usage()} for two or more groups, so that one
+table serves several calls.
 }
 \examples{
 iso <- example_isoformic()

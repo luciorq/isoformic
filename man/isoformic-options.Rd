@@ -6,9 +6,10 @@
 \alias{isoformic.frozen_mirrors}
 \title{Options and environment variables used by isoformic}
 \description{
-isoformic has one package option, \code{isoformic.frozen_mirrors}, and is
-otherwise configured through base R options, the environment variables
-that locate the user cache and the settings of the packages it builds on.
+isoformic has two package options, \code{isoformic.frozen_mirrors} and
+\code{isoformic.orf_cache}, and is otherwise configured through base R
+options, the environment variables that locate the user cache and the
+settings of the packages it builds on.
 This page lists every setting the package reads or is affected by, what
 it changes and where it is used. Settings are read at call time, so they
 can be changed with \code{\link[=options]{options()}} / \code{\link[=Sys.setenv]{Sys.setenv()}} in a session, scoped
@@ -28,6 +29,10 @@ Zenodo deposit, and \code{"file:///data/isoformic-frozen/"} serves the
 files from a local or institutional mirror. The MD5 recorded in
 \code{\link[=frozen_datasets]{frozen_datasets()}} is verified whatever the mirror. Default: unset
 (no extra mirror).}
+\item{\code{isoformic.orf_cache}}{\code{FALSE} stops \code{\link[=transcript_orfs]{transcript_orfs()}} from
+reading and writing \code{annot_data_orfs.parquet}, the table of the ORFs
+computed so far that it keeps in the annotation directory. The ORFs
+are then computed in every session. Default: unset (\code{TRUE}).}
 }
 }
 
@@ -92,10 +97,13 @@ package, including the connectivity check \code{curl::has_internet()}.}
 \item{DuckDB}{Every Parquet read and write (\code{\link[=read_parquet]{read_parquet()}},
 \code{\link[=write_parquet]{write_parquet()}}, \code{\link[=read_tabular]{read_tabular()}}) and the heavy joins run in a
 short-lived in-memory DuckDB connection with the DuckDB defaults:
-all CPU cores (\code{threads}), 80\% of the RAM as \code{memory_limit} and a
-\code{.tmp} directory under the working directory when a query spills to
-disk. The package does not expose these; they are DuckDB session
-settings and the connections are not shared with user code.}
+all CPU cores (\code{threads}) and 80\% of the RAM as \code{memory_limit}. The
+package does not expose these; they are DuckDB session settings and
+the connections are not shared with user code. Extensions, secrets
+and the files of a query that spills to disk go to
+\verb{isoformic-duckdb/} under \code{\link[=tempdir]{tempdir()}}, unless the \code{duckdb.home}
+option or the \code{DUCKDB_R_HOME} environment variable is set: DuckDB
+then uses its own locations under that directory.}
 \item{\code{condathis.micromamba_path}, \code{CONDATHIS_MICROMAMBA_PATH},
 \code{CONDA_PREFIX}, \code{XDG_DATA_HOME}}{Read by the \code{condathis} package,
 which \code{\link[=salmon_index]{salmon_index()}} and \code{\link[=salmon_quant]{salmon_quant()}} use to run \code{salmon} in a
@@ -112,6 +120,10 @@ does not read them.}
 These are not read by the package code but control its test suite and
 checks (see \code{justfile}):
 \describe{
+\item{\code{ISOFORMIC_FULL}}{\code{"true"} runs the tests and articles that
+download references or run external tools (\verb{just test-full},
+\verb{just render-articles-full}). Unset by default: the tests, examples
+and site then use only the data bundled with the package.}
 \item{\code{TESTTHAT_CPUS}}{Number of parallel testthat workers used by
 \verb{just test}.}
 \item{\code{NOT_CRAN}}{Set to \code{"true"} by \code{devtools::test()}; tests that need

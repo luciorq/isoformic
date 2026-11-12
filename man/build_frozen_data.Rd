@@ -27,7 +27,7 @@ build_frozen_gtex(output_path = ":cache:", sources_dir = NULL)
 frozen-data cache).}
 
 \item{sources_dir}{Directory holding (or receiving) the source files;
-default: \verb{get_isoformic_cache("sources", <name>)}.}
+default: \verb{get_isoformic_cache("sources", <name>, <version>)}.}
 }
 \value{
 The path of the written Parquet file, invisibly.

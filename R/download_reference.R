@@ -30,8 +30,8 @@
 #' can be cached the same way with [download_reference_url()], and HPRC
 #' per-haplotype annotations with [download_hprc_annotation()].
 #'
-#' @param version Release version. GENCODE: the release number (`"49"`,
-#'   `49`, or `"M38"` / `"38"` for mouse; default `"49"`). Ensembl: the
+#' @param version Release version. GENCODE: the release number (`"50"`,
+#'   `50`, or `"M39"` / `"39"` for mouse; default `"50"`). Ensembl: the
 #'   release number (`"116"`); `NULL` (default) uses the current release.
 #'   MANE: `"1.5"`; `NULL` uses the current release. NCBI/T2T: ignored (the
 #'   accession identifies the assembly version).
@@ -91,10 +91,10 @@
 #' @examples
 #' \dontrun{
 #' # GENCODE
-#' gff_file <- download_reference(version = "49", file_type = "gff")
+#' gff_file <- download_reference(version = "50", file_type = "gff")
 #' gtf_file <- download_reference(version = "50", file_type = "gtf", region = "chr")
-#' gff_file_mouse <- download_reference(version = "M38", organism = "mouse")
-#' genome_file <- download_reference(version = "49", file_type = "genome_fasta")
+#' gff_file_mouse <- download_reference(version = "M39", organism = "mouse")
+#' genome_file <- download_reference(version = "50", file_type = "genome_fasta")
 #'
 #' # Ensembl: current human release, Arabidopsis from Ensembl Plants
 #' ens_gff <- download_reference(reference = "ensembl")
@@ -451,19 +451,19 @@ gencode_base_url <- function(organism) {
   )
 }
 
-#' Normalise a GENCODE version string (`49`, `"49"`, `"M38"`, `"38"`)
+#' Normalise a GENCODE version string (`50`, `"50"`, `"M39"`, `"39"`)
 #' @keywords internal
 #' @noRd
 normalize_gencode_version <- function(version, organism) {
   if (is.null(version)) {
-    version <- if (identical(organism, "mouse")) "M38" else "49"
+    version <- if (identical(organism, "mouse")) "M39" else "50"
   }
   version <- toupper(trimws(as.character(version)))
   version <- sub("^(RELEASE_|V)", "", version)
   if (!grepl("^M?[0-9]+$", version)) {
     cli::cli_abort(
       message = c(
-        x = "{.arg version} must be a GENCODE release number such as {.val 49} or {.val M38}.",
+        x = "{.arg version} must be a GENCODE release number such as {.val 50} or {.val M39}.",
         i = "Received: {.val {version}}."
       ),
       class = "isoformic_download_reference_unsupported_version_error"

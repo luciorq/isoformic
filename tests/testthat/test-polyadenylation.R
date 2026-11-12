@@ -212,3 +212,59 @@ testthat::test_that("test_apa contrasts two of three groups", {
   a <- res[res$gene_id == "gA", ]
   testthat::expect_equal(a$distal_fraction_a, (180 + 190) / (240 + 230))
 })
+
+testthat::test_that("run_apa_enrichment ranks the genes by their change in 3' end usage", {
+  iso <- example_isoformic()
+  usage <- apa_usage(iso, group = "condition")
+  testthat::expect_true("delta_distal_fraction" %in% colnames(usage))
+  sets <- list(some = usage$gene_name[1:3], all = usage$gene_name)
+  calls <- record_fgsea()
+  res <- run_apa_enrichment(iso, sets, group = "condition")
+  testthat::expect_identical(unique(res$experiment), "distal_fraction")
+  testthat::expect_identical(unique(res$rank_by), "delta")
+  ranked <- usage[!is.na(usage$delta_distal_fraction), ]
+  testthat::expect_identical(
+    calls$stats[[1L]],
+    sort(stats::setNames(ranked$delta_distal_fraction, ranked$gene_name))
+  )
+  # The table of apa_usage() gives the same, and so do its levels
+  testthat::expect_identical(run_apa_enrichment(usage, sets), res)
+  lv <- rev(unique(as.character(col_data(iso)$condition)))
+  reversed <- run_apa_enrichment(iso, sets, group = "condition", levels = lv)
+  testthat::expect_equal(
+    calls$stats[[3L]][names(calls$stats[[1L]])],
+    -calls$stats[[1L]]
+  )
+  testthat::expect_identical(reversed$pathway, res$pathway)
+  by_length <- run_apa_enrichment(
+    iso,
+    list(first = sets, second = sets["all"]),
+    group = "condition",
+    rank_by = "utr3_length"
+  )
+  testthat::expect_identical(
+    unique(by_length$experiment),
+    "weighted_utr3_length"
+  )
+  testthat::expect_identical(
+    by_length$collection,
+    c("first", "first", "second")
+  )
+  ranked <- usage[!is.na(usage$delta_weighted_utr3_length), ]
+  testthat::expect_identical(
+    calls$stats[[4L]],
+    sort(stats::setNames(ranked$delta_weighted_utr3_length, ranked$gene_name))
+  )
+  testthat::expect_error(
+    run_apa_enrichment(iso, sets),
+    class = "isoformic_group_levels"
+  )
+  testthat::expect_error(
+    run_apa_enrichment(apa_usage(iso), sets),
+    class = "isoformic_invalid_apa_usage"
+  )
+  testthat::expect_error(
+    run_apa_enrichment(iso, list("a"), group = "condition"),
+    class = "isoformic_invalid_genesets"
+  )
+})

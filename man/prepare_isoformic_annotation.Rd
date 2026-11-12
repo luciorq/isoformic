@@ -43,8 +43,8 @@ transcripts, exons) plus metadata and sequence-region tables into an
 objects point to through their \code{annot_path} property.
 }
 \details{
-Reading a full human GENCODE release (about 3 million features,
-gzip-compressed) takes a few seconds; the result is cached so repeated
+Reading a full human GENCODE release (3 to 4 million features,
+gzip-compressed) takes under a minute; the result is cached so repeated
 calls with the same file and output location return immediately.
 
 The parser is vocabulary-agnostic so that annotations from different

@@ -378,3 +378,30 @@ skip_if_not_full <- function() {
     message = "Full-data test; set ISOFORMIC_FULL=true to run it."
   )
 }
+
+# A stand-in for fgsea that records what it is given
+record_fgsea <- function(envir = parent.frame()) {
+  calls <- new.env(parent = emptyenv())
+  calls$stats <- list()
+  calls$pathways <- list()
+  testthat::local_mocked_bindings(
+    fgsea_multilevel = function(pathways, stats, ...) {
+      calls$stats[[length(calls$stats) + 1L]] <- stats
+      calls$pathways[[length(calls$pathways) + 1L]] <- pathways
+      data.frame(
+        pathway = names(pathways),
+        pval = rep(0.5, length(pathways)),
+        padj = rep(0.5, length(pathways)),
+        NES = rep(1, length(pathways)),
+        size = lengths(pathways, use.names = FALSE)
+      )
+    },
+    .env = envir
+  )
+  testthat::local_mocked_bindings(
+    check_installed = function(...) invisible(TRUE),
+    .package = "rlang",
+    .env = envir
+  )
+  calls
+}

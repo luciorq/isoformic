@@ -58,6 +58,7 @@ Suggests:
     jsonlite,
     knitr,
     limma,
+    Matrix,
     patchwork,
     readr,
     readxl,

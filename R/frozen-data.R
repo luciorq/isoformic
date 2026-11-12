@@ -141,22 +141,22 @@ frozen_mirror_url <- function(base, file) {
 #' @keywords internal
 #' @noRd
 frozen_registry <- function() {
-  appris_base <- "https://apprisws.bioinfo.cnio.es/pub/releases/2024_10.v49/datafiles/homo_sapiens/e113v49/"
+  appris_base <- "https://apprisws.bioinfo.cnio.es/pub/releases/2026_08.v50/datafiles/homo_sapiens/e116v50/"
   riboseq_base <- "https://ftp.ebi.ac.uk/pub/databases/gencode/riboseq_orfs/"
   list(
     appris = list(
-      title = "APPRIS principal isoforms and method scores (human, GENCODE 49)",
-      version = "e113v49",
-      file = "appris_e113v49.parquet",
-      md5 = "fc97d69393054b95c60f2a112d8861fe",
+      title = "APPRIS principal isoforms and method scores (human, GENCODE 50)",
+      version = "e116v50",
+      file = "appris_e116v50.parquet",
+      md5 = "c84750680dace8250ed99db78543f21c",
       sources = paste0(appris_base, "appris_data.appris.txt"),
       builder = "build_frozen_appris"
     ),
     appris_domains = list(
-      title = "APPRIS SPADE Pfam domain coordinates (human, GENCODE 49)",
-      version = "e113v49",
-      file = "appris_domains_e113v49.parquet",
-      md5 = "ee0da6fa024f40340865930f6580c058",
+      title = "APPRIS SPADE Pfam domain coordinates (human, GENCODE 50)",
+      version = "e116v50",
+      file = "appris_domains_e116v50.parquet",
+      md5 = "f6f399a9779b1c01b01a08a49089573f",
       sources = paste0(appris_base, "appris_method.spade.gtf.gz"),
       builder = "build_frozen_appris_domains"
     ),
@@ -432,11 +432,17 @@ verify_frozen_md5 <- function(path, entry, verify, warn = TRUE) {
 }
 
 #' Download the source files of a frozen dataset into the sources cache
+#'
+#' The default directory is keyed by the dataset version: source file names
+#' do not change between releases (`appris_data.appris.txt`), and an existing
+#' file is not downloaded again, so a directory shared by two versions would
+#' rebuild the old data under the new name.
 #' @keywords internal
 #' @noRd
 frozen_sources <- function(name, sources_dir = NULL) {
   entry <- frozen_dataset_entry(name)
-  sources_dir <- sources_dir %||% get_isoformic_cache("sources", name)
+  sources_dir <- sources_dir %||%
+    get_isoformic_cache("sources", name, entry$version)
   fs::dir_create(sources_dir)
   vapply(
     entry$sources,
@@ -495,7 +501,7 @@ frozen_sources <- function(name, sources_dir = NULL) {
 #' @param output_path Directory receiving the Parquet file (default: the
 #'   frozen-data cache).
 #' @param sources_dir Directory holding (or receiving) the source files;
-#'   default: `get_isoformic_cache("sources", <name>)`.
+#'   default: `get_isoformic_cache("sources", <name>, <version>)`.
 #'
 #' @returns The path of the written Parquet file, invisibly.
 #'

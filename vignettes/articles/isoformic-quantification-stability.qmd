@@ -145,9 +145,9 @@ bins |>
   theme(axis.text.x = element_text(angle = 30, hjust = 1), legend.position = "top")
 ```
 
-- **Fragments of its own decide whether an isoform is determined.** The median InfRV falls from about 6 for isoforms without a unique fragment to 0.02 for those with most fragments unique, within every type.
+- **Fragments of its own decide whether an isoform is determined.** The median InfRV falls from about 6 for isoforms without a unique fragment to 0.03 for those with most fragments unique, within every type.
 - **Sequence identity to siblings works the same way**: isoforms that differ from their closest sibling by few bases, or that have few exonic bases of their own, are the most uncertain.
-- **More isoforms in the gene, more uncertainty**: from 0.05 for genes with one isoform to about 4 for genes with more than 30.
+- **More isoforms in the gene, more uncertainty**: from 0.06 for genes with one isoform to about 4 for genes with more than 30.
 - **Uncertainty is not a problem of low counts.** The InfRV rises with the number of reads up to a thousand reads: an ambiguous isoform stays ambiguous however deep it is sequenced, plausibly because the variance that assignment adds grows with the reads that have to be assigned. Length works the same way for protein-coding isoforms, which share more exons as they grow.
 - **GC content hardly matters** once the rest is known.
 

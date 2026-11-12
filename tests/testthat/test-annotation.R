@@ -449,3 +449,111 @@ testthat::test_that("merge_annotations builds a haplotype-resolved annotation", 
     class = "isoformic_invalid_haplotypes"
   )
 })
+
+testthat::test_that("sequence regions declared between features are all kept", {
+  gff <- withr::local_tempfile(fileext = ".gff3")
+  attr <- function(id, parent = NULL, extra = "") {
+    paste0(
+      "ID=",
+      id,
+      if (!is.null(parent)) paste0(";Parent=", parent),
+      extra
+    )
+  }
+  row <- function(seqid, type, start, end, attributes) {
+    paste(
+      seqid,
+      "HAVANA",
+      type,
+      start,
+      end,
+      ".",
+      "+",
+      ".",
+      attributes,
+      sep = "\t"
+    )
+  }
+  writeLines(
+    c(
+      "##gff-version 3",
+      "##sequence-region chr1 1 1000",
+      row(
+        "chr1",
+        "gene",
+        10,
+        200,
+        attr("g1", extra = ";gene_id=g1;gene_name=A;gene_type=lncRNA")
+      ),
+      row(
+        "chr1",
+        "transcript",
+        10,
+        200,
+        attr("t1", "g1", ";gene_id=g1;transcript_id=t1;transcript_type=lncRNA")
+      ),
+      row(
+        "chr1",
+        "exon",
+        10,
+        200,
+        attr("exon:t1:1", "t1", ";gene_id=g1;transcript_id=t1;exon_number=1")
+      ),
+      "##sequence-region chr2 1 500",
+      row(
+        "chr2",
+        "gene",
+        5,
+        90,
+        attr("g2", extra = ";gene_id=g2;gene_name=B;gene_type=lncRNA")
+      ),
+      row(
+        "chr2",
+        "transcript",
+        5,
+        90,
+        attr("t2", "g2", ";gene_id=g2;transcript_id=t2;transcript_type=lncRNA")
+      ),
+      row(
+        "chr2",
+        "exon",
+        5,
+        90,
+        attr("exon:t2:1", "t2", ";gene_id=g2;transcript_id=t2;exon_number=1")
+      ),
+      # a sequence without a pragma keeps the largest feature end
+      row(
+        "chr3",
+        "gene",
+        5,
+        70,
+        attr("g3", extra = ";gene_id=g3;gene_name=C;gene_type=lncRNA")
+      ),
+      row(
+        "chr3",
+        "transcript",
+        5,
+        70,
+        attr("t3", "g3", ";gene_id=g3;transcript_id=t3;transcript_type=lncRNA")
+      ),
+      row(
+        "chr3",
+        "exon",
+        5,
+        70,
+        attr("exon:t3:1", "t3", ";gene_id=g3;transcript_id=t3;exon_number=1")
+      )
+    ),
+    gff
+  )
+  regions <- read_sequence_regions(gff)
+  testthat::expect_equal(regions$seqid, c("chr1", "chr2"))
+  testthat::expect_equal(regions$end_pos, c(1000L, 500L))
+  annot_dir <- suppressMessages(prepare_isoformic_annotation(
+    gff,
+    output_path = withr::local_tempdir()
+  ))
+  seq_regions <- read_parquet(fs::path(annot_dir, "annot_seq_regions.parquet"))
+  testthat::expect_equal(seq_regions$seqid, c("chr1", "chr2", "chr3"))
+  testthat::expect_equal(seq_regions$end_pos, c(1000L, 500L, 70L))
+})

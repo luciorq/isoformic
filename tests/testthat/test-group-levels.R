@@ -789,3 +789,238 @@ testthat::test_that("draws without rows, integer draws and infinite values are h
   pf <- productive_fraction(iso, group = "g3", inf_reps = draws)
   testthat::expect_true(any(!is.na(pf$delta_productive_fraction_sd)))
 })
+
+testthat::test_that("the view of the draws gives the values of the dense array", {
+  iso <- three_group_example()
+  draws <- example_draws(iso, n = 6L)
+  # Replicates in different row and column orders, one stored as integers
+  set.seed(11)
+  draws <- lapply(draws, function(m) {
+    m <- m[sample(nrow(m)), sample(ncol(m))]
+    rbind(m[-(1:4), ], unknown_tx = 1)
+  })
+  shared <- Reduce(intersect, lapply(draws, rownames))
+  draws <- lapply(draws, function(m) m[c(sample(shared), "unknown_tx"), ])
+  draws[[2L]] <- round(draws[[2L]])
+  storage.mode(draws[[2L]]) <- "integer"
+  attr(draws, "samp_type") <- "gibbs"
+  iso@metadata$inf_reps <- draws
+  view <- draws_view(iso)
+  arr <- draws_array(iso)
+  testthat::expect_identical(draws_dim(view), dim(arr))
+  testthat::expect_identical(draws_ids(view), rownames(arr))
+  testthat::expect_false("unknown_tx" %in% draws_ids(view))
+  testthat::expect_identical(draws_samples(view), colnames(arr))
+  testthat::expect_identical(attr(arr, "samp_type"), "gibbs")
+  for (k in c(1L, 2L, 6L)) {
+    testthat::expect_identical(
+      unname(draw_slice(view, k)),
+      draw_slice(arr, k)
+    )
+    testthat::expect_type(draw_slice(view, k), "double")
+  }
+  # Against the values of the stored list, not of the array built from the view
+  ids <- draws_ids(view)
+  samples <- draws_samples(view)
+  dense <- vapply(
+    draws,
+    function(m) m[ids, samples] * 1,
+    matrix(0, length(ids), length(samples))
+  )
+  dense_slice <- function(k) {
+    matrix(dense[seq_along(ids), seq_along(samples), k], nrow = length(ids))
+  }
+  for (k in seq_along(draws)) {
+    testthat::expect_identical(unname(draw_slice(view, k)), dense_slice(k))
+    testthat::expect_identical(unname(draw_slice(arr, k)), dense_slice(k))
+  }
+  rows <- c(5L, 1L, 9L)
+  testthat::expect_identical(
+    draws_sample(view, rows, 3L),
+    unname(dense[rows, 3L, ])
+  )
+  testthat::expect_equal(
+    unname(draw_moments(view)$mean),
+    unname(apply(dense, c(1L, 2L), mean))
+  )
+  testthat::expect_equal(
+    unname(draw_moments(view)$var),
+    unname(apply(dense, c(1L, 2L), stats::var))
+  )
+  # Replicates with exactly the transcripts and samples of the view, each in
+  # its own order: the stored matrix is used as it is only when it is aligned
+  plain <- lapply(draws, function(m) m[sample(ids), sample(samples)])
+  plain[[1L]] <- plain[[1L]][ids, samples]
+  plain_view <- draws_view(iso, plain)
+  for (k in seq_along(plain)) {
+    testthat::expect_identical(
+      unname(draw_slice(plain_view, k)),
+      unname(plain[[k]][ids, samples] * 1)
+    )
+  }
+  testthat::expect_identical(
+    draws_sample(view, rows, 3L),
+    draws_sample(arr, rows, 3L)
+  )
+  testthat::expect_identical(draw_moments(view), draw_moments(arr))
+  keep <- draws_samples(view)[c(4L, 2L)]
+  for (sel in list(keep, c(4L, 2L), draws_samples(view) %in% keep)) {
+    sub_view <- draws_select_samples(view, sel)
+    sub_arr <- draws_select_samples(arr, sel)
+    testthat::expect_identical(draws_samples(sub_view), colnames(sub_arr))
+    testthat::expect_identical(
+      unname(draw_slice(sub_view, 3L)),
+      draw_slice(sub_arr, 3L)
+    )
+    testthat::expect_identical(
+      draws_sample(sub_view, rows, 2L),
+      draws_sample(sub_arr, rows, 2L)
+    )
+  }
+  # The uncertainty tables and the stability of the fold-changes are the same
+  # from the view and from the array
+  settings <- uncertainty_settings(iso)
+  settings$pseudocount <- 5
+  from_view <- build_uncertainty(iso, view, NULL, settings)
+  from_arr <- build_uncertainty(iso, arr, NULL, settings)
+  testthat::expect_equal(from_view, from_arr)
+  for (collapse in c(FALSE, TRUE)) {
+    testthat::expect_equal(
+      compute_de_confidence(
+        iso,
+        view,
+        from_view,
+        group = "g3",
+        levels = c("c", "a"),
+        collapse_groups = collapse,
+        settings = settings
+      ),
+      compute_de_confidence(
+        iso,
+        arr,
+        from_arr,
+        group = "g3",
+        levels = c("c", "a"),
+        collapse_groups = collapse,
+        settings = settings
+      )
+    )
+  }
+  testthat::expect_equal(
+    compute_overdispersion(view),
+    compute_overdispersion(arr)
+  )
+  # Collapsed groups against sums over their members, taken from the list
+  set.seed(5)
+  tables <- from_view
+  members <- sample(ids, 6L)
+  tables$transcripts$ambiguity_group <- NA_character_
+  tables$transcripts$ambiguity_group[
+    match(members, tables$transcripts$transcript_id)
+  ] <- rep(c("zz_group", "aa_group"), each = 3L)
+  confidence_of <- function(collapse, draws_obj = view) {
+    compute_de_confidence(
+      iso,
+      draws_obj,
+      tables,
+      group = "g3",
+      levels = c("c", "a"),
+      collapse_groups = collapse,
+      settings = settings
+    )$table
+  }
+  collapsed <- confidence_of(TRUE)
+  single <- confidence_of(FALSE)
+  kept <- col_data(iso)$sample_id[col_data(iso)$g3 %in% c("c", "a")]
+  kept <- samples[samples %in% kept]
+  for (group_id in c("zz_group", "aa_group")) {
+    in_group <- tables$transcripts$transcript_id[
+      tables$transcripts$ambiguity_group %in% group_id
+    ]
+    row <- collapsed[collapsed$feature_id == group_id, ]
+    testthat::expect_identical(nrow(row), 1L)
+    testthat::expect_setequal(strsplit(row$transcript_ids, ";")[[1L]], in_group)
+    testthat::expect_equal(
+      row$mean_count,
+      sum(apply(dense[in_group, kept, ], 1L, mean))
+    )
+  }
+  others <- collapsed[collapsed$feature_type == "transcript", ]
+  same <- single[match(others$feature_id, single$feature_id), ]
+  testthat::expect_identical(others$feature_id, same$feature_id)
+  testthat::expect_equal(others$lfc_median, same$lfc_median)
+  testthat::expect_equal(others$mean_count, same$mean_count)
+  # The fold-change of one transcript from the draws themselves
+  one <- others$feature_id[which(!is.na(others$lfc_median))[[1L]]]
+  libsize <- colSums(assay(iso, "counts"))[kept]
+  group_of <- col_data(iso)$g3[match(kept, col_data(iso)$sample_id)]
+  lfc <- apply(dense[one, kept, ], 2L, function(v) {
+    v <- log2(v * mean(libsize) / libsize + settings$pseudocount)
+    mean(v[group_of == "a"]) - mean(v[group_of == "c"])
+  })
+  testthat::expect_equal(
+    others$lfc_median[others$feature_id == one],
+    stats::median(lfc)
+  )
+  # A transcript on two rows of the replicates is summed, collapsed or not
+  doubled <- lapply(draws, function(m) rbind(m, m[members[1:2], ] * 0.5))
+  doubled_view <- draws_view(iso, doubled)
+  res <- confidence_of(FALSE, doubled_view)
+  testthat::expect_identical(anyDuplicated(res$feature_id), 0L)
+  broken <- draws
+  broken[[3L]] <- broken[[3L]][-1L, ]
+  testthat::expect_error(
+    draws_view(iso, broken),
+    class = "isoformic_invalid_inf_reps"
+  )
+  broken <- draws
+  broken[[3L]] <- broken[[3L]][, -1L]
+  testthat::expect_error(
+    draws_view(iso, broken),
+    class = "isoformic_invalid_inf_reps"
+  )
+})
+
+testthat::test_that("a group level named sd does not overwrite the standard deviation", {
+  x <- uncertainty_experiment()
+  iso <- add_uncertainty(x$iso, paths = x$fixture$dirs)
+  cd <- col_data(iso)
+  cd$odd <- ifelse(cd$condition == cd$condition[[1L]], "sd", "other")
+  col_data(iso) <- cd
+  testthat::expect_error(
+    productive_fraction(iso, group = "odd"),
+    class = "isoformic_group_levels"
+  )
+  without <- productive_fraction(iso, group = "odd", inf_reps = FALSE)
+  testthat::expect_true("productive_fraction_sd" %in% colnames(without))
+  testthat::expect_false("delta_z" %in% colnames(without))
+})
+
+testthat::test_that("run_productivity_enrichment tests several collections one by one", {
+  x <- uncertainty_experiment()
+  iso <- add_uncertainty(x$iso, paths = x$fixture$dirs)
+  pf <- productive_fraction(iso, group = "condition")
+  genes <- pf$gene_name[!is.na(pf$delta_productive_fraction)]
+  testthat::expect_gt(length(genes), 0L)
+  first <- list(a = genes, b = genes[[1L]])
+  second <- list(c = genes)
+  calls <- record_fgsea()
+  flat <- run_productivity_enrichment(pf, first)
+  testthat::expect_false("collection" %in% colnames(flat))
+  nested <- run_productivity_enrichment(
+    pf,
+    list(first = first, second = second)
+  )
+  testthat::expect_identical(nested$collection, c("first", "first", "second"))
+  testthat::expect_identical(nested$pathway, c("a", "b", "c"))
+  testthat::expect_identical(unique(nested$experiment), "productive_fraction")
+  testthat::expect_identical(calls$stats[[2L]], calls$stats[[1L]])
+  testthat::expect_identical(
+    run_productivity_enrichment(
+      iso,
+      list(first = first, second = second),
+      group = "condition"
+    ),
+    nested
+  )
+})

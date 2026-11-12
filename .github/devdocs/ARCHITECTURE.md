@@ -81,6 +81,20 @@ Measured on 2026-10-15 with `Rscript` on a laptop.
   only keeps records the caller asks for; exon sequences are cut with
   `substring()` per chromosome and assembled per transcript in DuckDB
   (`string_agg ... ORDER BY`, reverse complement with `translate`/`reverse`).
+- `R/splice-sites.R`: `annot_data_splice_sites.parquet` is an optional table
+  of the unique introns (`seqid`, `strand`, `intron_start`, `intron_end`)
+  with the donor window (3 exonic + 6 intronic bases) and the acceptor
+  window (20 intronic + 3 exonic), in the direction of transcription. It is
+  written by `sequences_from_genome()` while a chromosome is in memory, so
+  `extract_transcript_sequences(genome_fasta = )` gives it for free and
+  `extract_splice_sites()` adds it alone. `splice_site_strength()` trains
+  log-odds matrices on the introns of canonical transcripts (all introns
+  below 100), background = base composition of the training windows, half a
+  pseudocount per base, and scores every intron; windows with a base other
+  than A, C, G, T are `NA`. GENCODE 50: 698,612 introns, 97.6% GT-AG,
+  260,664 training introns, median donor 8.3 and acceptor 7.7 bits,
+  extraction 94 s, scoring 25 s, file 8.4 MB. `merge_annotations()` does
+  not carry the table.
 - `R/orfs.R`: `transcript_orfs()` works on positions, never on translated
   strings: stop codon positions come from one `gregexpr` per sequence (stop
   codons cannot overlap), the first in-frame stop is a filtered vector
@@ -90,6 +104,26 @@ Measured on 2026-10-15 with `Rscript` on a laptop.
   variant to use when the same transcript appears several times, e.g. the
   canonical of every isoform; `genomic_to_transcript_coord()` assumes unique
   IDs and silently drops repeats).
+- The ORF rows are kept in `annot_data_orfs.parquet` of the annotation
+  directory (`stored_transcript_orfs()`): an ORF depends on the transcript
+  and on the canonical isoform of its gene among the rows given, so a stored
+  row is reused when its `canonical_transcript_id` is the canonical of the
+  call. The genes that differ are computed; of those, only the rows computed
+  with the canonical isoform of the whole annotation are stored, so that an
+  object without that isoform does not replace the rows the others read. The
+  NMD class is derived again on every call (`orf_nmd_class()`), so
+  `nmd_rule`, `start_proximal` and `long_utr3` do not invalidate the table;
+  `min_orf_length`, the package version, the coding potential model in
+  use, the size and time of the transcripts, exons and sequences files and
+  `orf_table_version()` do (so a directory copied without its modification
+  times, as `fs::dir_copy()` does, computes the table again). The names
+  (`transcript_name`, `gene_id`, `gene_name`) are always taken from the
+  transcripts of the call, because the genes table can change without the
+  others.
+  Increase `orf_table_version()` whenever `compute_transcript_orfs()` or one
+  of its helpers changes. Nothing is written into
+  the files of the installed package (the bundled example annotation), into
+  a read-only directory or with `options(isoformic.orf_cache = FALSE)`.
 - Coding potential: Fickett tables as in CPAT, hexamer log-odds and the
   logistic coefficients live in `inst/extdata/coding_model/` and are
   retrained by `data-raw/build_coding_model.R`.
@@ -114,6 +148,10 @@ Measured on 2026-10-15 with `Rscript` on a laptop.
 
 ## Quantification uncertainty
 
+Definitions in the literature, how the code compares and the backlog
+(U1 to U10; U1 is a deviation of `inferential_rv()` from fishpond):
+`UNCERTAINTY-LITERATURE.md`.
+
 - `R/uncertainty-io.R`: readers for the files Salmon writes. `bootstraps.gz`
   is raw little-endian doubles, `num_bootstraps` replicates of the
   `names.tsv.gz` transcripts (same layout in Salmon 1.x and 2.x);
@@ -127,13 +165,34 @@ Measured on 2026-10-15 with `Rscript` on a laptop.
   `dea$ambiguity` and `dea$confidence`, which `standardize_dea()` keeps and
   `write_isoformic()` persists.
 - Inferential relative variance follows `fishpond::computeInfRV()`
-  (`max(0.01, var - mean) / (mean + 5)` per sample, averaged). With 30 draws
+  (`max(var - mean, 0) / (mean + 5) + 0.01` per sample, averaged; one
+  function, `inferential_rv()`, also used by `cut_transcript_trees()`). With 30 draws
   the sampling noise of a variance puts the value of a well-determined
   transcript near 0.1, hence the default cutoff of 0.5.
 - Sibling correlation is computed per sample from standardised draws for all
   pairs inside a gene (pairs are generated vectorised, 50,000 at a time) and
   averaged; ambiguity groups are the connected components of the pairs at or
   below the cutoff (label propagation).
+  The same pass gives `collapse_gain` per pair (InfRV of the sum, from the
+  two variances and the correlation, minus the mean InfRV of the two; the
+  Terminus score). `cor_cutoff = "adaptive"` is resolved by
+  `resolve_cor_cutoff()` (minus the 97.5th percentile of the largest mean
+  correlation per isoform); the number used and the rule (`fixed` or
+  `adaptive`) are stored in the metadata.
+- `R/identifiability.R`: `equivalence_identifiability()`, structural
+  identifiability from class membership (unit vector in the row space of the
+  class by transcript matrix). `identifiable_from_classes()` works per
+  sample: `reduce_class_system()` peels classes with one unresolved member
+  and merges transcripts with identical classes (hashed columns);
+  `solve_class_blocks()` splits the rest into connected blocks, solved by
+  `dense_identifiable()` (`svd()`, up to `max_dense` columns) or
+  `sparse_identifiable()` (CGLS projection of two random vectors on the null
+  space, `Matrix`). Not part of `add_uncertainty()` because of its cost;
+  join its result to `tx_uncertainty()` by `transcript_id`. Weights of
+  `--dumpEqWeights` are ignored. Evaluation and the reasoning about ranges
+  of optima: `UNCERTAINTY-LITERATURE.md` section 5.4, U5.
+- `low_information` is `unique_fraction == 0 & uncertain`, present only when
+  equivalence classes were read.
 - `de_confidence()` repeats a Welch t-test on `log2(count scaled to a common
   library size + 5)` per draw and keeps the median and 2.5/97.5% quantiles of
   the log2 fold-change, the share of draws agreeing on its sign and the share
@@ -144,6 +203,12 @@ Measured on 2026-10-15 with `Rscript` on a laptop.
 - `add_uncertainty()` keeps draws for transcripts with a mean count of at
   least `min_count` (1); `draw_productive_fraction()` matches each draw to the
   transcripts by row name, one draw at a time, so the others count as zero.
+- The replicates are never copied into a dense array: `draws_view()`
+  (`R/uncertainty.R`) indexes the stored list, and its consumers read one
+  draw (`draw_slice()`) or one sample (`draws_sample()`) at a time. The same
+  accessors take an array, which `draws_array()` still builds for the tests.
+  `cut_transcript_trees()` keeps the mean and variance of the tree leaves
+  and of the node sums only.
 
 - Real example data: `inst/extdata/knockdown/<series>/` (GSE129540 and
   GSE75489, ESRP knockdowns) with `knockdown_annotation/`, built by
@@ -158,48 +223,70 @@ Measured on 2026-10-15 with `Rscript` on a laptop.
   self-contained `write_isoformic()` directory per case study article
   (`mouse_bnst`, `prostate_ont`), outside the package (`vignettes/articles`
   is in `.Rbuildignore`). `data-raw/case_studies/quantify_*.sh` download the
-  reads from NCBI SRA (S3 mirror; ENA is far slower from the US) and run
-  Salmon or Oarfish; `build_case_studies.R` runs swish and DESeq2 on the
-  complete quantifications and keeps the full DE tables, the annotation of
-  the tested genes and the assays and exons of a gene panel (5 to 7 MB per
-  study). The mouse study adjusts both tests for two batches found in the
-  sample PCA (`col_data$batch`). The work directory of the scripts is large
-  (60 GB per study); keep it on a data disk. Oarfish takes about 5 hours
-  per nanopore sample on 8 threads.
+  reads from NCBI SRA (S3 mirror, because ENA is far slower from the US) and
+  run Salmon or Oarfish.
+  `build_case_studies.R` runs swish and DESeq2 on the complete quantifications.
+  It keeps the full DE tables, the annotation of the tested genes and the
+  assays and exons of a gene panel (5 to 7 MB per study).
+  The mouse study adjusts both tests for two batches found in the
+  sample PCA (`col_data$batch`).
+  The work directory of the scripts is large (60 GB per study).
+  Keep it on a data disk.
+  Oarfish takes about 5 hours per nanopore sample on 8 threads.
 
-## Benchmark of the sequence rules (GENCODE v33, 227,979 transcripts with sequence)
+## Benchmark of the sequence rules (GENCODE v50, 646,577 transcripts with sequence)
 
 `benchmark_productivity()` with `use_biotype = FALSE`, `use_evidence = FALSE`
-on the full annotation (primary assembly genome; scaffold transcripts have no
-sequence):
+on the full annotation (primary assembly genome; the 24,093 scaffold
+transcripts have no sequence). Recomputed 2026-11-11; the last two columns
+are the earlier run on GENCODE v33 (227,979 transcripts).
 
-| metric | n | value |
-|---|---|---|
-| `nonsense_mediated_decay` called unproductive | 15,925 | 0.989 |
-| `retained_intron` called unproductive | 28,463 | 0.611 |
-| `protein_coding` called productive or altered | 84,010 | 0.679 |
-| canonical (MANE/Ensembl canonical) called productive | 20,019 | 0.968 |
-| `lncRNA` called noncoding | 46,683 | 1.000 |
+| metric | n | value | n (v33) | value (v33) |
+|---|---|---|---|---|
+| `nonsense_mediated_decay` called unproductive | 91,818 | 0.998 | 15,925 | 0.989 |
+| `retained_intron` called unproductive | 34,250 | 0.598 | 28,463 | 0.611 |
+| `protein_coding` called productive or altered | 278,484 | 0.909 | 84,010 | 0.679 |
+| canonical (MANE/Ensembl canonical) called productive | 20,134 | 0.973 | 20,019 | 0.968 |
+| `lncRNA` called noncoding | 191,362 | 1.000 | 46,683 | 1.000 |
 
-The `protein_coding` shortfall is almost entirely `uncertain`: 19,446
-transcripts whose 3' end is annotated incomplete (`mRNA_end_NF`, no stop
-reachable) and 6,185 with an incomplete CDS; 834 carry a premature stop by the
-50-nt rule and 206 have no in-frame stop. Retained-intron transcripts whose
-projected ORF ends inside a last retained intron are `altered_productive`
-(no downstream junction, so no NMD by the rule), which is what the rule
-says, not what the biotype says; `use_biotype = TRUE` (the default) keeps the
-annotation's call for them.
+GENCODE grew mostly in complete `protein_coding` (88,305 productive, 164,955
+altered productive) and `nonsense_mediated_decay` transcripts, which is why
+the `protein_coding` row rose. Its shortfall is still almost entirely
+`uncertain` (24,400): 18,353 transcripts whose 3' end is annotated incomplete
+(`mRNA_end_NF`, no stop reachable) and 6,047 with an incomplete CDS; of the
+824 called unproductive, 551 carry a premature stop by the 50-nt rule, 262 a
+stop close to the start codon and 11 have no in-frame stop.
+Retained-intron transcripts: 20,491 unproductive, 9,254 `altered_productive`,
+3,549 uncertain, 867 noncoding (genes without a coding isoform) and 89
+productive. Those whose projected ORF ends inside a last retained intron are
+`altered_productive` (no downstream junction, so no NMD by the rule), which
+is what the rule says, not what the biotype says; `use_biotype = TRUE` (the
+default) keeps the annotation's call for them.
+`protein_coding_LoF` (148 transcripts, 86 with sequence) is in
+`unproductive_biotypes()` since 2026-11-12 (decision of the maintainer): the
+reference genome has a variant that stops its translation, and the calls
+describe the reference. With `use_biotype = FALSE` the rules decide (39
+productive, 17 altered productive, 28 unproductive, 2 uncertain); in other
+haplotypes the transcript can be translated.
 
-Timings (one core): genome FASTA extraction 1.6 min (gzip, 3.1 GB), transcript
+The benchmark took 9.3 minutes on v50 (16 cores, machine in use).
+
+Timings on v33 (one core): genome FASTA extraction 1.6 min (gzip, 3.1 GB), transcript
 FASTA matching 50 s, `transcript_orfs()` 2.6 min, classification < 5 s.
 Genome-derived sequences were identical to the GENCODE transcript FASTA for
 all 227,751 shared transcripts.
 
 ## Not implemented (from the isoform-annotation review)
 
-- Splice-site strength and detained-intron candidates (need position
-  weight matrices or intron-level coverage, not available from the inputs
-  the package reads).
+- Detained-intron candidates (need intron-level coverage, not available
+  from the inputs the package reads). `ALPHAGENOME-BENCHMARK.md` has a pilot
+  benchmark of AlphaGenome predictions for this (blocked on an API key).
+  Splice-site strength is implemented with first-order matrices
+  (`R/splice-sites.R`); a model with dependencies between positions
+  (MaxEntScan) is not.
+- Non-identifiability of abundances (ranges of optima), coverage anomalies
+  and junction coverage compatibility: `UNCERTAINTY-LITERATURE.md` sections
+  5.2 (U5) and 5.4.
 - Proteomics evidence (PeptideAtlas / OpenProt peptide-to-isoform mapping):
   join through `add_annotation_columns()` once a table exists; no fetcher.
 - Transcript-level NMD-inhibition fold changes (UPF1/SMG6/SMG7 knockdown):
@@ -269,13 +356,15 @@ all 227,751 shared transcripts.
   has a larger id than its parent. `read_treeterminus()` maps the 0-based leaf
   positions to the transcript names of `quant.sf` (not the order of
   `eq_classes.txt.gz`, which also lists the decoys).
-- `cut_transcript_trees()` flattens the draws to transcripts by
-  (sample within draw), sums leaves into their parents with `rowsum()`, then
-  every node into its parent in decreasing id order; InfRV of a node uses the
-  same formula as `inferential_rv()`. Two top-down passes find, for every node,
-  the lowest well-determined node above it and the topmost chosen node above
-  it; the second makes the groups disjoint. Memory is one row of
-  (samples x draws) per internal node.
+- `cut_transcript_trees()` reads one draw at a time (`draw_slice()`): it
+  sums the leaves into their parents with `rowsum()`, then the nodes of every
+  depth into their parents, from the deepest up, and `slice_moments()` keeps
+  the mean and variance over the draws; InfRV of a node uses the same formula
+  as `inferential_rv()`. Two top-down passes find, for every node, the lowest
+  well-determined node above it and the topmost chosen node above it; the
+  second makes the groups disjoint. Memory is (nodes + leaves) x samples,
+  whatever the number of draws. Parent pointers that do not form trees are
+  an error.
 - The groups enter `add_uncertainty(groups = )` with the attributes `source`
   (`"treeterminus"`) and `cutoff`, stored as `uncertainty_ambiguity_source` and
   `uncertainty_tree_cutoff` for `uncertainty_methods()`.

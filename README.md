@@ -64,7 +64,7 @@ Any GFF3/GTF annotation works: GENCODE (GRCh38, GRCm39), Ensembl (all divisions)
 Your own data enters through one of three doors:
 
 ```r
-annot <- prepare_isoformic_annotation("gencode.v49.annotation.gff3.gz") # once, cached as Parquet
+annot <- prepare_isoformic_annotation("gencode.v50.annotation.gff3.gz") # once, cached as Parquet
 iso <- read_salmon(c(sample1 = "quants/sample1", sample2 = "quants/sample2"), annot_path = annot)
 iso <- as_isoformic(se_from_tximeta, annot_path = annot)
 iso <- IsoformicExperiment(annot_path = annot, assays = list(abundance = tpm_matrix), col_data = samples)

@@ -71,3 +71,15 @@
   call R directly, because the justfile needs bash. `r-base` in `pixi.toml`,
   the Bioconductor release on bioconda and `bioc_version` in that script
   change together. The `pixi` workflow runs the tests on the three platforms.
+- `R/isoformic-options.R` (help page `?"isoformic-options"`) lists every
+  option and environment variable the package, its tests and its articles
+  read. A change that adds, removes or changes the meaning of a
+  `getOption("isoformic.*")`, a `Sys.getenv()` or a setting of a dependency
+  must update that page in the same change, including the count of package
+  options in its description. Before a commit, compare the page with
+  `grep -rnE 'getOption\(|Sys\.getenv\(' R tests vignettes justfile`.
+- Research notes with backlogs live next to this file: read
+  `UNCERTAINTY-LITERATURE.md` before changing `R/uncertainty.R`,
+  `R/uncertainty-io.R` or the uncertainty articles, and
+  `ALPHAGENOME-BENCHMARK.md` before work on productivity evidence, splice-site
+  strength, the frozen APPRIS data or the GENCODE release.

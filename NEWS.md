@@ -83,7 +83,7 @@ analysis and plot is now first a method on the object.
   APPRIS principal).
 * Frozen evidence datasets (`frozen_datasets()`, `fetch_frozen_data()`,
   `read_frozen_data()`, `build_frozen_*()`): APPRIS principal isoforms and
-  method scores plus SPADE Pfam domain coordinates (e113v49), GENCODE
+  method scores plus SPADE Pfam domain coordinates (e116v50, Ensembl 116 / GENCODE 50), GENCODE
   Ribo-seq ORFs phase 1 and 2, NMD-inducing exons validated by NMD
   inhibition (Karousis et al. 2021), the PolyASite 2.0 atlas and GTEx v8
   median transcript TPM per tissue. Files are pinned by version and MD5,
@@ -154,6 +154,37 @@ analysis and plot is now first a method on the object.
   called in one half of the reads reproduce in the other half less often as the
   class or the inferential variance worsens. The small result tables are
   bundled and shown in the uncertainty article.
+* Splice-site strength without an external model. `extract_splice_sites()`
+  (and `extract_transcript_sequences()` when given a genome FASTA) store the
+  donor and acceptor windows of every intron in the annotation directory
+  (`annot_data_splice_sites.parquet`); `splice_site_strength()` scores them
+  with position weight matrices trained on the introns of the canonical
+  transcripts of the same annotation and reports `weakest_donor` and
+  `weakest_acceptor` per transcript, or the scores per intron. On GENCODE 50
+  (698,612 introns) the extraction takes about 1.5 minutes and the scoring
+  25 s. The scores describe the sites; on their own they separate NMD from
+  protein coding transcripts only slightly (AUC 0.55), so they are evidence
+  to read next to `transcript_productivity()`, not a classifier.
+* More evidence in the uncertainty tables, none of which changes a default
+  result. `isoform_ambiguity()` has `collapse_gain`, the score Terminus
+  groups on (inferential relative variance of the sum of two isoforms minus
+  the mean of their own; negative when the sum is better determined).
+  `tx_uncertainty()` has `low_information`, `TRUE` for an uncertain isoform
+  without a single fragment of its own (the selection of `mmcollapse`), when
+  equivalence classes were read. `add_uncertainty(cor_cutoff = "adaptive")`
+  derives the correlation cutoff from the data as `mmcollapse` does; the
+  default stays -0.5, and on the six GSE129540 samples the adaptive value is
+  -0.25, which calls 36,910 isoforms ambiguous in place of 8,076.
+* `equivalence_identifiability()` reports which transcripts the equivalence
+  classes of Salmon can tell apart: a transcript is identifiable when its
+  abundance is fixed once the total of every class is fixed. It is a
+  property of the observed classes, not of the posterior draws, and close to
+  independent of them. On the six GSE129540 samples 13,790 of 116,389
+  expressed isoforms are non-identifiable in every sample, and their
+  estimates differ more between two halves of the reads (median absolute
+  log2 ratio 2.4 against 0.7 at 20 to 100 reads). Takes one to three minutes
+  per human sample and needs `Matrix` (new in `Suggests`) for the largest
+  block of transcripts.
 * Fixes from a code review: `write_isoformic(overwrite = TRUE)` writes to a
   sibling directory and swaps it in, so overwriting the directory an object
   was read from no longer deletes it (and refuses directories that are not
@@ -283,6 +314,17 @@ analysis and plot is now first a method on the object.
 
 ### Changed
 
+* `add_uncertainty()` reports when the replicates give fewer than 60
+  degrees of freedom over the study (samples x (replicates - 1); Baldoni,
+  Chen and Smyth 2024), the number is stored and stated by
+  `uncertainty_methods()`, and `uncertainty_report()` has a new `replicates`
+  table (replicate type, draws, degrees of freedom, median overdispersion).
+* The documentation calls the correlation rule of `add_uncertainty()`
+  "ambiguity between isoforms" instead of "identifiability", credits
+  `mmcollapse` (Turro et al. 2014) and states what the replicates do not
+  measure: non-identifiable abundances (Zheng et al. 2022) and estimates
+  that are wrong because the annotation is incomplete (Ma and Kingsford
+  2019).
 * `plot_genomic_context()` is a pure `ggplot2` implementation reading the
   exon table of the annotation (one row per transcript, introns with strand
   arrows, expression labels and highlighted differentially expressed
@@ -316,7 +358,7 @@ analysis and plot is now first a method on the object.
   mouse). Errors are specific: no internet, release not found (listing the
   latest releases), file not found in the release (listing the candidates),
   and failed or empty transfers (partial files are removed). Defaults:
-  GENCODE release 49, `file_type = "gff"`, `output_path = ":cache:"`.
+  GENCODE release 50 (M39 for mouse), `file_type = "gff"`, `output_path = ":cache:"`.
 * Development tooling: `jarl.toml` (all jarl rules), a `jarl-check` GitHub
   workflow, lint and test-coverage workflows, and justfile recipes aligned
   with `condathis`.
@@ -354,6 +396,23 @@ analysis and plot is now first a method on the object.
 * `run_productivity_enrichment()` also takes the table of
   `productive_fraction()`, so that one table serves several gene set
   collections.
+* `add_uncertainty()`, `de_confidence()`, `inferential_overdispersion()`,
+  `scale_counts()`, `uncertainty_report()` and `test_usage()` read the
+  inferential replicates one at a time from the stored list instead of
+  copying them into a dense array: on 534,000 transcripts, 12 samples and
+  100 replicates the memory above the object went from 19 GB to under 4 GB
+  for `add_uncertainty(group = )` and `de_confidence()`, with the same
+  results.
+* `transcript_orfs()` keeps the ORFs it computes in
+  `annot_data_orfs.parquet` in the annotation directory, and later calls,
+  sessions and objects with the same annotation read them back: for the
+  534,000 transcripts of GENCODE 49 the ORFs take 5 seconds instead of more
+  than 5 minutes, and `transcript_productivity()` about 35 seconds instead
+  of 7 minutes, once the table is written. The results are the same.
+  `options(isoformic.orf_cache = FALSE)` turns the table off.
+* `cut_transcript_trees()` reads the inferential replicates one at a time
+  and keeps only the mean and variance of the tree nodes, instead of a dense
+  array of all the replicates.
 * `x[i, j]` subsets everything stored by transcript or by sample: the
   inferential replicates in `metadata(x)$inf_reps` and stored gene assays
   follow the assays, and the uncertainty tables are restricted to the kept
@@ -373,6 +432,25 @@ analysis and plot is now first a method on the object.
 
 ### Fixed
 
+* `prepare_isoformic_annotation()` kept only the first `##sequence-region`
+  of a GENCODE GFF3 file (one row, `chr1`), because GENCODE writes one pragma
+  before the features of each sequence and only the header was read. The
+  whole file is now scanned (`annot_seq_regions.parquet` has 706 rows for
+  GENCODE 50 `chr_patch_hapl_scaff`), and a sequence without a pragma keeps
+  the largest feature end. Annotation directories made before this fix hold
+  the single row: rebuild them with `overwrite = TRUE` if you use the table.
+* The inferential relative variance (`mean_inf_rv`, `max_inf_rv`,
+  `group_inf_rv` of `cut_transcript_trees()`) now is the formula of
+  `fishpond::computeInfRV()`, `max(var - mean, 0) / (mean + 5) + 0.01`, as
+  the documentation said. It was `max(0.01, var - mean) / (mean + 5)`: about
+  0.01 lower, and far below 0.01 for transcripts whose draws vary no more
+  than counts. A transcript within 0.01 below `inf_rv_cutoff` is now
+  `uncertain`. The tables of the uncertainty and stability articles were
+  rebuilt.
+* The source files of the frozen datasets are cached per dataset version
+  (`get_isoformic_cache("sources", <name>, <version>)`). With one directory
+  per dataset, a new version in the registry reused the cached file of the
+  old one, which has the same name, and rebuilt the old data.
 * `x[, j]` no longer fails on an object with stored gene assays, and a
   factor subscript is read as IDs, not as its integer codes.
 * `dominant_isoform()` and `haplotype_summary()` failed with a single group.

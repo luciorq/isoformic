@@ -6,7 +6,7 @@
 # Steps to publish (see data-raw/README.md):
 #   1. update `version` and `sources` of the dataset in frozen_registry()
 #   2. run this script; it downloads the sources into
-#      get_isoformic_cache("sources", <name>) and writes the Parquet files
+#      get_isoformic_cache("sources", <name>, <version>) and writes the Parquet files
 #      into get_isoformic_cache("frozen")
 #   3. copy the printed MD5 values into frozen_registry()
 #   4. upload the Parquet files as assets of the GitHub release tagged

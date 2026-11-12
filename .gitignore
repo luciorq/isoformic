@@ -38,3 +38,4 @@ vignettes/**/*_files/
 # pixi environments
 .pixi/*
 !.pixi/config.toml
+.env

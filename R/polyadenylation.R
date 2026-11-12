@@ -45,6 +45,15 @@
 #' in distal usage between two groups with the quasi-binomial test used by
 #' [test_productive_fraction()], on counts.
 #'
+#' `run_apa_enrichment()` runs a gene set enrichment analysis
+#' (`fgsea::fgseaMultilevel()`) on the genes ranked by their change in
+#' distal usage (`rank_by = "delta"`, the `delta_distal_fraction` of
+#' `apa_usage()`) or in weighted 3' UTR length (`rank_by = "utr3_length"`,
+#' `delta_weighted_utr3_length`): a positive score is a gene set whose genes
+#' move to distal 3' ends, or to longer 3' UTRs, in the last group level. It
+#' also takes the table of `apa_usage()` for two or more groups, so that one
+#' table serves several calls.
+#'
 #' @param self An [IsoformicExperiment].
 #' @param gene_name Optional genes (names or IDs) to restrict the result to.
 #' @param polya_atlas `NULL` (no atlas), `"polyasite"`, a data frame or a
@@ -65,10 +74,22 @@
 #' @param min_expr Minimum assay value for an isoform to count (default 0).
 #' @param as_matrix Logical, return the genes x samples matrix of distal
 #'   fractions instead of the summary table.
+#' @param genesets_list Named list of character vectors (gene symbols), as
+#'   returned by [read_gmt()], or a named list of such lists: each collection
+#'   is then tested on its own and the result has a `collection` column (see
+#'   [run_enrichment()]).
+#' @param min_size,max_size Minimum and maximum gene set size passed to
+#'   `fgsea`.
+#' @param rank_by Statistic that ranks the genes in `run_apa_enrichment()`:
+#'   `"delta"` (default), the change in distal fraction, or `"utr3_length"`,
+#'   the change in weighted 3' UTR length.
 #' @param ... Passed on to methods.
 #'
 #' @returns Tibbles with one row per transcript (`polya_sites()`) or per gene
 #'   (`apa_usage()`, `test_apa()`); a matrix for `as_matrix = TRUE`.
+#'   `run_apa_enrichment()` returns the `fgsea` table with the columns
+#'   `experiment` (`"distal_fraction"` or `"weighted_utr3_length"`),
+#'   `rank_by` and, for several collections, `collection`.
 #'
 #' @examples
 #' iso <- example_isoformic()
@@ -564,4 +585,142 @@ S7::method(test_apa, IsoformicExperiment) <- function(
   names(res)[names(res) == "delta"] <- "delta_distal_fraction"
   res <- dplyr::arrange(res, .data$pvalue)
   filter_genes(res, gene_name)
+}
+
+#' @rdname polyadenylation
+#' @export
+run_apa_enrichment <- S7::new_generic(
+  "run_apa_enrichment",
+  "self",
+  function(
+    self,
+    genesets_list,
+    group = NULL,
+    levels = NULL,
+    assay = "abundance",
+    min_size = 15,
+    max_size = 500,
+    rank_by = c("delta", "utr3_length"),
+    min_expr = 0,
+    ...
+  ) {
+    S7::S7_dispatch()
+  }
+)
+
+S7::method(run_apa_enrichment, IsoformicExperiment) <- function(
+  self,
+  genesets_list,
+  group = NULL,
+  levels = NULL,
+  assay = "abundance",
+  min_size = 15,
+  max_size = 500,
+  rank_by = c("delta", "utr3_length"),
+  min_expr = 0,
+  ...
+) {
+  rlang::check_installed("fgsea")
+  rlang::check_required(genesets_list)
+  rank_by <- rlang::arg_match(rank_by)
+  check_genesets(genesets_list)
+  if (is.null(group)) {
+    cli::cli_abort(
+      message = c(
+        x = "{.arg group} is required to rank genes by change in 3' end usage."
+      ),
+      class = "isoformic_group_levels"
+    )
+  }
+  usage <- apa_usage(
+    self,
+    group = group,
+    levels = levels,
+    assay = assay,
+    min_expr = min_expr
+  )
+  if (!"delta_distal_fraction" %in% colnames(usage)) {
+    cli::cli_abort(
+      message = c(
+        x = "{.arg group} must have at least two levels to rank genes by change in 3' end usage."
+      ),
+      class = "isoformic_group_levels"
+    )
+  }
+  apa_enrichment(
+    usage,
+    genesets_list,
+    rank_by = rank_by,
+    min_size = min_size,
+    max_size = max_size,
+    ...
+  )
+}
+
+# nolint start: object_name_linter.
+S7::method(run_apa_enrichment, S7::class_data.frame) <- function(
+  self,
+  genesets_list,
+  group = NULL,
+  levels = NULL,
+  assay = "abundance",
+  min_size = 15,
+  max_size = 500,
+  rank_by = c("delta", "utr3_length"),
+  min_expr = 0,
+  ...
+) {
+  rlang::check_installed("fgsea")
+  rlang::check_required(genesets_list)
+  rank_by <- rlang::arg_match(rank_by)
+  check_genesets(genesets_list)
+  apa_enrichment(
+    tibble::as_tibble(self),
+    genesets_list,
+    rank_by = rank_by,
+    min_size = min_size,
+    max_size = max_size,
+    ...
+  )
+}
+
+# nolint end
+
+#' Gene set enrichment on an `apa_usage()` table
+#' @keywords internal
+#' @noRd
+apa_enrichment <- function(
+  usage,
+  genesets_list,
+  rank_by,
+  min_size,
+  max_size,
+  ...
+) {
+  measure <- switch(
+    rank_by,
+    delta = "distal_fraction",
+    utr3_length = "weighted_utr3_length"
+  )
+  rank_col <- paste0("delta_", measure)
+  missing_cols <- setdiff(c("gene_name", rank_col), colnames(usage))
+  if (length(missing_cols)) {
+    cli::cli_abort(
+      message = c(
+        x = "The table is missing column{?s}: {.field {missing_cols}}.",
+        i = "Pass the result of {.fn apa_usage} for two or more groups."
+      ),
+      class = "isoformic_invalid_apa_usage"
+    )
+  }
+  gene_rank_enrichment(
+    usage,
+    rank_col = rank_col,
+    genesets_list = genesets_list,
+    experiment = measure,
+    rank_by = rank_by,
+    min_size = min_size,
+    max_size = max_size,
+    ...
+  )
 }

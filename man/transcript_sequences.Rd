@@ -54,7 +54,9 @@ The genome is streamed in chunks (plain or gzip-compressed FASTA, no
 index needed) and only one chromosome is held in memory at a time; a
 human genome takes a few minutes. Chromosome names are matched to the
 annotation \code{seqid} directly, or after adding or removing a \code{chr} prefix.
-Soft-masked (lower-case) bases are upper-cased.
+Soft-masked (lower-case) bases are upper-cased. With a genome FASTA the
+sequences around the splice sites of every intron are written in the same
+pass (\code{annot_data_splice_sites.parquet}, see \code{\link[=splice_site_strength]{splice_site_strength()}}).
 }
 \details{
 The sequences table is optional: annotation directories without it keep
@@ -72,7 +74,7 @@ head(transcript_sequences(annot)[, c("transcript_id", "seq_length")])
 
 \dontrun{
 # From a genome FASTA (covers novel transcripts of any annotation)
-genome <- download_reference(version = "49", file_type = "genome_fasta", region = "primary")
+genome <- download_reference(version = "50", file_type = "genome_fasta", region = "primary")
 extract_transcript_sequences(annot, genome_fasta = genome)
 }
 

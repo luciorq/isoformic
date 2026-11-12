@@ -23,7 +23,9 @@
 #' index needed) and only one chromosome is held in memory at a time; a
 #' human genome takes a few minutes. Chromosome names are matched to the
 #' annotation `seqid` directly, or after adding or removing a `chr` prefix.
-#' Soft-masked (lower-case) bases are upper-cased.
+#' Soft-masked (lower-case) bases are upper-cased. With a genome FASTA the
+#' sequences around the splice sites of every intron are written in the same
+#' pass (`annot_data_splice_sites.parquet`, see [splice_site_strength()]).
 #'
 #' @param x An annotation directory path or an [IsoformicExperiment].
 #' @param genome_fasta Path to a genome FASTA file (`.fa`, `.fa.gz`), see
@@ -52,7 +54,7 @@
 #'
 #' \dontrun{
 #' # From a genome FASTA (covers novel transcripts of any annotation)
-#' genome <- download_reference(version = "49", file_type = "genome_fasta", region = "primary")
+#' genome <- download_reference(version = "50", file_type = "genome_fasta", region = "primary")
 #' extract_transcript_sequences(annot, genome_fasta = genome)
 #' }
 #'
@@ -96,6 +98,9 @@ extract_transcript_sequences <- function(
       columns = c("transcript_id", "seqid", "start_pos", "end_pos", "strand")
     )
     res <- sequences_from_genome(exons, genome_fasta, chunk_bytes = chunk_bytes)
+    # The genome is in hand: keep the splice-site windows of every intron too
+    write_splice_sites(annot_dir, attr(res, "splice_sites"), genome_fasta)
+    attr(res, "splice_sites") <- NULL
     source_desc <- paste0("genome:", fs::path_file(genome_fasta))
   } else {
     assert_file_exists(transcript_fasta)
@@ -283,14 +288,28 @@ match_seqid <- function(name, seqids) {
 #' Build transcript sequences from a genome FASTA and an exon table
 #' @keywords internal
 #' @noRd
-sequences_from_genome <- function(exons, genome_fasta, chunk_bytes = 64e6) {
+sequences_from_genome <- function(
+  exons,
+  genome_fasta,
+  chunk_bytes = 64e6,
+  transcripts = TRUE
+) {
   seqids <- unique(exons$seqid)
   results <- new.env(parent = emptyenv())
+  sites <- new.env(parent = emptyenv())
+  introns <- unique_introns(exons)
   on_record <- function(name, chr_seq) {
     seqid <- match_seqid(name, seqids)
-    ex <- exons[exons$seqid == seqid, ]
-    ex$seq <- substring(chr_seq, ex$start_pos, ex$end_pos)
-    assign(seqid, assemble_transcripts(ex), envir = results)
+    assign(
+      seqid,
+      splice_site_windows(introns[introns$seqid == seqid, ], chr_seq),
+      envir = sites
+    )
+    if (isTRUE(transcripts)) {
+      ex <- exons[exons$seqid == seqid, ]
+      ex$seq <- substring(chr_seq, ex$start_pos, ex$end_pos)
+      assign(seqid, assemble_transcripts(ex), envir = results)
+    }
   }
   stream_fasta(
     genome_fasta,
@@ -298,7 +317,7 @@ sequences_from_genome <- function(exons, genome_fasta, chunk_bytes = 64e6) {
     on_record = on_record,
     chunk_bytes = chunk_bytes
   )
-  found <- ls(results)
+  found <- ls(sites)
   if (!length(found)) {
     cli::cli_abort(
       message = c(
@@ -308,7 +327,9 @@ sequences_from_genome <- function(exons, genome_fasta, chunk_bytes = 64e6) {
       class = "isoformic_sequence_source"
     )
   }
-  dplyr::bind_rows(mget(found, envir = results))
+  res <- dplyr::bind_rows(mget(ls(results), envir = results))
+  attr(res, "splice_sites") <- dplyr::bind_rows(mget(found, envir = sites))
+  res
 }
 
 #' Concatenate exon sequences into transcript sequences (DuckDB)

@@ -17,11 +17,13 @@
 #'   replicates in excess of what counting noise alone would give, relative
 #'   to the expression. Isoforms with a high value are not well determined by
 #'   the reads. `uncertain` flags `mean_inf_rv >= inf_rv_cutoff`.
-#' * **Identifiability**: the correlation between the replicates of isoforms
-#'   of the same gene. A strong negative correlation means the reads cannot
-#'   tell the two isoforms apart and every read taken from one is given to
-#'   the other. Pairs at or below `cor_cutoff` are *ambiguous* and are
-#'   joined into `ambiguity_group`s that can be tested as one feature.
+#' * **Ambiguity between isoforms**: the correlation between the replicates
+#'   of isoforms of the same gene. A strong negative correlation means the
+#'   reads cannot tell the two isoforms apart and every read taken from one
+#'   is given to the other. Pairs at or below `cor_cutoff` are *ambiguous*
+#'   and are joined into `ambiguity_group`s that can be tested as one
+#'   feature. This is the idea of `mmcollapse` (Turro et al. 2014), with a
+#'   fixed cutoff.
 #' * **Read support**: the share of the fragments of an isoform that map to
 #'   it alone (`unique_fraction`, from the equivalence classes).
 #' * **Stability of the fold-change**: the contrast between two groups is
@@ -72,6 +74,25 @@
 #' uncertainty of the quantification only; they do not replace biological
 #' replicates and cannot make a noisy contrast significant.
 #'
+#' What is not measured. The replicates describe how much an estimate moves
+#' under the quantification model. They do not find the transcripts whose
+#' abundance is not identifiable, that is, where several abundance vectors
+#' explain the reads equally well (Zheng et al. 2022 report that only about
+#' half of the transcripts flagged by replicate variance are also
+#' non-identifiable in that sense), and they do not find an estimate that is
+#' wrong because the annotation lacks the transcript the reads came from
+#' (Ma and Kingsford 2019). An ambiguous pair is a statement about the
+#' replicates, not a proof of non-identifiability.
+#'
+#' How many replicates. The inferential relative variance and the
+#' correlations are computed per sample, from the replicates of that sample.
+#' The overdispersion used to scale counts (see [inferential_overdispersion()])
+#' pools all samples, and its precision depends on the total
+#' `n_samples * (n_replicates - 1)`: Baldoni, Chen and Smyth (2024) recommend
+#' at least 60 and prefer 200 to 300, and find that Gibbs samples resolve
+#' low counts better than bootstrap replicates. `add_uncertainty()` says so
+#' when the total is below 60.
+#'
 #' Fold-changes are computed on counts scaled to a common library size, as
 #' `log2(mean_b + pseudocount) - log2(mean_a + pseudocount)` with a pseudocount
 #' of 5 (the `swish` convention), and the per-replicate test is a Welch
@@ -98,7 +119,11 @@
 #' @param inf_rv_cutoff Inferential relative variance from which an isoform is
 #'   called uncertain. `NULL` uses the value the tables were computed with.
 #' @param cor_cutoff Mean replicate correlation at or below which two isoforms
-#'   of a gene are called ambiguous. `NULL` uses the stored value.
+#'   of a gene are called ambiguous: a number, or `"adaptive"` to derive it
+#'   from the data as `mmcollapse` does (minus the 97.5th percentile of the
+#'   largest mean correlation of each isoform, which treats the positive
+#'   correlations as noise). The value used is stored and stated by
+#'   `uncertainty_methods()`.
 #' @param min_agreement Share of replicates that must agree on the direction
 #'   of a fold-change for it to be called stable. `NULL` uses the stored
 #'   value.
@@ -130,9 +155,15 @@
 #'   type, `mean_count`, `mean_inf_rv`, `max_inf_rv`, `mean_inf_cv`,
 #'   `uncertain`, `min_sibling_cor`, `n_ambiguous_partners`,
 #'   `ambiguity_group` and, when equivalence classes were read, `n_classes`,
-#'   `n_unique_fragments` and `unique_fraction`.
+#'   `n_unique_fragments`, `unique_fraction` and `low_information` (`TRUE`
+#'   for an uncertain isoform without a single fragment of its own, the
+#'   isoforms `mmcollapse` selects for collapsing).
 #' * `isoform_ambiguity()`: a tibble of isoform pairs of the same gene with
-#'   `mean_cor`, `min_cor`, `n_samples` and `ambiguous`.
+#'   `mean_cor`, `min_cor`, `n_samples`, `collapse_gain` and `ambiguous`.
+#'   `collapse_gain` is the score Terminus groups on (Sarkar et al. 2020):
+#'   the inferential relative variance of the sum of the two isoforms minus
+#'   the mean of their own, averaged over samples. The more negative, the
+#'   more is gained by testing the pair as one feature.
 #' * `de_confidence()`: a tibble with one row per feature: `feature_id`,
 #'   `feature_type` (`"transcript"` or `"group"`), gene and transcript names,
 #'   the interval and stability of the fold-change, `mean_inf_rv`,
@@ -140,14 +171,36 @@
 #'   differential expression result (`det_log2FC`, `det_qvalue`,
 #'   `n_det_sig`) and `confident_de`, which is `TRUE` when a significant
 #'   isoform has `high` confidence.
-#' * `uncertainty_report()`: a list with `settings`, `run`, `transcripts`
-#'   (by transcript type), `genes`, `de` and `switches` tibbles.
+#' * `uncertainty_report()`: a list with `settings`, `replicates` (replicate
+#'   type, number of draws, degrees of freedom over the study and, when the
+#'   draws are in the object, the median overdispersion, which is close to 1
+#'   for long reads), `run`, `transcripts` (by transcript type), `genes`,
+#'   `de` and `switches` tibbles.
 #' * `uncertainty_methods()`: a character string.
 #'
 #' @references
 #' Zhu, A., Srivastava, A., Ibrahim, J.G., Patro, R., Love, M.I. (2019).
 #' Nonparametric expression analysis using inferential replicate counts.
 #' *Nucleic Acids Research* 47(18), e105.
+#'
+#' Sarkar, H., Srivastava, A., Bravo, H.C., Love, M.I., Patro, R. (2020).
+#' Terminus enables the discovery of data-driven, robust transcript groups
+#' from RNA-seq data. *Bioinformatics* 36(Suppl 1), i102-i110.
+#'
+#' Turro, E., Astle, W.J., Tavare, S. (2014). Flexible analysis of RNA-seq
+#' data using mixed effects models. *Bioinformatics* 30(2), 180-188.
+#'
+#' Zheng, H., Ma, C., Kingsford, C. (2022). Deriving ranges of optimal
+#' estimated transcript expression due to nonidentifiability. *Journal of
+#' Computational Biology* 29(2), 121-139.
+#'
+#' Ma, C., Kingsford, C. (2019). Detecting, categorizing, and correcting
+#' coverage anomalies of RNA-seq quantification. *Cell Systems* 9(6),
+#' 589-599.
+#'
+#' Baldoni, P.L., Chen, L., Smyth, G.K. (2024). Faster and more accurate
+#' assessment of differential transcript expression with Gibbs sampling and
+#' edgeR v4. *NAR Genomics and Bioinformatics* 6(4), lqae151.
 #'
 #' @seealso [read_inferential_replicates()], [plot_de_confidence()],
 #'   [isoform_switches()]
@@ -308,7 +361,7 @@ S7::method(add_uncertainty, IsoformicExperiment) <- function(
       stored_equivalence(self)
     }
   }
-  arr <- draws_array(self, reps)
+  arr <- draws_view(self, reps)
   settings <- list(
     min_count = min_count,
     inf_rv_cutoff = inf_rv_cutoff,
@@ -318,12 +371,17 @@ S7::method(add_uncertainty, IsoformicExperiment) <- function(
     shift = uncertainty_defaults()$shift
   )
   tables <- build_uncertainty(self, arr, equiv, settings, groups)
+  settings$cor_cutoff <- tables$cor_cutoff
   dea <- self@dea
   dea[["uncertainty"]] <- tables$transcripts
   dea[["ambiguity"]] <- tables$pairs
   dea[["confidence"]] <- NULL
   metadata <- self@metadata
-  metadata$uncertainty_n_draws <- dim(arr)[3L]
+  metadata$uncertainty_n_draws <- draws_dim(arr)[[3L]]
+  metadata$uncertainty_resampling_df <- resampling_df(
+    draws_dim(arr)[[2L]],
+    draws_dim(arr)[[3L]]
+  )
   metadata$uncertainty_tool <- tool %||% metadata$uncertainty_tool
   metadata$uncertainty_ambiguity_source <- if (is.null(groups)) {
     "correlation"
@@ -336,9 +394,18 @@ S7::method(add_uncertainty, IsoformicExperiment) <- function(
     NA_character_
   metadata$uncertainty_min_count <- min_count
   metadata$uncertainty_inf_rv_cutoff <- inf_rv_cutoff
-  metadata$uncertainty_cor_cutoff <- cor_cutoff
+  metadata$uncertainty_cor_cutoff <- tables$cor_cutoff
+  metadata$uncertainty_cor_cutoff_rule <- if (is.numeric(cor_cutoff)) {
+    "fixed"
+  } else {
+    "adaptive"
+  }
   metadata$uncertainty_min_agreement <- min_agreement
   metadata$uncertainty_n_assessed <- sum(tables$transcripts$assessed)
+  inform_resampling_df(
+    metadata$uncertainty_resampling_df,
+    metadata$uncertainty_replicate_type
+  )
   if (isTRUE(keep_draws)) {
     metadata$inf_reps <- reps
   } else {
@@ -491,7 +558,7 @@ S7::method(de_confidence, IsoformicExperiment) <- function(
   settings$inf_rv_cutoff <- inf_rv_cutoff %||% settings$inf_rv_cutoff
   settings$min_agreement <- min_agreement %||% settings$min_agreement
   settings$pseudocount <- pseudocount
-  arr <- draws_array(self)
+  arr <- draws_view(self)
   tables <- resolve_uncertainty(self, arr = arr, settings = settings)
   conf <- compute_de_confidence(
     self,
@@ -563,10 +630,17 @@ stored_equivalence <- function(self) {
   unc[!is.na(unc$n_classes), cols]
 }
 
-#' Inferential replicates as an array of transcripts x samples x draws
+#' Inferential replicates as a view of transcripts x samples x draws
+#'
+#' The replicates stay the list of matrices they are stored as: the view
+#' holds the transcripts (those of the first replicate that the annotation
+#' knows) and the samples of the object, with the rows and columns of each
+#' replicate that hold them. Its consumers read one replicate
+#' (`draw_slice()`) or one sample (`draws_sample()`) at a time, so the dense
+#' array of all the replicates is never built.
 #' @keywords internal
 #' @noRd
-draws_array <- function(self, inf_reps = NULL) {
+draws_view <- function(self, inf_reps = NULL) {
   reps <- inf_reps %||% self@metadata$inf_reps
   if (is.null(reps) || !length(reps)) {
     cli::cli_abort(
@@ -578,7 +652,9 @@ draws_array <- function(self, inf_reps = NULL) {
     )
   }
   samp_type <- attr(reps, "samp_type")
-  reps <- lapply(as.list(reps), as.matrix)
+  reps <- lapply(as.list(reps), function(m) {
+    if (is.matrix(m)) m else as.matrix(m)
+  })
   first <- reps[[1L]]
   samples <- object_samples(self)
   if (is.null(rownames(first)) || !all(samples %in% colnames(first))) {
@@ -602,69 +678,233 @@ draws_array <- function(self, inf_reps = NULL) {
       class = "isoformic_no_annotated_transcripts"
     )
   }
-  arr <- array(
-    NA_real_,
-    dim = c(length(ids), length(samples), length(reps)),
-    dimnames = list(ids, samples, NULL)
-  )
+  # Replicates with the dimnames of the first one share its indices
+  first_rows <- match(ids, rownames(first))
+  first_cols <- match(samples, colnames(first))
+  rows <- vector("list", length(reps))
+  cols <- vector("list", length(reps))
   for (k in seq_along(reps)) {
     m <- reps[[k]]
-    if (!all(ids %in% rownames(m))) {
+    if (identical(rownames(m), rownames(first))) {
+      rows[[k]] <- first_rows
+    } else {
+      rows[[k]] <- match(ids, rownames(m))
+      if (anyNA(rows[[k]])) {
+        cli::cli_abort(
+          message = c(
+            x = "Inferential replicates differ in their transcripts."
+          ),
+          class = "isoformic_invalid_inf_reps"
+        )
+      }
+    }
+    cols[[k]] <- if (identical(colnames(m), colnames(first))) {
+      first_cols
+    } else {
+      match(samples, colnames(m))
+    }
+    if (anyNA(cols[[k]])) {
       cli::cli_abort(
-        message = c(x = "Inferential replicates differ in their transcripts."),
+        message = c(x = "Inferential replicates differ in their samples."),
         class = "isoformic_invalid_inf_reps"
       )
     }
-    arr[seq_along(ids), seq_along(samples), k] <- m[ids, samples, drop = FALSE]
   }
-  attr(arr, "samp_type") <- samp_type
+  structure(
+    list(reps = reps, ids = ids, samples = samples, rows = rows, cols = cols),
+    samp_type = samp_type,
+    class = "isoformic_draws"
+  )
+}
+
+#' Inferential replicates as an array of transcripts x samples x draws
+#'
+#' A dense copy of all the replicates: use `draws_view()` unless the array
+#' itself is needed.
+#' @keywords internal
+#' @noRd
+draws_array <- function(self, inf_reps = NULL) {
+  view <- draws_view(self, inf_reps)
+  size <- draws_dim(view)
+  arr <- array(
+    NA_real_,
+    dim = size,
+    dimnames = list(view$ids, view$samples, NULL)
+  )
+  for (k in seq_len(size[[3L]])) {
+    arr[seq_len(size[[1L]]), seq_len(size[[2L]]), k] <- draw_slice(view, k)
+  }
+  attr(arr, "samp_type") <- attr(view, "samp_type")
   arr
 }
 
-#' One draw as a transcript x sample matrix
+#' Numbers of transcripts, samples and draws of a view or an array of draws
+#' @keywords internal
+#' @noRd
+draws_dim <- function(x) {
+  if (inherits(x, "isoformic_draws")) {
+    return(c(length(x$ids), length(x$samples), length(x$reps)))
+  }
+  dim(x)
+}
+
+#' @keywords internal
+#' @noRd
+draws_ids <- function(x) {
+  if (inherits(x, "isoformic_draws")) x$ids else rownames(x)
+}
+
+#' @keywords internal
+#' @noRd
+draws_samples <- function(x) {
+  if (inherits(x, "isoformic_draws")) x$samples else dimnames(x)[[2L]]
+}
+
+#' The draws of the samples `keep` (logical, positions or IDs)
+#' @keywords internal
+#' @noRd
+draws_select_samples <- function(x, keep) {
+  if (!inherits(x, "isoformic_draws")) {
+    return(x[, keep, , drop = FALSE])
+  }
+  pos <- if (is.character(keep)) {
+    match(keep, x$samples)
+  } else {
+    seq_along(x$samples)[keep]
+  }
+  x$samples <- x$samples[pos]
+  x$cols <- lapply(x$cols, function(idx) idx[pos])
+  x
+}
+
+#' One draw as a transcript x sample matrix of doubles
 #' @keywords internal
 #' @noRd
 draw_slice <- function(arr, k) {
+  if (inherits(arr, "isoformic_draws")) {
+    m <- arr$reps[[k]]
+    rows <- arr$rows[[k]]
+    cols <- arr$cols[[k]]
+    if (
+      length(rows) != nrow(m) ||
+        length(cols) != ncol(m) ||
+        !identical(rows, seq_len(nrow(m))) ||
+        !identical(cols, seq_len(ncol(m)))
+    ) {
+      m <- m[rows, cols, drop = FALSE]
+    }
+    if (!is.double(m)) {
+      storage.mode(m) <- "double"
+    }
+    return(m)
+  }
   n_tx <- dim(arr)[1L]
   matrix(arr[seq_len(n_tx), seq_len(dim(arr)[2L]), k], nrow = n_tx)
+}
+
+#' The draws of one sample as a transcript x draw matrix
+#'
+#' `rows` are positions in the transcripts of the draws, `s` the position of
+#' the sample.
+#' @keywords internal
+#' @noRd
+draws_sample <- function(x, rows, s) {
+  if (!inherits(x, "isoformic_draws")) {
+    return(matrix(x[rows, s, ], nrow = length(rows)))
+  }
+  out <- matrix(0, nrow = length(rows), ncol = length(x$reps))
+  for (k in seq_along(x$reps)) {
+    out[, k] <- x$reps[[k]][x$rows[[k]][rows], x$cols[[k]][[s]]]
+  }
+  out
 }
 
 #' Per transcript and sample mean and variance over the draws
 #' @keywords internal
 #' @noRd
 draw_moments <- function(arr) {
-  d <- dim(arr)[3L]
-  n_tx <- dim(arr)[1L]
-  n_sample <- dim(arr)[2L]
-  s1 <- matrix(0, n_tx, n_sample)
+  size <- draws_dim(arr)
+  slice_moments(
+    function(k) draw_slice(arr, k),
+    n_draws = size[[3L]],
+    dimnames = list(draws_ids(arr), draws_samples(arr))
+  )
+}
+
+#' Mean and variance over the draws of the matrices that `slice(k)` returns
+#' @keywords internal
+#' @noRd
+slice_moments <- function(slice, n_draws, dimnames) {
+  s1 <- matrix(0, length(dimnames[[1L]]), length(dimnames[[2L]]))
   s2 <- s1
-  for (k in seq_len(d)) {
-    x <- draw_slice(arr, k)
+  for (k in seq_len(n_draws)) {
+    x <- unname(slice(k))
     s1 <- s1 + x
     s2 <- s2 + x * x
   }
-  mean_draw <- s1 / d
-  var_draw <- if (d > 1L) {
-    pmax(s2 - d * mean_draw^2, 0) / (d - 1L)
+  mean_draw <- s1 / n_draws
+  var_draw <- if (n_draws > 1L) {
+    pmax(s2 - n_draws * mean_draw^2, 0) / (n_draws - 1L)
   } else {
     mean_draw * 0
   }
-  dimnames(mean_draw) <- dimnames(var_draw) <- dimnames(arr)[1:2]
-  list(mean = mean_draw, var = var_draw, n = d)
+  dimnames(mean_draw) <- dimnames(var_draw) <- dimnames
+  list(mean = mean_draw, var = var_draw, n = n_draws)
 }
 
-#' Inferential relative variance (Zhu et al. 2019, `fishpond::computeInfRV()`)
+#' Degrees of freedom of the replicates over the whole study
+#'
+#' `n_samples * (n_draws - 1)`, the quantity on which the precision of the
+#' pooled overdispersion depends (Baldoni, Chen and Smyth 2024).
+#' @keywords internal
+#' @noRd
+resampling_df <- function(n_samples, n_draws) {
+  as.integer(n_samples) * (as.integer(n_draws) - 1L)
+}
+
+#' Say so when the replicates are too few for a precise overdispersion
+#' @keywords internal
+#' @noRd
+inform_resampling_df <- function(
+  df,
+  replicate_type = NA_character_,
+  min_df = 60L
+) {
+  if (is.null(df) || is.na(df) || df >= min_df) {
+    return(invisible(FALSE))
+  }
+  cli::cli_inform(
+    message = c(
+      "!" = "The replicates give {df} degrees of freedom over the study (samples x (replicates - 1)).",
+      i = "At least {min_df} are recommended for the overdispersion used to scale counts (200 to 300 preferred).",
+      i = if (identical(replicate_type, "bootstrap")) {
+        "Gibbs samples ({.code --numGibbsSamples}) resolve low counts better than bootstrap replicates."
+      }
+    ),
+    class = "isoformic_few_inferential_replicates"
+  )
+  invisible(TRUE)
+}
+
+#' Inferential relative variance (Zhu et al. 2019)
+#'
+#' Same formula as `fishpond::computeInfRV()` and Terminus (Sarkar et al.
+#' 2020): `max(var - mean, 0) / (mean + pseudocount) + shift`, so a transcript
+#' whose draws vary no more than counts would has the value `shift`.
 #' @keywords internal
 #' @noRd
 inferential_rv <- function(moments, pseudocount = 5, shift = 0.01) {
-  pmax(shift, moments$var - moments$mean) / (moments$mean + pseudocount)
+  pmax(moments$var - moments$mean, 0) / (moments$mean + pseudocount) + shift
 }
 
 #' Correlation of the draws of isoforms of the same gene
 #'
 #' Pairs are generated within genes only. The correlation across draws is
 #' computed per sample from standardised draws and averaged over the samples
-#' where both isoforms are expressed and vary.
+#' where both isoforms are expressed and vary. `collapse_gain` is the Terminus
+#' score (Sarkar et al. 2020) averaged over the same samples: the InfRV of the
+#' sum of the two isoforms minus the mean InfRV of the two. Negative values
+#' mean that the sum is better determined than its members.
 #' @keywords internal
 #' @noRd
 inferential_correlation <- function(
@@ -672,7 +912,9 @@ inferential_correlation <- function(
   sample_means,
   gene_id,
   assessed,
-  min_count
+  min_count,
+  pseudocount = uncertainty_defaults()$pseudocount,
+  shift = uncertainty_defaults()$shift
 ) {
   empty <- tibble::tibble(
     gene_id = character(),
@@ -680,9 +922,10 @@ inferential_correlation <- function(
     transcript_id_2 = character(),
     mean_cor = numeric(),
     min_cor = numeric(),
-    n_samples = integer()
+    n_samples = integer(),
+    collapse_gain = numeric()
   )
-  d <- dim(arr)[3L]
+  d <- draws_dim(arr)[[3L]]
   eligible <- which(assessed & !is.na(gene_id))
   if (d < 3L || length(eligible) < 2L) {
     return(empty)
@@ -701,11 +944,14 @@ inferential_correlation <- function(
   r_sum <- numeric(n_pairs)
   r_n <- integer(n_pairs)
   r_min <- rep(Inf, n_pairs)
+  gain_sum <- numeric(n_pairs)
   chunk <- 50000L
-  for (s in seq_len(dim(arr)[2L])) {
-    x <- matrix(arr[ord, s, ], nrow = length(ord))
-    centred <- x - rowMeans(x)
+  for (s in seq_len(draws_dim(arr)[[2L]])) {
+    x <- draws_sample(arr, ord, s)
+    mu <- rowMeans(x)
+    centred <- x - mu
     sds <- sqrt(rowSums(centred^2) / (d - 1L))
+    rv <- inferential_rv(list(mean = mu, var = sds^2), pseudocount, shift)
     z <- centred / sds
     z[sds == 0 | sample_means[ord, s] < min_count, ] <- NA_real_
     for (start in seq.int(1L, n_pairs, by = chunk)) {
@@ -719,17 +965,28 @@ inferential_correlation <- function(
       r_sum[hit] <- r_sum[hit] + r[ok]
       r_n[hit] <- r_n[hit] + 1L
       r_min[hit] <- pmin(r_min[hit], r[ok])
+      # InfRV of the sum of the pair minus the mean InfRV of its members
+      a <- first[hit]
+      b <- second[hit]
+      sum_moments <- list(
+        mean = mu[a] + mu[b],
+        var = pmax(sds[a]^2 + sds[b]^2 + 2 * r[ok] * sds[a] * sds[b], 0)
+      )
+      gain_sum[hit] <- gain_sum[hit] +
+        inferential_rv(sum_moments, pseudocount, shift) -
+        (rv[a] + rv[b]) / 2
     }
   }
   keep <- r_n > 0L
-  ids <- rownames(arr)
+  ids <- draws_ids(arr)
   tibble::tibble(
     gene_id = g[first][keep],
     transcript_id_1 = ids[ord[first]][keep],
     transcript_id_2 = ids[ord[second]][keep],
     mean_cor = r_sum[keep] / r_n[keep],
     min_cor = r_min[keep],
-    n_samples = r_n[keep]
+    n_samples = r_n[keep],
+    collapse_gain = gain_sum[keep] / r_n[keep]
   )
 }
 
@@ -782,7 +1039,7 @@ build_uncertainty <- function(
 ) {
   defaults <- uncertainty_defaults()
   tx <- self@annot_data_transcripts
-  ids <- rownames(arr)
+  ids <- draws_ids(arr)
   gene_id <- tx$gene_id[match(ids, tx$transcript_id)]
   mom <- draw_moments(arr)
   mean_count <- unname(rowMeans(mom$mean))
@@ -804,7 +1061,8 @@ build_uncertainty <- function(
     assessed,
     settings$min_count
   )
-  pairs$ambiguous <- pairs$mean_cor <= settings$cor_cutoff
+  cor_cutoff <- resolve_cor_cutoff(settings$cor_cutoff, pairs)
+  pairs$ambiguous <- pairs$mean_cor <= cor_cutoff
   groups <- assign_ambiguity_groups(pairs)
   long <- rbind(
     data.frame(
@@ -857,8 +1115,59 @@ build_uncertainty <- function(
       colnames(equiv)
     )]
     res <- dplyr::left_join(res, equiv, by = "transcript_id")
+    if ("unique_fraction" %in% colnames(res)) {
+      # No fragment of its own and a high spread of the replicates: the
+      # selection of mmcollapse (Turro et al. 2014)
+      res$low_information <- res$unique_fraction == 0 & res$uncertain
+    }
   }
-  list(transcripts = res, pairs = pairs)
+  list(transcripts = res, pairs = pairs, cor_cutoff = cor_cutoff)
+}
+
+#' Correlation cutoff, fixed or derived from the data
+#'
+#' `"adaptive"` is the rule of mmcollapse (Turro et al. 2014): the positive
+#' correlations between isoforms are taken as noise, and a pair is ambiguous
+#' when its correlation is more negative than minus the 97.5th percentile of
+#' the largest mean correlation of each isoform.
+#' @keywords internal
+#' @noRd
+resolve_cor_cutoff <- function(cor_cutoff, pairs, prob = 0.975) {
+  fallback <- uncertainty_defaults()$cor_cutoff
+  if (
+    is.numeric(cor_cutoff) && length(cor_cutoff) == 1L && !is.na(cor_cutoff)
+  ) {
+    return(cor_cutoff)
+  }
+  if (!identical(cor_cutoff, "adaptive")) {
+    cli::cli_abort(
+      message = c(
+        x = "{.arg cor_cutoff} must be one number or {.val adaptive}."
+      ),
+      class = "isoformic_invalid_cor_cutoff"
+    )
+  }
+  top <- tapply(
+    c(pairs$mean_cor, pairs$mean_cor),
+    c(pairs$transcript_id_1, pairs$transcript_id_2),
+    max
+  )
+  value <- if (length(top)) {
+    unname(stats::quantile(top, prob, names = FALSE, na.rm = TRUE))
+  } else {
+    NA_real_
+  }
+  if (is.na(value) || value <= 0) {
+    cli::cli_inform(
+      message = c(
+        "!" = "No adaptive correlation cutoff could be derived from the replicates.",
+        i = "Using {fallback}."
+      ),
+      class = "isoformic_no_adaptive_cutoff"
+    )
+    return(fallback)
+  }
+  -min(value, 1)
 }
 
 #' Stored uncertainty tables, or computed from the draws
@@ -878,7 +1187,7 @@ resolve_uncertainty <- function(self, arr = NULL, settings = NULL) {
       class = "isoformic_no_uncertainty"
     )
   }
-  arr <- arr %||% draws_array(self)
+  arr <- arr %||% draws_view(self)
   build_uncertainty(self, arr, NULL, settings %||% uncertainty_settings(self))
 }
 
@@ -928,15 +1237,14 @@ compute_de_confidence <- function(
 ) {
   # The contrast uses the samples of the two levels; the uncertainty tables
   # in `tables` describe all the samples of the object
-  setup <- two_group_setup(self, group, dimnames(arr)[[2L]], levels)
+  setup <- two_group_setup(self, group, draws_samples(arr), levels)
   lv <- base::levels(setup$groups)
-  arr <- arr[, setup$keep, , drop = FALSE]
+  arr <- draws_select_samples(arr, setup$keep)
   in_b <- as.character(setup$groups) == lv[2L]
   samples <- setup$samples
-  d <- dim(arr)[3L]
-  n_tx <- dim(arr)[1L]
+  d <- draws_dim(arr)[[3L]]
   tx_table <- tables$transcripts
-  ids <- rownames(arr)
+  ids <- draws_ids(arr)
   amb_group <- tx_table$ambiguity_group[match(ids, tx_table$transcript_id)]
   # A group is collapsed when more than one of its members is in the draws; a
   # member left alone (after `x[i, ]`) stays a transcript, flagged as ambiguous
@@ -944,16 +1252,18 @@ compute_de_confidence <- function(
     !is.na(amb_group) &
     amb_group %in% amb_group[duplicated(amb_group)]
   feature_id <- ifelse(collapsible, amb_group, ids)
-  # Features: transcripts, or ambiguous groups summed over their members
-  flat <- matrix(arr, nrow = n_tx)
-  sums <- rowsum(flat, feature_id, reorder = FALSE)
-  features <- rownames(sums)
-  arr_f <- array(
-    sums,
-    dim = c(length(features), length(samples), d),
-    dimnames = list(features, samples, NULL)
-  )
-  mom <- draw_moments(arr_f)
+  # Features: transcripts, or ambiguous groups summed over their members, in
+  # the order of their first transcript. One draw at a time.
+  features <- unique(feature_id)
+  # Transcripts on several rows of the replicates are summed as well
+  feature_slice <- if (anyDuplicated(feature_id) > 0L) {
+    function(k) {
+      unname(rowsum(unname(draw_slice(arr, k)), feature_id, reorder = FALSE))
+    }
+  } else {
+    function(k) unname(draw_slice(arr, k))
+  }
+  mom <- slice_moments(feature_slice, d, list(features, samples))
   mean_count <- unname(rowMeans(mom$mean))
   rv <- inferential_rv(
     mom,
@@ -985,7 +1295,7 @@ compute_de_confidence <- function(
   )
   sig <- matrix(FALSE, nrow = length(features), ncol = d)
   for (k in seq_len(d)) {
-    x <- draw_slice(arr_f, k)
+    x <- feature_slice(k)
     x <- log2(sweep(x, 2L, scale, "*") + settings$pseudocount)
     w <- welch_matrix(x, in_b)
     lfc[, k] <- w$lfc
@@ -1234,8 +1544,23 @@ S7::method(uncertainty_report, IsoformicExperiment) <- function(self, ...) {
       )
     }
   }
+  meta <- self@metadata
+  overdispersion <- NA_real_
+  if (!is.null(meta$inf_reps)) {
+    od <- compute_overdispersion(draws_view(self))
+    overdispersion <- stats::median(od$overdispersion[od$df > 0L])
+  }
+  replicates <- tibble::tibble(
+    replicate_type = as.character(
+      meta$uncertainty_replicate_type %||% NA_character_
+    ),
+    n_draws = as.integer(meta$uncertainty_n_draws %||% NA_integer_),
+    resampling_df = as.integer(meta$uncertainty_resampling_df %||% NA_integer_),
+    median_overdispersion = overdispersion
+  )
   list(
     settings = settings,
+    replicates = replicates,
     run = run,
     transcripts = by_type,
     genes = by_gene,
@@ -1288,7 +1613,17 @@ S7::method(uncertainty_methods, IsoformicExperiment) <- function(self, ...) {
       n_draws,
       " ",
       type,
-      " per sample were used to measure the inferential uncertainty of each isoform."
+      " per sample were used to measure the inferential uncertainty of each isoform",
+      if (!is.null(meta$uncertainty_resampling_df)) {
+        paste0(
+          " (",
+          meta$uncertainty_resampling_df,
+          " degrees of freedom over the study)"
+        )
+      } else {
+        ""
+      },
+      "."
     ),
     paste0(
       "For every transcript, the inferential relative variance (InfRV; ",
@@ -1320,8 +1655,17 @@ S7::method(uncertainty_methods, IsoformicExperiment) <- function(self, ...) {
       paste0(
         "The correlation between the replicates of isoforms of the same gene ",
         "was averaged over samples, and isoform pairs with a correlation of ",
-        settings$cor_cutoff,
-        " or lower were called ambiguous and grouped."
+        signif(settings$cor_cutoff, 3),
+        " or lower were called ambiguous and grouped (as in mmcollapse, Turro ",
+        "et al. 2014, ",
+        if (identical(meta$uncertainty_cor_cutoff_rule, "adaptive")) {
+          paste0(
+            "with the cutoff set to minus the 97.5th percentile of the largest ",
+            "correlation of each isoform)."
+          )
+        } else {
+          "with a fixed cutoff)."
+        }
       )
     },
     paste0(
@@ -1445,7 +1789,7 @@ S7::method(inferential_overdispersion, IsoformicExperiment) <- function(
   prior_df = 3,
   ...
 ) {
-  compute_overdispersion(draws_array(self), prior_df = prior_df)
+  compute_overdispersion(draws_view(self), prior_df = prior_df)
 }
 
 #' Overdispersion of every transcript of an array of draws
@@ -1524,9 +1868,9 @@ S7::method(scale_counts, IsoformicExperiment) <- function(
 #' @keywords internal
 #' @noRd
 overdispersion_for <- function(self, transcript_ids, samples = NULL) {
-  arr <- draws_array(self)
+  arr <- draws_view(self)
   if (!is.null(samples)) {
-    arr <- arr[, samples, , drop = FALSE]
+    arr <- draws_select_samples(arr, samples)
   }
   od <- compute_overdispersion(arr)
   factor <- od$overdispersion[match(transcript_ids, od$transcript_id)]

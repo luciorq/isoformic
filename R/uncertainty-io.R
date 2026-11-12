@@ -478,7 +478,8 @@ read_eq_classes <- function(dir) {
   members <- data.frame(
     tid = integer(),
     size = integer(),
-    count = numeric()
+    count = numeric(),
+    class = integer()
   )
   if (length(lines)) {
     parts <- strsplit(lines, "\t", fixed = TRUE)
@@ -492,7 +493,8 @@ read_eq_classes <- function(dir) {
     members <- data.frame(
       tid = as.integer(flat[pos]) + 1L,
       size = size[cls],
-      count = count[cls]
+      count = count[cls],
+      class = cls
     )
   }
   list(transcripts = tx, members = members)

@@ -201,7 +201,7 @@ testthat::test_that("transcript_orfs works on IsoformicExperiment objects and is
     assays = list(abundance = mat),
     col_data = data.frame(sample_id = c("s1", "s2"), condition = c("a", "b"))
   )
-  orfs <- transcript_orfs(iso)
+  orfs <- suppressWarnings(transcript_orfs(iso))
   testthat::expect_equal(nrow(orfs), 5L)
   testthat::expect_identical(transcript_orfs(iso), orfs)
   testthat::expect_identical(
@@ -296,4 +296,252 @@ testthat::test_that("stream_fasta drops the carriage returns of CRLF files", {
   testthat::expect_setequal(ls(got), c("chr1", "chr2"))
   testthat::expect_identical(got$chr1, "ACGTACGTACGTACGT")
   testthat::expect_identical(got$chr2, "TTTT")
+})
+
+testthat::test_that("transcript_orfs keeps its rows in the annotation directory", {
+  annot <- mini_annotation("mini_cds.gff3")
+  extract_transcript_sequences(annot, genome_fasta = mini_genome_fasta())
+  file <- fs::path(annot, "annot_data_orfs.parquet")
+  ids <- paste0("t", c("A1", "A2", "A3", "A4", "B1"))
+  experiment <- function(ids) {
+    IsoformicExperiment(
+      experiment_name = "cds",
+      annot_path = annot,
+      assays = list(
+        abundance = matrix(
+          1,
+          nrow = length(ids),
+          ncol = 2,
+          dimnames = list(ids, c("s1", "s2"))
+        )
+      ),
+      col_data = data.frame(sample_id = c("s1", "s2"), condition = c("a", "b"))
+    )
+  }
+  # The reference: nothing read, nothing written
+  reference <- function(ids, ...) {
+    withr::local_options(isoformic.orf_cache = FALSE)
+    transcript_orfs(experiment(ids), ...)
+  }
+  expected <- reference(ids)
+  expected_rules <- reference(ids, start_proximal = 400, long_utr3 = 500)
+  testthat::expect_false(identical(
+    expected_rules$nmd_class,
+    expected$nmd_class
+  ))
+  testthat::expect_false(fs::file_exists(file))
+
+  first <- transcript_orfs(experiment(ids))
+  testthat::expect_identical(first, expected)
+  testthat::expect_true(fs::file_exists(file))
+  stored <- read_parquet(file)
+  testthat::expect_setequal(stored$transcript_id, ids)
+
+  # A new object reads the rows: with the computation taken away it still
+  # answers, and the file is not written again
+  written <- fs::file_info(file)$modification_time
+  testthat::local_mocked_bindings(
+    compute_transcript_orfs = function(...) stop("computed again")
+  )
+  testthat::expect_identical(transcript_orfs(experiment(ids)), expected)
+  testthat::expect_identical(transcript_orfs(experiment(rev(ids))), {
+    expected[match(rev(ids), expected$transcript_id), ]
+  })
+  testthat::expect_identical(transcript_orfs(annot), expected)
+  testthat::expect_identical(fs::file_info(file)$modification_time, written)
+  # The NMD class follows the arguments of the call, not those of the table
+  testthat::expect_identical(
+    transcript_orfs(experiment(ids), start_proximal = 400, long_utr3 = 500),
+    expected_rules
+  )
+  testthat::expect_error(
+    transcript_orfs(experiment(ids), min_orf_length = 30L),
+    "computed again"
+  )
+})
+
+testthat::test_that("the stored ORF rows are not used for another canonical isoform or another annotation", {
+  annot <- mini_annotation("mini_cds.gff3")
+  extract_transcript_sequences(annot, genome_fasta = mini_genome_fasta())
+  file <- fs::path(annot, "annot_data_orfs.parquet")
+  transcripts <- read_parquet(fs::path(annot, "annot_data_transcripts.parquet"))
+  transcripts <- transcripts[transcripts$gene_id %in% transcripts$gene_id[1L], ]
+  canonical <- canonical_transcripts(transcripts)[[1L]]
+  ids <- transcripts$transcript_id
+  testthat::expect_gt(length(ids), 2L)
+  experiment <- function(ids) {
+    IsoformicExperiment(
+      experiment_name = "cds",
+      annot_path = annot,
+      assays = list(
+        abundance = matrix(
+          1,
+          nrow = length(ids),
+          ncol = 2,
+          dimnames = list(ids, c("s1", "s2"))
+        )
+      ),
+      col_data = data.frame(sample_id = c("s1", "s2"), condition = c("a", "b"))
+    )
+  }
+  reference <- function(ids, ...) {
+    withr::local_options(isoformic.orf_cache = FALSE)
+    transcript_orfs(experiment(ids), ...)
+  }
+  whole <- transcript_orfs(experiment(ids))
+  expected_whole <- reference(ids)
+  expected_others <- reference(setdiff(ids, canonical))
+  # Without the canonical isoform of the annotation the gene has another one
+  others <- setdiff(ids, canonical)
+  partial <- transcript_orfs(experiment(others))
+  testthat::expect_identical(partial, expected_others)
+  testthat::expect_false(canonical %in% partial$canonical_transcript_id)
+  # Its rows are not stored: the others still read those of the annotation
+  testthat::expect_identical(
+    unique(read_parquet(file)$canonical_transcript_id),
+    canonical
+  )
+  written <- fs::file_info(file)$modification_time
+  testthat::expect_identical(transcript_orfs(experiment(ids)), whole)
+  testthat::expect_identical(fs::file_info(file)$modification_time, written)
+  testthat::expect_identical(whole, expected_whole)
+
+  # A table of other inputs, or one that cannot be read, is replaced
+  testthat::expect_identical(
+    transcript_orfs(experiment(ids), min_orf_length = 30L),
+    reference(ids, min_orf_length = 30L)
+  )
+  testthat::expect_identical(transcript_orfs(experiment(ids)), whole)
+  writeLines("not parquet", file)
+  testthat::expect_identical(transcript_orfs(experiment(ids)), whole)
+  testthat::expect_setequal(read_parquet(file)$transcript_id, ids)
+  stale <- read_parquet(file)
+  stale$orf_length <- -1
+  stale$table_signature <- "another annotation"
+  write_parquet(stale, file)
+  testthat::expect_identical(transcript_orfs(experiment(ids)), whole)
+
+  # Never into the installed package, and not with the option off
+  testthat::expect_false(
+    orf_table_writable(system.file("extdata", package = "isoformic"))
+  )
+  fs::file_delete(file)
+  withr::with_options(list(isoformic.orf_cache = FALSE), {
+    testthat::expect_identical(transcript_orfs(experiment(ids)), whole)
+  })
+  testthat::expect_false(fs::file_exists(file))
+})
+
+testthat::test_that("stored and computed ORF rows are mixed in the order of the call", {
+  annot <- mini_annotation("mini_cds.gff3")
+  extract_transcript_sequences(annot, genome_fasta = mini_genome_fasta())
+  file <- fs::path(annot, "annot_data_orfs.parquet")
+  uncached <- function(...) {
+    withr::local_options(isoformic.orf_cache = FALSE)
+    transcript_orfs(...)
+  }
+  all_rows <- uncached(annot)
+  gene_a <- all_rows$transcript_id[all_rows$gene_name == "GENEA"]
+  gene_b <- setdiff(all_rows$transcript_id, gene_a)
+  canonical_a <- unique(all_rows$canonical_transcript_id[
+    all_rows$transcript_id %in% gene_a
+  ])
+  transcripts <- read_parquet(fs::path(annot, "annot_data_transcripts.parquet"))
+  subset_orfs <- function(ids) {
+    tx <- transcripts[match(ids, transcripts$transcript_id), ]
+    tx$gene_name <- all_rows$gene_name[match(ids, all_rows$transcript_id)]
+    stored_transcript_orfs(
+      annot_dir = annot,
+      transcripts = tx,
+      exons = function() {
+        read_parquet(fs::path(annot, "annot_data_exons.parquet"))
+      },
+      annotation = function() transcripts
+    )
+  }
+  # Gene B first: its rows are stored, those of gene A are not
+  only_b <- subset_orfs(gene_b)
+  testthat::expect_setequal(read_parquet(file)$transcript_id, gene_b)
+  # Gene A is computed, gene B read, and the rows come back as asked
+  computed <- character()
+  compute <- compute_transcript_orfs
+  testthat::local_mocked_bindings(
+    compute_transcript_orfs = function(transcripts, ...) {
+      computed <<- c(computed, transcripts$transcript_id)
+      compute(transcripts, ...)
+    }
+  )
+  ids <- rev(all_rows$transcript_id)
+  mixed <- subset_orfs(ids)
+  testthat::expect_setequal(computed, gene_a)
+  testthat::expect_identical(
+    as.data.frame(mixed),
+    as.data.frame(all_rows[match(ids, all_rows$transcript_id), ])
+  )
+  # Writing gene A kept the rows of gene B
+  testthat::expect_setequal(read_parquet(file)$transcript_id, ids)
+  # A gene without its canonical isoform is computed although its rows are
+  # stored, and the stored rows stay
+  computed <- character()
+  others <- c(setdiff(gene_a, canonical_a), gene_b)
+  partial <- subset_orfs(others)
+  testthat::expect_setequal(computed, setdiff(gene_a, canonical_a))
+  testthat::expect_identical(
+    unique(read_parquet(file)$canonical_transcript_id[
+      read_parquet(file)$transcript_id %in% gene_a
+    ]),
+    canonical_a
+  )
+})
+
+testthat::test_that("the stored ORF rows follow the annotation and are written only where allowed", {
+  annot <- mini_annotation("mini_cds.gff3")
+  extract_transcript_sequences(annot, genome_fasta = mini_genome_fasta())
+  file <- fs::path(annot, "annot_data_orfs.parquet")
+  uncached <- function(...) {
+    withr::local_options(isoformic.orf_cache = FALSE)
+    transcript_orfs(...)
+  }
+  first <- transcript_orfs(annot)
+  testthat::expect_identical(first, uncached(annot))
+
+  # The names follow the genes table, which is not part of the signature
+  genes_file <- fs::path(annot, "annot_data_genes.parquet")
+  genes <- read_parquet(genes_file)
+  genes$gene_name[genes$gene_name == "GENEA"] <- "RENAMED"
+  write_parquet(genes, genes_file)
+  renamed <- transcript_orfs(annot)
+  testthat::expect_identical(renamed, uncached(annot))
+  testthat::expect_identical(
+    nrow(transcript_orfs(annot, gene_name = "RENAMED")),
+    sum(first$gene_name == "GENEA")
+  )
+
+  # Other sequences, another signature
+  before <- orf_table_signature(annot, 90L)
+  sequences_file <- fs::path(annot, "annot_data_sequences.parquet")
+  sequences <- read_parquet(sequences_file)
+  sequences$sequence[[1L]] <- chartr("ACGT", "TGCA", sequences$sequence[[1L]])
+  Sys.sleep(1.1)
+  write_parquet(sequences, sequences_file)
+  testthat::expect_false(identical(orf_table_signature(annot, 90L), before))
+  testthat::expect_false(identical(orf_table_signature(annot, 30L), before))
+  changed <- transcript_orfs(annot)
+  testthat::expect_identical(changed, uncached(annot))
+  testthat::expect_false(identical(changed, renamed))
+
+  # Where writing is not allowed the rows are computed and nothing is written
+  fs::file_delete(file)
+  testthat::local_mocked_bindings(orf_table_writable = function(...) FALSE)
+  testthat::expect_identical(transcript_orfs(annot), changed)
+  testthat::expect_false(fs::file_exists(file))
+})
+
+testthat::test_that("the example annotation of the package gets no ORF table", {
+  iso <- example_isoformic()
+  orfs <- suppressWarnings(transcript_orfs(iso))
+  testthat::expect_gt(nrow(orfs), 0L)
+  testthat::expect_false(
+    fs::file_exists(fs::path(iso@annot_path, "annot_data_orfs.parquet"))
+  )
 })

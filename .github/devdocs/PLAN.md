@@ -331,3 +331,16 @@ Acceptance: identical consensus to the shell run.
   (26%); lncRNA trees change about half the time, also for uncertain isoforms.
   Article isoformic-quantification-stability.qmd with tables in
   inst/extdata/knockdown/stability/.
+- 2026-11-11: no workstream started. Two notes files with candidate work:
+  `UNCERTAINTY-LITERATURE.md` (literature on quantification uncertainty against
+  the code; backlog U1 to U10, start with U1 to U3 and U9) and
+  `ALPHAGENOME-BENCHMARK.md` (AlphaGenome pilot for productivity, blocked on an
+  API key; GENCODE 50 / M39 bump done; backlog A1 to A9, of which A1 and A2 are
+  defects: sequence regions table with one row, frozen source cache not keyed
+  by version).
+- 2026-11-12: U4, U6 (opt-in) and U8 of `UNCERTAINTY-LITERATURE.md` applied,
+  U7 tested and not adopted (section 5.4 there); A4 (splice-site strength)
+  applied; baseline of the AlphaGenome pilot evaluation written and run
+  (`data-raw/alphagenome/03_evaluate.R`, numbers in
+  `ALPHAGENOME-BENCHMARK.md` section 4); first step of U5 applied
+  (`equivalence_identifiability()`). Open: ranges of U5, U10, A3 (AlphaGenome part), A5, A6, A8, A9.

@@ -4,14 +4,14 @@
 gencode_human_listing <- c(
   "GRCh38.p14.genome.fa.gz",
   "GRCh38.primary_assembly.genome.fa.gz",
-  "gencode.v49.annotation.gff3.gz",
-  "gencode.v49.annotation.gtf.gz",
-  "gencode.v49.basic.annotation.gff3.gz",
-  "gencode.v49.chr_patch_hapl_scaff.annotation.gff3.gz",
-  "gencode.v49.chr_patch_hapl_scaff.annotation.gtf.gz",
-  "gencode.v49.primary_assembly.annotation.gff3.gz",
-  "gencode.v49.pc_transcripts.fa.gz",
-  "gencode.v49.transcripts.fa.gz"
+  "gencode.v50.annotation.gff3.gz",
+  "gencode.v50.annotation.gtf.gz",
+  "gencode.v50.basic.annotation.gff3.gz",
+  "gencode.v50.chr_patch_hapl_scaff.annotation.gff3.gz",
+  "gencode.v50.chr_patch_hapl_scaff.annotation.gtf.gz",
+  "gencode.v50.primary_assembly.annotation.gff3.gz",
+  "gencode.v50.pc_transcripts.fa.gz",
+  "gencode.v50.transcripts.fa.gz"
 )
 
 mock_listing <- function(listings) {
@@ -65,59 +65,59 @@ testthat::test_that("download_reference aborts without internet", {
 
 testthat::test_that("download_reference discovers GENCODE files from the release listing", {
   local_download_mocks(rlang::list2(
-    "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_49/" = gencode_human_listing
+    "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_50/" = gencode_human_listing
   ))
   out <- withr::local_tempdir()
   testthat::expect_message(
-    res <- download_reference(version = 49, output_path = out),
+    res <- download_reference(version = 50, output_path = out),
     "successfully downloaded"
   )
   testthat::expect_equal(
     fs::path_file(res),
-    "gencode.v49.chr_patch_hapl_scaff.annotation.gff3.gz"
+    "gencode.v50.chr_patch_hapl_scaff.annotation.gff3.gz"
   )
   testthat::expect_true(fs::file_exists(res))
   testthat::expect_false(fs::file_exists(paste0(res, ".part")))
 
   testthat::expect_message(
-    download_reference(version = "49", output_path = out),
+    download_reference(version = "50", output_path = out),
     "already exists"
   )
 
   res_chr <- download_reference(
-    version = "49",
+    version = "50",
     file_type = "gtf",
     region = "chr",
     output_path = out
   )
   testthat::expect_equal(
     fs::path_file(res_chr),
-    "gencode.v49.annotation.gtf.gz"
+    "gencode.v50.annotation.gtf.gz"
   )
   res_pri <- download_reference(
-    version = "49",
+    version = "50",
     file_type = "gff",
     region = "primary",
     output_path = out
   )
   testthat::expect_equal(
     fs::path_file(res_pri),
-    "gencode.v49.primary_assembly.annotation.gff3.gz"
+    "gencode.v50.primary_assembly.annotation.gff3.gz"
   )
   res_fa <- download_reference(
-    version = "49",
+    version = "50",
     file_type = "fasta",
     output_path = out
   )
-  testthat::expect_equal(fs::path_file(res_fa), "gencode.v49.transcripts.fa.gz")
+  testthat::expect_equal(fs::path_file(res_fa), "gencode.v50.transcripts.fa.gz")
   res_genome <- download_reference(
-    version = "49",
+    version = "50",
     file_type = "genome_fasta",
     output_path = out
   )
   testthat::expect_equal(fs::path_file(res_genome), "GRCh38.p14.genome.fa.gz")
   res_genome_pri <- download_reference(
-    version = "49",
+    version = "50",
     file_type = "genome_fasta",
     region = "primary",
     output_path = out
@@ -154,30 +154,30 @@ testthat::test_that("future releases and genome patches work without hardcoded n
 testthat::test_that("mouse versions are normalised to M releases", {
   listing <- c(
     "GRCm39.genome.fa.gz",
-    "gencode.vM38.chr_patch_hapl_scaff.annotation.gff3.gz"
+    "gencode.vM39.chr_patch_hapl_scaff.annotation.gff3.gz"
   )
   local_download_mocks(rlang::list2(
-    "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M38/" = listing
+    "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M39/" = listing
   ))
   out <- withr::local_tempdir()
   res <- download_reference(
-    version = "38",
+    version = "39",
     organism = "mouse",
     output_path = out
   )
   testthat::expect_match(
     res,
-    "gencode.vM38.chr_patch_hapl_scaff.annotation.gff3.gz$"
+    "gencode.vM39.chr_patch_hapl_scaff.annotation.gff3.gz$"
   )
   res2 <- download_reference(
-    version = "M38",
+    version = "M39",
     organism = "mouse",
     file_type = "genome_fasta",
     output_path = out
   )
   testthat::expect_match(res2, "GRCm39.genome.fa.gz$")
   testthat::expect_error(
-    download_reference(version = "M38", organism = "human", output_path = out),
+    download_reference(version = "M39", organism = "human", output_path = out),
     class = "isoformic_download_reference_unsupported_version_error"
   )
   testthat::expect_error(
@@ -191,11 +191,11 @@ testthat::test_that("missing releases and files give specific errors", {
     "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/" = c(
       "release_47",
       "release_48",
-      "release_49",
+      "release_50",
       "release_50",
       "latest_release"
     ),
-    "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_49/" = gencode_human_listing
+    "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_50/" = gencode_human_listing
   ))
   out <- withr::local_tempdir()
   err <- testthat::expect_error(
@@ -205,7 +205,7 @@ testthat::test_that("missing releases and files give specific errors", {
   testthat::expect_match(conditionMessage(err), "release_50")
   err2 <- testthat::expect_error(
     download_reference(
-      version = "49",
+      version = "50",
       file_type = "gtf",
       region = "primary",
       output_path = out
@@ -214,14 +214,14 @@ testthat::test_that("missing releases and files give specific errors", {
   )
   testthat::expect_match(
     conditionMessage(err2),
-    "gencode.v49.annotation.gtf.gz"
+    "gencode.v50.annotation.gtf.gz"
   )
 })
 
 testthat::test_that("failed or empty downloads are reported and leave no partial file", {
   local_download_mocks(
     rlang::list2(
-      "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_49/" = gencode_human_listing
+      "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_50/" = gencode_human_listing
     ),
     download = function(url, destfile, ...) {
       stop("connection reset", call. = FALSE)
@@ -229,7 +229,7 @@ testthat::test_that("failed or empty downloads are reported and leave no partial
   )
   out <- withr::local_tempdir()
   err <- testthat::expect_error(
-    download_reference(version = "49", output_path = out),
+    download_reference(version = "50", output_path = out),
     class = "isoformic_download_reference_error"
   )
   testthat::expect_match(conditionMessage(err), "connection reset")
@@ -237,7 +237,7 @@ testthat::test_that("failed or empty downloads are reported and leave no partial
 
   local_download_mocks(
     rlang::list2(
-      "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_49/" = gencode_human_listing
+      "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_50/" = gencode_human_listing
     ),
     download = function(url, destfile, ...) {
       file.create(destfile)
@@ -245,7 +245,7 @@ testthat::test_that("failed or empty downloads are reported and leave no partial
     }
   )
   testthat::expect_error(
-    download_reference(version = "49", output_path = out),
+    download_reference(version = "50", output_path = out),
     class = "isoformic_download_reference_error"
   )
   testthat::expect_length(fs::dir_ls(out), 0L)
@@ -311,13 +311,13 @@ testthat::test_that("download_reference resolves T2T-CHM13 (NCBI RefSeq) files",
 testthat::test_that("list_remote_dir parses HTML indexes and returns NULL on failure", {
   html <- c(
     "<html><body><a href=\"../\">..</a>",
-    "<a href=\"release_49/\">release_49/</a>",
-    "<a href=\"gencode.v49.transcripts.fa.gz\">gencode.v49.transcripts.fa.gz</a>",
+    "<a href=\"release_50/\">release_50/</a>",
+    "<a href=\"gencode.v50.transcripts.fa.gz\">gencode.v50.transcripts.fa.gz</a>",
     "<a href=\"?C=N;O=D\">Name</a></body></html>"
   )
   tmp <- withr::local_tempfile(lines = html, fileext = ".html")
   res <- list_remote_dir(paste0("file://", tmp))
-  testthat::expect_equal(res, c("release_49", "gencode.v49.transcripts.fa.gz"))
+  testthat::expect_equal(res, c("release_50", "gencode.v50.transcripts.fa.gz"))
   testthat::expect_null(list_remote_dir("file:///no/such/dir/index.html"))
 })
 
@@ -464,7 +464,7 @@ testthat::test_that("download_reference resolves Ensembl, NCBI accession and MAN
   )
   testthat::expect_error(
     download_reference(
-      version = "49",
+      version = "50",
       file_type = "ncrna_fasta",
       output_path = out
     ),

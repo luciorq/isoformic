@@ -408,7 +408,11 @@ canonical_transcripts <- function(tx) {
   } else {
     rep(FALSE, nrow(tx))
   }
-  cds <- ifelse(is.na(tx$cds_length), 0, tx$cds_length)
+  cds <- if ("cds_length" %in% colnames(tx)) {
+    ifelse(is.na(tx$cds_length), 0, tx$cds_length)
+  } else {
+    rep(0, nrow(tx))
+  }
   len <- if ("tx_length" %in% colnames(tx)) tx$tx_length else rep(0, nrow(tx))
   ord <- order(tx$gene_id, -as.integer(tagged), -cds, -len, tx$transcript_id)
   first <- ord[!duplicated(tx$gene_id[ord])]

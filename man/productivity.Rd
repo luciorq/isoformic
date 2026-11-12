@@ -137,7 +137,9 @@ faster. \code{run_productivity_enrichment()} reads the replicates only for
 \item{reference}{Optional tibble from \code{\link[=gtex_reference]{gtex_reference()}}, or a GTEx
 tissue name, giving the healthy-tissue productive fraction per gene.}
 
-\item{genesets_list}{Named list of gene symbol vectors (see \code{\link[=read_gmt]{read_gmt()}}).}
+\item{genesets_list}{Named list of gene symbol vectors (see \code{\link[=read_gmt]{read_gmt()}}),
+or a named list of such lists: each collection is then tested on its own
+and the result has a \code{collection} column (see \code{\link[=run_enrichment]{run_enrichment()}}).}
 
 \item{min_size, max_size}{Gene set size limits passed to \code{fgsea}.}
 

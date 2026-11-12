@@ -18,9 +18,36 @@
 #' `read_gmt()` reads gene sets in GMT format into a named list, and
 #' `plot_enrichment()` draws a dot plot of enrichment results.
 #'
+#' @section Ranking:
+#' `rank_by` chooses the statistic that ranks the transcripts:
+#'
+#' * `"log2FC"` (default): the log2 fold-change of the stored results, a
+#'   point estimate that ignores how well it is determined.
+#' * `"signed_p"`: `-log10(pvalue)` with the sign of the fold-change, so that
+#'   the test of the differential expression weighs the ranking. A p-value
+#'   of zero gets the largest finite value of the table.
+#' * `"lfc_z"`: the median fold-change over the inferential replicates
+#'   divided by its standard deviation (`lfc_median / lfc_sd` of
+#'   [de_confidence()]), so that a fold-change the quantification cannot
+#'   determine ranks low. It needs the confidence table that
+#'   `add_uncertainty(x, group = )` stores, or these two columns in a data
+#'   frame. Transcripts that were not assessed, or that were collapsed into a
+#'   group, are not ranked. A fold-change that is the same in every replicate
+#'   gets the largest finite value of the table.
+#'
+#' @section Collections of gene sets:
+#' `genesets_list` is either one collection (a named list of gene symbol
+#' vectors) or several (a named list of such lists, for example
+#' `list(hallmark = read_gmt(h), reactome = read_gmt(r))`). Each collection is
+#' tested on its own, so that the adjusted p-values are those of the
+#' collection, and the result has a `collection` column.
+#'
 #' @param self An [IsoformicExperiment] or a transcript-level DE table.
 #' @param genesets_list Named list of character vectors (gene symbols), as
-#'   returned by [read_gmt()].
+#'   returned by [read_gmt()], or a named list of such lists (see
+#'   *Collections of gene sets*).
+#' @param rank_by Statistic that ranks the transcripts: `"log2FC"`
+#'   (default), `"signed_p"` or `"lfc_z"` (see *Ranking*).
 #' @param tx_to_gene Data frame with `transcript_name` and `gene_name`
 #'   columns; required by the data frame method, ignored otherwise.
 #' @param pval_cutoff Keep pathways with `pval` at or below this value;
@@ -45,7 +72,8 @@
 #'   `protein_coding_CDS_not_defined`.
 #'
 #' @returns `run_enrichment()` returns a tibble with the `fgsea` columns
-#'   plus `experiment` (the transcript category). `read_gmt()` returns a
+#'   plus `experiment` (the transcript category), `rank_by` and, for several
+#'   collections, `collection`. `read_gmt()` returns a
 #'   named list. `plot_enrichment()` returns a `ggplot` object.
 #'
 #' @examples
@@ -77,6 +105,7 @@ run_enrichment <- S7::new_generic(
     tx_types = NULL,
     min_size = 15,
     max_size = 500,
+    rank_by = c("log2FC", "signed_p", "lfc_z"),
     ...
   ) {
     S7::S7_dispatch()
@@ -91,9 +120,11 @@ S7::method(run_enrichment, IsoformicExperiment) <- function(
   tx_types = NULL,
   min_size = 15,
   max_size = 500,
+  rank_by = c("log2FC", "signed_p", "lfc_z"),
   ...
 ) {
   rlang::check_required(genesets_list)
+  rank_by <- rlang::arg_match(rank_by)
   det <- de_tx(self)
   annot <- tx_annot(self)
   det <- dplyr::left_join(
@@ -106,6 +137,22 @@ S7::method(run_enrichment, IsoformicExperiment) <- function(
     )],
     by = "transcript_id"
   )
+  if (identical(rank_by, "lfc_z")) {
+    conf <- self@dea[["confidence"]]
+    if (is.null(conf)) {
+      cli::cli_abort(
+        message = c(
+          x = "{.code rank_by = \"lfc_z\"} needs the confidence of the fold-changes.",
+          i = "Store it with {.code add_uncertainty(x, group = )}."
+        ),
+        class = "isoformic_no_inferential_replicates"
+      )
+    }
+    conf <- conf[conf$feature_type %in% "transcript", ]
+    idx <- match(det$transcript_id, conf$feature_id)
+    det$lfc_median <- conf$lfc_median[idx]
+    det$lfc_sd <- conf$lfc_sd[idx]
+  }
   tx_types <- tx_types %||%
     default_enrichment_types(unique(annot$transcript_type))
   run_fgsea_by_type(
@@ -118,6 +165,7 @@ S7::method(run_enrichment, IsoformicExperiment) <- function(
     tx_types = tx_types,
     min_size = min_size,
     max_size = max_size,
+    rank_by = rank_by,
     ...
   )
 }
@@ -131,9 +179,11 @@ S7::method(run_enrichment, S7::class_data.frame) <- function(
   tx_types = NULL,
   min_size = 15,
   max_size = 500,
+  rank_by = c("log2FC", "signed_p", "lfc_z"),
   ...
 ) {
   rlang::check_required(genesets_list)
+  rank_by <- rlang::arg_match(rank_by)
   if (is.null(tx_to_gene)) {
     cli::cli_abort(
       message = c(
@@ -172,6 +222,7 @@ S7::method(run_enrichment, S7::class_data.frame) <- function(
     tx_types = tx_types,
     min_size = min_size,
     max_size = max_size,
+    rank_by = rank_by,
     ...
   )
 }
@@ -209,18 +260,123 @@ default_enrichment_types <- function(annotation_types = NULL) {
 }
 
 #' Abort unless `genesets_list` is a named list of gene symbol vectors
+#'
+#' Or a named list of such lists, see `geneset_collections()`.
 #' @keywords internal
 #' @noRd
 check_genesets <- function(genesets_list) {
-  if (!is.list(genesets_list) || is.null(names(genesets_list))) {
+  geneset_collections(genesets_list)
+  invisible(genesets_list)
+}
+
+#' The collections of `genesets_list`
+#'
+#' One collection is a named list of gene symbol vectors; several are a named
+#' list of such lists. Returns a list of collections, without names for a
+#' single collection given as such.
+#' @keywords internal
+#' @noRd
+geneset_collections <- function(genesets_list) {
+  is_collection <- function(x) {
+    is.list(x) &&
+      !is.null(names(x)) &&
+      all(nzchar(names(x))) &&
+      all(vapply(x, function(set) is.atomic(set) && !is.list(set), logical(1L)))
+  }
+  if (is_collection(genesets_list)) {
+    return(list(genesets_list))
+  }
+  if (
+    is.list(genesets_list) &&
+      length(genesets_list) > 0L &&
+      !is.null(names(genesets_list)) &&
+      all(nzchar(names(genesets_list))) &&
+      !anyDuplicated(names(genesets_list)) &&
+      all(vapply(genesets_list, is_collection, logical(1L)))
+  ) {
+    return(genesets_list)
+  }
+  cli::cli_abort(
+    message = c(
+      x = "{.arg genesets_list} must be a named list of gene symbol vectors.",
+      i = "Several collections are a named list of such lists."
+    ),
+    class = "isoformic_invalid_genesets"
+  )
+}
+
+#' Run `run(collection)` for every collection and stack the results
+#'
+#' The `collection` column is added only when several collections were given.
+#' @keywords internal
+#' @noRd
+enrich_collections <- function(genesets_list, run) {
+  collections <- geneset_collections(genesets_list)
+  if (is.null(names(collections))) {
+    return(run(collections[[1L]]))
+  }
+  res <- lapply(names(collections), function(name) {
+    out <- run(collections[[name]])
+    out$collection <- rep(name, nrow(out))
+    out
+  })
+  dplyr::bind_rows(res)
+}
+
+#' Estimate over its standard deviation, for a ranking
+#'
+#' An estimate that is the same in every replicate (a standard deviation of
+#' zero) is the most certain one: it gets the largest finite value of the
+#' vector. No change in any replicate is zero.
+#' @keywords internal
+#' @noRd
+certainty_z <- function(estimate, sd) {
+  z <- estimate / sd
+  z[!is.finite(z)] <- NA_real_
+  certain <- sd %in% 0 & !estimate %in% c(0, NA)
+  finite_z <- abs(z[!is.na(z)])
+  z[certain] <- sign(estimate[certain]) * max(finite_z, 1)
+  z[sd %in% 0 & estimate %in% 0] <- 0
+  z
+}
+
+#' The statistic that ranks the rows of a differential expression table
+#' @keywords internal
+#' @noRd
+enrichment_rank <- function(det, rank_by) {
+  needed <- switch(
+    rank_by,
+    log2FC = "log2FC",
+    signed_p = c("log2FC", "pvalue"),
+    lfc_z = c("lfc_median", "lfc_sd")
+  )
+  missing_cols <- setdiff(needed, colnames(det))
+  if (length(missing_cols)) {
     cli::cli_abort(
       message = c(
-        x = "{.arg genesets_list} must be a named list of gene symbol vectors."
+        x = "{.code rank_by = \"{rank_by}\"} needs the column{?s} {.field {missing_cols}}.",
+        i = if (identical(rank_by, "lfc_z")) {
+          "They come from {.fn de_confidence}."
+        }
       ),
-      class = "isoformic_invalid_genesets"
+      class = if (identical(rank_by, "lfc_z")) {
+        "isoformic_no_inferential_replicates"
+      } else {
+        "isoformic_invalid_de_table"
+      }
     )
   }
-  invisible(genesets_list)
+  if (identical(rank_by, "log2FC")) {
+    return(as.numeric(det$log2FC))
+  }
+  if (identical(rank_by, "lfc_z")) {
+    return(certainty_z(as.numeric(det$lfc_median), as.numeric(det$lfc_sd)))
+  }
+  score <- -log10(as.numeric(det$pvalue))
+  # A p-value of zero is the smallest of the table, not an infinite score
+  finite <- score[is.finite(score)]
+  score[is.infinite(score)] <- if (length(finite)) max(finite) else 1
+  sign(as.numeric(det$log2FC)) * score
 }
 
 #' Run fgsea once per transcript category
@@ -236,47 +392,91 @@ run_fgsea_by_type <- function(
   tx_types,
   min_size,
   max_size,
+  rank_by = "log2FC",
   ...
 ) {
   rlang::check_installed("fgsea")
   check_genesets(genesets_list)
-  # Expand gene-symbol sets to transcript IDs once (vectorised join)
-  sets_long <- tibble::tibble(
-    term = rep(names(genesets_list), lengths(genesets_list)),
-    gene_name = unlist(genesets_list, use.names = FALSE)
-  ) |>
-    dplyr::inner_join(
-      dplyr::distinct(tx_to_gene[, c(map_id, "gene_name")]),
-      by = "gene_name",
-      relationship = "many-to-many"
-    )
-  tx_sets <- split(sets_long[[map_id]], sets_long$term)
+  det$rank_stat <- enrichment_rank(det, rank_by)
+  det <- det[!is.na(det$rank_stat) & !is.na(det[[rank_id]]), ]
+  gene_map <- dplyr::distinct(tx_to_gene[, c(map_id, "gene_name")])
+  res <- enrich_collections(genesets_list, function(sets) {
+    # Expand gene-symbol sets to transcript IDs once (vectorised join)
+    sets_long <- tibble::tibble(
+      term = rep(names(sets), lengths(sets)),
+      gene_name = as.character(unlist(sets, use.names = FALSE))
+    ) |>
+      dplyr::inner_join(
+        gene_map,
+        by = "gene_name",
+        relationship = "many-to-many"
+      )
+    tx_sets <- split(sets_long[[map_id]], sets_long$term)
+    results <- lapply(names(tx_types), function(type_name) {
+      sub <- det[det$transcript_type %in% tx_types[[type_name]], ]
+      if (nrow(sub) < 2L) {
+        return(NULL)
+      }
+      ranks <- stats::setNames(sub$rank_stat, sub[[rank_id]])
+      ranks <- ranks[!duplicated(names(ranks))]
+      ranks <- sort(ranks)
+      res <- fgsea_multilevel(
+        pathways = tx_sets,
+        stats = ranks,
+        minSize = min_size,
+        maxSize = max_size,
+        eps = 0,
+        ...
+      )
+      res <- tibble::as_tibble(as.data.frame(res))
+      if (!is.null(pval_cutoff)) {
+        res <- res[!is.na(res$pval) & res$pval <= pval_cutoff, ]
+      }
+      res$experiment <- rep(type_name, nrow(res))
+      res
+    })
+    dplyr::bind_rows(results)
+  })
+  if (ncol(res)) {
+    res$rank_by <- rep(rank_by, nrow(res))
+    res <- dplyr::relocate(res, dplyr::any_of("collection"), .after = "rank_by")
+  }
+  res
+}
 
-  det <- det[!is.na(det$log2FC) & !is.na(det[[rank_id]]), ]
-  results <- lapply(names(tx_types), function(type_name) {
-    sub <- det[det$transcript_type %in% tx_types[[type_name]], ]
-    if (nrow(sub) < 2L) {
-      return(NULL)
-    }
-    ranks <- stats::setNames(sub$log2FC, sub[[rank_id]])
-    ranks <- ranks[!duplicated(names(ranks))]
-    ranks <- sort(ranks)
+#' Gene set enrichment on a gene table ranked by one of its columns
+#'
+#' The largest absolute value is kept for a gene symbol that is repeated.
+#' @keywords internal
+#' @noRd
+gene_rank_enrichment <- function(
+  table,
+  rank_col,
+  genesets_list,
+  experiment,
+  rank_by,
+  min_size,
+  max_size,
+  ...
+) {
+  table <- table[!is.na(table[[rank_col]]) & !is.na(table$gene_name), ]
+  table <- table[order(-abs(table[[rank_col]])), ]
+  table <- table[!duplicated(table$gene_name), ]
+  ranks <- sort(stats::setNames(table[[rank_col]], table$gene_name))
+  res <- enrich_collections(genesets_list, function(sets) {
     res <- fgsea_multilevel(
-      pathways = tx_sets,
+      pathways = sets,
       stats = ranks,
       minSize = min_size,
       maxSize = max_size,
       eps = 0,
       ...
     )
-    res <- tibble::as_tibble(as.data.frame(res))
-    if (!is.null(pval_cutoff)) {
-      res <- res[!is.na(res$pval) & res$pval <= pval_cutoff, ]
-    }
-    res$experiment <- type_name
-    res
+    tibble::as_tibble(as.data.frame(res))
   })
-  dplyr::bind_rows(results)
+  res$experiment <- rep(experiment, nrow(res))
+  res$rank_by <- rep(rank_by, nrow(res))
+  dplyr::relocate(res, dplyr::any_of("collection"), .after = "rank_by")
 }
 
 #' Run `fgsea::fgseaMultilevel()` serially unless asked otherwise

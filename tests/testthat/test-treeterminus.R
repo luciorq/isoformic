@@ -89,6 +89,25 @@ testthat::test_that("cut_transcript_trees groups uncertain isoforms at the node 
   testthat::expect_setequal(cut$transcript_id, c("tA1", "tA2"))
   testthat::expect_identical(unique(cut$group_size), 2L)
   testthat::expect_lt(unique(cut$group_inf_rv), 0.5)
+  # The variance of the group is the one of the summed draws of its members
+  draws <- iso@metadata$inf_reps
+  summed <- vapply(
+    draws,
+    function(draw) colSums(draw[c("tA1", "tA2"), colnames(draws[[1L]])]),
+    numeric(ncol(draws[[1L]]))
+  )
+  by_hand <- mean(
+    pmax(apply(summed, 1L, stats::var) - rowMeans(summed), 0) /
+      (rowMeans(summed) + uncertainty_defaults()$pseudocount) +
+      uncertainty_defaults()$shift
+  )
+  testthat::expect_equal(unique(cut$group_inf_rv), by_hand)
+  # The order of the transcripts in a replicate does not matter
+  shuffled <- iso
+  shuffled@metadata$inf_reps <- lapply(draws, function(draw) {
+    draw[rev(rownames(draw)), , drop = FALSE]
+  })
+  testthat::expect_equal(cut_transcript_trees(trees, shuffled), cut)
   # The roots of unresolved trees, on request
   rooted <- cut_transcript_trees(trees, iso, unresolved = "root")
   testthat::expect_setequal(rooted$transcript_id, c("tA1", "tA2", "tA4", "tB1"))
@@ -100,6 +119,41 @@ testthat::test_that("cut_transcript_trees groups uncertain isoforms at the node 
   writeLines("(((tA1,tA2),tA3),tB2);", nwk)
   nested <- cut_transcript_trees(read_treeterminus(nwk), iso, cutoff = 0.5)
   testthat::expect_false(anyDuplicated(nested$transcript_id) > 0L)
+  # A node sums every leaf below it, not only its own: the root of this tree
+  # has the variance of the summed draws of the four transcripts
+  deep <- cut_transcript_trees(
+    read_treeterminus(nwk),
+    iso,
+    cutoff = 0,
+    unresolved = "root"
+  )
+  testthat::expect_setequal(deep$transcript_id, c("tA1", "tA2", "tA3", "tB2"))
+  summed <- vapply(
+    draws,
+    function(draw) {
+      colSums(draw[c("tA1", "tA2", "tA3", "tB2"), colnames(draws[[1L]])])
+    },
+    numeric(ncol(draws[[1L]]))
+  )
+  testthat::expect_equal(
+    unique(deep$group_inf_rv),
+    mean(
+      pmax(apply(summed, 1L, stats::var) - rowMeans(summed), 0) /
+        (rowMeans(summed) + uncertainty_defaults()$pseudocount) +
+        uncertainty_defaults()$shift
+    )
+  )
+  # Parent pointers that go in a circle are not trees
+  circle <- tibble::tibble(
+    tree_id = 1L,
+    node_id = c(1L, 2L, NA),
+    transcript_id = c(NA, NA, "tA1"),
+    parent_id = c(2L, 1L, 2L)
+  )
+  testthat::expect_error(
+    cut_transcript_trees(circle, iso),
+    class = "isoformic_invalid_treeterminus"
+  )
 
   # add_uncertainty uses the cut, and the methods text says so
   grouped <- add_uncertainty(iso, groups = cut)

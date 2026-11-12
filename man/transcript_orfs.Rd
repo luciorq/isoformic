@@ -104,6 +104,25 @@ by a logistic model trained on GENCODE coding versus lncRNA transcripts
 (see \code{data-raw/build_coding_model.R}); \code{coding_probability} above
 \code{coding_cutoff} (0.364, the CPAT human cutoff) is called coding.
 }
+\section{Stored ORF table}{
+
+The analysis takes minutes for a whole GENCODE release, so the rows
+computed are written to \code{annot_data_orfs.parquet} in the annotation
+directory and read back by later calls, sessions and objects that use the
+same annotation. A stored row is used when the canonical isoform of the
+gene, among the transcripts of the call, is the one it was computed with,
+so the result is the same with and without the table. A gene with a
+transcript that has no such row is computed whole, and its rows are stored
+when its canonical isoform is the one of the whole annotation. The table
+is computed again when the transcripts, exons or sequences of the
+annotation, \code{min_orf_length}, the coding potential model
+(\code{\link[=build_coding_model]{build_coding_model()}}) or the package version change. It is not
+written into a read-only directory or the example annotation of the
+installed package, and \code{options(isoformic.orf_cache = FALSE)} turns it
+off. The warning about sequences that differ in length from their exons is
+given when the rows are computed, not when they are read back.
+}
+
 \examples{
 iso <- example_isoformic()
 orfs <- transcript_orfs(iso, gene_name = "RBPJ")

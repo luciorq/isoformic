@@ -360,8 +360,12 @@ testthat::test_that("uncertainty_report and uncertainty_methods summarise the se
   rep <- uncertainty_report(iso)
   testthat::expect_named(
     rep,
-    c("settings", "run", "transcripts", "genes", "de", "switches")
+    c("settings", "replicates", "run", "transcripts", "genes", "de", "switches")
   )
+  testthat::expect_equal(rep$replicates$n_draws, 30L)
+  testthat::expect_equal(rep$replicates$resampling_df, 6L * 29L)
+  testthat::expect_identical(rep$replicates$replicate_type, "gibbs")
+  testthat::expect_gte(rep$replicates$median_overdispersion, 1)
   testthat::expect_equal(sum(rep$transcripts$n_assessed), 7L)
   testthat::expect_equal(
     rep$genes$n_ambiguous_groups[rep$genes$gene_id == "gA"],
@@ -380,6 +384,8 @@ testthat::test_that("uncertainty_report and uncertainty_methods summarise the se
   txt <- uncertainty_methods(iso)
   testthat::expect_match(txt, "Salmon 2.8.0", fixed = TRUE)
   testthat::expect_match(txt, "30 Gibbs samples", fixed = TRUE)
+  testthat::expect_match(txt, "174 degrees of freedom", fixed = TRUE)
+  testthat::expect_match(txt, "Turro", fixed = TRUE)
   testthat::expect_match(txt, "b versus a", fixed = TRUE)
   testthat::expect_match(txt, "InfRV of at least 0.5", fixed = TRUE)
   testthat::expect_match(txt, "95%", fixed = TRUE)
@@ -535,4 +541,151 @@ testthat::test_that("scale_counts divides the counts by the overdispersion", {
     scale_counts(iso, assay = "nope"),
     class = "isoformic_assay_not_found"
   )
+})
+
+testthat::test_that("the inferential relative variance is the one of fishpond", {
+  moments <- list(
+    mean = matrix(c(100, 100, 0, 2), ncol = 1L),
+    var = matrix(c(100, 310, 0, 1), ncol = 1L)
+  )
+  # no excess over counting noise gives the shift, never less
+  testthat::expect_equal(
+    inferential_rv(moments)[, 1L],
+    c(0.01, 210 / 105 + 0.01, 0.01, 0.01)
+  )
+  testthat::skip_if_not_installed("fishpond")
+  testthat::skip_if_not_installed("SummarizedExperiment")
+  withr::local_seed(1L)
+  arr <- array(
+    stats::rpois(4L * 3L * 30L, 50) * rep(c(1, 1, 3, 0.2), 90L),
+    dim = c(4L, 3L, 30L),
+    dimnames = list(paste0("t", 1:4), paste0("s", 1:3), NULL)
+  )
+  mom <- draw_moments(arr)
+  reps <- stats::setNames(
+    lapply(seq_len(30L), function(k) draw_slice(arr, k)),
+    paste0("infRep", seq_len(30L))
+  )
+  se <- SummarizedExperiment::SummarizedExperiment(
+    c(list(counts = mom$mean), reps)
+  )
+  expected <- SummarizedExperiment::mcols(fishpond::computeInfRV(se))$meanInfRV
+  testthat::expect_equal(
+    unname(rowMeans(inferential_rv(mom))),
+    unname(expected)
+  )
+})
+
+testthat::test_that("too few replicates over the study are reported", {
+  testthat::expect_equal(resampling_df(6L, 30L), 174L)
+  testthat::expect_message(
+    inform_resampling_df(resampling_df(2L, 10L), "bootstrap"),
+    class = "isoformic_few_inferential_replicates"
+  )
+  testthat::expect_message(
+    inform_resampling_df(resampling_df(2L, 10L), "bootstrap"),
+    "Gibbs samples"
+  )
+  testthat::expect_no_message(inform_resampling_df(
+    resampling_df(3L, 30L),
+    "gibbs"
+  ))
+  testthat::expect_no_message(inform_resampling_df(NULL))
+})
+
+testthat::test_that("collapse_gain is the Terminus score of a pair", {
+  x <- uncertainty_experiment()
+  iso <- add_uncertainty(x$iso, paths = x$fixture$dirs)
+  pairs <- isoform_ambiguity(iso)
+  unc <- tx_uncertainty(iso)
+  rv <- function(id) unc$mean_inf_rv[unc$transcript_id == id]
+  # tA1 + tA2 is constant over the draws, so the sum has the floor value
+  shared <- pairs[pairs$ambiguous, ]
+  testthat::expect_equal(
+    shared$collapse_gain,
+    0.01 - (rv("tA1") + rv("tA2")) / 2
+  )
+  testthat::expect_lt(shared$collapse_gain, -1)
+  # Independent isoforms gain nothing from being summed
+  independent <- pairs[pairs$gene_id == "gB", ]
+  testthat::expect_lt(abs(independent$collapse_gain), 0.2)
+  # Same value as computing the three InfRV from the draws
+  draws <- x$fixture$draws
+  one <- function(v) max(stats::var(v) - mean(v), 0) / (mean(v) + 5) + 0.01
+  by_hand <- mean(vapply(
+    seq_len(6L),
+    function(s) {
+      one(draws["tA3", s, ] + draws["tA4", s, ]) -
+        (one(draws["tA3", s, ]) + one(draws["tA4", s, ])) / 2
+    },
+    numeric(1L)
+  ))
+  pair <- pairs[
+    pairs$transcript_id_1 == "tA3" & pairs$transcript_id_2 == "tA4",
+  ]
+  testthat::expect_equal(pair$collapse_gain, by_hand)
+})
+
+testthat::test_that("low_information marks uncertain isoforms without unique fragments", {
+  x <- uncertainty_experiment()
+  iso <- add_uncertainty(x$iso, paths = x$fixture$dirs)
+  unc <- tx_uncertainty(iso)
+  testthat::expect_identical(
+    unc$low_information,
+    unc$unique_fraction == 0 & unc$uncertain
+  )
+  no_classes <- add_uncertainty(
+    x$iso,
+    paths = x$fixture$dirs,
+    equivalence = FALSE
+  )
+  testthat::expect_false(
+    "low_information" %in% colnames(tx_uncertainty(no_classes))
+  )
+})
+
+testthat::test_that("cor_cutoff = 'adaptive' derives the cutoff from the pairs", {
+  pairs <- tibble::tibble(
+    transcript_id_1 = c("a", "a", "b", "d"),
+    transcript_id_2 = c("b", "c", "c", "e"),
+    mean_cor = c(-0.9, 0.2, 0.1, 0.4)
+  )
+  # Largest correlation per isoform: a 0.2, b 0.1, c 0.2, d 0.4, e 0.4
+  testthat::expect_equal(
+    resolve_cor_cutoff("adaptive", pairs),
+    -stats::quantile(c(0.2, 0.1, 0.2, 0.4, 0.4), 0.975, names = FALSE)
+  )
+  testthat::expect_identical(resolve_cor_cutoff(-0.3, pairs), -0.3)
+  testthat::expect_error(
+    resolve_cor_cutoff("auto", pairs),
+    class = "isoformic_invalid_cor_cutoff"
+  )
+  # Nothing to derive it from: the default, with a message
+  testthat::expect_message(
+    fallback <- resolve_cor_cutoff("adaptive", pairs[0L, ]),
+    class = "isoformic_no_adaptive_cutoff"
+  )
+  testthat::expect_identical(fallback, -0.5)
+  x <- uncertainty_experiment()
+  iso <- suppressMessages(add_uncertainty(
+    x$iso,
+    paths = x$fixture$dirs,
+    cor_cutoff = "adaptive"
+  ))
+  testthat::expect_identical(
+    iso@metadata$uncertainty_cor_cutoff_rule,
+    "adaptive"
+  )
+  testthat::expect_lt(iso@metadata$uncertainty_cor_cutoff, 0)
+  pairs <- isoform_ambiguity(iso)
+  testthat::expect_identical(
+    pairs$ambiguous,
+    pairs$mean_cor <= iso@metadata$uncertainty_cor_cutoff
+  )
+  fixed <- add_uncertainty(x$iso, paths = x$fixture$dirs)
+  testthat::expect_identical(
+    fixed@metadata$uncertainty_cor_cutoff_rule,
+    "fixed"
+  )
+  testthat::expect_match(uncertainty_methods(fixed), "with a fixed cutoff")
 })

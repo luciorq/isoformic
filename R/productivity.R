@@ -15,9 +15,10 @@
 #'   change, frameshift or stop in novel sequence), `"unproductive"` (no
 #'   ORF, premature stop codon by the 50-nt rule, no stop codon, an
 #'   unproductive biotype such as `nonsense_mediated_decay`,
-#'   `retained_intron`, `protein_coding_CDS_not_defined`, or a longest ORF
-#'   without coding potential), `"noncoding"` (transcripts of genes without
-#'   any coding isoform) or `"uncertain"` (incomplete CDS annotation without
+#'   `retained_intron`, `protein_coding_CDS_not_defined`,
+#'   `protein_coding_LoF`, or a longest ORF without coding potential),
+#'   `"noncoding"` (transcripts of genes without any coding isoform) or
+#'   `"uncertain"` (incomplete CDS annotation without
 #'   a premature stop, a credible ORF unrelated to the canonical one, FANTOM
 #'   `uncertain_coding`).
 #'   The `reason` column explains each call and `source` tells whether it
@@ -108,7 +109,9 @@
 #'   tissue name, giving the healthy-tissue productive fraction per gene.
 #' @param as_matrix Logical, return the genes x samples matrix of
 #'   productive fractions instead of the summary table.
-#' @param genesets_list Named list of gene symbol vectors (see [read_gmt()]).
+#' @param genesets_list Named list of gene symbol vectors (see [read_gmt()]),
+#'   or a named list of such lists: each collection is then tested on its own
+#'   and the result has a `collection` column (see [run_enrichment()]).
 #' @param min_size,max_size Gene set size limits passed to `fgsea`.
 #' @param ... Passed on to methods or to `fgsea::fgseaMultilevel()`.
 #'
@@ -148,7 +151,9 @@ unproductive_biotypes <- function() {
     "non_stop_decay",
     "retained_intron",
     "protein_coding_CDS_not_defined",
-    "processed_transcript"
+    "processed_transcript",
+    # Not translated in the reference genome because of a variant
+    "protein_coding_LoF"
   )
 }
 
@@ -649,6 +654,19 @@ S7::method(productive_fraction, IsoformicExperiment) <- function(
   has_delta <- "delta_productive_fraction" %in% names(cols)
   reps <- resolve_inf_reps(self, inf_reps)
   delta_sd <- NULL
+  if (!is.null(reps) && "productive_fraction_sd" %in% names(cols)) {
+    cli::cli_abort(
+      message = c(
+        x = paste0(
+          "A level of {.arg group} named {.val sd} gives the column ",
+          "{.field productive_fraction_sd}, which holds the standard ",
+          "deviation over the inferential replicates."
+        ),
+        i = "Rename the level, or use {.code inf_reps = FALSE}."
+      ),
+      class = "isoformic_group_levels"
+    )
+  }
   if (!is.null(reps)) {
     # One draw at a time: only the running sums are kept, never the fractions
     # of all the draws
@@ -1172,23 +1190,16 @@ productivity_enrichment <- function(
     pf$delta_z[certain] <- sign(pf$delta_productive_fraction[certain]) *
       max(finite_z, 1)
   }
-  # The largest change first, so that it is the one kept for a repeated symbol
-  pf <- pf[!is.na(pf[[rank_col]]) & !is.na(pf$gene_name), ]
-  pf <- pf[order(-abs(pf[[rank_col]])), ]
-  pf <- pf[!duplicated(pf$gene_name), ]
-  ranks <- sort(stats::setNames(pf[[rank_col]], pf$gene_name))
-  res <- fgsea_multilevel(
-    pathways = genesets_list,
-    stats = ranks,
-    minSize = min_size,
-    maxSize = max_size,
-    eps = 0,
+  gene_rank_enrichment(
+    pf,
+    rank_col = rank_col,
+    genesets_list = genesets_list,
+    experiment = "productive_fraction",
+    rank_by = rank_by,
+    min_size = min_size,
+    max_size = max_size,
     ...
   )
-  res <- tibble::as_tibble(as.data.frame(res))
-  res$experiment <- "productive_fraction"
-  res$rank_by <- rank_by
-  res
 }
 
 #' @rdname productivity

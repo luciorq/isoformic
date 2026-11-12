@@ -16,6 +16,7 @@ run_enrichment(
   tx_types = NULL,
   min_size = 15,
   max_size = 500,
+  rank_by = c("log2FC", "signed_p", "lfc_z"),
   ...
 )
 
@@ -36,7 +37,8 @@ plot_enrichment(
 \item{self}{An \link{IsoformicExperiment} or a transcript-level DE table.}
 
 \item{genesets_list}{Named list of character vectors (gene symbols), as
-returned by \code{\link[=read_gmt]{read_gmt()}}.}
+returned by \code{\link[=read_gmt]{read_gmt()}}, or a named list of such lists (see
+\emph{Collections of gene sets}).}
 
 \item{tx_to_gene}{Data frame with \code{transcript_name} and \code{gene_name}
 columns; required by the data frame method, ignored otherwise.}
@@ -51,6 +53,9 @@ on the annotation version.}
 
 \item{min_size, max_size}{Minimum and maximum gene set size passed to
 \code{fgsea}.}
+
+\item{rank_by}{Statistic that ranks the transcripts: \code{"log2FC"}
+(default), \code{"signed_p"} or \code{"lfc_z"} (see \emph{Ranking}).}
 
 \item{...}{Passed on to \code{fgsea::fgseaMultilevel()}.}
 
@@ -75,7 +80,8 @@ plotting (default drops MSigDB collection prefixes such as \code{REACTOME_}).}
 }
 \value{
 \code{run_enrichment()} returns a tibble with the \code{fgsea} columns
-plus \code{experiment} (the transcript category). \code{read_gmt()} returns a
+plus \code{experiment} (the transcript category), \code{rank_by} and, for several
+collections, \code{collection}. \code{read_gmt()} returns a
 named list. \code{plot_enrichment()} returns a \code{ggplot} object.
 }
 \description{
@@ -94,6 +100,35 @@ a \code{tx_to_gene} table.
 \code{read_gmt()} reads gene sets in GMT format into a named list, and
 \code{plot_enrichment()} draws a dot plot of enrichment results.
 }
+\section{Ranking}{
+
+\code{rank_by} chooses the statistic that ranks the transcripts:
+\itemize{
+\item \code{"log2FC"} (default): the log2 fold-change of the stored results, a
+point estimate that ignores how well it is determined.
+\item \code{"signed_p"}: \code{-log10(pvalue)} with the sign of the fold-change, so that
+the test of the differential expression weighs the ranking. A p-value
+of zero gets the largest finite value of the table.
+\item \code{"lfc_z"}: the median fold-change over the inferential replicates
+divided by its standard deviation (\code{lfc_median / lfc_sd} of
+\code{\link[=de_confidence]{de_confidence()}}), so that a fold-change the quantification cannot
+determine ranks low. It needs the confidence table that
+\code{add_uncertainty(x, group = )} stores, or these two columns in a data
+frame. Transcripts that were not assessed, or that were collapsed into a
+group, are not ranked. A fold-change that is the same in every replicate
+gets the largest finite value of the table.
+}
+}
+
+\section{Collections of gene sets}{
+
+\code{genesets_list} is either one collection (a named list of gene symbol
+vectors) or several (a named list of such lists, for example
+\code{list(hallmark = read_gmt(h), reactome = read_gmt(r))}). Each collection is
+tested on its own, so that the adjusted p-values are those of the
+collection, and the result has a \code{collection} column.
+}
+
 \examples{
 iso <- example_isoformic()
 gmt <- system.file("extdata", "reactome_subset.gmt", package = "isoformic")

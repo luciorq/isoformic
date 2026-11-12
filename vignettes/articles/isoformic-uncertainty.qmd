@@ -32,12 +32,13 @@ Reads that map to several isoforms of a gene can be shared out between them in m
 A fold-change between two isoforms that share most of their reads can be an artefact of how those reads were apportioned in each sample, however clean the statistics look.
 
 Salmon [@salmon] measures this *inferential uncertainty* by drawing replicates from the posterior of the abundances (Gibbs sampling, `--numGibbsSamples`, 30 by default in `salmon_quant()`) and by writing the equivalence classes (`--dumpEq`) and a run summary (`meta_info.json`).
+Gibbs samples resolve low counts better than bootstrap replicates, and the overdispersion used further down to scale counts is precise once the study has at least 60 degrees of freedom, counted as samples times replicates minus one (200 to 300 preferred) [@baldoni2024gibbs]: 30 draws are enough from three samples up, and `add_uncertainty()` says so when a study falls short.
 `isoformic` turns them into four kinds of evidence for every isoform and one confidence class for every differential expression call:
 
 | Evidence | Question it answers | Columns |
 |---|---|---|
 | Quantification uncertainty | Is the abundance determined by the reads? | `mean_inf_rv`, `uncertain` |
-| Identifiability | Can the isoform be told apart from its siblings? | `min_sibling_cor`, `ambiguity_group` |
+| Ambiguity between isoforms | Can the isoform be told apart from its siblings? | `min_sibling_cor`, `ambiguity_group` |
 | Read support | How many of its reads map to it alone? | `unique_fraction` |
 | Fold-change stability | Does the contrast survive resampling the quantification? | `lfc_lo`, `lfc_hi`, `sign_agreement`, `frac_draws_sig` |
 
@@ -157,7 +158,8 @@ iso
 
 `tx_uncertainty()` has one row per assessed transcript.
 `mean_inf_rv` is the inferential relative variance [@swish]: the variance of the draws in excess of the counting noise (the mean), relative to the expression, averaged over samples.
-A well-determined isoform has a value near zero; the value of one that shares its reads with others can be several units.
+The formula is the one of `fishpond` and Terminus [@terminus]: `max(variance - mean, 0) / (mean + 5) + 0.01`.
+A well-determined isoform has a value near zero (0.01 at the least); the value of one that shares its reads with others can be several units.
 
 ```{r}
 unc <- tx_uncertainty(iso)
@@ -182,6 +184,7 @@ It is the most direct measure of read support. With `paths`, `add_uncertainty()`
 
 When two isoforms share their reads, every fragment given to one is taken from the other, and their draws are negatively correlated.
 `isoform_ambiguity()` reports the mean correlation of every pair of isoforms of the same gene; pairs at or below `cor_cutoff` (-0.5) are ambiguous and connected into `ambiguity_group`s.
+This is the idea of `mmcollapse` [@turro2014], which merges the most anti-correlated transcripts until a threshold taken from the data is passed; here the cutoff is fixed.
 
 ```{r}
 isoform_ambiguity(iso, ambiguous_only = TRUE) |>
@@ -308,7 +311,7 @@ read_split("terminus_comparison")
 
 Two thirds of the transcripts that the correlation rule groups are also in a Terminus group, and the same share of its pairs fall in the same group.
 Terminus groups more transcripts (20,703 against 8,076 of the assessed ones), and the isoforms it groups are the most uncertain (median inferential relative variance 15.5, against 8.6 for the correlation groups and 1.4 for the isoforms in neither).
-Among the large changes the high class stays at 203 isoforms, and about 900 isoforms move from moderate to low because a Terminus group counts as an ambiguous sibling.
+Among the large changes the high class stays at 201 isoforms, and about 900 isoforms move from moderate to low because a Terminus group counts as an ambiguous sibling.
 Both groupings are heuristics built from the same replicates; neither is the truth, and the Terminus groups come from the 12 million read pairs of these samples.
 
 ### Trees from TreeTerminus
@@ -331,8 +334,8 @@ On the six prostate samples (`data-raw/knockdown/compare_treeterminus.R`; TreeTe
 read_split("grouping_comparison")
 ```
 
-The trees reach many more of the uncertain isoforms (58,225 are left alone, against 67,138 with Terminus and 78,892 with the correlation rule), and the features they produce are the ones the reads determine: the median inferential relative variance of a group is 0.19, against 2.87 for the Terminus groups, most of which stay uncertain after summing.
-Grouping more isoforms also flags more of them as ambiguous, so fewer large changes stay in the high class (159 against 203).
+The trees reach many more of the uncertain isoforms (58,708 are left alone, against 67,450 with Terminus and 79,208 with the correlation rule), and the features they produce are the ones the reads determine: the median inferential relative variance of a group is 0.20, against 2.88 for the Terminus groups, most of which stay uncertain after summing.
+Grouping more isoforms also flags more of them as ambiguous, so fewer large changes stay in the high class (155 against 201).
 The isoforms still left alone are those whose whole tree stays above the cutoff; `unresolved = "root"` merges such trees into one group each.
 TreeTerminus needed 24 minutes and 18 GB of memory for the six samples; reading and cutting the trees took about four minutes.
 
@@ -477,6 +480,7 @@ Report the numbers next to the classes, and the settings that produced them.
 ```{r}
 report <- uncertainty_report(iso)
 names(report)
+report$replicates
 report$transcripts
 report$de
 report$switches
@@ -495,6 +499,10 @@ Some cautions belong in the text as well.
 The draws describe the uncertainty of the quantification only; they do not replace biological replicates, and an isoform with a stable fold-change can still be a false positive of the primary test.
 The cutoffs (`inf_rv_cutoff`, `cor_cutoff`, `min_agreement`) are heuristics: rerun `add_uncertainty()` with other values and report how the numbers change.
 The classes are calibrated against nothing but the data at hand.
+Two kinds of error are outside what the draws can show.
+An abundance can be non-identifiable, with several solutions that explain the reads equally well: only about half of the transcripts flagged by the variance of the draws were also non-identifiable in that sense in one comparison [@zheng2022], so an ambiguous pair is a statement about the draws, not a proof.
+And an estimate can be wrong because the transcript the reads came from is missing from the annotation, which shows as read coverage that contradicts the model and not as variance [@ma2019].
+With long reads the overdispersion is expected close to 1 [@baldoni2024]; `uncertainty_report()$replicates` gives its median.
 Finally, the contrast repeated on each draw is a screening statistic (a Welch test on the log scale, with a pseudocount of 5) and does not replace `swish` or `DESeq2`.
 
 ## Saving

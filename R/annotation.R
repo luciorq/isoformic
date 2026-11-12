@@ -10,6 +10,8 @@
 #   annot_seq_regions.parquet       one row per sequence (chromosome) length
 #   annot_data_sequences.parquet    optional, one row per transcript sequence
 #                                   (see extract_transcript_sequences())
+#   annot_data_orfs.parquet         optional, the ORFs computed so far (written
+#                                   by transcript_orfs(), see R/orfs.R)
 #
 # All readers are DuckDB based and read only the file requested.
 
@@ -20,7 +22,9 @@ annot_file_names <- function() {
     exons = "annot_data_exons.parquet",
     metadata = "annot_metadata.parquet",
     seq_regions = "annot_seq_regions.parquet",
-    sequences = "annot_data_sequences.parquet"
+    sequences = "annot_data_sequences.parquet",
+    splice_sites = "annot_data_splice_sites.parquet",
+    orfs = "annot_data_orfs.parquet"
   )
 }
 
@@ -90,7 +94,15 @@ annot_signature <- function(annot_path, type) {
 read_annotation_table <- function(annot_path, type, columns = NULL) {
   type <- rlang::arg_match(
     type,
-    c("genes", "transcripts", "exons", "metadata", "seq_regions", "sequences")
+    c(
+      "genes",
+      "transcripts",
+      "exons",
+      "metadata",
+      "seq_regions",
+      "sequences",
+      "splice_sites"
+    )
   )
   file <- annot_file_path(annot_path, type)
   if (!isTRUE(fs::file_exists(file))) {
@@ -104,6 +116,15 @@ read_annotation_table <- function(annot_path, type, columns = NULL) {
           i = "Add them with {.fn extract_transcript_sequences} from a genome or transcript FASTA."
         ),
         class = "isoformic_no_sequences"
+      )
+    }
+    if (identical(type, "splice_sites")) {
+      cli::cli_abort(
+        message = c(
+          x = "The annotation in {.path {annot_path}} has no splice-site sequences.",
+          i = "Add them with {.fn extract_splice_sites} from a genome FASTA."
+        ),
+        class = "isoformic_no_splice_sites"
       )
     }
     cli::cli_abort(
@@ -226,8 +247,8 @@ list_to_kv <- function(x) {
 #' *annotation directory*. This directory is what [IsoformicExperiment]
 #' objects point to through their `annot_path` property.
 #'
-#' Reading a full human GENCODE release (about 3 million features,
-#' gzip-compressed) takes a few seconds; the result is cached so repeated
+#' Reading a full human GENCODE release (3 to 4 million features,
+#' gzip-compressed) takes under a minute; the result is cached so repeated
 #' calls with the same file and output location return immediately.
 #'
 #' @param input_path Path to a GFF3 or GTF file, optionally gzip-compressed.
@@ -371,8 +392,13 @@ prepare_isoformic_annotation <- function(
     header$metadata
   )
   write_parquet(list_to_kv(metadata), annot_file_path(annot_dir, "metadata"))
-  if (nrow(header$seq_regions) > 0L) {
-    write_parquet(header$seq_regions, seq_regions_file)
+  # The SQL wrote one row per sequence with the largest feature end. Declared
+  # lengths (`##sequence-region`) replace them where the file has them.
+  declared <- read_sequence_regions(input_path)
+  if (nrow(declared) > 0L) {
+    observed <- read_parquet(seq_regions_file)
+    observed <- observed[!observed$seqid %in% declared$seqid, ]
+    write_parquet(dplyr::bind_rows(declared, observed), seq_regions_file)
   }
   return(annot_dir)
 }
@@ -738,6 +764,46 @@ annotation_name_from_path <- function(path) {
     fs::path_file() |>
     tolower() |>
     gsub(pattern = ".", replacement = "_", fixed = TRUE)
+}
+
+#' Read every `##sequence-region` pragma of a GFF3 file
+#'
+#' GENCODE writes one pragma before the features of each sequence, not all of
+#' them in the header, so the whole file is scanned (DuckDB, plain or gzip).
+#' A pragma line has no tab and lands whole in the first column.
+#'
+#' @returns A tibble with `seqid`, `start_pos` and `end_pos`, in file order,
+#'   one row per sequence (the first pragma of a sequence wins).
+#' @keywords internal
+#' @noRd
+read_sequence_regions <- function(path) {
+  path <- as.character(fs::path_abs(path))
+  con <- duckdb_connect()
+  cols <- paste0("'c", seq_len(9L), "': 'VARCHAR'", collapse = ", ")
+  sql <- glue::glue_sql(
+    "SELECT c1 AS line
+     FROM read_csv({path}, delim = '\t', header = false, auto_detect = false,
+       quote = '', escape = '', columns = {{{DBI::SQL(cols)}}},
+       null_padding = true, strict_mode = false, max_line_size = 10000000)
+     WHERE starts_with(c1, '##sequence-region')",
+    .con = con
+  )
+  lines <- DBI::dbGetQuery(con, sql)$line
+  res <- empty_annotation_table("seq_regions")
+  if (length(lines)) {
+    parts <- strsplit(
+      trimws(sub("^##sequence-region\\s+", "", lines)),
+      "\\s+"
+    )
+    parts <- parts[lengths(parts) >= 3L]
+    res <- tibble::tibble(
+      seqid = vapply(parts, function(p) p[1], character(1L)),
+      start_pos = as.integer(vapply(parts, function(p) p[2], character(1L))),
+      end_pos = as.integer(vapply(parts, function(p) p[3], character(1L)))
+    )
+    res <- res[!duplicated(res$seqid), ]
+  }
+  res
 }
 
 #' Read the comment header of a GFF3/GTF file

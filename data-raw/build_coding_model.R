@@ -18,7 +18,7 @@
 
 devtools::load_all(".", quiet = TRUE)
 set.seed(1)
-release <- "49"
+release <- "50"
 n_per_class <- 15000L
 
 gff <- download_reference(version = release, file_type = "gff")

@@ -70,7 +70,11 @@ assessed.}
 called uncertain. \code{NULL} uses the value the tables were computed with.}
 
 \item{cor_cutoff}{Mean replicate correlation at or below which two isoforms
-of a gene are called ambiguous. \code{NULL} uses the stored value.}
+of a gene are called ambiguous: a number, or \code{"adaptive"} to derive it
+from the data as \code{mmcollapse} does (minus the 97.5th percentile of the
+largest mean correlation of each isoform, which treats the positive
+correlations as noise). The value used is stored and stated by
+\code{uncertainty_methods()}.}
 
 \item{min_agreement}{Share of replicates that must agree on the direction
 of a fold-change for it to be called stable. \code{NULL} uses the stored
@@ -114,9 +118,15 @@ and, when \code{group} is given, \code{dea$confidence} filled in.
 type, \code{mean_count}, \code{mean_inf_rv}, \code{max_inf_rv}, \code{mean_inf_cv},
 \code{uncertain}, \code{min_sibling_cor}, \code{n_ambiguous_partners},
 \code{ambiguity_group} and, when equivalence classes were read, \code{n_classes},
-\code{n_unique_fragments} and \code{unique_fraction}.
+\code{n_unique_fragments}, \code{unique_fraction} and \code{low_information} (\code{TRUE}
+for an uncertain isoform without a single fragment of its own, the
+isoforms \code{mmcollapse} selects for collapsing).
 \item \code{isoform_ambiguity()}: a tibble of isoform pairs of the same gene with
-\code{mean_cor}, \code{min_cor}, \code{n_samples} and \code{ambiguous}.
+\code{mean_cor}, \code{min_cor}, \code{n_samples}, \code{collapse_gain} and \code{ambiguous}.
+\code{collapse_gain} is the score Terminus groups on (Sarkar et al. 2020):
+the inferential relative variance of the sum of the two isoforms minus
+the mean of their own, averaged over samples. The more negative, the
+more is gained by testing the pair as one feature.
 \item \code{de_confidence()}: a tibble with one row per feature: \code{feature_id},
 \code{feature_type} (\code{"transcript"} or \code{"group"}), gene and transcript names,
 the interval and stability of the fold-change, \code{mean_inf_rv},
@@ -124,8 +134,11 @@ the interval and stability of the fold-change, \code{mean_inf_rv},
 differential expression result (\code{det_log2FC}, \code{det_qvalue},
 \code{n_det_sig}) and \code{confident_de}, which is \code{TRUE} when a significant
 isoform has \code{high} confidence.
-\item \code{uncertainty_report()}: a list with \code{settings}, \code{run}, \code{transcripts}
-(by transcript type), \code{genes}, \code{de} and \code{switches} tibbles.
+\item \code{uncertainty_report()}: a list with \code{settings}, \code{replicates} (replicate
+type, number of draws, degrees of freedom over the study and, when the
+draws are in the object, the median overdispersion, which is close to 1
+for long reads), \code{run}, \code{transcripts} (by transcript type), \code{genes},
+\code{de} and \code{switches} tibbles.
 \item \code{uncertainty_methods()}: a character string.
 }
 }
@@ -146,11 +159,13 @@ Every isoform gets four kinds of evidence:
 replicates in excess of what counting noise alone would give, relative
 to the expression. Isoforms with a high value are not well determined by
 the reads. \code{uncertain} flags \code{mean_inf_rv >= inf_rv_cutoff}.
-\item \strong{Identifiability}: the correlation between the replicates of isoforms
-of the same gene. A strong negative correlation means the reads cannot
-tell the two isoforms apart and every read taken from one is given to
-the other. Pairs at or below \code{cor_cutoff} are \emph{ambiguous} and are
-joined into \code{ambiguity_group}s that can be tested as one feature.
+\item \strong{Ambiguity between isoforms}: the correlation between the replicates
+of isoforms of the same gene. A strong negative correlation means the
+reads cannot tell the two isoforms apart and every read taken from one
+is given to the other. Pairs at or below \code{cor_cutoff} are \emph{ambiguous}
+and are joined into \code{ambiguity_group}s that can be tested as one
+feature. This is the idea of \code{mmcollapse} (Turro et al. 2014), with a
+fixed cutoff.
 \item \strong{Read support}: the share of the fragments of an isoform that map to
 it alone (\code{unique_fraction}, from the equivalence classes).
 \item \strong{Stability of the fold-change}: the contrast between two groups is
@@ -203,6 +218,25 @@ classes, and rerun with other cutoffs if the data call for it. The replicates me
 uncertainty of the quantification only; they do not replace biological
 replicates and cannot make a noisy contrast significant.
 
+What is not measured. The replicates describe how much an estimate moves
+under the quantification model. They do not find the transcripts whose
+abundance is not identifiable, that is, where several abundance vectors
+explain the reads equally well (Zheng et al. 2022 report that only about
+half of the transcripts flagged by replicate variance are also
+non-identifiable in that sense), and they do not find an estimate that is
+wrong because the annotation lacks the transcript the reads came from
+(Ma and Kingsford 2019). An ambiguous pair is a statement about the
+replicates, not a proof of non-identifiability.
+
+How many replicates. The inferential relative variance and the
+correlations are computed per sample, from the replicates of that sample.
+The overdispersion used to scale counts (see \code{\link[=inferential_overdispersion]{inferential_overdispersion()}})
+pools all samples, and its precision depends on the total
+\code{n_samples * (n_replicates - 1)}: Baldoni, Chen and Smyth (2024) recommend
+at least 60 and prefer 200 to 300, and find that Gibbs samples resolve
+low counts better than bootstrap replicates. \code{add_uncertainty()} says so
+when the total is below 60.
+
 Fold-changes are computed on counts scaled to a common library size, as
 \code{log2(mean_b + pseudocount) - log2(mean_a + pseudocount)} with a pseudocount
 of 5 (the \code{swish} convention), and the per-replicate test is a Welch
@@ -245,6 +279,25 @@ uncertainty_report(iso)$transcripts
 Zhu, A., Srivastava, A., Ibrahim, J.G., Patro, R., Love, M.I. (2019).
 Nonparametric expression analysis using inferential replicate counts.
 \emph{Nucleic Acids Research} 47(18), e105.
+
+Sarkar, H., Srivastava, A., Bravo, H.C., Love, M.I., Patro, R. (2020).
+Terminus enables the discovery of data-driven, robust transcript groups
+from RNA-seq data. \emph{Bioinformatics} 36(Suppl 1), i102-i110.
+
+Turro, E., Astle, W.J., Tavare, S. (2014). Flexible analysis of RNA-seq
+data using mixed effects models. \emph{Bioinformatics} 30(2), 180-188.
+
+Zheng, H., Ma, C., Kingsford, C. (2022). Deriving ranges of optimal
+estimated transcript expression due to nonidentifiability. \emph{Journal of
+Computational Biology} 29(2), 121-139.
+
+Ma, C., Kingsford, C. (2019). Detecting, categorizing, and correcting
+coverage anomalies of RNA-seq quantification. \emph{Cell Systems} 9(6),
+589-599.
+
+Baldoni, P.L., Chen, L., Smyth, G.K. (2024). Faster and more accurate
+assessment of differential transcript expression with Gibbs sampling and
+edgeR v4. \emph{NAR Genomics and Bioinformatics} 6(4), lqae151.
 }
 \seealso{
 \code{\link[=read_inferential_replicates]{read_inferential_replicates()}}, \code{\link[=plot_de_confidence]{plot_de_confidence()}},

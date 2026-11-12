@@ -44,7 +44,7 @@ A typical single-sample invocation from a shell is below: `--libType A` detects 
 
 ``` bash
 salmon index \
-  --transcripts gencode.v49.transcripts.fa.gz \
+  --transcripts gencode.v50.transcripts.fa.gz \
   --index salmon_index \
   --gencode \
   --threads 8
@@ -68,8 +68,8 @@ The same can be driven from R through the `condathis` package, which installs Sa
 ```{r}
 #| eval: false
 library(isoformic)
-tx_fasta <- download_reference(version = "49", file_type = "fasta")
-gff_path <- download_reference(version = "49", file_type = "gff")
+tx_fasta <- download_reference(version = "50", file_type = "fasta")
+gff_path <- download_reference(version = "50", file_type = "gff")
 
 salmon_index(fasta_path = tx_fasta, index_path = "salmon_index", is_gencode = TRUE, num_threads = 8)
 salmon_quant(

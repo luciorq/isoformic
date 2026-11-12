@@ -63,6 +63,23 @@
 #' (see `data-raw/build_coding_model.R`); `coding_probability` above
 #' `coding_cutoff` (0.364, the CPAT human cutoff) is called coding.
 #'
+#' @section Stored ORF table:
+#' The analysis takes minutes for a whole GENCODE release, so the rows
+#' computed are written to `annot_data_orfs.parquet` in the annotation
+#' directory and read back by later calls, sessions and objects that use the
+#' same annotation. A stored row is used when the canonical isoform of the
+#' gene, among the transcripts of the call, is the one it was computed with,
+#' so the result is the same with and without the table. A gene with a
+#' transcript that has no such row is computed whole, and its rows are stored
+#' when its canonical isoform is the one of the whole annotation. The table
+#' is computed again when the transcripts, exons or sequences of the
+#' annotation, `min_orf_length`, the coding potential model
+#' ([build_coding_model()]) or the package version change. It is not
+#' written into a read-only directory or the example annotation of the
+#' installed package, and `options(isoformic.orf_cache = FALSE)` turns it
+#' off. The warning about sequences that differ in length from their exons is
+#' given when the rows are computed, not when they are read back.
+#'
 #' @param self An [IsoformicExperiment] or an annotation directory path.
 #' @param gene_name Optional genes (names or IDs) to restrict the result to.
 #' @param min_orf_length Minimum ORF length in nt, stop codon included
@@ -121,10 +138,11 @@ S7::method(transcript_orfs, IsoformicExperiment) <- function(
     long_utr3
   )
   res <- object_cache_fetch(self, "transcript_orfs", signature, function() {
-    compute_transcript_orfs(
+    stored_transcript_orfs(
+      annot_dir = self@annot_path,
       transcripts = row_data(self),
-      exons = self@annot_data_exons,
-      sequences = transcript_sequences(self, transcript_id = row_names(self)),
+      exons = function() self@annot_data_exons,
+      annotation = function() self@annot_data_transcripts,
       min_orf_length = min_orf_length,
       nmd_rule = nmd_rule,
       start_proximal = start_proximal,
@@ -146,10 +164,11 @@ S7::method(transcript_orfs, S7::class_character) <- function(
   annot <- prepare_annotation(self)
   transcripts <- annot$transcripts |>
     dplyr::left_join(annot$genes[, c("gene_id", "gene_name")], by = "gene_id")
-  res <- compute_transcript_orfs(
+  res <- stored_transcript_orfs(
+    annot_dir = annotation_dir_of(self),
     transcripts = transcripts,
-    exons = annot$exons,
-    sequences = transcript_sequences(self),
+    exons = function() annot$exons,
+    annotation = function() annot$transcripts,
     min_orf_length = min_orf_length,
     nmd_rule = nmd_rule,
     start_proximal = start_proximal,
@@ -160,6 +179,270 @@ S7::method(transcript_orfs, S7::class_character) <- function(
 
 stop_codons <- function() {
   c("TAA", "TAG", "TGA")
+}
+
+# ORF table of the annotation directory ---------------------------------------
+#
+# The ORF analysis is the slowest step of the productivity calls (minutes for
+# a whole GENCODE release), and its result depends only on the annotation and
+# on `min_orf_length`. The rows computed are therefore kept in
+# `annot_data_orfs.parquet` in the annotation directory and read back by
+# later calls, sessions and objects.
+
+#' Version of the stored ORF table
+#'
+#' Increase it when `compute_transcript_orfs()` or one of its helpers changes,
+#' so that the stored tables are computed again.
+#' @keywords internal
+#' @noRd
+orf_table_version <- function() {
+  1L
+}
+
+#' Signature of the inputs the stored ORF table depends on
+#'
+#' Size and modification time of the transcripts, exons and sequences tables,
+#' the coding potential model in use (see [build_coding_model()]), the
+#' package version and `min_orf_length`. The path is left out, so that a
+#' moved directory keeps its table; a copy that does not keep the
+#' modification times computes it again.
+#' @keywords internal
+#' @noRd
+orf_table_signature <- function(annot_dir, min_orf_length) {
+  files <- fs::path(
+    annot_dir,
+    annot_file_names()[c("transcripts", "exons", "sequences")]
+  )
+  info <- fs::file_info(files)
+  rlang::hash(list(
+    orf_table_version(),
+    coding_model(),
+    hexamer_table(),
+    as.character(utils::packageVersion("isoformic")),
+    as.numeric(info$size),
+    format(as.numeric(info$modification_time), digits = 17),
+    as.numeric(min_orf_length)
+  ))
+}
+
+#' May the ORF table be written to this annotation directory?
+#'
+#' Not when `options(isoformic.orf_cache = FALSE)`, not into a directory that
+#' cannot be written to and never into the files of an installed package.
+#' @keywords internal
+#' @noRd
+orf_table_writable <- function(annot_dir) {
+  if (!isTRUE(getOption("isoformic.orf_cache", TRUE))) {
+    return(FALSE)
+  }
+  if (!isTRUE(unname(fs::file_access(annot_dir, mode = "write")))) {
+    return(FALSE)
+  }
+  pkg_dir <- system.file(package = "isoformic")
+  !nzchar(pkg_dir) ||
+    !isTRUE(fs::path_has_parent(
+      fs::path_real(annot_dir),
+      fs::path_real(pkg_dir)
+    ))
+}
+
+#' Read the stored ORF table, `NULL` when absent, unreadable or out of date
+#' @keywords internal
+#' @noRd
+read_orf_table <- function(annot_dir, signature) {
+  file <- annot_file_path(annot_dir, "orfs")
+  if (!isTRUE(fs::file_exists(file))) {
+    return(NULL)
+  }
+  stored <- tryCatch(read_parquet(file), error = function(cnd) NULL)
+  if (
+    is.null(stored) ||
+      !nrow(stored) ||
+      !all(c("table_signature", "transcript_id") %in% colnames(stored)) ||
+      !identical(stored$table_signature[[1L]], signature)
+  ) {
+    return(NULL)
+  }
+  stored$table_signature <- NULL
+  stored
+}
+
+#' Write the ORF table next to the other annotation tables
+#'
+#' Written to a temporary file of the same directory and renamed, so that a
+#' reader never sees half a table. A failure to write is not an error: the
+#' table is only a cache.
+#' @keywords internal
+#' @noRd
+write_orf_table <- function(annot_dir, table, signature) {
+  file <- annot_file_path(annot_dir, "orfs")
+  tmp <- fs::file_temp(
+    pattern = "annot_data_orfs_",
+    tmp_dir = annot_dir,
+    ext = "parquet"
+  )
+  # Also on an interrupt; nothing is left to delete after the rename
+  on.exit(
+    if (isTRUE(fs::file_exists(tmp))) try(fs::file_delete(tmp), silent = TRUE),
+    add = TRUE
+  )
+  table$table_signature <- rep(signature, nrow(table))
+  ok <- tryCatch(
+    {
+      write_parquet(table, as.character(tmp))
+      fs::file_move(tmp, file)
+      TRUE
+    },
+    error = function(cnd) FALSE
+  )
+  invisible(ok)
+}
+
+#' ORFs of a transcript table, from the stored table where it has them
+#'
+#' A stored row is used when the canonical isoform of the gene is the one the
+#' row was computed with: an ORF depends on the transcript itself and on the
+#' canonical isoform of its gene, and on nothing else. The genes with a
+#' missing row, or with another canonical isoform among `transcripts`, are
+#' computed, and those computed with the canonical isoform of the whole
+#' annotation (`annotation`, a function giving its transcripts) are added to
+#' the stored ones. The NMD class is cheap
+#' and depends on `nmd_rule`, `start_proximal` and `long_utr3`, so it is
+#' always derived again. `exons` and `annotation` are functions, called only
+#' when something must be computed.
+#' @keywords internal
+#' @noRd
+stored_transcript_orfs <- function(
+  annot_dir,
+  transcripts,
+  exons,
+  annotation,
+  min_orf_length = 90L,
+  nmd_rule = 50,
+  start_proximal = 150,
+  long_utr3 = Inf
+) {
+  compute <- function(tx) {
+    compute_transcript_orfs(
+      transcripts = tx,
+      exons = exons(),
+      sequences = transcript_sequences(
+        annot_dir,
+        transcript_id = tx$transcript_id
+      ),
+      min_orf_length = min_orf_length,
+      nmd_rule = nmd_rule,
+      start_proximal = start_proximal,
+      long_utr3 = long_utr3
+    )
+  }
+  # The names come from the genes table, which the stored rows do not follow
+  finish <- function(res) {
+    res$transcript_name <- if ("transcript_name" %in% colnames(transcripts)) {
+      transcripts$transcript_name
+    } else {
+      transcripts$transcript_id
+    }
+    res$gene_id <- transcripts$gene_id
+    res$gene_name <- if ("gene_name" %in% colnames(transcripts)) {
+      transcripts$gene_name
+    } else {
+      transcripts$gene_id
+    }
+    res$nmd_class <- orf_nmd_class(
+      res,
+      nmd_rule = nmd_rule,
+      start_proximal = start_proximal,
+      long_utr3 = long_utr3
+    )
+    res
+  }
+  ids <- transcripts$transcript_id
+  if (
+    !isTRUE(getOption("isoformic.orf_cache", TRUE)) ||
+      !length(ids) ||
+      anyNA(ids) ||
+      anyDuplicated(ids) > 0L
+  ) {
+    return(compute(transcripts))
+  }
+  signature <- orf_table_signature(annot_dir, min_orf_length)
+  stored <- read_orf_table(annot_dir, signature)
+  if (is.null(stored)) {
+    todo <- rep(TRUE, length(ids))
+  } else {
+    canonical <- unname(canonical_transcripts(transcripts)[transcripts$gene_id])
+    hit <- match(ids, stored$transcript_id)
+    valid <- (stored$canonical_transcript_id[hit] == canonical) %in% TRUE
+    todo <- !valid | transcripts$gene_id %in% transcripts$gene_id[!valid]
+  }
+  if (!any(todo)) {
+    res <- stored[hit, ]
+  } else {
+    fresh <- compute(transcripts[todo, ])
+    if (!is.null(stored) && !identical(colnames(stored), colnames(fresh))) {
+      stored <- NULL
+      if (!all(todo)) {
+        fresh <- compute(transcripts)
+        todo <- rep(TRUE, length(ids))
+      }
+    }
+    res <- if (all(todo)) {
+      fresh
+    } else {
+      both <- dplyr::bind_rows(stored[hit[!todo], ], fresh)
+      both[match(ids, both$transcript_id), ]
+    }
+    if (orf_table_writable(annot_dir)) {
+      # Only the rows of the canonical isoform of the whole annotation are
+      # kept: a subset that lacks it would otherwise replace the rows that
+      # every other object reads.
+      of_annotation <- unname(canonical_transcripts(annotation())[
+        fresh$gene_id
+      ])
+      keep <- fresh[
+        (fresh$canonical_transcript_id == of_annotation) %in% TRUE,
+      ]
+      if (!nrow(keep)) {
+        return(finish(res))
+      }
+      if (!is.null(stored)) {
+        keep <- dplyr::bind_rows(
+          stored[!stored$transcript_id %in% keep$transcript_id, ],
+          keep
+        )
+      }
+      write_orf_table(annot_dir, keep, signature)
+    }
+  }
+  finish(res)
+}
+
+#' NMD class of the rows of an ORF table
+#' @keywords internal
+#' @noRd
+orf_nmd_class <- function(orfs, nmd_rule, start_proximal, long_utr3) {
+  has_orf <- orfs$orf_source != "none"
+  nmd_class <- rep(NA_character_, length(orfs$orf_source))
+  nmd_class[has_orf] <- "none"
+  nmd_class[has_orf & is.na(orfs$stop_codon)] <- "non_stop"
+  # A missing stop codon in a transcript whose 3' end is annotated as
+  # incomplete (cds_end_NF / mRNA_end_NF) is not evidence of non-stop decay
+  nmd_class[
+    has_orf & is.na(orfs$stop_codon) & orfs$end_incomplete
+  ] <- NA_character_
+  ptc <- has_orf &
+    !is.na(orfs$stop_to_last_junction) &
+    orfs$stop_to_last_junction > nmd_rule
+  nmd_class[ptc & orfs$orf_length < start_proximal] <- "ptc_start_proximal"
+  nmd_class[ptc & orfs$orf_length >= start_proximal] <- "ptc"
+  nmd_class[
+    has_orf &
+      nmd_class == "none" &
+      !is.na(orfs$utr3_length) &
+      orfs$utr3_length > long_utr3
+  ] <- "long_3utr"
+  nmd_class
 }
 
 #' Compute ORFs and sequence features for a transcript table
@@ -327,24 +610,20 @@ compute_transcript_orfs <- function(
     last_junction - orf_end,
     NA_real_
   )
-  nmd_class <- rep(NA_character_, n)
-  nmd_class[has_orf] <- "none"
-  nmd_class[has_orf & is.na(stop_codon)] <- "non_stop"
-  # A missing stop codon in a transcript whose 3' end is annotated as
-  # incomplete (cds_end_NF / mRNA_end_NF) is not evidence of non-stop decay
   end_incomplete <- grepl("cds_end_NF|mRNA_end_NF", tags)
-  nmd_class[has_orf & is.na(stop_codon) & end_incomplete] <- NA_character_
-  ptc <- has_orf &
-    !is.na(stop_to_last_junction) &
-    stop_to_last_junction > nmd_rule
-  nmd_class[ptc & orf_length < start_proximal] <- "ptc_start_proximal"
-  nmd_class[ptc & orf_length >= start_proximal] <- "ptc"
-  nmd_class[
-    has_orf &
-      nmd_class == "none" &
-      !is.na(utr3_length) &
-      utr3_length > long_utr3
-  ] <- "long_3utr"
+  nmd_class <- orf_nmd_class(
+    list(
+      orf_source = orf_source,
+      stop_codon = stop_codon,
+      end_incomplete = end_incomplete,
+      stop_to_last_junction = stop_to_last_junction,
+      orf_length = orf_length,
+      utr3_length = utr3_length
+    ),
+    nmd_rule = nmd_rule,
+    start_proximal = start_proximal,
+    long_utr3 = long_utr3
+  )
 
   uorfs <- count_uorfs(seq, stops, orf_start)
 

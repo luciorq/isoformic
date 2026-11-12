@@ -1,9 +1,10 @@
 #' Options and environment variables used by isoformic
 #'
 #' @description
-#' isoformic has one package option, `isoformic.frozen_mirrors`, and is
-#' otherwise configured through base R options, the environment variables
-#' that locate the user cache and the settings of the packages it builds on.
+#' isoformic has two package options, `isoformic.frozen_mirrors` and
+#' `isoformic.orf_cache`, and is otherwise configured through base R
+#' options, the environment variables that locate the user cache and the
+#' settings of the packages it builds on.
 #' This page lists every setting the package reads or is affected by, what
 #' it changes and where it is used. Settings are read at call time, so they
 #' can be changed with [options()] / [Sys.setenv()] in a session, scoped
@@ -24,6 +25,10 @@
 #'     files from a local or institutional mirror. The MD5 recorded in
 #'     [frozen_datasets()] is verified whatever the mirror. Default: unset
 #'     (no extra mirror).}
+#'   \item{`isoformic.orf_cache`}{`FALSE` stops [transcript_orfs()] from
+#'     reading and writing `annot_data_orfs.parquet`, the table of the ORFs
+#'     computed so far that it keeps in the annotation directory. The ORFs
+#'     are then computed in every session. Default: unset (`TRUE`).}
 #' }
 #'
 #' @section Base R options:
@@ -83,10 +88,13 @@
 #'   \item{DuckDB}{Every Parquet read and write ([read_parquet()],
 #'     [write_parquet()], [read_tabular()]) and the heavy joins run in a
 #'     short-lived in-memory DuckDB connection with the DuckDB defaults:
-#'     all CPU cores (`threads`), 80% of the RAM as `memory_limit` and a
-#'     `.tmp` directory under the working directory when a query spills to
-#'     disk. The package does not expose these; they are DuckDB session
-#'     settings and the connections are not shared with user code.}
+#'     all CPU cores (`threads`) and 80% of the RAM as `memory_limit`. The
+#'     package does not expose these; they are DuckDB session settings and
+#'     the connections are not shared with user code. Extensions, secrets
+#'     and the files of a query that spills to disk go to
+#'     `isoformic-duckdb/` under [tempdir()], unless the `duckdb.home`
+#'     option or the `DUCKDB_R_HOME` environment variable is set: DuckDB
+#'     then uses its own locations under that directory.}
 #'   \item{`condathis.micromamba_path`, `CONDATHIS_MICROMAMBA_PATH`,
 #'     `CONDA_PREFIX`, `XDG_DATA_HOME`}{Read by the `condathis` package,
 #'     which [salmon_index()] and [salmon_quant()] use to run `salmon` in a
@@ -101,6 +109,10 @@
 #' These are not read by the package code but control its test suite and
 #' checks (see `justfile`):
 #' \describe{
+#'   \item{`ISOFORMIC_FULL`}{`"true"` runs the tests and articles that
+#'     download references or run external tools (`just test-full`,
+#'     `just render-articles-full`). Unset by default: the tests, examples
+#'     and site then use only the data bundled with the package.}
 #'   \item{`TESTTHAT_CPUS`}{Number of parallel testthat workers used by
 #'     `just test`.}
 #'   \item{`NOT_CRAN`}{Set to `"true"` by `devtools::test()`; tests that need

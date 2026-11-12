@@ -22,17 +22,26 @@ knitr:
     fig-height: 5
 ---
 
-This article applies `isoformic` to a complete public dataset: bulk RNA-seq of the anterodorsal bed nucleus of the stria terminalis (adBNST) of male mice after six weeks of chronic variable mild stress, against unstressed controls [@degroat2024; BioProject [PRJNA984605](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA984605)].
-It shows a common outcome of transcript-level analysis: stress leaves the expression of genes almost unchanged, but changes which of their isoforms are expressed.
+This article applies `isoformic` to a complete public dataset.
+It contains bulk RNA-seq of the anterodorsal bed nucleus of the stria terminalis (adBNST) of male mice.
+The mice had six weeks of chronic variable mild stress and are compared with unstressed controls
+[@degroat2024; BioProject [PRJNA984605](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA984605)].
+It shows a common outcome of transcript-level analysis.
+Stress leaves the expression of genes almost unchanged, but changes which of their isoforms are expressed.
 
 ## The data
 
-The 19 male samples (10 control, 9 stressed) were quantified with Salmon [@salmon] against the GENCODE vM38 transcripts [@gencode], with the GRCm39 genome as decoy and 30 Gibbs draws per sample.
-Transcripts were tested with `swish` [@swish] on the inferential replicates and genes with `DESeq2` on the summed counts.
+The 19 male samples (10 control, 9 stressed) were quantified with Salmon [@salmon]
+against the GENCODE vM38 transcripts [@gencode].
+The GRCm39 genome served as decoy, and each sample has 30 Gibbs draws.
+Transcripts were tested with `swish` [@swish] on the inferential replicates.
+Genes were tested with `DESeq2` on the summed counts.
 The scripts that download the reads from SRA and run every step are in `data-raw/case_studies/` of the package repository.
 
 The result is an `IsoformicExperiment` saved with `write_isoformic()`.
-It keeps the complete differential expression tables (every tested transcript and gene) but the expression assays and exon structures only of a panel of 47 genes, so that it fits in the repository; it is not installed with the package.
+It keeps the complete differential expression tables (every tested transcript and gene).
+The expression assays and exon structures cover only a panel of 47 genes, so that the object fits in the repository.
+It is not installed with the package.
 
 ```{r}
 #| message: false
@@ -48,8 +57,12 @@ col_data(iso)
 
 ## Checking the samples first
 
-A principal component analysis of the gene-level counts shows that the first component does not separate the conditions but two groups of samples, one per range of SRA run accessions.
-The groups are not annotated in GEO but are most likely two processing batches; they are balanced between conditions (4 + 4 and 6 + 5 samples), so the tests can adjust for them: `swish` stratifies its permutations by batch and `DESeq2` uses the design `~ batch + condition`.
+A principal component analysis of the gene-level counts shows that the first component does not separate
+the conditions.
+It separates two groups of samples, one per range of SRA run accessions.
+The groups are not annotated in GEO but are most likely two processing batches.
+They are balanced between conditions (4 + 4 and 6 + 5 samples), so the tests can adjust for them.
+`swish` stratifies its permutations by batch and `DESeq2` uses the design `~ batch + condition`.
 Without the adjustment, no transcript and no gene reaches a false discovery rate of 10%.
 
 ```{r}
@@ -65,7 +78,10 @@ ggplot(pca, aes(PC1, PC2, color = batch, shape = condition)) +
   theme_minimal()
 ```
 
-The sample far below the others on the second component (`control_3`) has the smallest library (18.6 million read pairs) and the lowest mapping rate (71%); it is kept in the analysis, but it is the first sample to look at when a result depends on a single animal.
+The sample far below the others on the second component (`control_3`) has the smallest library
+(18.6 million read pairs) and the lowest mapping rate (71%).
+It is kept in the analysis.
+It is the first sample to check when a result depends on a single animal.
 
 ## Genes barely change, isoforms do
 
@@ -82,13 +98,17 @@ c(
 ```
 
 At a false discovery rate of 5%, `DESeq2` finds 4 genes and `swish` 137 transcripts.
-Many of the transcript changes are moderate, so this article lowers the fold-change cutoff of the significance calls from the default of 1 to 0.5 (a 1.4-fold change):
+Many of the transcript changes are moderate.
+This article therefore lowers the fold-change cutoff of the significance calls from the default of 1 to 0.5
+(a 1.4-fold change):
 
 ```{r}
 de_cutoffs(iso) <- list(log2fc = 0.5, pvalue = 0.05, use_fdr = TRUE)
 ```
 
-The significant transcripts are not only protein coding isoforms: about a third are retained intron, nonsense-mediated decay, other non-coding isoforms of protein coding genes or lncRNAs.
+The significant transcripts are not only protein coding isoforms.
+About a third are retained intron, nonsense-mediated decay, other non-coding isoforms of protein coding genes
+or lncRNAs.
 
 ```{r}
 det |>
@@ -98,7 +118,8 @@ det |>
 ```
 
 `isoform_switches()` relates the two levels.
-Almost every gene with significant isoforms has no significant change of its total expression (`det_not_deg`): a gene-level analysis would miss all of them.
+Almost every gene with significant isoforms has no significant change of its total expression (`det_not_deg`).
+A gene-level analysis would miss all of them.
 
 ```{r}
 switches <- isoform_switches(iso)
@@ -111,7 +132,9 @@ switches |>
 ## An isoform switch in *Taf15*
 
 *Taf15* encodes an RNA-binding protein of the FET family.
-Its total expression does not change, but its protein coding isoform `Taf15-201` goes down while `Taf15-204`, a transcript without a coding sequence, goes up: a switch from a productive to an unproductive isoform.
+Its total expression does not change.
+Its protein coding isoform `Taf15-201` goes down while `Taf15-204`, a transcript without a coding sequence, goes up.
+This is a switch from a productive to an unproductive isoform.
 
 ```{r}
 #| fig-height: 4
@@ -142,7 +165,9 @@ The other panel genes show the same pattern: one or two significant isoforms in 
 plot_log2fc(iso, feature = c("Clstn2", "Sympk", "Neu2", "Prrc2c"), ncol = 2)
 ```
 
-The genes chosen for the first analysis of this dataset by the `isoformic` authors (*Trip12*, *Meg3* and *Map4*) and classic stress response genes such as *Fkbp5* and *Sgk1* do not reach a false discovery rate of 5% once the batches are taken into account:
+Some genes do not reach a false discovery rate of 5% once the batches are taken into account.
+These include the genes of the first `isoformic` analysis of this dataset (*Trip12*, *Meg3* and *Map4*).
+They also include classic stress response genes such as *Fkbp5* and *Sgk1*:
 
 ```{r}
 det |>
@@ -153,8 +178,10 @@ det |>
 
 ## Enrichment by transcript type
 
-The package directory holds the mouse Reactome pathways of MSigDB [@msigdb] restricted to those with 15 to 500 tested genes.
-`run_enrichment()` ranks the transcripts by fold change and runs the enrichment separately for the protein coding isoforms and for the unproductive ones.
+The package directory holds the mouse Reactome pathways of MSigDB [@msigdb]
+restricted to those with 15 to 500 tested genes.
+`run_enrichment()` ranks the transcripts by fold change
+and runs the enrichment separately for the protein coding isoforms and for the unproductive ones.
 
 ```{r}
 #| warning: false
@@ -175,13 +202,19 @@ plot_enrichment(
 )
 ```
 
-Translation, ribosome biogenesis and respiration pathways go down in the protein coding isoforms of the stressed animals, while synaptic pathways (protein interactions at synapses, neurexins and neuroligins, transmission across chemical synapses) go up.
+Translation, ribosome biogenesis and respiration pathways go down in the protein coding isoforms
+of the stressed animals.
+Synaptic pathways go up (protein interactions at synapses, neurexins and neuroligins,
+transmission across chemical synapses).
 The translation pathways go down in the unproductive isoforms of the same genes as well.
-The ribosomal protein genes also dominate the *nonsense-mediated decay* pathways of Reactome, which is why those appear as well; that pathway name describes the genes, not the transcript type.
+The ribosomal protein genes also dominate the *nonsense-mediated decay* pathways of Reactome,
+which is why those appear as well.
+That pathway name describes the genes, not the transcript type.
 
 ## Citing isoformic
 
-If you use `isoformic` in publications, please cite @isoformic; `citation("isoformic")` prints the reference.
+If you use `isoformic` in publications, please cite @isoformic.
+`citation("isoformic")` prints the reference.
 
 ## Session information
 

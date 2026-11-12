@@ -453,7 +453,7 @@ testthat::test_that("bundle_frozen_data assembles the snapshot with checksums an
     md5$md5[1]
   )
   readme <- readLines(fs::path(out, "README.md"))
-  testthat::expect_true(any(grepl("e113v49", readme, fixed = TRUE)))
+  testthat::expect_true(any(grepl("e116v50", readme, fixed = TRUE)))
 })
 
 testthat::test_that("a download that fails its checksum is discarded and the next mirror is used", {
@@ -497,4 +497,26 @@ testthat::test_that("a download that fails its checksum is discarded and the nex
     class = "isoformic_download_reference_error"
   )
   testthat::expect_false(fs::file_exists(fs::path(out, "toy.parquet")))
+})
+
+testthat::test_that("the sources cache is keyed by the dataset version", {
+  withr::local_envvar(XDG_CACHE_HOME = withr::local_tempdir())
+  urls <- character()
+  testthat::local_mocked_bindings(
+    frozen_dataset_entry = function(name) {
+      list(version = version, sources = "https://example.org/pub/data.txt")
+    },
+    download_reference_file = function(url, destfile, ...) {
+      urls <<- c(urls, destfile)
+      destfile
+    }
+  )
+  version <- "v1"
+  first <- frozen_sources("demo")
+  version <- "v2"
+  second <- frozen_sources("demo")
+  testthat::expect_false(identical(first, second))
+  testthat::expect_equal(fs::path_file(fs::path_dir(first)), "v1")
+  testthat::expect_equal(fs::path_file(fs::path_dir(second)), "v2")
+  testthat::expect_equal(fs::path_file(c(first, second)), rep("data.txt", 2L))
 })

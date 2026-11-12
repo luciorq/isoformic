@@ -151,13 +151,12 @@ cut_transcript_trees <- function(
       class = "isoformic_invalid_treeterminus"
     )
   }
-  arr <- draws_array(x)
-  n_sample <- dim(arr)[2L]
-  n_draw <- dim(arr)[3L]
-  # Transcripts by (sample within draw) columns, as the replicates are summed
-  flat <- matrix(arr, nrow = dim(arr)[1L], dimnames = list(rownames(arr), NULL))
+  draws <- draws_view(x)
+  ids <- draws_ids(draws)
+  n_sample <- draws_dim(draws)[[2L]]
+  n_draw <- draws_dim(draws)[[3L]]
   leaves <- trees[!is.na(trees$transcript_id), ]
-  leaves <- leaves[leaves$transcript_id %in% rownames(flat), ]
+  leaves <- leaves[leaves$transcript_id %in% ids, ]
   nodes <- trees[!is.na(trees$node_id), ]
   if (!nrow(leaves)) {
     cli::cli_abort(
@@ -169,41 +168,74 @@ cut_transcript_trees <- function(
     )
   }
   defaults <- uncertainty_defaults()
-  rv_of <- function(m) {
-    rv <- matrix(0, nrow(m), n_sample)
-    for (s in seq_len(n_sample)) {
-      cols <- s + n_sample * (seq_len(n_draw) - 1L)
-      v <- m[, cols, drop = FALSE]
-      mu <- rowMeans(v)
-      va <- if (n_draw > 1L) rowSums((v - mu)^2) / (n_draw - 1L) else 0
-      rv[, s] <- pmax(defaults$shift, va - mu) / (mu + defaults$pseudocount)
-    }
-    rowMeans(rv)
-  }
 
-  # Node sums: leaves into their parents, then every node into its parent.
-  # Node ids are given in pre-order, so children have larger ids.
+  # Node sums: leaves into their parents, then the nodes of every depth into
+  # their parents, from the deepest up.
   node_ids <- sort(unique(nodes$node_id))
   node_index <- match(node_ids, node_ids)
   parent_of <- nodes$parent_id[match(node_ids, nodes$node_id)]
-  direct <- rowsum(
-    flat[leaves$transcript_id, , drop = FALSE],
-    leaves$parent_id,
-    reorder = FALSE
-  )
-  sums <- matrix(0, length(node_ids), ncol(flat))
-  sums[match(as.integer(rownames(direct)), node_ids), ] <- direct
-  for (i in rev(node_index)) {
-    p <- parent_of[[i]]
-    if (!is.na(p)) {
-      j <- match(p, node_ids)
-      sums[j, ] <- sums[j, ] + sums[i, ]
+  parent_index <- match(parent_of, node_ids)
+  n_node <- length(node_ids)
+  n_leaf <- nrow(leaves)
+  leaf_pos <- match(leaves$transcript_id, ids)
+  leaf_parent <- match(leaves$parent_id, node_ids)
+  depth <- ifelse(is.na(parent_index), 1L, NA_integer_)
+  repeat {
+    found <- is.na(depth) & !is.na(depth[parent_index])
+    if (!any(found)) {
+      break
     }
+    depth[found] <- depth[parent_index[found]] + 1L
   }
-  has_leaf <- rowSums(sums) > 0
-  node_rv <- rep(NA_real_, length(node_ids))
-  node_rv[has_leaf] <- rv_of(sums[has_leaf, , drop = FALSE])
-  leaf_rv <- rv_of(flat[leaves$transcript_id, , drop = FALSE])
+  if (anyNA(depth) || anyNA(leaf_parent)) {
+    cli::cli_abort(
+      message = c(
+        x = "The parents of the nodes of {.arg trees} do not form trees.",
+        i = "{.arg trees} must come from {.fn read_treeterminus}."
+      ),
+      class = "isoformic_invalid_treeterminus"
+    )
+  }
+  with_leaf <- unique(leaf_parent)
+  levels_up <- lapply(rev(seq_len(max(depth))[-1L]), function(d) {
+    child <- which(depth == d)
+    list(
+      child = child,
+      parent = parent_index[child],
+      first = unique(parent_index[child])
+    )
+  })
+
+  # The replicates are read one at a time: only the transcripts of the trees
+  # and the sums of the nodes are kept, as their mean and variance over the
+  # draws.
+  node_and_leaf <- function(k) {
+    leaf <- draw_slice(draws, k)[leaf_pos, , drop = FALSE]
+    sums <- matrix(0, n_node, n_sample)
+    sums[with_leaf, ] <- rowsum(leaf, leaf_parent, reorder = FALSE)
+    for (level in levels_up) {
+      sums[level$first, ] <- sums[level$first, , drop = FALSE] +
+        rowsum(
+          sums[level$child, , drop = FALSE],
+          level$parent,
+          reorder = FALSE
+        )
+    }
+    rbind(sums, unname(leaf))
+  }
+  moments <- slice_moments(
+    node_and_leaf,
+    n_draw,
+    list(seq_len(n_node + n_leaf), seq_len(n_sample))
+  )
+  rv <- unname(rowMeans(inferential_rv(
+    moments,
+    defaults$pseudocount,
+    defaults$shift
+  )))
+  has_leaf <- unname(rowSums(moments$mean[seq_len(n_node), , drop = FALSE]) > 0)
+  node_rv <- ifelse(has_leaf, rv[seq_len(n_node)], NA_real_)
+  leaf_rv <- rv[n_node + seq_len(n_leaf)]
 
   # Lowest well-determined node on the way up from every node (top-down)
   good <- !is.na(node_rv) & node_rv < cutoff
