@@ -114,8 +114,13 @@ divided by its standard deviation (\code{lfc_median / lfc_sd} of
 \code{\link[=de_confidence]{de_confidence()}}), so that a fold-change the quantification cannot
 determine ranks low. It needs the confidence table that
 \code{add_uncertainty(x, group = )} stores, or these two columns in a data
-frame. Transcripts that were not assessed, or that were collapsed into a
-group, are not ranked. A fold-change that is the same in every replicate
+frame (the table of \code{\link[=de_confidence]{de_confidence()}} works). The ranking has the
+contrast of that table, the last level of \code{add_uncertainty()} against
+the first; a warning (\code{isoformic_contrast_mismatch}) says so when most
+of its fold-changes have the sign opposite to the stored results.
+Transcripts that were not assessed, that were collapsed into a group
+or, for an object, that are not in its differential expression results
+are not ranked. A fold-change that is the same in every replicate
 gets the largest finite value of the table.
 }
 }
@@ -126,7 +131,9 @@ gets the largest finite value of the table.
 vectors) or several (a named list of such lists, for example
 \code{list(hallmark = read_gmt(h), reactome = read_gmt(r))}). Each collection is
 tested on its own, so that the adjusted p-values are those of the
-collection, and the result has a \code{collection} column.
+collection, and the result has a \code{collection} column, by which
+\code{plot_enrichment()} splits its panels. Every gene set and every collection
+needs a name.
 }
 
 \examples{

@@ -35,7 +35,9 @@
 #' `de_confidence()` combines the last three into one class per isoform:
 #' `high` when the fold-change is stable (`sign_agreement >= min_agreement`),
 #' the isoform is not `uncertain` and has no ambiguous sibling; `moderate`
-#' when exactly one of these fails; `low` when two or more fail. The class
+#' when exactly one of these fails; `low` when two or more fail. After
+#' `add_uncertainty(identifiability = TRUE)` a fourth condition counts: the
+#' equivalence classes must identify the isoform (`identifiable`). The class
 #' says how far a call on the isoform can be trusted, so read it for the
 #' isoforms flagged by the primary test (`n_det_sig`, `confident_de`): an
 #' isoform without a real change is `moderate` or `low` simply because its
@@ -131,6 +133,12 @@
 #' @param equivalence Logical, read the equivalence classes when present, or
 #'   the table returned by [equivalence_support()], to attach read support when
 #'   the draws are supplied without `paths`.
+#' @param identifiability Logical, also compute which transcripts the
+#'   equivalence classes can tell apart ([equivalence_identifiability()];
+#'   minutes per sample, needs `paths` and, for human samples, the `Matrix`
+#'   package), or the table that function returned. `de_confidence()` then
+#'   counts a non-identifiable transcript as one more reason against the
+#'   call.
 #' @param run_qc Logical, add the Salmon run metadata (see
 #'   [salmon_run_qc()]) to `col_data()`.
 #' @param keep_draws Logical, keep the replicates in the object (needed to
@@ -157,7 +165,8 @@
 #'   `ambiguity_group` and, when equivalence classes were read, `n_classes`,
 #'   `n_unique_fragments`, `unique_fraction` and `low_information` (`TRUE`
 #'   for an uncertain isoform without a single fragment of its own, the
-#'   isoforms `mmcollapse` selects for collapsing).
+#'   isoforms `mmcollapse` selects for collapsing). With `identifiability`,
+#'   also `identifiable_fraction` and `identifiable`.
 #' * `isoform_ambiguity()`: a tibble of isoform pairs of the same gene with
 #'   `mean_cor`, `min_cor`, `n_samples`, `collapse_gain` and `ambiguous`.
 #'   `collapse_gain` is the score Terminus groups on (Sarkar et al. 2020):
@@ -167,7 +176,9 @@
 #' * `de_confidence()`: a tibble with one row per feature: `feature_id`,
 #'   `feature_type` (`"transcript"` or `"group"`), gene and transcript names,
 #'   the interval and stability of the fold-change, `mean_inf_rv`,
-#'   `ambiguous`, `confidence` (an ordered factor), `reason`, the existing
+#'   `ambiguous`, `identifiable` (only when the identifiability was
+#'   computed; `NA` for groups), `confidence` (an ordered factor), `reason`,
+#'   the existing
 #'   differential expression result (`det_log2FC`, `det_qvalue`,
 #'   `n_det_sig`) and `confident_de`, which is `TRUE` when a significant
 #'   isoform has `high` confidence.
@@ -265,6 +276,7 @@ add_uncertainty <- S7::new_generic(
     cor_cutoff = -0.5,
     min_agreement = 0.95,
     equivalence = TRUE,
+    identifiability = FALSE,
     run_qc = TRUE,
     keep_draws = TRUE,
     collapse_groups = FALSE,
@@ -286,6 +298,7 @@ S7::method(add_uncertainty, IsoformicExperiment) <- function(
   cor_cutoff = -0.5,
   min_agreement = 0.95,
   equivalence = TRUE,
+  identifiability = FALSE,
   run_qc = TRUE,
   keep_draws = TRUE,
   collapse_groups = FALSE,
@@ -337,6 +350,12 @@ S7::method(add_uncertainty, IsoformicExperiment) <- function(
         }
       )
     }
+    if (isTRUE(identifiability)) {
+      identifiability <- equivalence_identifiability(
+        named,
+        transcripts = rownames(reps[[1L]])
+      )
+    }
     if (isTRUE(run_qc)) {
       qc <- salmon_run_qc(named)
       qc_cols <- setdiff(names(qc), "sample_id")
@@ -360,7 +379,17 @@ S7::method(add_uncertainty, IsoformicExperiment) <- function(
     } else {
       stored_equivalence(self)
     }
+    if (isTRUE(identifiability)) {
+      cli::cli_abort(
+        message = c(
+          x = "{.code identifiability = TRUE} needs {.arg paths}.",
+          i = "Or pass the table of {.fn equivalence_identifiability}."
+        ),
+        class = "isoformic_identifiability_needs_paths"
+      )
+    }
   }
+  equiv <- join_identifiability(equiv, identifiability)
   arr <- draws_view(self, reps)
   settings <- list(
     min_count = min_count,
@@ -613,21 +642,52 @@ uncertainty_settings <- function(self) {
 #' @noRd
 stored_equivalence <- function(self) {
   unc <- self@dea[["uncertainty"]]
-  if (is.null(unc) || !"unique_fraction" %in% colnames(unc)) {
+  value_cols <- c(
+    "n_classes",
+    "n_fragments",
+    "n_unique_fragments",
+    "unique_fraction",
+    "n_samples",
+    "identifiable_fraction",
+    "identifiable"
+  )
+  if (
+    is.null(unc) ||
+      !any(c("unique_fraction", "identifiable") %in% colnames(unc))
+  ) {
     return(NULL)
   }
-  cols <- intersect(
-    c(
-      "transcript_id",
-      "n_classes",
-      "n_fragments",
-      "n_unique_fragments",
-      "unique_fraction",
-      "n_samples"
-    ),
-    colnames(unc)
-  )
-  unc[!is.na(unc$n_classes), cols]
+  cols <- intersect(value_cols, colnames(unc))
+  has_value <- rowSums(!is.na(unc[, cols, drop = FALSE])) > 0L
+  unc[has_value, c("transcript_id", cols)]
+}
+
+#' Add the identifiability of the transcripts to the read support table
+#'
+#' `identifiability` is the table of `equivalence_identifiability()`; anything
+#' else leaves `equiv` as it is (its stored columns are kept).
+#' @keywords internal
+#' @noRd
+join_identifiability <- function(equiv, identifiability) {
+  if (!is.data.frame(identifiability)) {
+    return(equiv)
+  }
+  cols <- c("transcript_id", "identifiable_fraction", "identifiable")
+  if (!all(cols %in% colnames(identifiability))) {
+    cli::cli_abort(
+      message = c(
+        x = "{.arg identifiability} must be the table of {.fn equivalence_identifiability}.",
+        i = "It needs the columns {.val {cols}}."
+      ),
+      class = "isoformic_invalid_identifiability"
+    )
+  }
+  ident <- tibble::as_tibble(identifiability[, cols])
+  if (is.null(equiv)) {
+    return(ident)
+  }
+  equiv <- equiv[, setdiff(colnames(equiv), cols[-1L]), drop = FALSE]
+  dplyr::full_join(equiv, ident, by = "transcript_id")
 }
 
 #' Inferential replicates as a view of transcripts x samples x draws
@@ -1110,7 +1170,9 @@ build_uncertainty <- function(
         "n_classes",
         "n_fragments",
         "n_unique_fragments",
-        "unique_fraction"
+        "unique_fraction",
+        "identifiable_fraction",
+        "identifiable"
       ),
       colnames(equiv)
     )]
@@ -1324,7 +1386,20 @@ compute_de_confidence <- function(
   # Collapsed groups are not transcript IDs, so they are never matched here
   ambiguous <- features %in% ids[!is.na(amb_group)] & !is_group
   uncertain <- mean_rv >= settings$inf_rv_cutoff
-  n_fail <- as.integer(!stable) + as.integer(uncertain) + as.integer(ambiguous)
+  # Structural identifiability, when add_uncertainty() computed it. A group
+  # is not assessed: summing its members is the remedy
+  has_ident <- "identifiable" %in% colnames(tx_table)
+  identifiable <- if (has_ident) {
+    tx_table$identifiable[match(features, tx_table$transcript_id)]
+  } else {
+    rep(NA, length(features))
+  }
+  identifiable[is_group] <- NA
+  not_identifiable <- identifiable %in% FALSE
+  n_fail <- as.integer(!stable) +
+    as.integer(uncertain) +
+    as.integer(ambiguous) +
+    as.integer(not_identifiable)
   confidence <- c("high", "moderate", "low")[pmin(n_fail, 2L) + 1L]
   confidence[!assessed] <- NA_character_
   reason <- vapply(
@@ -1333,7 +1408,8 @@ compute_de_confidence <- function(
       why <- c(
         if (!stable[i]) "unstable fold-change",
         if (uncertain[i]) "uncertain quantification",
-        if (ambiguous[i]) "ambiguous with a sibling isoform"
+        if (ambiguous[i]) "ambiguous with a sibling isoform",
+        if (not_identifiable[i]) "not identifiable from the equivalence classes"
       )
       if (length(why)) paste(why, collapse = "; ") else NA_character_
     },
@@ -1373,6 +1449,13 @@ compute_de_confidence <- function(
     ),
     reason = reason
   )
+  if (has_ident) {
+    res <- tibble::add_column(
+      res,
+      identifiable = identifiable,
+      .after = "ambiguous"
+    )
+  }
   res$gene_name <- self@annot_data_genes$gene_name[match(
     res$gene_id,
     self@annot_data_genes$gene_id
@@ -1677,8 +1760,17 @@ S7::method(uncertainty_methods, IsoformicExperiment) <- function(self, ...) {
     ),
     paste0(
       "Differentially expressed isoforms were assigned high confidence when ",
-      "the fold-change was stable, the quantification was not uncertain and ",
-      "no sibling isoform was ambiguous, moderate confidence when one of ",
+      "the fold-change was stable, the quantification was not uncertain",
+      if ("identifiable" %in% colnames(self@dea[["uncertainty"]])) {
+        paste0(
+          ", no sibling isoform was ambiguous and the equivalence classes of ",
+          "every sample identified the isoform (its abundance is fixed by ",
+          "the class counts; Zheng et al. 2022)"
+        )
+      } else {
+        " and no sibling isoform was ambiguous"
+      },
+      ", moderate confidence when one of ",
       "these conditions failed and low confidence when two or more failed."
     ),
     paste0(

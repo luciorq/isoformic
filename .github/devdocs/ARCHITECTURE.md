@@ -104,6 +104,19 @@ Measured on 2026-10-15 with `Rscript` on a laptop.
   variant to use when the same transcript appears several times, e.g. the
   canonical of every isoform; `genomic_to_transcript_coord()` assumes unique
   IDs and silently drops repeats).
+- Enrichment (`R/enrichment.R`): the three functions (`run_enrichment()`,
+  `run_productivity_enrichment()`, `run_apa_enrichment()`) share
+  `geneset_collections()` (one collection or a named list of them),
+  `enrich_collections()` (one fgsea run per collection, `collection` column
+  only for several), `gene_rank_enrichment()` (gene tables ranked by one
+  column) and `certainty_z()` (estimate over its standard deviation over the
+  replicates; no deviation is the most certain value, not a missing one).
+  A new enrichment function must use them, return `experiment` and `rank_by`
+  (the columns of `empty_fgsea()` when nothing is tested) and take a table
+  method next to the object method. `rank_by = "lfc_z"` has the contrast of
+  the stored confidence table; `run_enrichment()` warns
+  (`isoformic_contrast_mismatch`) when it is the reverse of the stored
+  results.
 - The ORF rows are kept in `annot_data_orfs.parquet` of the annotation
   directory (`stored_transcript_orfs()`): an ORF depends on the transcript
   and on the canonical isoform of its gene among the rows given, so a stored
@@ -187,8 +200,12 @@ Definitions in the literature, how the code compares and the backlog
   `solve_class_blocks()` splits the rest into connected blocks, solved by
   `dense_identifiable()` (`svd()`, up to `max_dense` columns) or
   `sparse_identifiable()` (CGLS projection of two random vectors on the null
-  space, `Matrix`). Not part of `add_uncertainty()` because of its cost;
-  join its result to `tx_uncertainty()` by `transcript_id`. Weights of
+  space, `Matrix`). Off by default in `add_uncertainty()` because of its
+  cost: `identifiability = TRUE` (or the table) goes through
+  `join_identifiability()` into the read support table, so
+  `stored_equivalence()` keeps it when the tables are recomputed, and
+  `compute_de_confidence()` counts `identifiable == FALSE` as a fourth
+  failed condition (groups of `collapse_groups` are not assessed). Weights of
   `--dumpEqWeights` are ignored. Evaluation and the reasoning about ranges
   of optima: `UNCERTAINTY-LITERATURE.md` section 5.4, U5.
 - `low_information` is `unique_fraction == 0 & uncertain`, present only when

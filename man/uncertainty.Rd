@@ -21,6 +21,7 @@ add_uncertainty(
   cor_cutoff = -0.5,
   min_agreement = 0.95,
   equivalence = TRUE,
+  identifiability = FALSE,
   run_qc = TRUE,
   keep_draws = TRUE,
   collapse_groups = FALSE,
@@ -84,6 +85,13 @@ value.}
 the table returned by \code{\link[=equivalence_support]{equivalence_support()}}, to attach read support when
 the draws are supplied without \code{paths}.}
 
+\item{identifiability}{Logical, also compute which transcripts the
+equivalence classes can tell apart (\code{\link[=equivalence_identifiability]{equivalence_identifiability()}};
+minutes per sample, needs \code{paths} and, for human samples, the \code{Matrix}
+package), or the table that function returned. \code{de_confidence()} then
+counts a non-identifiable transcript as one more reason against the
+call.}
+
 \item{run_qc}{Logical, add the Salmon run metadata (see
 \code{\link[=salmon_run_qc]{salmon_run_qc()}}) to \code{col_data()}.}
 
@@ -120,7 +128,8 @@ type, \code{mean_count}, \code{mean_inf_rv}, \code{max_inf_rv}, \code{mean_inf_c
 \code{ambiguity_group} and, when equivalence classes were read, \code{n_classes},
 \code{n_unique_fragments}, \code{unique_fraction} and \code{low_information} (\code{TRUE}
 for an uncertain isoform without a single fragment of its own, the
-isoforms \code{mmcollapse} selects for collapsing).
+isoforms \code{mmcollapse} selects for collapsing). With \code{identifiability},
+also \code{identifiable_fraction} and \code{identifiable}.
 \item \code{isoform_ambiguity()}: a tibble of isoform pairs of the same gene with
 \code{mean_cor}, \code{min_cor}, \code{n_samples}, \code{collapse_gain} and \code{ambiguous}.
 \code{collapse_gain} is the score Terminus groups on (Sarkar et al. 2020):
@@ -130,7 +139,9 @@ more is gained by testing the pair as one feature.
 \item \code{de_confidence()}: a tibble with one row per feature: \code{feature_id},
 \code{feature_type} (\code{"transcript"} or \code{"group"}), gene and transcript names,
 the interval and stability of the fold-change, \code{mean_inf_rv},
-\code{ambiguous}, \code{confidence} (an ordered factor), \code{reason}, the existing
+\code{ambiguous}, \code{identifiable} (only when the identifiability was
+computed; \code{NA} for groups), \code{confidence} (an ordered factor), \code{reason},
+the existing
 differential expression result (\code{det_log2FC}, \code{det_qvalue},
 \code{n_det_sig}) and \code{confident_de}, which is \code{TRUE} when a significant
 isoform has \code{high} confidence.
@@ -178,7 +189,9 @@ which the isoform is called differentially expressed.
 \code{de_confidence()} combines the last three into one class per isoform:
 \code{high} when the fold-change is stable (\code{sign_agreement >= min_agreement}),
 the isoform is not \code{uncertain} and has no ambiguous sibling; \code{moderate}
-when exactly one of these fails; \code{low} when two or more fail. The class
+when exactly one of these fails; \code{low} when two or more fail. After
+\code{add_uncertainty(identifiability = TRUE)} a fourth condition counts: the
+equivalence classes must identify the isoform (\code{identifiable}). The class
 says how far a call on the isoform can be trusted, so read it for the
 isoforms flagged by the primary test (\code{n_det_sig}, \code{confident_de}): an
 isoform without a real change is \code{moderate} or \code{low} simply because its

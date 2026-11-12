@@ -76,6 +76,30 @@ testthat::test_that("sequence-aware productivity uses projected ORFs and NMD cla
   )
 })
 
+testthat::test_that("protein_coding_LoF is an unproductive biotype", {
+  testthat::expect_true("protein_coding_LoF" %in% unproductive_biotypes())
+  iso <- seq_experiment()
+  tx_file <- fs::path(iso@annot_path, "annot_data_transcripts.parquet")
+  tx <- read_parquet(tx_file)
+  tx$transcript_type[tx$transcript_id == "tA1"] <- "protein_coding_LoF"
+  write_parquet(tx, tx_file)
+  iso <- IsoformicExperiment(
+    experiment_name = "lof",
+    annot_path = iso@annot_path,
+    assays = list(abundance = assay(iso, "abundance")),
+    col_data = as.data.frame(col_data(iso))
+  )
+  p <- transcript_productivity(iso)
+  at <- p$transcript_id == "tA1"
+  testthat::expect_identical(as.character(p$productivity[at]), "unproductive")
+  testthat::expect_identical(p$reason[at], "unproductive biotype")
+  rules <- transcript_productivity(iso, use_biotype = FALSE)
+  testthat::expect_identical(
+    as.character(rules$productivity[rules$transcript_id == "tA1"]),
+    "productive"
+  )
+})
+
 testthat::test_that("productivity_fractions splits expression by class and mechanism", {
   iso <- seq_experiment()
   pf <- productivity_fractions(iso, group = "condition")

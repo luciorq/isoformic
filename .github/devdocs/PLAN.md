@@ -258,6 +258,9 @@ Acceptance: identical consensus to the shell run.
   in b for g1-g8, in c for g9-g16) passes for all three backends. Two-group
   results on the prostate data are identical to the earlier `~group` fit.
   `group_setup()` replaces the body of `two_group_setup()`.
+- 2026-11-12: `group_setup()` no longer exists: `group_samples()` and
+  `group_factor()` (`R/IsoformicExperiment-diversity.R`) resolve `group` and
+  `levels` for every function, and `two_group_setup()` calls them.
 - 2026-10-27: G1-G4 and G6 done (run_terminus, input checks, mocked tests,
   docs). G5 running: run_terminus(workers = 6) on the six quants_terminus
   directories into terminus_r/. While linting, jarl 0.7.1 reported 18 findings
@@ -343,4 +346,4 @@ Acceptance: identical consensus to the shell run.
   applied; baseline of the AlphaGenome pilot evaluation written and run
   (`data-raw/alphagenome/03_evaluate.R`, numbers in
   `ALPHAGENOME-BENCHMARK.md` section 4); first step of U5 applied
-  (`equivalence_identifiability()`). Open: ranges of U5, U10, A3 (AlphaGenome part), A5, A6, A8, A9.
+  (`equivalence_identifiability()`). Then: identifiability in `de_confidence()`, `protein_coding_LoF` unproductive. Open: ranges of U5, U10, A5, A6, A9 (release does not exist yet).

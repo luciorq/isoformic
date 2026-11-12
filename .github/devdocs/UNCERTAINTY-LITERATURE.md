@@ -643,8 +643,13 @@ repository; the numbers come from one run.
     `Suggests`) for blocks above 400 columns. The function reproduces the
     prototype (130,468 for the first sample). Membership only; the name
     says "identifiability", not "range of optima".
-  - Open: use the flag in `transcript_confidence()` (a non-identifiable
-    transcript should probably not be "confident"); a weighted variant;
+  - Used in the confidence since 2026-11-12 (decision of the maintainer):
+    `add_uncertainty(identifiability = TRUE)` stores `identifiable` and
+    `identifiable_fraction`, and `de_confidence()` counts a
+    non-identifiable isoform as a fourth failed condition. Off by default
+    (cost; the article numbers do not change). Not yet measured: how many
+    confident calls of GSE129540 this removes.
+  - Open: a weighted variant;
     whether the flip between halves is the effective-length mechanism
     above. The numbers above are one run on one dataset.
   - `read_eq_classes()` reads files with weights correctly (it takes the

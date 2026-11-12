@@ -185,6 +185,17 @@ analysis and plot is now first a method on the object.
   log2 ratio 2.4 against 0.7 at 20 to 100 reads). Takes one to three minutes
   per human sample and needs `Matrix` (new in `Suggests`) for the largest
   block of transcripts.
+* `add_uncertainty(identifiability = TRUE)` runs it and adds `identifiable`
+  and `identifiable_fraction` to `tx_uncertainty()`; the table of
+  `equivalence_identifiability()` can be passed in its place.
+  `de_confidence()` then counts a non-identifiable isoform as a fourth
+  condition against the call (reason `not identifiable from the equivalence
+  classes`) and returns an `identifiable` column. Off by default, so
+  existing results do not change.
+* `transcript_productivity()` treats the GENCODE biotype
+  `protein_coding_LoF` (148 transcripts in release 50) as unproductive when
+  `use_biotype = TRUE`: a variant of the reference genome stops its
+  translation.
 * Fixes from a code review: `write_isoformic(overwrite = TRUE)` writes to a
   sibling directory and swaps it in, so overwriting the directory an object
   was read from no longer deletes it (and refuses directories that are not
@@ -403,6 +414,29 @@ analysis and plot is now first a method on the object.
   100 replicates the memory above the object went from 19 GB to under 4 GB
   for `add_uncertainty(group = )` and `de_confidence()`, with the same
   results.
+* `run_enrichment()` gains `rank_by`: besides the fold-change
+  (`"log2FC"`, the default) the transcripts can be ranked by
+  `-log10(pvalue)` with the sign of the fold-change (`"signed_p"`) or by the
+  median fold-change over the inferential replicates divided by its standard
+  deviation (`"lfc_z"`, from the confidence table of
+  `add_uncertainty(x, group = )`), so that a fold-change the quantification
+  cannot determine ranks low. The result has a `rank_by` column.
+* `run_apa_enrichment()` runs a gene set enrichment analysis on the genes
+  ranked by their change in distal 3' end usage or in weighted 3' UTR
+  length, from an object or from the table of `apa_usage()`.
+* `run_enrichment()`, `run_productivity_enrichment()` and
+  `run_apa_enrichment()` take several collections of gene sets at once (a
+  named list of gene set lists, for example
+  `list(hallmark = read_gmt(h), reactome = read_gmt(r))`): each collection is
+  tested on its own and the result has a `collection` column, by which
+  `plot_enrichment()` splits its panels. Every gene set now needs a name: a
+  list with a missing or empty name is an error
+  (`isoformic_invalid_genesets`) instead of a set dropped without notice.
+  An enrichment without result is a table with the `fgsea` columns and no
+  rows.
+* `productive_fraction()` with inferential replicates stops when a level of
+  `group` is named `sd`, whose column `productive_fraction_sd` used to be
+  overwritten by the standard deviation over the replicates.
 * `transcript_orfs()` keeps the ORFs it computes in
   `annot_data_orfs.parquet` in the annotation directory, and later calls,
   sessions and objects with the same annotation read them back: for the

@@ -54,7 +54,8 @@
 #' also takes the table of `apa_usage()` for two or more groups, so that one
 #' table serves several calls.
 #'
-#' @param self An [IsoformicExperiment].
+#' @param self An [IsoformicExperiment]; for `run_apa_enrichment()` also the
+#'   table of `apa_usage()` for two or more groups.
 #' @param gene_name Optional genes (names or IDs) to restrict the result to.
 #' @param polya_atlas `NULL` (no atlas), `"polyasite"`, a data frame or a
 #'   file path (Parquet table or GENCODE poly(A) GFF3).
@@ -63,7 +64,8 @@
 #' @param signal_window Length of the 3' terminal sequence searched for a
 #'   poly(A) signal (default 50 nt).
 #' @param group Name of a `col_data` column defining groups; `NULL` for
-#'   per-sample values.
+#'   per-sample values. The tests and `run_apa_enrichment()` on an object need
+#'   it; with a table it is not used.
 #' @param levels Levels of `group` to use, in this order; the change is
 #'   `last - first`. Samples of other groups are ignored, as if the object
 #'   had been subset to these samples, so every returned value comes from
@@ -83,7 +85,8 @@
 #' @param rank_by Statistic that ranks the genes in `run_apa_enrichment()`:
 #'   `"delta"` (default), the change in distal fraction, or `"utr3_length"`,
 #'   the change in weighted 3' UTR length.
-#' @param ... Passed on to methods.
+#' @param ... Passed on to methods; `run_apa_enrichment()` passes them to
+#'   `fgsea::fgseaMultilevel()`.
 #'
 #' @returns Tibbles with one row per transcript (`polya_sites()`) or per gene
 #'   (`apa_usage()`, `test_apa()`); a matrix for `as_matrix = TRUE`.
@@ -97,6 +100,11 @@
 #' pa[, c("transcript_name", "tes_rank", "apa_type", "utr3_length", "polya_signal")]
 #' head(apa_usage(iso, group = "condition"))
 #' head(test_apa(iso, group = "condition"))
+#'
+#' if (requireNamespace("fgsea", quietly = TRUE)) {
+#'   gmt <- system.file("extdata", "reactome_subset.gmt", package = "isoformic")
+#'   head(run_apa_enrichment(iso, read_gmt(gmt), group = "condition", min_size = 2))
+#' }
 #'
 #' @name polyadenylation
 #' @rdname polyadenylation

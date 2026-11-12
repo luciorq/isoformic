@@ -213,7 +213,10 @@ testthat::test_that("several collections of gene sets are tested one by one", {
     list(first = first, second = "g1"),
     list(first, second),
     list(first = first, first = second),
-    list(first = list(a = list("g1"))),
+    list(first = list(a = list(c("g1", "g2")))),
+    stats::setNames(list(first, second), c("first", NA)),
+    stats::setNames(first, c("a", NA)),
+    stats::setNames(first, c("a", "")),
     "g1"
   )) {
     testthat::expect_error(
@@ -221,4 +224,155 @@ testthat::test_that("several collections of gene sets are tested one by one", {
       class = "isoformic_invalid_genesets"
     )
   }
+})
+
+testthat::test_that("gene sets may be empty or lists of symbols, and no result keeps its columns", {
+  det <- tibble::tibble(
+    transcript_name = paste0("t", 1:4),
+    transcript_type = "protein_coding",
+    log2FC = c(2, -1, 0.5, -3)
+  )
+  map <- tibble::tibble(
+    transcript_name = paste0("t", 1:4),
+    gene_name = paste0("g", 1:4)
+  )
+  types <- list(protein_coding = "protein_coding")
+  calls <- record_fgsea()
+  plain <- run_enrichment(
+    det,
+    list(a = c("g1", "g2"), b = c("g3", "g4")),
+    tx_to_gene = map,
+    tx_types = types,
+    pval_cutoff = NULL
+  )
+  odd <- run_enrichment(
+    det,
+    list(a = list("g1", "g2"), b = factor(c("g3", "g4")), none = NULL),
+    tx_to_gene = map,
+    tx_types = types,
+    pval_cutoff = NULL
+  )
+  testthat::expect_identical(odd, plain)
+  testthat::expect_identical(
+    geneset_collections(list(a = list("g1", "g2"), none = NULL)),
+    list(list(a = c("g1", "g2"), none = character()))
+  )
+  # No category with two transcripts: the columns of fgsea, no rows
+  for (sets in list(
+    list(a = c("g1", "g2")),
+    list(first = list(a = c("g1", "g2")), second = list(b = "g3"))
+  )) {
+    none <- run_enrichment(
+      det,
+      sets,
+      tx_to_gene = map,
+      tx_types = list(other = "lncRNA")
+    )
+    testthat::expect_identical(nrow(none), 0L)
+    testthat::expect_true(all(
+      c("pathway", "padj", "NES", "size", "experiment", "rank_by") %in%
+        colnames(none)
+    ))
+  }
+  testthat::expect_true("collection" %in% colnames(none))
+})
+
+testthat::test_that("lfc_z takes the de_confidence() table and says when it cannot rank", {
+  x <- uncertainty_experiment()
+  iso <- add_uncertainty(x$iso, paths = x$fixture$dirs)
+  iso <- add_uncertainty(iso, group = "condition")
+  conf <- de_confidence(iso)
+  conf <- conf[conf$feature_type == "transcript", ]
+  annot <- tx_annot(iso)
+  sets <- list(set = unique(annot$gene_name))
+  types <- list(all = unique(annot$transcript_type))
+  calls <- record_fgsea()
+  from_object <- run_enrichment(
+    iso,
+    sets,
+    tx_types = types,
+    pval_cutoff = NULL,
+    rank_by = "lfc_z"
+  )
+  from_table <- run_enrichment(
+    conf,
+    sets,
+    tx_to_gene = annot,
+    tx_types = types,
+    pval_cutoff = NULL,
+    rank_by = "lfc_z"
+  )
+  # The object ranks the transcripts of its results, the table all its rows
+  by_name <- stats::setNames(annot$transcript_name, annot$transcript_id)
+  of_object <- calls$stats[[1L]]
+  names(of_object) <- by_name[names(of_object)]
+  of_table <- calls$stats[[2L]]
+  testthat::expect_gt(length(of_object), 0L)
+  testthat::expect_true(all(names(of_object) %in% names(of_table)))
+  testthat::expect_equal(of_table[names(of_object)], of_object)
+  testthat::expect_identical(unique(from_table$rank_by), "lfc_z")
+  testthat::expect_identical(unique(from_object$rank_by), "lfc_z")
+  # One replicate has no standard deviation
+  conf$lfc_sd <- NA_real_
+  testthat::expect_error(
+    run_enrichment(
+      conf,
+      sets,
+      tx_to_gene = annot,
+      tx_types = types,
+      rank_by = "lfc_z"
+    ),
+    class = "isoformic_no_inferential_replicates"
+  )
+  # The confidence of the opposite contrast is not the one of the results
+  reversed <- add_uncertainty(
+    iso,
+    group = "condition",
+    levels = rev(levels(factor(col_data(iso)$condition)))
+  )
+  agree <- sign(de_confidence(iso)$lfc_median) ==
+    sign(de_confidence(iso)$det_log2FC)
+  expect_mismatch <- if (mean(agree, na.rm = TRUE) >= 0.5) reversed else iso
+  testthat::expect_warning(
+    run_enrichment(
+      expect_mismatch,
+      sets,
+      tx_types = types,
+      pval_cutoff = NULL,
+      rank_by = "lfc_z"
+    ),
+    class = "isoformic_contrast_mismatch"
+  )
+  expect_match <- if (mean(agree, na.rm = TRUE) >= 0.5) iso else reversed
+  testthat::expect_no_warning(
+    run_enrichment(
+      expect_match,
+      sets,
+      tx_types = types,
+      pval_cutoff = NULL,
+      rank_by = "lfc_z"
+    )
+  )
+})
+
+testthat::test_that("plot_enrichment draws one panel per collection", {
+  res <- tibble::tibble(
+    pathway = c("a", "b", "a"),
+    NES = c(1, -1, 2),
+    padj = c(0.01, 0.02, 0.03),
+    size = c(10L, 20L, 10L),
+    experiment = "protein_coding",
+    collection = c("first", "first", "second")
+  )
+  p <- plot_enrichment(res)
+  built <- ggplot2::ggplot_build(p)
+  testthat::expect_identical(length(unique(built$data[[1L]]$PANEL)), 2L)
+  single <- plot_enrichment(res[
+    res$collection == "first",
+    colnames(res) != "collection"
+  ])
+  testthat::expect_identical(
+    length(unique(ggplot2::ggplot_build(single)$data[[1L]]$PANEL)),
+    1L
+  )
 })

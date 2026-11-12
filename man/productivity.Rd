@@ -170,9 +170,10 @@ a different ORF than the canonical isoform: alternative start, in-frame
 change, frameshift or stop in novel sequence), \code{"unproductive"} (no
 ORF, premature stop codon by the 50-nt rule, no stop codon, an
 unproductive biotype such as \code{nonsense_mediated_decay},
-\code{retained_intron}, \code{protein_coding_CDS_not_defined}, or a longest ORF
-without coding potential), \code{"noncoding"} (transcripts of genes without
-any coding isoform) or \code{"uncertain"} (incomplete CDS annotation without
+\code{retained_intron}, \code{protein_coding_CDS_not_defined},
+\code{protein_coding_LoF}, or a longest ORF without coding potential),
+\code{"noncoding"} (transcripts of genes without any coding isoform) or
+\code{"uncertain"} (incomplete CDS annotation without
 a premature stop, a credible ORF unrelated to the canonical one, FANTOM
 \code{uncertain_coding}).
 The \code{reason} column explains each call and \code{source} tells whether it

@@ -55,7 +55,8 @@ run_apa_enrichment(
 )
 }
 \arguments{
-\item{self}{An \link{IsoformicExperiment}.}
+\item{self}{An \link{IsoformicExperiment}; for \code{run_apa_enrichment()} also the
+table of \code{apa_usage()} for two or more groups.}
 
 \item{gene_name}{Optional genes (names or IDs) to restrict the result to.}
 
@@ -68,12 +69,14 @@ file path (Parquet table or GENCODE poly(A) GFF3).}
 \item{signal_window}{Length of the 3' terminal sequence searched for a
 poly(A) signal (default 50 nt).}
 
-\item{...}{Passed on to methods.}
+\item{...}{Passed on to methods; \code{run_apa_enrichment()} passes them to
+\code{fgsea::fgseaMultilevel()}.}
 
 \item{path}{Path to a GENCODE \code{polyAs.gff3.gz} file.}
 
 \item{group}{Name of a \code{col_data} column defining groups; \code{NULL} for
-per-sample values.}
+per-sample values. The tests and \code{run_apa_enrichment()} on an object need
+it; with a table it is not used.}
 
 \item{levels}{Levels of \code{group} to use, in this order; the change is
 \code{last - first}. Samples of other groups are ignored, as if the object
@@ -159,5 +162,10 @@ pa <- polya_sites(iso, gene_name = "RBPJ")
 pa[, c("transcript_name", "tes_rank", "apa_type", "utr3_length", "polya_signal")]
 head(apa_usage(iso, group = "condition"))
 head(test_apa(iso, group = "condition"))
+
+if (requireNamespace("fgsea", quietly = TRUE)) {
+  gmt <- system.file("extdata", "reactome_subset.gmt", package = "isoformic")
+  head(run_apa_enrichment(iso, read_gmt(gmt), group = "condition", min_size = 2))
+}
 
 }

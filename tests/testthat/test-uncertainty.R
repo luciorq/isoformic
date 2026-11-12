@@ -689,3 +689,68 @@ testthat::test_that("cor_cutoff = 'adaptive' derives the cutoff from the pairs",
   )
   testthat::expect_match(uncertainty_methods(fixed), "with a fixed cutoff")
 })
+
+testthat::test_that("identifiability becomes one more condition of the confidence", {
+  x <- uncertainty_experiment()
+  plain <- add_uncertainty(x$iso, paths = x$fixture$dirs, group = "condition")
+  testthat::expect_false("identifiable" %in% colnames(de_confidence(plain)))
+  ident <- equivalence_identifiability(x$fixture$dirs)
+  iso <- add_uncertainty(
+    x$iso,
+    paths = x$fixture$dirs,
+    group = "condition",
+    identifiability = TRUE
+  )
+  unc <- tx_uncertainty(iso)
+  testthat::expect_true(
+    all(c("identifiable_fraction", "identifiable") %in% colnames(unc))
+  )
+  testthat::expect_identical(
+    unc$identifiable,
+    ident$identifiable[match(unc$transcript_id, ident$transcript_id)]
+  )
+  # The table of equivalence_identifiability() gives the same result
+  from_table <- add_uncertainty(
+    x$iso,
+    paths = x$fixture$dirs,
+    group = "condition",
+    identifiability = ident
+  )
+  testthat::expect_identical(de_confidence(from_table), de_confidence(iso))
+  # A transcript marked non-identifiable loses one confidence class
+  ident$identifiable[ident$transcript_id == "tA3"] <- FALSE
+  flagged <- add_uncertainty(
+    plain,
+    group = "condition",
+    identifiability = ident
+  )
+  conf <- de_confidence(flagged)
+  at <- conf$feature_id == "tA3"
+  testthat::expect_false(conf$identifiable[at])
+  testthat::expect_identical(as.character(conf$confidence[at]), "moderate")
+  testthat::expect_match(conf$reason[at], "not identifiable")
+  testthat::expect_false(conf$confident_de[at])
+  testthat::expect_match(
+    paste(uncertainty_methods(flagged), collapse = " "),
+    "equivalence classes of every sample identified"
+  )
+  # The flag is kept when the tables are recomputed from the stored draws
+  again <- add_uncertainty(flagged, group = "condition")
+  testthat::expect_identical(
+    de_confidence(again)$identifiable,
+    conf$identifiable
+  )
+  # Collapsed groups are not assessed
+  grouped <- de_confidence(flagged, group = "condition", collapse_groups = TRUE)
+  testthat::expect_true(
+    all(is.na(grouped$identifiable[grouped$feature_type == "group"]))
+  )
+  testthat::expect_error(
+    add_uncertainty(plain, identifiability = TRUE),
+    class = "isoformic_identifiability_needs_paths"
+  )
+  testthat::expect_error(
+    add_uncertainty(plain, identifiability = data.frame(transcript_id = "tA1")),
+    class = "isoformic_invalid_identifiability"
+  )
+})

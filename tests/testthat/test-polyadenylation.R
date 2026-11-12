@@ -215,7 +215,8 @@ testthat::test_that("test_apa contrasts two of three groups", {
 
 testthat::test_that("run_apa_enrichment ranks the genes by their change in 3' end usage", {
   iso <- example_isoformic()
-  usage <- apa_usage(iso, group = "condition")
+  # One example transcript warns about its sequence length, once per object
+  usage <- suppressWarnings(apa_usage(iso, group = "condition"))
   testthat::expect_true("delta_distal_fraction" %in% colnames(usage))
   sets <- list(some = usage$gene_name[1:3], all = usage$gene_name)
   calls <- record_fgsea()

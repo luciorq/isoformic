@@ -1174,11 +1174,11 @@ productivity_enrichment <- function(
   if (identical(rank_by, "delta_z")) {
     # A change that is the same in every draw is the most certain one, not a
     # missing one: it gets the largest finite |z| of the table
-    certain <- pf$delta_productive_fraction_sd %in%
-      0 &
-      !pf$delta_productive_fraction %in% c(0, NA)
-    finite_z <- abs(pf$delta_z[!is.na(pf$delta_z)])
-    if (!length(finite_z) && !any(certain)) {
+    pf$delta_z <- certainty_z(
+      pf$delta_productive_fraction,
+      pf$delta_productive_fraction_sd
+    )
+    if (!any(is.finite(pf$delta_z))) {
       cli::cli_abort(
         message = c(
           x = "{.code rank_by = \"delta_z\"} needs at least two inferential replicates.",
@@ -1187,8 +1187,6 @@ productivity_enrichment <- function(
         class = "isoformic_no_inferential_replicates"
       )
     }
-    pf$delta_z[certain] <- sign(pf$delta_productive_fraction[certain]) *
-      max(finite_z, 1)
   }
   gene_rank_enrichment(
     pf,

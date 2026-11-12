@@ -31,8 +31,13 @@
 #'   [de_confidence()]), so that a fold-change the quantification cannot
 #'   determine ranks low. It needs the confidence table that
 #'   `add_uncertainty(x, group = )` stores, or these two columns in a data
-#'   frame. Transcripts that were not assessed, or that were collapsed into a
-#'   group, are not ranked. A fold-change that is the same in every replicate
+#'   frame (the table of [de_confidence()] works). The ranking has the
+#'   contrast of that table, the last level of `add_uncertainty()` against
+#'   the first; a warning (`isoformic_contrast_mismatch`) says so when most
+#'   of its fold-changes have the sign opposite to the stored results.
+#'   Transcripts that were not assessed, that were collapsed into a group
+#'   or, for an object, that are not in its differential expression results
+#'   are not ranked. A fold-change that is the same in every replicate
 #'   gets the largest finite value of the table.
 #'
 #' @section Collections of gene sets:
@@ -40,7 +45,9 @@
 #' vectors) or several (a named list of such lists, for example
 #' `list(hallmark = read_gmt(h), reactome = read_gmt(r))`). Each collection is
 #' tested on its own, so that the adjusted p-values are those of the
-#' collection, and the result has a `collection` column.
+#' collection, and the result has a `collection` column, by which
+#' `plot_enrichment()` splits its panels. Every gene set and every collection
+#' needs a name.
 #'
 #' @param self An [IsoformicExperiment] or a transcript-level DE table.
 #' @param genesets_list Named list of character vectors (gene symbols), as
@@ -152,6 +159,27 @@ S7::method(run_enrichment, IsoformicExperiment) <- function(
     idx <- match(det$transcript_id, conf$feature_id)
     det$lfc_median <- conf$lfc_median[idx]
     det$lfc_sd <- conf$lfc_sd[idx]
+    # The confidence has the contrast of `add_uncertainty(group = , levels = )`,
+    # which may not be the one of the stored results
+    same_sign <- sign(det$lfc_median) == sign(det$log2FC)
+    same_sign <- same_sign[
+      !is.na(same_sign) & det$lfc_median != 0 & det$log2FC != 0
+    ]
+    if (length(same_sign) >= 2L && mean(same_sign) < 0.5) {
+      cli::cli_warn(
+        message = c(
+          "!" = paste0(
+            "Most fold-changes of the confidence table have the sign ",
+            "opposite to the stored differential expression results."
+          ),
+          i = paste0(
+            "{.code rank_by = \"lfc_z\"} has the contrast of ",
+            "{.code add_uncertainty(x, group = , levels = )}: check its levels."
+          )
+        ),
+        class = "isoformic_contrast_mismatch"
+      )
+    }
   }
   tx_types <- tx_types %||%
     default_enrichment_types(unique(annot$transcript_type))
@@ -193,7 +221,11 @@ S7::method(run_enrichment, S7::class_data.frame) <- function(
     )
   }
   det <- tibble::as_tibble(self)
-  required <- c("transcript_name", "transcript_type", "log2FC")
+  required <- c(
+    "transcript_name",
+    "transcript_type",
+    if (!identical(rank_by, "lfc_z")) "log2FC"
+  )
   missing_cols <- setdiff(required, colnames(det))
   if (length(missing_cols)) {
     cli::cli_abort(
@@ -277,29 +309,44 @@ check_genesets <- function(genesets_list) {
 #' @keywords internal
 #' @noRd
 geneset_collections <- function(genesets_list) {
+  named <- function(x) {
+    !is.null(names(x)) && !anyNA(names(x)) && all(nzchar(names(x)))
+  }
+  # A gene set: a vector, an empty set, or a list of single values (as JSON
+  # and YAML readers give)
+  is_set <- function(set) {
+    is.null(set) ||
+      (is.atomic(set) && !is.list(set)) ||
+      (is.list(set) &&
+        is.null(names(set)) &&
+        all(vapply(
+          set,
+          function(v) is.atomic(v) && length(v) == 1L,
+          logical(1L)
+        )))
+  }
   is_collection <- function(x) {
-    is.list(x) &&
-      !is.null(names(x)) &&
-      all(nzchar(names(x))) &&
-      all(vapply(x, function(set) is.atomic(set) && !is.list(set), logical(1L)))
+    is.list(x) && named(x) && all(vapply(x, is_set, logical(1L)))
+  }
+  as_collection <- function(x) {
+    lapply(x, function(set) as.character(unlist(set, use.names = FALSE)))
   }
   if (is_collection(genesets_list)) {
-    return(list(genesets_list))
+    return(list(as_collection(genesets_list)))
   }
   if (
     is.list(genesets_list) &&
       length(genesets_list) > 0L &&
-      !is.null(names(genesets_list)) &&
-      all(nzchar(names(genesets_list))) &&
+      named(genesets_list) &&
       !anyDuplicated(names(genesets_list)) &&
       all(vapply(genesets_list, is_collection, logical(1L)))
   ) {
-    return(genesets_list)
+    return(lapply(genesets_list, as_collection))
   }
   cli::cli_abort(
     message = c(
       x = "{.arg genesets_list} must be a named list of gene symbol vectors.",
-      i = "Several collections are a named list of such lists."
+      i = "Every gene set needs a name. Several collections are a named list of such lists."
     ),
     class = "isoformic_invalid_genesets"
   )
@@ -315,12 +362,29 @@ enrich_collections <- function(genesets_list, run) {
   if (is.null(names(collections))) {
     return(run(collections[[1L]]))
   }
-  res <- lapply(names(collections), function(name) {
-    out <- run(collections[[name]])
-    out$collection <- rep(name, nrow(out))
+  res <- lapply(seq_along(collections), function(i) {
+    out <- run(collections[[i]])
+    out$collection <- rep(names(collections)[[i]], nrow(out))
     out
   })
   dplyr::bind_rows(res)
+}
+
+#' A `fgsea` result without rows
+#' @keywords internal
+#' @noRd
+empty_fgsea <- function() {
+  tibble::tibble(
+    pathway = character(),
+    pval = numeric(),
+    padj = numeric(),
+    log2err = numeric(),
+    ES = numeric(),
+    NES = numeric(),
+    size = integer(),
+    leadingEdge = list(),
+    experiment = character()
+  )
 }
 
 #' Estimate over its standard deviation, for a ranking
@@ -398,6 +462,15 @@ run_fgsea_by_type <- function(
   rlang::check_installed("fgsea")
   check_genesets(genesets_list)
   det$rank_stat <- enrichment_rank(det, rank_by)
+  if (identical(rank_by, "lfc_z") && !any(is.finite(det$rank_stat))) {
+    cli::cli_abort(
+      message = c(
+        x = "{.code rank_by = \"lfc_z\"} needs at least two inferential replicates.",
+        i = "No transcript has a standard deviation of its fold-change."
+      ),
+      class = "isoformic_no_inferential_replicates"
+    )
+  }
   det <- det[!is.na(det$rank_stat) & !is.na(det[[rank_id]]), ]
   gene_map <- dplyr::distinct(tx_to_gene[, c(map_id, "gene_name")])
   res <- enrich_collections(genesets_list, function(sets) {
@@ -435,13 +508,11 @@ run_fgsea_by_type <- function(
       res$experiment <- rep(type_name, nrow(res))
       res
     })
-    dplyr::bind_rows(results)
+    results <- dplyr::bind_rows(results)
+    if (!ncol(results)) empty_fgsea() else results
   })
-  if (ncol(res)) {
-    res$rank_by <- rep(rank_by, nrow(res))
-    res <- dplyr::relocate(res, dplyr::any_of("collection"), .after = "rank_by")
-  }
-  res
+  res$rank_by <- rep(rank_by, nrow(res))
+  dplyr::relocate(res, dplyr::any_of("collection"), .after = "rank_by")
 }
 
 #' Gene set enrichment on a gene table ranked by one of its columns
@@ -595,5 +666,9 @@ plot_enrichment <- function(
     ggplot2::theme(
       axis.text.x = ggplot2::element_text(angle = 30, hjust = 1),
       axis.text.y = ggplot2::element_text(size = 8)
-    )
+    ) +
+    # The same pathway name in two collections is two results
+    if ("collection" %in% colnames(data)) {
+      ggplot2::facet_wrap(ggplot2::vars(.data$collection), scales = "free_y")
+    }
 }
