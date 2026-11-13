@@ -56,7 +56,7 @@ which read the same information from the annotation directory.
 ``` r
 gff <- system.file("extdata", "example.gff3", package = "isoformic")
 tx2gene <- make_tx_to_gene(gff, output_path = tempdir())
-#> ℹ Parsing example.gff3 (GFF) into /tmp/RtmpV2WK1u/example.
+#> ℹ Parsing example.gff3 (GFF) into /tmp/RtmpmIi7db/example.
 head(tx2gene)
 #> # A tibble: 6 × 8
 #>   transcript_id     gene_id  havana_gene_id havana_transcript_id transcript_name

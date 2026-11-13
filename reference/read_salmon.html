@@ -15,7 +15,7 @@ are derived lazily by the object (see gene_assays())."><meta property="og:image"
 
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9022</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -40,6 +40,10 @@ are derived lazily by the object (see gene_assays())."><meta property="og:image"
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-plots.html">Plots</a></li>
     <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Case studies</h6></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-case-mouse-stress.html">Case study: chronic stress in the mouse brain</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-case-long-reads.html">Case study: a splicing kinase inhibitor in nanopore long reads</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Annotations and tables</h6></li>
     <li><a class="dropdown-item" href="../articles/isoformic-references.html">Other annotations: T2T-CHM13, Ensembl, RefSeq, haplotypes, FANTOM CAT and long reads</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-tables.html">Working with plain tables</a></li>
@@ -62,7 +66,7 @@ are derived lazily by the object (see gene_assays())."><meta property="og:image"
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Read Salmon Quantifications Into an IsoformicExperiment</h1>
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/R/read_salmon.R" class="external-link"><code>R/read_salmon.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/R/read_salmon.R" class="external-link"><code>R/read_salmon.R</code></a></small>
       <div class="d-none name"><code>read_salmon.Rd</code></div>
     </div>
 
@@ -154,7 +158,7 @@ Inferential replicates (Gibbs/bootstrap samples) are read only with
 <span class="r-in"><span><span class="va">annot</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"mini_annotation"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu">read_salmon</span><span class="op">(</span><span class="va">quant_dirs</span>, annot_path <span class="op">=</span> <span class="va">annot</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">iso</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;IsoformicExperiment&gt; isoformic_2da713f64b</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;IsoformicExperiment&gt; isoformic_cee6d29e9b</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   annotation : gencode_v49_mini_subset (15 genes, 111 transcripts, 1,071 exons)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   samples    : 6</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   transcripts: 111 assayed from 15 genes</span>

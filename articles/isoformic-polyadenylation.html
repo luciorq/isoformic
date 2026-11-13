@@ -27,7 +27,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9022</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -53,6 +53,10 @@
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-plots.html">Plots</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Case studies</h6></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-case-mouse-stress.html">Case study: chronic stress in the mouse brain</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-case-long-reads.html">Case study: a splicing kinase inhibitor in nanopore long reads</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Annotations and tables</h6></li>
     <li><a class="dropdown-item" href="../articles/isoformic-references.html">Other annotations: T2T-CHM13, Ensembl, RefSeq, haplotypes, FANTOM CAT and long reads</a></li>
@@ -87,7 +91,7 @@
       <p class="author">Lucio Rezende QueirozIzabela Mamede Conceição</p>
       <p class="date">October 17, 2026</p>
 
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/vignettes/articles/isoformic-polyadenylation.qmd" class="external-link"><code>vignettes/articles/isoformic-polyadenylation.qmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/vignettes/articles/isoformic-polyadenylation.qmd" class="external-link"><code>vignettes/articles/isoformic-polyadenylation.qmd</code></a></small>
       <div class="d-none name"><code></code></div>
     </div>
 
@@ -109,10 +113,6 @@
 <span>  <span class="va">annot_dir</span>,</span>
 <span>  transcript_fasta <span class="op">=</span> <span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"33"</span>, file_type <span class="op">=</span> <span class="st">"fasta"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: ! No sequence found for 21131 of 248882 transcripts.</span></span>
-<span><span class="co">#&gt; ℹ Sequence regions concerned: "GL000009.2", "GL000194.1", "GL000195.1",</span></span>
-<span><span class="co">#&gt;   "GL000205.2", "GL000209.2", "GL000213.1", "GL000216.2", "GL000218.1",</span></span>
-<span><span class="co">#&gt;   "GL000219.1", and "GL000220.1".</span></span>
 <span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/IsoformicExperiment.html">IsoformicExperiment</a></span><span class="op">(</span></span>
 <span>  experiment_name <span class="op">=</span> <span class="st">"preeclampsia_placenta"</span>,</span>
 <span>  annot_path <span class="op">=</span> <span class="va">annot_dir</span>,</span>
@@ -221,7 +221,7 @@
 <span><span class="co">#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; other attached packages:</span></span>
-<span><span class="co">#&gt; [1] dplyr_1.2.1          isoformic_0.1.2.9022</span></span>
+<span><span class="co">#&gt; [1] dplyr_1.2.1     isoformic_0.1.3</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] vctrs_0.7.3      cli_3.6.6        knitr_1.52       rlang_1.3.0     </span></span>

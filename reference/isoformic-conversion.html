@@ -19,7 +19,7 @@ first, as those tools expect)."><meta property="og:image" content="https://lucio
 
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9022</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,6 +44,10 @@ first, as those tools expect)."><meta property="og:image" content="https://lucio
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-plots.html">Plots</a></li>
     <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Case studies</h6></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-case-mouse-stress.html">Case study: chronic stress in the mouse brain</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-case-long-reads.html">Case study: a splicing kinase inhibitor in nanopore long reads</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Annotations and tables</h6></li>
     <li><a class="dropdown-item" href="../articles/isoformic-references.html">Other annotations: T2T-CHM13, Ensembl, RefSeq, haplotypes, FANTOM CAT and long reads</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-tables.html">Working with plain tables</a></li>
@@ -66,7 +70,7 @@ first, as those tools expect)."><meta property="og:image" content="https://lucio
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Convert Between IsoformicExperiment and SummarizedExperiment</h1>
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/R/IsoformicExperiment-io.R" class="external-link"><code>R/IsoformicExperiment-io.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/R/IsoformicExperiment-io.R" class="external-link"><code>R/IsoformicExperiment-io.R</code></a></small>
       <div class="d-none name"><code>isoformic-conversion.Rd</code></div>
     </div>
 
@@ -151,7 +155,7 @@ annotation instead of failing.</p></dd>
 <span class="r-in"><span><span class="va">annot</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"example_experiment"</span>, <span class="st">"annotation"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">iso2</span> <span class="op">&lt;-</span> <span class="fu">as_isoformic</span><span class="op">(</span><span class="va">txi</span>, annot_path <span class="op">=</span> <span class="va">annot</span>, col_data <span class="op">=</span> <span class="fu"><a href="IsoformicExperiment-accessors.html">col_data</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">iso2</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;IsoformicExperiment&gt; isoformic_8f3c1587e6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;IsoformicExperiment&gt; isoformic_403673ea9d</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   samples    : 25 [condition]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   transcripts: 499 assayed from 69 genes</span>

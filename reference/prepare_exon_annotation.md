@@ -52,7 +52,7 @@ A tibble with columns `gene_id`, `gene_name`, `transcript_id`,
 ``` r
 gff <- system.file("extdata", "example.gff3", package = "isoformic")
 exons <- prepare_exon_annotation("RBPJ", gff, output_path = tempdir())
-#> ℹ Using cached annotation directory /tmp/RtmpV2WK1u/example.
+#> ℹ Using cached annotation directory /tmp/RtmpmIi7db/example.
 head(exons)
 #> # A tibble: 6 × 12
 #>   gene_id      gene_name transcript_id transcript_name transcript_type haplotype

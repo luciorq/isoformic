@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9022</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,6 +32,10 @@
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-plots.html">Plots</a></li>
     <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Case studies</h6></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-case-mouse-stress.html">Case study: chronic stress in the mouse brain</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-case-long-reads.html">Case study: a splicing kinase inhibitor in nanopore long reads</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Annotations and tables</h6></li>
     <li><a class="dropdown-item" href="../articles/isoformic-references.html">Other annotations: T2T-CHM13, Ensembl, RefSeq, haplotypes, FANTOM CAT and long reads</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-tables.html">Working with plain tables</a></li>
@@ -54,7 +58,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/luciorq/isoformic/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
     <div class="section level2">
@@ -125,11 +129,15 @@
 <code><a href="../reference/profiles.html">profile_data()</a></code> and <code><a href="../reference/profiles.html">plot_tx_expr()</a></code> methods for the object; <code><a href="../reference/enrichment.html">plot_enrichment()</a></code> and <code><a href="../reference/enrichment.html">read_gmt()</a></code>.</li>
 <li>
 <code><a href="../reference/summarize_to_gene.html">summarize_to_gene()</a></code> is exported and sums isoforms (abundance-weighted mean for <code>length</code> assays, as <code>tximport</code> does).</li>
+<li>Case study articles built from complete public datasets: chronic stress in the male mouse adBNST (PRJNA984605, Salmon and swish with batch adjustment) and a CLK inhibitor in prostate cancer cells sequenced with Oxford Nanopore long reads (GSE259334, Oarfish and swish on the bootstrap replicates) (<a href="https://github.com/luciorq/isoformic/issues/12" class="external-link">#12</a>). The processed bundles live in <code>vignettes/articles/data/</code> (not installed) and are rebuilt from the SRA reads by the scripts in <code>data-raw/case_studies/</code>.</li>
+<li>The articles cite the isoformic paper (<a href="https://github.com/luciorq/isoformic/issues/24" class="external-link">#24</a>, <a href="https://github.com/luciorq/isoformic/issues/25" class="external-link">#25</a>) and <code>inst/CITATION</code> carries its DOI.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="changed-0-2-0">Changed<a class="anchor" aria-label="anchor" href="#changed-0-2-0"></a></h3>
 <ul><li>
 <code><a href="../reference/plot_genomic_context.html">plot_genomic_context()</a></code> is a pure <code>ggplot2</code> implementation reading the exon table of the annotation (one row per transcript, introns with strand arrows, expression labels and highlighted differentially expressed isoforms); it no longer needs <code>plotgardener</code>, <code>txdbmaker</code>, <code>TxDb</code>, <code>OrgDb</code> or <code>BSgenome</code> packages. <code><a href="../reference/plot_genomic_context.html">plot_tx_context()</a></code> is now an alias of its data frame method and accepts the legacy column names.</li>
+<li>
+<code><a href="../reference/plot_genomic_context.html">plot_genomic_context()</a></code> labels each transcript on the y axis, aligned with its track (the labels floated above the tracks and overlapped transcripts starting at the left edge), and prints expression labels without padded zeros. As a plain <code>ggplot2</code> object it renders the same on every graphics device, including Cairo and the RStudio plot panel (<a href="https://github.com/luciorq/isoformic/issues/21" class="external-link">#21</a>).</li>
 <li>
 <code><a href="../reference/plot_log2fc.html">plot_log2fc()</a></code> facets several genes, orders the gene bar first and uses a common theme; <code><a href="../reference/plot_log2fc.html">plot_log2FC()</a></code> is kept as a wrapper.</li>
 <li>
@@ -142,6 +150,17 @@
 <li>
 <code><a href="../reference/download_reference.html">download_reference()</a></code> discovers files by listing the release directory on the server instead of relying on hard-coded file names, so any current or future GENCODE release (and genome patch, e.g. <code>GRCh38.p15</code>) works. New <code>region</code> argument (<code>"all"</code>, <code>"chr"</code>, <code>"primary"</code>) selects the annotation flavour; versions are normalised (<code>49</code>, <code>"v49"</code>, <code>"38"</code> for mouse). Errors are specific: no internet, release not found (listing the latest releases), file not found in the release (listing the candidates), and failed or empty transfers (partial files are removed). Defaults: GENCODE release 49, <code>file_type = "gff"</code>, <code>output_path = ":cache:"</code>.</li>
 <li>Development tooling: <code>jarl.toml</code> (all jarl rules), a <code>jarl-check</code> GitHub workflow, lint and test-coverage workflows, and justfile recipes aligned with <code>condathis</code>.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="fixed-0-2-0">Fixed<a class="anchor" aria-label="anchor" href="#fixed-0-2-0"></a></h3>
+<ul><li>
+<code><a href="../reference/enrichment.html">run_enrichment()</a></code> and <code><a href="../reference/productivity.html">run_productivity_enrichment()</a></code> run <code>fgsea</code> with <code><a href="https://rdrr.io/pkg/BiocParallel/man/SerialParam-class.html" class="external-link">BiocParallel::SerialParam()</a></code> unless <code>BPPARAM</code> or <code>nproc</code> is given; the default socket cluster failed (<code><a href="https://rdrr.io/r/base/serialize.html" class="external-link">serialize()</a></code> errors) or hung on Windows (<a href="https://github.com/luciorq/isoformic/issues/9" class="external-link">#9</a>).</li>
+<li>
+<code>stream_fasta()</code> drops the carriage returns of Windows (CRLF) FASTA files.</li>
+<li>DuckDB connections set their extension, secret and temporary directories under the session temporary directory, which silences the storage warnings of DuckDB 2.0.</li>
+<li>
+<code><a href="../reference/build_frozen_data.html">build_frozen_nmd_exons()</a></code> no longer replaces the Ensembl <code>gene_id</code> with the StringTie <code>GeneID</code> of the source table.</li>
+<li>The default tests, examples and site build use only the bundled data; everything that downloads references or runs external tools runs only with <code>ISOFORMIC_FULL=true</code>.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="removed-0-2-0">Removed<a class="anchor" aria-label="anchor" href="#removed-0-2-0"></a></h3>

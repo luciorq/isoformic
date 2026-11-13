@@ -269,7 +269,7 @@ head(de_gene(iso))
 #> 2 ENSG00000115415.22    435.   0.00000191  0.00144 0.452    0.614   no     
 #> 3 ENSG00000100906.13   1212.  -0.00000132  0.00144 0.362    0.614   no     
 #> 4 ENSG00000271503.7   20364.  -0.000000869 0.00144 0.477    0.614   no     
-#> 5 ENSG00000184557.5     241.   0.000000809 0.00144 0.586    0.659   no     
+#> 5 ENSG00000184557.5     241.   0.000000810 0.00144 0.586    0.659   no     
 #> 6 ENSG00000073756.13     63.9  0.000000600 0.00144 0.438    0.614   no
 iso
 #> <IsoformicExperiment> mini_placenta
@@ -333,13 +333,13 @@ Parquet files and restored with
 out_dir <- fs::path(tempdir(), "mini_placenta")
 iso <- write_isoformic(iso, out_dir, overwrite = TRUE)
 iso@data_path
-#> [1] "/tmp/RtmpvXfAHM/mini_placenta"
+#> [1] "/tmp/Rtmpz3YaIS/mini_placenta"
 fs::dir_ls(out_dir)
-#> /tmp/RtmpvXfAHM/mini_placenta/assays
-#> /tmp/RtmpvXfAHM/mini_placenta/col_data.parquet
-#> /tmp/RtmpvXfAHM/mini_placenta/dea
-#> /tmp/RtmpvXfAHM/mini_placenta/experiment.parquet
-#> /tmp/RtmpvXfAHM/mini_placenta/tx_type_palette.parquet
+#> /tmp/Rtmpz3YaIS/mini_placenta/assays
+#> /tmp/Rtmpz3YaIS/mini_placenta/col_data.parquet
+#> /tmp/Rtmpz3YaIS/mini_placenta/dea
+#> /tmp/Rtmpz3YaIS/mini_placenta/experiment.parquet
+#> /tmp/Rtmpz3YaIS/mini_placenta/tx_type_palette.parquet
 ```
 
 ## Long reads with Oarfish
@@ -374,7 +374,7 @@ iso_long <- read_oarfish(
   inferential = TRUE
 )
 iso_long
-#> <IsoformicExperiment> isoformic_8920c3481a
+#> <IsoformicExperiment> isoformic_7670d839a2
 #>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)
 #>   samples    : 3 [oarfish_num_processed, oarfish_num_mapped, oarfish_percent_mapped, oarfish_replicate_type, oarfish_num_replicates, oarfish_optimiser, oarfish_alignment_source, oarfish_prob_model, oarfish_qc_flag]
 #>   transcripts: 72 assayed from 3 genes
@@ -452,6 +452,11 @@ The inferential replicates imported above can be stored in
 [`productive_fraction()`](https://luciorq.github.io/isoformic/reference/productivity.md)
 reports the uncertainty of each fraction.
 
+## Citing isoformic
+
+If you use `isoformic` in publications, please cite Mamede et al.
+([2025](#ref-isoformic)); `citation("isoformic")` prints the reference.
+
 ## Session information
 
 ``` r
@@ -484,11 +489,11 @@ sessionInfo()
 #>  [5] Seqinfo_1.2.0               IRanges_2.46.0             
 #>  [7] S4Vectors_0.50.3            BiocGenerics_0.58.1        
 #>  [9] generics_0.1.4              MatrixGenerics_1.24.0      
-#> [11] matrixStats_1.5.0           isoformic_0.1.2.9022       
+#> [11] matrixStats_1.5.0           isoformic_0.1.3            
 #> 
 #> loaded via a namespace (and not attached):
 #>   [1] DBI_1.3.0                   bitops_1.1-0               
-#>   [3] httr2_1.3.0                 biomaRt_2.68.0             
+#>   [3] httr2_1.3.0                 biomaRt_2.68.6             
 #>   [5] rlang_1.3.0                 magrittr_2.0.5             
 #>   [7] otel_0.3.0                  compiler_4.6.2             
 #>   [9] RSQLite_3.53.3              GenomicFeatures_1.64.0     
@@ -547,6 +552,11 @@ sessionInfo()
 ```
 
 ## References
+
+Mamede, Izabela, Lucio R. Queiroz, Carlos Mata-Machado, et al. 2025.
+“Isoformic: A Workflow for Transcript-Level RNA-seq Interpretation.”
+*NAR Genomics and Bioinformatics* 7 (4): lqaf176.
+<https://doi.org/10.1093/nargab/lqaf176>.
 
 Patro, R, G Duggal, MI Love, RA Irizarry, and C Kingsford. 2017. “Salmon
 Provides Fast and Bias-Aware Quantification of Transcript Expression.”

@@ -49,7 +49,7 @@ The annotation directory path, invisibly.
 ``` r
 gff <- system.file("extdata", "example.gff3", package = "isoformic")
 annot <- prepare_isoformic_annotation(gff, output_path = tempdir(), annot_name = "sqanti_demo")
-#> ℹ Parsing example.gff3 (GFF) into /tmp/RtmpV2WK1u/sqanti_demo.
+#> ℹ Parsing example.gff3 (GFF) into /tmp/RtmpmIi7db/sqanti_demo.
 tx <- read_parquet(file.path(annot, "annot_data_transcripts.parquet"))
 classification <- data.frame(
   isoform = tx$transcript_id[1:3],
@@ -59,7 +59,7 @@ classification <- data.frame(
 )
 add_sqanti_classification(annot, classification)
 #> ✔ Assigned SQANTI categories to 3 of 72 transcripts in
-#>   /tmp/RtmpV2WK1u/sqanti_demo.
+#>   /tmp/RtmpmIi7db/sqanti_demo.
 tx <- read_parquet(file.path(annot, "annot_data_transcripts.parquet"))
 head(tx[, c("transcript_id", "transcript_type")], 4)
 #> # A tibble: 4 × 2

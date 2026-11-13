@@ -70,8 +70,8 @@ merged <- merge_annotations(
   annot_name = "example_diploid",
   overwrite = TRUE
 )
-#> ℹ Using cached annotation directory /tmp/RtmpV2WK1u/example.
-#> ℹ Using cached annotation directory /tmp/RtmpV2WK1u/example.
+#> ℹ Using cached annotation directory /tmp/RtmpmIi7db/example.
+#> ℹ Using cached annotation directory /tmp/RtmpmIi7db/example.
 tx <- read_parquet(file.path(merged, "annot_data_transcripts.parquet"))
 table(tx$haplotype)
 #> 

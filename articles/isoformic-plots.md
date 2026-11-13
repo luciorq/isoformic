@@ -149,6 +149,8 @@ are outlined as well.
 ``` r
 
 plot_genomic_context(iso, gene_name = "FLT1")
+#> Warning: ! 91 transcripts have a sequence length differing from the exon length; their
+#>   ORFs are skipped.
 ```
 
 ![](isoformic-plots_files/figure-html/unnamed-chunk-6-1.png)
@@ -196,7 +198,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] isoformic_0.1.2.9022
+#> [1] isoformic_0.1.3
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6       jsonlite_2.0.0     dplyr_1.2.1        compiler_4.6.2    

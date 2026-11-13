@@ -92,7 +92,7 @@ names(quant_dirs) <- sub("_quant$", "", basename(quant_dirs))
 annot <- system.file("extdata", "mini_annotation", package = "isoformic")
 iso <- read_salmon(quant_dirs, annot_path = annot)
 iso
-#> <IsoformicExperiment> isoformic_2da713f64b
+#> <IsoformicExperiment> isoformic_cee6d29e9b
 #>   annotation : gencode_v49_mini_subset (15 genes, 111 transcripts, 1,071 exons)
 #>   samples    : 6
 #>   transcripts: 111 assayed from 15 genes

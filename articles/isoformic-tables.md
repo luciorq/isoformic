@@ -121,7 +121,7 @@ here from the small GFF3 bundled with the package.
 
 gff <- fs::path(extdata, "example.gff3")
 exons <- prepare_exon_annotation("RBPJ", gff, output_path = tempdir())
-#> ℹ Parsing 'example.gff3' (GFF) into '/tmp/RtmpsAIQKr/example'.
+#> ℹ Parsing 'example.gff3' (GFF) into '/tmp/RtmpKEX5bm/example'.
 head(exons)
 #> # A tibble: 6 × 12
 #>   gene_id      gene_name transcript_id transcript_name transcript_type haplotype
@@ -170,6 +170,11 @@ feats[, c("transcript_name", "orf_length", "utr3_length", "nmd_predicted", "tss_
 #> # ℹ 21 more rows
 ```
 
+## Citing isoformic
+
+If you use `isoformic` in publications, please cite Mamede et al.
+([2025](#ref-isoformic)); `citation("isoformic")` prints the reference.
+
 ## Session information
 
 ``` r
@@ -196,7 +201,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] dplyr_1.2.1          isoformic_0.1.2.9022
+#> [1] dplyr_1.2.1     isoformic_0.1.3
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6       jsonlite_2.0.0     compiler_4.6.2     Rcpp_1.1.2        
@@ -210,3 +215,10 @@ sessionInfo()
 #> [33] evaluate_1.0.5     glue_1.8.1         farver_2.1.2       duckdb_2.0.0      
 #> [37] rmarkdown_2.32     tools_4.6.2        pkgconfig_2.0.3    htmltools_0.5.9
 ```
+
+## References
+
+Mamede, Izabela, Lucio R. Queiroz, Carlos Mata-Machado, et al. 2025.
+“Isoformic: A Workflow for Transcript-Level RNA-seq Interpretation.”
+*NAR Genomics and Bioinformatics* 7 (4): lqaf176.
+<https://doi.org/10.1093/nargab/lqaf176>.

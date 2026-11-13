@@ -978,10 +978,10 @@ the draws are not, and are re-read from the Salmon directories with
 out_dir <- fs::path(tempdir(), "knockdown_uncertainty")
 invisible(write_isoformic(iso, out_dir, overwrite = TRUE))
 fs::dir_ls(fs::path(out_dir, "dea"))
-#> /tmp/RtmpIsJCpF/knockdown_uncertainty/dea/ambiguity.parquet
-#> /tmp/RtmpIsJCpF/knockdown_uncertainty/dea/confidence.parquet
-#> /tmp/RtmpIsJCpF/knockdown_uncertainty/dea/det.parquet
-#> /tmp/RtmpIsJCpF/knockdown_uncertainty/dea/uncertainty.parquet
+#> /tmp/RtmpPS4FBh/knockdown_uncertainty/dea/ambiguity.parquet
+#> /tmp/RtmpPS4FBh/knockdown_uncertainty/dea/confidence.parquet
+#> /tmp/RtmpPS4FBh/knockdown_uncertainty/dea/det.parquet
+#> /tmp/RtmpPS4FBh/knockdown_uncertainty/dea/uncertainty.parquet
 tx_uncertainty(read_isoformic(out_dir)) |> head(3)
 #> # A tibble: 3 × 18
 #>   transcript_id     gene_id gene_name transcript_name transcript_type mean_count
@@ -1021,7 +1021,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] dplyr_1.2.1          isoformic_0.1.2.9022
+#> [1] dplyr_1.2.1     isoformic_0.1.3
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] limma_3.68.5       gtable_0.3.6       jsonlite_2.0.0     crayon_1.5.3      

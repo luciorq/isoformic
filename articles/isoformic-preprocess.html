@@ -27,7 +27,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9022</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -53,6 +53,10 @@
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-plots.html">Plots</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Case studies</h6></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-case-mouse-stress.html">Case study: chronic stress in the mouse brain</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-case-long-reads.html">Case study: a splicing kinase inhibitor in nanopore long reads</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Annotations and tables</h6></li>
     <li><a class="dropdown-item" href="../articles/isoformic-references.html">Other annotations: T2T-CHM13, Ensembl, RefSeq, haplotypes, FANTOM CAT and long reads</a></li>
@@ -87,7 +91,7 @@
       <p class="author">Lucio Rezende QueirozIzabela Mamede Conceição</p>
       <p class="date">October 2, 2025</p>
 
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/vignettes/articles/isoformic-preprocess.qmd" class="external-link"><code>vignettes/articles/isoformic-preprocess.qmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/vignettes/articles/isoformic-preprocess.qmd" class="external-link"><code>vignettes/articles/isoformic-preprocess.qmd</code></a></small>
       <div class="d-none name"><code></code></div>
     </div>
 
@@ -287,7 +291,7 @@
 <span><span class="co">#&gt; 2 ENSG00000115415.22    435.   0.00000191  0.00144 0.452    0.614   no     </span></span>
 <span><span class="co">#&gt; 3 ENSG00000100906.13   1212.  -0.00000132  0.00144 0.362    0.614   no     </span></span>
 <span><span class="co">#&gt; 4 ENSG00000271503.7   20364.  -0.000000869 0.00144 0.477    0.614   no     </span></span>
-<span><span class="co">#&gt; 5 ENSG00000184557.5     241.   0.000000809 0.00144 0.586    0.659   no     </span></span>
+<span><span class="co">#&gt; 5 ENSG00000184557.5     241.   0.000000810 0.00144 0.586    0.659   no     </span></span>
 <span><span class="co">#&gt; 6 ENSG00000073756.13     63.9  0.000000600 0.00144 0.438    0.614   no</span></span>
 <span><span class="va">iso</span></span>
 <span><span class="co">#&gt; &lt;IsoformicExperiment&gt; mini_placenta</span></span>
@@ -349,13 +353,13 @@
 <code class="sourceCode R"><span><span class="va">out_dir</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"mini_placenta"</span><span class="op">)</span></span>
 <span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/isoformic-io.html">write_isoformic</a></span><span class="op">(</span><span class="va">iso</span>, <span class="va">out_dir</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">iso</span><span class="op">@</span><span class="va">data_path</span></span>
-<span><span class="co">#&gt; [1] "/tmp/RtmpvXfAHM/mini_placenta"</span></span>
+<span><span class="co">#&gt; [1] "/tmp/Rtmpz3YaIS/mini_placenta"</span></span>
 <span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/dir_ls.html" class="external-link">dir_ls</a></span><span class="op">(</span><span class="va">out_dir</span><span class="op">)</span></span>
-<span><span class="co">#&gt; /tmp/RtmpvXfAHM/mini_placenta/assays</span></span>
-<span><span class="co">#&gt; /tmp/RtmpvXfAHM/mini_placenta/col_data.parquet</span></span>
-<span><span class="co">#&gt; /tmp/RtmpvXfAHM/mini_placenta/dea</span></span>
-<span><span class="co">#&gt; /tmp/RtmpvXfAHM/mini_placenta/experiment.parquet</span></span>
-<span><span class="co">#&gt; /tmp/RtmpvXfAHM/mini_placenta/tx_type_palette.parquet</span></span></code></pre></div>
+<span><span class="co">#&gt; /tmp/Rtmpz3YaIS/mini_placenta/assays</span></span>
+<span><span class="co">#&gt; /tmp/Rtmpz3YaIS/mini_placenta/col_data.parquet</span></span>
+<span><span class="co">#&gt; /tmp/Rtmpz3YaIS/mini_placenta/dea</span></span>
+<span><span class="co">#&gt; /tmp/Rtmpz3YaIS/mini_placenta/experiment.parquet</span></span>
+<span><span class="co">#&gt; /tmp/Rtmpz3YaIS/mini_placenta/tx_type_palette.parquet</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h2 id="long-reads-with-oarfish">Long reads with Oarfish<a class="anchor" aria-label="anchor" href="#long-reads-with-oarfish"></a>
 </h2>
@@ -377,7 +381,7 @@
 <span>  inferential <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">iso_long</span></span>
-<span><span class="co">#&gt; &lt;IsoformicExperiment&gt; isoformic_8920c3481a</span></span>
+<span><span class="co">#&gt; &lt;IsoformicExperiment&gt; isoformic_7670d839a2</span></span>
 <span><span class="co">#&gt;   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)</span></span>
 <span><span class="co">#&gt;   samples    : 3 [oarfish_num_processed, oarfish_num_mapped, oarfish_percent_mapped, oarfish_replicate_type, oarfish_num_replicates, oarfish_optimiser, oarfish_alignment_source, oarfish_prob_model, oarfish_qc_flag]</span></span>
 <span><span class="co">#&gt;   transcripts: 72 assayed from 3 genes</span></span>
@@ -425,6 +429,9 @@
 </section><section class="level2"><h2 id="next-steps">Next steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
 </h2>
 <p>From here the object is analysed like the one of the introduction: <a href="isoformic-diversity.html">transcriptomic diversity</a>, <a href="isoformic-productivity.html">isoform structure and productivity</a>, <a href="isoformic-polyadenylation.html">alternative polyadenylation</a>, <a href="isoformic-enrichment.html">enrichment by transcript type</a> and <a href="isoformic-plots.html">plots</a>. The inferential replicates imported above can be stored in <code>metadata(iso)$inf_reps</code> so that <code><a href="../reference/productivity.html">productive_fraction()</a></code> reports the uncertainty of each fraction.</p>
+</section><section class="level2"><h2 id="citing-isoformic">Citing isoformic<a class="anchor" aria-label="anchor" href="#citing-isoformic"></a>
+</h2>
+<p>If you use <code>isoformic</code> in publications, please cite <span class="citation" data-cites="isoformic">Mamede et al. (<a href="#ref-isoformic" role="doc-biblioref">2025</a>)</span>; <code>citation("isoformic")</code> prints the reference.</p>
 </section><section class="level2"><h2 id="session-information">Session information<a class="anchor" aria-label="anchor" href="#session-information"></a>
 </h2>
 <div class="cell">
@@ -457,11 +464,11 @@
 <span><span class="co">#&gt;  [5] Seqinfo_1.2.0               IRanges_2.46.0             </span></span>
 <span><span class="co">#&gt;  [7] S4Vectors_0.50.3            BiocGenerics_0.58.1        </span></span>
 <span><span class="co">#&gt;  [9] generics_0.1.4              MatrixGenerics_1.24.0      </span></span>
-<span><span class="co">#&gt; [11] matrixStats_1.5.0           isoformic_0.1.2.9022       </span></span>
+<span><span class="co">#&gt; [11] matrixStats_1.5.0           isoformic_0.1.3            </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;   [1] DBI_1.3.0                   bitops_1.1-0               </span></span>
-<span><span class="co">#&gt;   [3] httr2_1.3.0                 biomaRt_2.68.0             </span></span>
+<span><span class="co">#&gt;   [3] httr2_1.3.0                 biomaRt_2.68.6             </span></span>
 <span><span class="co">#&gt;   [5] rlang_1.3.0                 magrittr_2.0.5             </span></span>
 <span><span class="co">#&gt;   [7] otel_0.3.0                  compiler_4.6.2             </span></span>
 <span><span class="co">#&gt;   [9] RSQLite_3.53.3              GenomicFeatures_1.64.0     </span></span>
@@ -521,6 +528,9 @@
 </section><section class="level2 unnumbered"><h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-isoformic" class="csl-entry" role="listitem">
+Mamede, Izabela, Lucio R. Queiroz, Carlos Mata-Machado, et al. 2025. <span>“Isoformic: A Workflow for Transcript-Level <span class="nocase">RNA-seq</span> Interpretation.”</span> <em>NAR Genomics and Bioinformatics</em> 7 (4): lqaf176. <a href="https://doi.org/10.1093/nargab/lqaf176" class="external-link">https://doi.org/10.1093/nargab/lqaf176</a>.
+</div>
 <div id="ref-salmon" class="csl-entry" role="listitem">
 Patro, R, G Duggal, MI Love, RA Irizarry, and C Kingsford. 2017. <span>“Salmon Provides Fast and Bias-Aware Quantification of Transcript Expression.”</span> <em>Nature Methods</em> 14: 417–19. <a href="https://doi.org/10.1038/nmeth.4197" class="external-link">https://doi.org/10.1038/nmeth.4197</a>.
 </div>

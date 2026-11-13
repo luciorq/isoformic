@@ -20,12 +20,13 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/luciorq/isoformic/blob/main/inst/CITATION)
+[`inst/CITATION`](https://github.com/luciorq/isoformic/blob/frozen-data/inst/CITATION)
 
 Mamede I, Queiroz L, Mata-Machado C, Rodrigues J, Luscher-Dias T, de
 Toledo N, Amaral P, Marchionni L, Franco G (2025). “Isoformic: a
 workflow for transcript-level RNA-seq interpretation.” *NAR Genomics and
 Bioinformatics*, **7**(4), lqaf176.
+[doi:10.1093/nargab/lqaf176](https://doi.org/10.1093/nargab/lqaf176).
 
     @Article{,
       title = {Isoformic: a workflow for transcript-level RNA-seq interpretation},
@@ -36,4 +37,5 @@ Bioinformatics*, **7**(4), lqaf176.
       pages = {lqaf176},
       year = {2025},
       publisher = {Oxford University Press},
+      doi = {10.1093/nargab/lqaf176},
     }

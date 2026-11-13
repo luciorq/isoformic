@@ -25,7 +25,7 @@ of add_uncertainty()."><meta property="og:image" content="https://luciorq.github
 
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9022</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,10 @@ of add_uncertainty()."><meta property="og:image" content="https://luciorq.github
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-plots.html">Plots</a></li>
     <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Case studies</h6></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-case-mouse-stress.html">Case study: chronic stress in the mouse brain</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-case-long-reads.html">Case study: a splicing kinase inhibitor in nanopore long reads</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Annotations and tables</h6></li>
     <li><a class="dropdown-item" href="../articles/isoformic-references.html">Other annotations: T2T-CHM13, Ensembl, RefSeq, haplotypes, FANTOM CAT and long reads</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-tables.html">Working with plain tables</a></li>
@@ -72,7 +76,7 @@ of add_uncertainty()."><meta property="og:image" content="https://luciorq.github
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Read Oarfish Quantifications Into an IsoformicExperiment</h1>
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/R/oarfish.R" class="external-link"><code>R/oarfish.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/R/oarfish.R" class="external-link"><code>R/oarfish.R</code></a></small>
       <div class="d-none name"><code>read_oarfish.Rd</code></div>
     </div>
 
@@ -172,7 +176,7 @@ Oarfish prefixes as <code>paths</code>, but not together with Salmon directories
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu">read_oarfish</span><span class="op">(</span><span class="va">prefixes</span>, annot_path <span class="op">=</span> <span class="va">annot</span>, inferential <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">iso</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;IsoformicExperiment&gt; isoformic_382cc0e633</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;IsoformicExperiment&gt; isoformic_edcd44d335</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   samples    : 3 [oarfish_num_processed, oarfish_num_mapped, oarfish_percent_mapped, oarfish_replicate_type, oarfish_num_replicates, oarfish_optimiser, oarfish_alignment_source, oarfish_prob_model, oarfish_qc_flag]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   transcripts: 72 assayed from 3 genes</span>

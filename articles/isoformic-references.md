@@ -146,7 +146,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] isoformic_0.1.2.9022
+#> [1] isoformic_0.1.3
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] compiler_4.6.2  fastmap_1.2.0   cli_3.6.6       tools_4.6.2    

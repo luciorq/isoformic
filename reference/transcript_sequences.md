@@ -88,10 +88,10 @@ from a transcript FASTA) are reported and left out.
 gff <- system.file("extdata", "example.gff3", package = "isoformic")
 fasta <- system.file("extdata", "example_transcripts.fa.gz", package = "isoformic")
 annot <- prepare_isoformic_annotation(gff, output_path = tempdir(), annot_name = "seq_demo")
-#> ℹ Parsing example.gff3 (GFF) into /tmp/RtmpV2WK1u/seq_demo.
+#> ℹ Parsing example.gff3 (GFF) into /tmp/RtmpmIi7db/seq_demo.
 extract_transcript_sequences(annot, transcript_fasta = fasta, overwrite = TRUE)
 #> ✔ Wrote 72 transcript sequences to
-#>   /tmp/RtmpV2WK1u/seq_demo/annot_data_sequences.parquet.
+#>   /tmp/RtmpmIi7db/seq_demo/annot_data_sequences.parquet.
 has_sequences(annot)
 #> [1] TRUE
 head(transcript_sequences(annot)[, c("transcript_id", "seq_length")])

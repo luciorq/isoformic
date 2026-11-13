@@ -56,7 +56,7 @@ The annotation directory path, invisibly.
 ``` r
 gff <- system.file("extdata", "example.gff3", package = "isoformic")
 annot <- prepare_isoformic_annotation(gff, output_path = tempdir(), annot_name = "evidence_demo")
-#> ℹ Parsing example.gff3 (GFF) into /tmp/RtmpV2WK1u/evidence_demo.
+#> ℹ Parsing example.gff3 (GFF) into /tmp/RtmpmIi7db/evidence_demo.
 tx <- read_parquet(file.path(annot, "annot_data_transcripts.parquet"))
 evidence <- data.frame(
   transcript_id = tx$transcript_id[1:2],
@@ -65,7 +65,7 @@ evidence <- data.frame(
 )
 add_annotation_columns(annot, evidence)
 #> ✔ Added 2 columns (riboseq_translated and productivity_evidence) for 2 of 72
-#>   transcripts in /tmp/RtmpV2WK1u/evidence_demo.
+#>   transcripts in /tmp/RtmpmIi7db/evidence_demo.
 tx <- read_parquet(file.path(annot, "annot_data_transcripts.parquet"))
 head(tx[, c("transcript_id", "riboseq_translated")], 3)
 #> # A tibble: 3 × 2

@@ -164,6 +164,7 @@ annot_dir <- prepare_isoformic_annotation(gff_file)
 fs::dir_ls(annot_dir)
 #> /home/runner/.cache/R/isoformic/gencode_v33_chr_patch_hapl_scaff_annotation_gff3/annot_data_exons.parquet
 #> /home/runner/.cache/R/isoformic/gencode_v33_chr_patch_hapl_scaff_annotation_gff3/annot_data_genes.parquet
+#> /home/runner/.cache/R/isoformic/gencode_v33_chr_patch_hapl_scaff_annotation_gff3/annot_data_sequences.parquet
 #> /home/runner/.cache/R/isoformic/gencode_v33_chr_patch_hapl_scaff_annotation_gff3/annot_data_transcripts.parquet
 #> /home/runner/.cache/R/isoformic/gencode_v33_chr_patch_hapl_scaff_annotation_gff3/annot_metadata.parquet
 #> /home/runner/.cache/R/isoformic/gencode_v33_chr_patch_hapl_scaff_annotation_gff3/annot_seq_regions.parquet
@@ -384,16 +385,16 @@ Parquet files and restored with
 out_dir <- fs::path(tempdir(), "preeclampsia_placenta")
 iso <- write_isoformic(iso, out_dir, overwrite = TRUE)
 iso@data_path
-#> [1] "/tmp/RtmpiP6AzE/preeclampsia_placenta"
+#> [1] "/tmp/RtmpgLeZsJ/preeclampsia_placenta"
 fs::dir_ls(out_dir, recurse = TRUE)
-#> /tmp/RtmpiP6AzE/preeclampsia_placenta/assays
-#> /tmp/RtmpiP6AzE/preeclampsia_placenta/assays/abundance.parquet
-#> /tmp/RtmpiP6AzE/preeclampsia_placenta/col_data.parquet
-#> /tmp/RtmpiP6AzE/preeclampsia_placenta/dea
-#> /tmp/RtmpiP6AzE/preeclampsia_placenta/dea/deg.parquet
-#> /tmp/RtmpiP6AzE/preeclampsia_placenta/dea/det.parquet
-#> /tmp/RtmpiP6AzE/preeclampsia_placenta/experiment.parquet
-#> /tmp/RtmpiP6AzE/preeclampsia_placenta/tx_type_palette.parquet
+#> /tmp/RtmpgLeZsJ/preeclampsia_placenta/assays
+#> /tmp/RtmpgLeZsJ/preeclampsia_placenta/assays/abundance.parquet
+#> /tmp/RtmpgLeZsJ/preeclampsia_placenta/col_data.parquet
+#> /tmp/RtmpgLeZsJ/preeclampsia_placenta/dea
+#> /tmp/RtmpgLeZsJ/preeclampsia_placenta/dea/deg.parquet
+#> /tmp/RtmpgLeZsJ/preeclampsia_placenta/dea/det.parquet
+#> /tmp/RtmpgLeZsJ/preeclampsia_placenta/experiment.parquet
+#> /tmp/RtmpgLeZsJ/preeclampsia_placenta/tx_type_palette.parquet
 read_isoformic(out_dir)
 #> <IsoformicExperiment> preeclampsia_placenta
 #>   annotation : gencode_v33_chr_patch_hapl_scaff_annotation_gff3 (67,017 genes, 248,882 transcripts, 1,497,350 exons)
@@ -402,7 +403,7 @@ read_isoformic(out_dir)
 #>   assays     : abundance
 #>   gene assays: derived from transcript assays on demand
 #>   DE results : det (72,385 transcripts), deg (21,637 genes)
-#>   on disk    : /tmp/RtmpiP6AzE/preeclampsia_placenta
+#>   on disk    : /tmp/RtmpgLeZsJ/preeclampsia_placenta
 ```
 
 Every other article starts from this object; the block below is all it
@@ -422,6 +423,11 @@ iso <- IsoformicExperiment(
 de_tx(iso) <- read_parquet(fs::path(extdata, "pe_det.parquet"))
 de_gene(iso) <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
 ```
+
+### Citing isoformic
+
+If you use `isoformic` in publications, please cite Mamede et al.
+([2025](#ref-isoformic)); `citation("isoformic")` prints the reference.
 
 ### Session information
 
@@ -449,7 +455,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] dplyr_1.2.1          isoformic_0.1.2.9022
+#> [1] dplyr_1.2.1     isoformic_0.1.3
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6       jsonlite_2.0.0     compiler_4.6.2     crayon_1.5.3      
@@ -465,6 +471,11 @@ sessionInfo()
 ```
 
 ### References
+
+Mamede, Izabela, Lucio R. Queiroz, Carlos Mata-Machado, et al. 2025.
+“Isoformic: A Workflow for Transcript-Level RNA-seq Interpretation.”
+*NAR Genomics and Bioinformatics* 7 (4): lqaf176.
+<https://doi.org/10.1093/nargab/lqaf176>.
 
 Patro, R, G Duggal, MI Love, RA Irizarry, and C Kingsford. 2017. “Salmon
 Provides Fast and Bias-Aware Quantification of Transcript Expression.”

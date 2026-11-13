@@ -398,7 +398,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] ggplot2_4.0.3        dplyr_1.2.1          isoformic_0.1.2.9022
+#> [1] ggplot2_4.0.3   dplyr_1.2.1     isoformic_0.1.3
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6       jsonlite_2.0.0     compiler_4.6.2     tidyselect_1.2.1  

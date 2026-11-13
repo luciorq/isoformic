@@ -24,10 +24,6 @@ extract_transcript_sequences(
   annot_dir,
   transcript_fasta = download_reference(version = "33", file_type = "fasta")
 )
-#> Warning: ! No sequence found for 21131 of 248882 transcripts.
-#> ℹ Sequence regions concerned: "GL000009.2", "GL000194.1", "GL000195.1",
-#>   "GL000205.2", "GL000209.2", "GL000213.1", "GL000216.2", "GL000218.1",
-#>   "GL000219.1", and "GL000220.1".
 iso <- IsoformicExperiment(
   experiment_name = "preeclampsia_placenta",
   annot_path = annot_dir,
@@ -152,7 +148,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] dplyr_1.2.1          isoformic_0.1.2.9022
+#> [1] dplyr_1.2.1     isoformic_0.1.3
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] vctrs_0.7.3      cli_3.6.6        knitr_1.52       rlang_1.3.0     

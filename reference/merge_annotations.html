@@ -31,7 +31,7 @@ haplotype_summary() uses to compare haplotypes of the same gene."><meta property
 
     <a class="navbar-brand me-2" href="../index.html">isoformic</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9022</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -56,6 +56,10 @@ haplotype_summary() uses to compare haplotypes of the same gene."><meta property
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-plots.html">Plots</a></li>
     <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Case studies</h6></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-case-mouse-stress.html">Case study: chronic stress in the mouse brain</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-case-long-reads.html">Case study: a splicing kinase inhibitor in nanopore long reads</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Annotations and tables</h6></li>
     <li><a class="dropdown-item" href="../articles/isoformic-references.html">Other annotations: T2T-CHM13, Ensembl, RefSeq, haplotypes, FANTOM CAT and long reads</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-tables.html">Working with plain tables</a></li>
@@ -78,7 +82,7 @@ haplotype_summary() uses to compare haplotypes of the same gene."><meta property
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Merge Per-Haplotype Annotations Into One Annotation Directory</h1>
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/R/annotation-tools.R" class="external-link"><code>R/annotation-tools.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/R/annotation-tools.R" class="external-link"><code>R/annotation-tools.R</code></a></small>
       <div class="d-none name"><code>merge_annotations.Rd</code></div>
     </div>
 
@@ -151,8 +155,8 @@ are already unique across haplotypes.</p></dd>
 <span class="r-in"><span>  annot_name <span class="op">=</span> <span class="st">"example_diploid"</span>,</span></span>
 <span class="r-in"><span>  overwrite <span class="op">=</span> <span class="cn">TRUE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Using cached annotation directory <span style="color: #0000BB;">/tmp/RtmpV2WK1u/example</span>.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Using cached annotation directory <span style="color: #0000BB;">/tmp/RtmpV2WK1u/example</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Using cached annotation directory <span style="color: #0000BB;">/tmp/RtmpmIi7db/example</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Using cached annotation directory <span style="color: #0000BB;">/tmp/RtmpmIi7db/example</span>.</span>
 <span class="r-in"><span><span class="va">tx</span> <span class="op">&lt;-</span> <span class="fu"><a href="parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">merged</span>, <span class="st">"annot_data_transcripts.parquet"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">tx</span><span class="op">$</span><span class="va">haplotype</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>

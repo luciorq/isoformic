@@ -467,6 +467,13 @@ validated NMD exons, PolyASite, GTEx) and the coding potential model.
   type](https://luciorq.github.io/isoformic/articles/isoformic-enrichment.md):
 - [Plots](https://luciorq.github.io/isoformic/articles/isoformic-plots.md):
 
+### Case studies
+
+- [Case study: chronic stress in the mouse
+  brain](https://luciorq.github.io/isoformic/articles/isoformic-case-mouse-stress.md):
+- [Case study: a splicing kinase inhibitor in nanopore long
+  reads](https://luciorq.github.io/isoformic/articles/isoformic-case-long-reads.md):
+
 ### Annotations and tables
 
 - [Other annotations: T2T-CHM13, Ensembl, RefSeq, haplotypes, FANTOM CAT
