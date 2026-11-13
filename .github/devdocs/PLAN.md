@@ -199,6 +199,71 @@ Acceptance: identical consensus to the shell run.
 - [x] L4 Summaries and models (part C), bundled under inst/extdata/knockdown/stability
 - [x] L5 Article isoformic-quantification-stability.qmd, pkgdown, NEWS; checks
 
+## Backlog
+
+- [ ] Evaluate shared-memory parallelism with `mirai`, `mizu` and `mori`, and
+      whether to adopt one. Today fgsea runs serially unless the user passes
+      `nproc` or `BPPARAM`, and those fork the session with BiocParallel.
+      Forked workers share the session's pages, but tools that sum resident
+      memory (Slurm accounting without `UsePss`, `top`) count the session once
+      per worker. This was the likely source of a reported 160 GB peak.
+      Starting point: several fgsea runs, one per contrast and gene set
+      collection, from one `productive_fraction()` table
+      (`run_productivity_enrichment()`, `run_enrichment()`). Compare wall time,
+      physical memory (PSS, cgroup peak) and summed RSS against the serial
+      default and `MulticoreParam`. Check that worker counts follow the
+      scheduler's allocation, not the node's core count, and what each package
+      adds to `Imports` or `Suggests` and to `pixi.toml`.
+- [ ] Persist the inferential replicates. `write_isoformic()` drops
+      `metadata$inf_reps`. The documented route, `inferential_replicates_table()`
+      and `write_parquet()`, is a long table of one row per transcript, sample
+      and draw. At 30k transcripts x 12 samples x 20 draws the audit of
+      2026-11-12 measured 3.5x the draws for the table, 14x for reading it back
+      and 13x for `as_inferential_replicates()`. At 295k x 100 samples x 100
+      draws it would have 2.95e9 rows, more than a data frame can hold.
+      Proposal: one wide Parquet file per draw under `<path>/inf_reps/`
+      (`draw_0001.parquet`, ...), written and read with
+      `write_assay_dir()`/`read_assay_dir()`, and the replicate type in
+      `metadata.parquet`. The same layout round-tripped `identical()` in the
+      audit. A second step could let `draws_view()` read draw k from disk on
+      demand.
+- [ ] Draws as a view in subsets. Since `40ed686`, `x[i, j]` gives every subset
+      its own copy of the kept draws (1.3 GB per 6-sample contrast at 295k x 12
+      x 100). Proposal: keep `metadata$inf_reps` shared, record the selected
+      transcripts and samples, and read every draw through one accessor that
+      applies the selection. The consumers are `resolve_inf_reps()`,
+      `draws_view()` and `R/usage.R`. Trade-off: the parent's draws stay alive
+      while any subset exists. Passing `levels =` avoids the copy today.
+- [ ] DuckDB limits. `duckdb_connect()` uses DuckDB's defaults: all cores, and
+      80% of the RAM the kernel reports, which on a Slurm node is the node's
+      RAM, not the job's. Under `ulimit -v` the default configuration failed to
+      connect, and `threads = 2` worked. Proposal: options
+      `isoformic.duckdb_threads` and `isoformic.duckdb_memory_limit` passed in
+      the connection config. Defaults could come from `SLURM_CPUS_PER_TASK` /
+      `SLURM_MEM_PER_NODE` or cgroup limits; check first what the duckdb
+      version shipped by conda-forge (1.5.x) already detects. Update
+      `R/isoformic-options.R`, including the count of options.
+- [ ] `clear_cache(self)` in `add_uncertainty()`. The audit argues that no
+      cached value depends on `dea`, `metadata` or `col_data`, the parts that
+      `add_uncertainty()` changes, so the call only forces a recomputation of
+      `transcript_features()` (49 s at 295k) and `transcript_productivity()`.
+      This was not verified. Before removing it, check every
+      `object_cache_fetch()` signature and run `test-uncertainty.R` and
+      `test-productivity.R`.
+- [ ] Finish the memory audit of 2026-11-12. Its auditors for `R/uncertainty.R`,
+      usage and enrichment (`R/usage.R`, `R/dea.R`, diversity, profiles,
+      polyadenylation), the annotation side (`R/annotation.R`, `R/orfs.R`,
+      `R/sequences.R`, `R/splice-sites.R`, `R/transcript-features.R`) and
+      productivity correctness (old against new `productive_fraction()`
+      results) did not report. The partial benchmark is in
+      `/tmp/claude-1000/-home-luciorq-projects-isoformic/94895e23-efb5-4e32-9cd2-8c7ba05aad7c/scratchpad/audit/bench-current/logs/results.csv`
+      (temporary; real GENCODE v49, 12 samples, 25 draws). Rerun on GENCODE 50.
+- [ ] Gated memory benchmark (`data-raw/benchmark_memory.R`, a `just` recipe).
+      It reports the peak above the start, as a multiple of the size of the
+      draws, for `read_inferential_replicates()`, `add_uncertainty(paths = )`,
+      `productive_fraction()` and `x[, j]`. No test catches a regression like
+      the per-draw copies of the old `productive_fraction()`.
+
 ## Log
 
 - 2026-10-23: plan created. State before starting: R CMD check OK, all tests
@@ -346,4 +411,9 @@ Acceptance: identical consensus to the shell run.
   applied; baseline of the AlphaGenome pilot evaluation written and run
   (`data-raw/alphagenome/03_evaluate.R`, numbers in
   `ALPHAGENOME-BENCHMARK.md` section 4); first step of U5 applied
-  (`equivalence_identifiability()`). Then: identifiability in `de_confidence()`, `protein_coding_LoF` unproductive. Open: ranges of U5, U10, A5, A6, A9 (release does not exist yet).
+  (`equivalence_identifiability()`). Then: identifiability in `de_confidence()`, `protein_coding_LoF` unproductive. AlphaGenome
+  pilot finished (A3): no gain over the baseline, A6 closed. Open: ranges of
+  U5, U10, A5 (needs measured intron coverage), rerun of the v50 benchmark
+  table with the retrained coding model (A8), A9
+  (APPRIS uploaded; licence question and other datasets in
+  `ALPHAGENOME-BENCHMARK.md`).

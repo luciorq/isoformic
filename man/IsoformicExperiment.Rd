@@ -113,6 +113,12 @@ restricted to the kept transcripts (a collapsed ambiguity group stays only
 with all its members); when samples are dropped they are not recomputed,
 and a message says so. Differential expression and enrichment
 results are kept as they are.
+
+A subset holds its own copy of the inferential replicates of the kept
+transcripts and samples. To compare two groups of a larger object, pass
+\code{levels} to the function instead of subsetting: the samples of the other
+groups are ignored and nothing is copied. A subset with other transcripts
+starts with an empty cache of derived tables.
 }
 
 \examples{

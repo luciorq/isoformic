@@ -1,4 +1,4 @@
-## Isoformic 0.2.0 (Development Version)
+## Isoformic 0.1.3 (Development Version)
 
 Release Date: Unreleased
 
@@ -192,6 +192,12 @@ analysis and plot is now first a method on the object.
   condition against the call (reason `not identifiable from the equivalence
   classes`) and returns an `identifiable` column. Off by default, so
   existing results do not change.
+* The coding potential model of `coding_potential()` and
+  `transcript_orfs()` is retrained on GENCODE 50 (9,938 coding and 10,000
+  non-coding transcripts): held-out sensitivity 0.941 and specificity 0.919
+  at the 0.364 cutoff, AUC 0.978. On the same transcripts the previous
+  model (GENCODE 49) has 0.928, 0.936 and 0.977, so `coding_probability`
+  values change slightly and the accuracy does not.
 * `transcript_productivity()` treats the GENCODE biotype
   `protein_coding_LoF` (148 transcripts in release 50) as unproductive when
   `use_biotype = TRUE`: a variant of the reference genome stops its
@@ -463,6 +469,22 @@ analysis and plot is now first a method on the object.
   3.0.3. The tests also pass with `duckdb` 2.0.0.
 * `jsonlite` and `readr` are in `Suggests`. The test that compares the
   inferential overdispersion with `edgeR::catchSalmon()` needs them.
+
+* Lower memory use and faster subsetting on large objects, with the same
+  results. `read_inferential_replicates()` (and `add_uncertainty(paths = )`)
+  holds one sample at a time instead of every sample twice: its peak falls
+  from about 2.5 to about 1 time the size of all the replicates. `x[i, j]`
+  matches the transcripts once instead of twice per replicate (about 9
+  times faster with 295,000 transcripts and 20 replicates), validates the
+  object once, and returns the replicates without a copy when the subset
+  keeps everything. A subset with other transcripts gets its own cache of
+  derived tables, so it no longer replaces those of the object it came
+  from. `gene_assays()`, `as_isoformic()` (IDs without `|`) and
+  `write_isoformic()` no longer make spare copies of the assays.
+* `as_summarized_experiment()` leaves the inferential replicates out of the
+  metadata of the result.
+* `write_isoformic(copy_annotation = TRUE)` does not copy the stored ORF
+  table, which was not valid for the copy.
 
 ### Fixed
 

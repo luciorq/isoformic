@@ -76,74 +76,84 @@ read_inferential_replicates <- function(
 ) {
   rlang::check_required(paths)
   dirs <- resolve_quant_dirs(paths)
-  per_sample <- Map(
-    function(dir, kind) {
-      if (identical(kind, "oarfish")) {
-        read_oarfish_replicates(dir)
-      } else {
-        read_bootstrap_dir(dir)
+  n_sample <- nrow(dirs)
+  ids <- NULL
+  keep <- NULL
+  reps <- NULL
+  samp_type <- NULL
+  available <- NULL
+  # One sample is in memory at a time: its kept transcripts and replicates go
+  # into the matrices of the replicates, which are allocated once
+  for (i in seq_len(n_sample)) {
+    x <- if (identical(dirs$kind[[i]], "oarfish")) {
+      read_oarfish_replicates(dirs$dir[[i]])
+    } else {
+      read_bootstrap_dir(dirs$dir[[i]])
+    }
+    sample_ids <- rownames(x$counts)
+    if (isTRUE(ignore_after_bar)) {
+      sample_ids <- sub("\\|.*$", "", sample_ids)
+    }
+    if (i == 1L) {
+      ids <- sample_ids
+      samp_type <- x$samp_type
+      keep <- seq_along(ids)
+      if (!is.null(transcripts)) {
+        keep <- match(unique(transcripts), ids)
+        keep <- keep[!is.na(keep)]
+        if (!length(keep)) {
+          cli::cli_abort(
+            message = c(
+              x = "None of the requested transcripts are present in the Salmon replicates."
+            ),
+            class = "isoformic_no_annotated_transcripts"
+          )
+        }
       }
-    },
-    dirs$dir,
-    dirs$kind
-  )
-  if (isTRUE(ignore_after_bar)) {
-    per_sample <- lapply(per_sample, function(x) {
-      rownames(x$counts) <- sub("\\|.*$", "", rownames(x$counts))
-      x
-    })
-  }
-  ids <- rownames(per_sample[[1L]]$counts)
-  for (i in seq_along(per_sample)[-1L]) {
-    sample_ids <- rownames(per_sample[[i]]$counts)
-    if (!setequal(sample_ids, ids)) {
-      cli::cli_abort(
-        message = c(
-          x = paste0(
-            "Sample {.val {dirs$sample_id[i]}} was quantified against a ",
-            "different set of transcripts than {.val {dirs$sample_id[1L]}}."
+      rows <- keep
+      available <- ncol(x$counts)
+      n_kept <- if (is.null(n_draws)) available else min(available, n_draws)
+      # Every replicate shares the row and column names
+      shared_names <- list(ids[keep], dirs$sample_id)
+      empty <- vector(typeof(x$counts), 1L)
+      reps <- lapply(seq_len(n_kept), function(k) {
+        matrix(
+          empty,
+          nrow = length(keep),
+          ncol = n_sample,
+          dimnames = shared_names
+        )
+      })
+    } else {
+      if (!setequal(sample_ids, ids)) {
+        cli::cli_abort(
+          message = c(
+            x = paste0(
+              "Sample {.val {dirs$sample_id[i]}} was quantified against a ",
+              "different set of transcripts than {.val {dirs$sample_id[1L]}}."
+            ),
+            i = "Quantify every sample with the same Salmon index."
           ),
-          i = "Quantify every sample with the same Salmon index."
-        ),
-        class = "isoformic_inconsistent_transcripts"
-      )
+          class = "isoformic_inconsistent_transcripts"
+        )
+      }
+      rows <- match(ids, sample_ids)[keep]
+      available <- min(available, ncol(x$counts))
+      if (available < length(reps)) {
+        reps <- reps[seq_len(available)]
+      }
     }
-    per_sample[[i]]$counts <- per_sample[[i]]$counts[ids, , drop = FALSE]
-  }
-  keep <- seq_along(ids)
-  if (!is.null(transcripts)) {
-    keep <- match(unique(transcripts), ids)
-    keep <- keep[!is.na(keep)]
-    if (!length(keep)) {
-      cli::cli_abort(
-        message = c(
-          x = "None of the requested transcripts are present in the Salmon replicates."
-        ),
-        class = "isoformic_no_annotated_transcripts"
-      )
+    for (k in seq_along(reps)) {
+      reps[[k]][, i] <- x$counts[rows, k]
     }
+    rm(x)
   }
-  available <- min(vapply(per_sample, function(x) ncol(x$counts), integer(1L)))
-  if (is.null(n_draws)) {
-    n_draws <- available
-  } else if (n_draws > available) {
+  if (!is.null(n_draws) && n_draws > available) {
     cli::cli_inform(c(
       i = "Only {available} replicate{?s} available per sample; using all of them."
     ))
-    n_draws <- available
   }
-  reps <- lapply(seq_len(n_draws), function(k) {
-    values <- unlist(
-      lapply(per_sample, function(x) x$counts[keep, k]),
-      use.names = FALSE
-    )
-    matrix(
-      values,
-      nrow = length(keep),
-      dimnames = list(ids[keep], dirs$sample_id)
-    )
-  })
-  attr(reps, "samp_type") <- per_sample[[1L]]$samp_type
+  attr(reps, "samp_type") <- samp_type
   reps
 }
 
@@ -445,10 +455,10 @@ read_bootstrap_dir <- function(dir) {
       class = "isoformic_invalid_inferential_replicates"
     )
   }
-  list(
-    counts = matrix(values, nrow = n_tx, dimnames = list(tx, NULL)),
-    samp_type = info$samp_type
-  )
+  # In place: `matrix()` would hold a second copy of the replicates
+  dim(values) <- c(n_tx, n_boot)
+  dimnames(values) <- list(tx, NULL)
+  list(counts = values, samp_type = info$samp_type)
 }
 
 #' Read the equivalence classes of one Salmon output directory

@@ -65,7 +65,12 @@
 #'   on the annotation version.
 #' @param min_size,max_size Minimum and maximum gene set size passed to
 #'   `fgsea`.
-#' @param ... Passed on to `fgsea::fgseaMultilevel()`.
+#' @param ... Passed on to `fgsea::fgseaMultilevel()`. fgsea runs in the
+#'   session unless `nproc` or `BPPARAM` is given. On Unix-like systems these
+#'   fork the session: the workers share its memory, but tools that add up
+#'   the resident memory of the processes count it once per worker. Give the
+#'   number of workers (`nproc = 4`); the default of `BiocParallel` is all
+#'   the cores of the machine but two, whatever a job scheduler allocated.
 #' @param path Path to a GMT file.
 #' @param enrichment_df Result of `run_enrichment()`.
 #' @param n Number of top pathways (by adjusted p-value) to show.

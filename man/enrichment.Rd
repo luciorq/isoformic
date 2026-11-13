@@ -57,7 +57,12 @@ on the annotation version.}
 \item{rank_by}{Statistic that ranks the transcripts: \code{"log2FC"}
 (default), \code{"signed_p"} or \code{"lfc_z"} (see \emph{Ranking}).}
 
-\item{...}{Passed on to \code{fgsea::fgseaMultilevel()}.}
+\item{...}{Passed on to \code{fgsea::fgseaMultilevel()}. fgsea runs in the
+session unless \code{nproc} or \code{BPPARAM} is given. On Unix-like systems these
+fork the session: the workers share its memory, but tools that add up
+the resident memory of the processes count it once per worker. Give the
+number of workers (\code{nproc = 4}); the default of \code{BiocParallel} is all
+the cores of the machine but two, whatever a job scheduler allocated.}
 
 \item{annotation_types}{Transcript types present in the annotation,
 used to choose between \code{processed_transcript} and

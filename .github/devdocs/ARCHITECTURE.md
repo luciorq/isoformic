@@ -297,7 +297,9 @@ all 227,751 shared transcripts.
 
 - Detained-intron candidates (need intron-level coverage, not available
   from the inputs the package reads). `ALPHAGENOME-BENCHMARK.md` has a pilot
-  benchmark of AlphaGenome predictions for this (blocked on an API key).
+  benchmark of AlphaGenome predictions for this (2026-11-12, 500 genes:
+  no gain over the rules plus splice-site strength, predicted intron
+  retention AUC 0.555 for the retained-intron biotype; not integrated).
   Splice-site strength is implemented with first-order matrices
   (`R/splice-sites.R`); a model with dependencies between positions
   (MaxEntScan) is not.

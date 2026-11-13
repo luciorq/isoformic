@@ -1,7 +1,9 @@
 # AlphaGenome pilot benchmark and GENCODE 50 bump: notes
 
-Written 2026-11-11. Status: targets built, scoring blocked on an API key,
-evaluation not written.
+Written 2026-11-11. Status (2026-11-12): pilot finished on 500 genes and
+four conditions. AlphaGenome features do not improve on the rules plus
+splice-site strength (section 4, step 3), so by the stop rule nothing is
+integrated: A6 is closed, A5 stays open without AlphaGenome.
 
 **Where to start.** Section 4 "To resume" has the three commands that
 continue the pilot once a key exists. Section 7 is the backlog (A1 to A9):
@@ -139,7 +141,7 @@ So: NMD biotype recall 0.998, retained intron 0.64, protein coding called
 productive or altered 0.89. Room for AlphaGenome is in the retained-intron
 class and the 463 retained-intron transcripts called `altered_productive`.
 
-### Step 2, `02_score.py` (running since 2026-11-12)
+### Step 2, `02_score.py` (done 2026-11-12, 500 genes, about 3 hours)
 
 Conditions of the pilot: HepG2 (`EFO:0001187`), K562 (`EFO:0002067`),
 frontal cortex (`UBERON:0001870`) and liver (`UBERON:0002107`); all four have
@@ -162,7 +164,7 @@ Resumable (the junction file marks a gene as done), retries with backoff,
 `--list-conditions` and `--smoke` modes. Only `site_scores()`,
 `region_scores()` and `metadata_table()` were checked, on synthetic tracks.
 
-### Step 3, `03_evaluate.R` (baseline written and run; AlphaGenome part not written)
+### Step 3, `03_evaluate.R` (done 2026-11-12)
 
 The script holds the baseline that the AlphaGenome features have to beat:
 the calls of the rules and the splice-site strength of
@@ -199,29 +201,52 @@ grouped by gene, pooled out-of-fold AUC):
   Karousis and 0.963 on retained introns with the intron-number control in
   the model, not the rules alone.
 
-Still planned for the AlphaGenome part:
+Result with the AlphaGenome features (`03_features_alphagenome.R`; observed
+tracks only; one run, seed 1; log in `evaluate.log`, tables in
+`evaluation/` of the work directory). 497 of the 500 genes have a predicted
+junction on their strand and enter the models; the baseline was refitted on
+them, so its numbers differ in the third decimal from the table above.
 
-- Features per transcript: weakest annotated junction (predicted count
-  relative to the gene maximum, zero when not predicted), weakest splice-site
-  probability and usage, the same restricted to junctions absent from the
-  canonical isoform, intron-retention ratio (intronic over flanking exonic
-  coverage) for exon segments that contain a canonical intron.
-- Diagnostics first: match rate of predicted junctions to annotated introns
-  under offsets of -1, 0, +1 on each end; offset of the splice-site peak at
-  canonical sites.
-- Comparisons: rules alone, AlphaGenome alone, both (logistic regression,
-  cross-validation grouped by gene).
-- Truths: Karousis pairs (paired within gene), biotype, and the
-  retained-intron class.
-- Control: GTEx isoform fraction (`gtex_transcript_tpm`) as a feature, to
-  tell splicing information from an expression proxy.
-- Stop rule: if the `retained_intron` and `protein_coding` rows do not
-  improve, do not integrate.
+| Truth | n (positive) | Baseline | Baseline + contained intron | AlphaGenome alone | Rules + AlphaGenome | Baseline + AlphaGenome |
+|---|---|---|---|---|---|---|
+| Karousis NMD against non-NMD | 509 (252) | 0.799 | 0.796 | 0.731 | 0.802 | 0.802 |
+| NMD against protein coding biotype | 15,405 (5,025) | 0.997 | 0.997 | 0.590 | 0.998 | 0.997 |
+| Retained intron against protein coding biotype | 12,125 (1,745) | 0.966 | 0.969 | 0.858 | 0.968 | 0.972 |
+
+- Baseline: rules, PWM and intron number (rules + PWM without the intron
+  number: 0.805, 0.997, 0.963). "Contained intron" is the structural flag
+  that a canonical intron lies inside an exon of the transcript, without any
+  prediction.
+- AlphaGenome feature groups alone, Karousis / retained intron: junction
+  0.704 / 0.829, site and usage 0.675 / 0.774, retention ratio 0.496 /
+  0.555 (the flag alone: 0.496 / 0.633).
+- Diagnostics: 98.6% of the canonical introns and 37.5% of the others are
+  among the predicted junctions; median site probability 0.893 against
+  0.015, usage 0.663 against 0.006; 8 observed junction tracks.
+- Karousis pairs: the NMD transcript has the lower AlphaGenome score more
+  often than the lower PWM score: weakest junction 176 of 241 (73%), novel
+  junction 182 of 245 (74%), novel site 163 of 241 (68%), novel usage 167 of
+  244 (68%), against 61% for the PWM. All sign tests p < 1e-5.
+- Reading. Alone, AlphaGenome is about as good as the PWM on Karousis
+  (0.731 against 0.729) and it orders pairs of the same gene better. Added
+  to the rules and the PWM it changes the AUC by 0.003 (Karousis) and 0.003
+  to 0.006 (retained intron), which one seed and 509 transcripts cannot
+  tell from zero. The predicted retention ratio carries no signal for the
+  retained-intron biotype.
+- Decision by the stop rule: no integration. Consequences: A6 closed; A5
+  cannot use the predicted coverage ratio.
+- Limits: one seed, no confidence intervals; logistic regression on
+  transcript-level minima, which may waste the pairwise signal; the default
+  model version may have seen the pilot genes in training (section 3),
+  which favours AlphaGenome and does not change the decision; the GTEx
+  isoform-fraction control was not run (not needed for a negative result);
+  the retention feature is one design (canonical intron inside an exon over
+  canonical exon coverage) and was not tuned.
 
 ### To resume
 
 ```sh
-export ALPHAGENOME_API_KEY=...        # not on this machine on 2026-11-11
+export ALPHAGENOME_API_KEY=...        # from the git-ignored .env of the package root
 cd data-raw/alphagenome
 pixi run python 02_score.py --work-dir "$ISOFORMIC_ALPHAGENOME_DIR" --list-conditions
 pixi run python 02_score.py --work-dir "$ISOFORMIC_ALPHAGENOME_DIR" --smoke
@@ -283,13 +308,13 @@ day, M = one to two days, L = more.
 |---|---|---|---|---|
 | A1 | `annot_seq_regions.parquet` keeps 1 of 706 sequence regions | S | done | defect |
 | A2 | Frozen source cache is keyed by file name, not by version | S | done | defect |
-| A3 | Finish the pilot: smoke test, conditions, scoring, AlphaGenome part of step 3 (baseline done) | M | API key | benchmark |
+| A3 | Pilot (done 2026-11-12: no improvement over rules + A4) | M | done | benchmark |
 | A4 | Splice-site strength from the annotation itself (no AlphaGenome) | M | done | feature |
 | A5 | Intron-retention evidence for retained-intron transcripts | M-L | A3 or coverage data | feature |
-| A6 | `add_alphagenome_splicing()` evidence tier | L | A3 positive, licence | feature |
+| A6 | `add_alphagenome_splicing()` evidence tier (closed: A3 negative) | L | closed | feature |
 | A7 | Recompute the rules benchmark on GENCODE 50 | S | done | docs |
-| A8 | Retrain the coding potential model on GENCODE 50 | S-M | decision | data |
-| A9 | Upload the rebuilt APPRIS files; Zenodo | S | decision | release |
+| A8 | Retrain the coding potential model on GENCODE 50 (done) | S-M | done | data |
+| A9 | Upload the rebuilt APPRIS files (done); other datasets, Zenodo (open) | S | partly done | release |
 
 **A1. Sequence regions. Done.** GENCODE GFF3 files put one
 `##sequence-region` line before the features of each sequence (706 in v50
@@ -312,7 +337,8 @@ with the old MD5. Fix: the default directory is
 `tests/testthat/test-frozen.R`. The local cache was moved to that layout
 (both APPRIS versions are kept, `e113v49` and `e116v50`).
 
-**A3. Finish the pilot.** Steps in section 4. Decide the conditions after
+**A3. Pilot. Done 2026-11-12, negative** (section 4, step 3). The plan
+was: steps in section 4. Decide the conditions after
 `--list-conditions`: about four, chosen for having observed (not imputed)
 `SPLICE_JUNCTIONS` and `RNA_SEQ` tracks. Budget: 500 genes x conditions requests of
 1 Mb. Then add the AlphaGenome features to `03_evaluate.R` (its baseline is
@@ -366,11 +392,14 @@ retained intron, so no downstream junction and no NMD by the 50-nt rule).
 Evidence that the intron is retained in mature, exported RNA would settle
 them; neither the rules nor the annotation have it. Candidates: AlphaGenome
 intronic over exonic coverage (A3), or measured intron coverage from the
-user's data, which the package does not read. Keep as an open question until
-A3 shows whether the predicted ratio separates anything.
+user's data, which the package does not read. A3 (2026-11-12): the
+predicted ratio does not separate retained-intron transcripts (AUC 0.555),
+so only measured intron coverage is left; open.
 
-**A6. Evidence tier.** Section 5. Only if A3 improves the `retained_intron`
-or `protein_coding` rows over the rules plus A4.
+**A6. Evidence tier. Closed 2026-11-12.** Section 5. The condition was
+that A3 improves the `retained_intron` or `protein_coding` rows over the
+rules plus A4; it does not. The non-commercial terms and the open question
+of redistributing predictions (section 3) would also have stood in the way.
 
 **A7. Benchmark table. Done.** `ARCHITECTURE.md` "Benchmark of the sequence
 rules" now holds the full GENCODE v50 run (646,577 transcripts with
@@ -383,13 +412,32 @@ stops the translation. The benchmark uses `use_biotype = FALSE`, so its
 numbers do not change. Result kept in `benchmark_v50.rds` in the work
 directory.
 
-**A8. Coding model.** `data-raw/build_coding_model.R` has `release <- "49"`;
-`just coding-model` retrains. Coefficients and the 0.364 cutoff may move;
-tests and article numbers that depend on them must be rechecked. No evidence
-that v49 training is a problem.
+**A8. Coding model. Done 2026-11-12.** `data-raw/build_coding_model.R`
+has `release <- "50"`; the shipped model is retrained (9,938 coding, 10,000
+non-coding). Held-out GENCODE 50 transcripts (4,969 and 5,000): sensitivity
+0.941, specificity 0.919, AUC 0.978; the v49 model on the same set: 0.928,
+0.936, 0.977 (part of the set was in its training sample). Equivalent
+models. The default test suite passes. Not rerun with the new model: the
+v50 benchmark table of A7 (`benchmark_v50.rds`) and the articles that state
+productivity counts on full GENCODE.
 
-**A9. Release.** `appris_e116v50.parquet` and
-`appris_domains_e116v50.parquet` are in the local cache only. Until they are
-uploaded to the `frozen-data` release, `fetch_frozen_data()` rebuilds them
-from the APPRIS server (procedure in `data-raw/README.md`). The files are 2.5
-times larger than before (8.1 and 7.3 MB).
+**A9. Release. Done for APPRIS (2026-11-12).** The maintainer created the
+`frozen-data` release of `luciorq/isoformic` (it did not exist before) with
+`appris_e116v50.parquet` and `appris_domains_e116v50.parquet`; the
+downloaded files match the MD5 of `frozen_registry()`. The other frozen
+datasets are not in the release, so `fetch_frozen_data()` still rebuilds
+them from their sources; no Zenodo deposit yet.
+
+Redistribution terms of the frozen datasets, checked on 2026-11-12 (reading
+of the published terms, not legal advice):
+
+| Dataset | Terms found | Source of the terms | Upload |
+|---|---|---|---|
+| `nmd_exons` | Article CC BY 4.0; CC0 waiver for "the data made available in this article" | Permissions block of the full text (Europe PMC, PMC8361881) | yes, with citation |
+| `gtex_transcript_tpm` | GTEx Portal Data License: redistribution allowed; acknowledge the Portal as source with the date; state that v8 is not the most current release; no implied endorsement | `gtexportal.org/home/license` (text taken from the portal application script) | yes, with these statements |
+| `riboseq_orfs` | No licence on the files or READMEs. GENCODE: "All the GENCODE project data is open access". EMBL-EBI: "places no additional restrictions on the use or redistribution of the data", expects attribution | `gencodegenes.org/pages/data_access.html`, `ebi.ac.uk/about/terms-of-use` | probably; not explicit |
+| `polyasite` | No licence on the home, about or atlas pages. Article is CC BY-NC (permissions link of the NAR page); the workflow code is Apache-2.0 | `polyasite.unibas.ch`, GitHub API | unknown; ask the Zavolan lab |
+| `appris`, `appris_domains` | No licence on the data server. The code repository is CC BY-NC-ND 4.0 ("APPRIS by Jose Manuel Rodriguez is licensed under ..."); if that covers the data, a reformatted table is a derivative and may not be distributed | `github.com/appris/appris` `LICENSE.md`; `apprisws.bioinfo.cnio.es/pub/README.md` | uploaded on 2026-11-12 before this check; ask the authors or remove |
+
+Not read: the APPRIS papers, the Ensembl legal page, the Mudge et al. 2022
+paper.

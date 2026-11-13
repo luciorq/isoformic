@@ -117,6 +117,12 @@ S7::method(write_isoformic, IsoformicExperiment) <- function(
     )
   if ((isTRUE(copy_annotation) || annot_inside) && !is.null(annot_path)) {
     fs::dir_copy(annot_path, fs::path(path, "annotation"))
+    # The stored ORF table is not valid for the copy (it is keyed by the file
+    # times of the annotation): it is computed again when it is needed
+    copied_orfs <- fs::path(path, "annotation", "annot_data_orfs.parquet")
+    if (fs::file_exists(copied_orfs)) {
+      fs::file_delete(copied_orfs)
+    }
     annot_path_stored <- "annotation"
   } else {
     annot_path_stored <- annot_path %||% ""
@@ -193,12 +199,27 @@ write_assay_dir <- function(assays, dir, id_col) {
 }
 
 matrix_to_table <- function(m, id_col) {
-  df <- as.data.frame(m, stringsAsFactors = FALSE, optional = TRUE)
-  df <- cbind(
-    stats::setNames(data.frame(rownames(m), stringsAsFactors = FALSE), id_col),
-    df
-  )
-  rownames(df) <- NULL
+  if (!is.matrix(m) || is.null(rownames(m)) || is.null(colnames(m))) {
+    df <- as.data.frame(m, stringsAsFactors = FALSE, optional = TRUE)
+    df <- cbind(
+      stats::setNames(
+        data.frame(rownames(m), stringsAsFactors = FALSE),
+        id_col
+      ),
+      df
+    )
+    rownames(df) <- NULL
+    return(df)
+  }
+  # One vector per column and nothing else: `as.data.frame()` allocates four
+  # per column. The offsets are doubles, so they do not overflow.
+  n <- nrow(m)
+  rows <- seq_len(n)
+  cols <- lapply(seq_len(ncol(m)), function(j) m[(j - 1) * n + rows])
+  names(cols) <- colnames(m)
+  df <- c(stats::setNames(list(rownames(m)), id_col), cols)
+  attr(df, "row.names") <- .set_row_names(n)
+  class(df) <- "data.frame"
   df
 }
 
@@ -418,11 +439,17 @@ as_isoformic <- function(
     )
   }
   assays <- standardize_assays(assays)
-  if (isTRUE(ignore_after_bar)) {
-    assays <- lapply(assays, function(m) {
-      rownames(m) <- sub("\\|.*$", "", rownames(m))
-      m
-    })
+  if (isTRUE(ignore_after_bar) && length(assays)) {
+    # The assays share their row names; they are renamed, which copies them,
+    # only when an ID has a bar
+    ids <- rownames(assays[[1L]])
+    if (any(grepl("|", ids, fixed = TRUE))) {
+      ids <- sub("\\|.*$", "", ids)
+      assays <- lapply(assays, function(m) {
+        rownames(m) <- ids
+        m
+      })
+    }
   }
   annot_dir <- resolve_annot_path(annot_path)
   if (isTRUE(drop_unannotated)) {
@@ -469,6 +496,10 @@ S7::method(as_summarized_experiment, IsoformicExperiment) <- function(
   col_df <- col_df[colnames(assays[[1L]]), , drop = FALSE]
   # Bioconductor tools (DESeq2) expect `counts` to be the first assay
   assays <- assays[order(names(assays) != "counts")]
+  # The inferential replicates stay in the object: in the metadata of the
+  # result they would be written with every saved or serialised copy of it
+  meta <- self@metadata
+  meta[["inf_reps"]] <- NULL
   SummarizedExperiment::SummarizedExperiment(
     assays = assays,
     rowData = row_df,
@@ -478,7 +509,7 @@ S7::method(as_summarized_experiment, IsoformicExperiment) <- function(
         experiment_name = self@experiment_name,
         annot_path = self@annot_path
       ),
-      self@metadata
+      meta
     )
   )
 }

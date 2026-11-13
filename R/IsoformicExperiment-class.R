@@ -69,6 +69,12 @@
 #' and a message says so. Differential expression and enrichment
 #' results are kept as they are.
 #'
+#' A subset holds its own copy of the inferential replicates of the kept
+#' transcripts and samples. To compare two groups of a larger object, pass
+#' `levels` to the function instead of subsetting: the samples of the other
+#' groups are ignored and nothing is copied. A subset with other transcripts
+#' starts with an empty cache of derived tables.
+#'
 #' @param experiment_name Single string naming the experiment.
 #' @param annot_path Annotation directory or GFF3/GTF file.
 #' @param assays Named list of transcript-level matrices (or data frames
@@ -691,12 +697,15 @@ derive_gene_assays <- function(self) {
 #' @noRd
 summarize_assays_to_gene <- function(assays, gene_ids) {
   keep <- !is.na(gene_ids)
-  groups <- gene_ids[keep]
+  all_kept <- all(keep)
+  groups <- if (all_kept) gene_ids else gene_ids[keep]
+  # No copy of an assay when every transcript has a gene, the usual case
+  kept_rows <- function(m) if (all_kept) m else m[keep, , drop = FALSE]
   abundance <- assays[["abundance"]]
   out <- lapply(names(assays), function(nm) {
-    m <- assays[[nm]][keep, , drop = FALSE]
+    m <- kept_rows(assays[[nm]])
     if (identical(tolower(nm), "length") && !is.null(abundance)) {
-      w <- abundance[keep, , drop = FALSE]
+      w <- kept_rows(abundance)
       num <- rowsum(m * w, groups, reorder = TRUE)
       den <- rowsum(w, groups, reorder = TRUE)
       n <- rowsum(rep(1, nrow(m)), groups, reorder = TRUE)
@@ -876,8 +885,11 @@ S7::method(`[`, IsoformicExperiment) <- function(x, i, j, ..., drop = FALSE) {
   # Everything below is subset by ID, never by position
   tx_ids <- if (has_i) subset_ids(i, all_tx, "transcript") else all_tx
   sample_ids <- if (has_j) subset_ids(j, all_samples, "sample") else all_samples
+  # The assays share their dimnames: the positions are matched once
+  tx_rows <- match(tx_ids, all_tx)
+  sample_cols <- match(sample_ids, all_samples)
   new_assays <- lapply(assays, function(m) {
-    m[tx_ids, sample_ids, drop = FALSE]
+    m[tx_rows, sample_cols, drop = FALSE]
   })
   col_data <- attr(x, "col_data", exact = TRUE)
   new_col_data <- col_data[
@@ -925,12 +937,26 @@ S7::method(`[`, IsoformicExperiment) <- function(x, i, j, ..., drop = FALSE) {
       class = "isoformic_stale_uncertainty"
     )
   }
-  # The stored gene assays go first: the validation of the sample table checks
-  # them against the new samples
+  if (!identical(tx_ids, all_tx)) {
+    # Other transcripts: the subset gets its own cache, so that it does not
+    # replace the entries of `x` (keyed by the transcripts) nor keep them
+    # alive. The annotation join does not depend on the transcripts.
+    old_cache <- attr(x, ".cache", exact = TRUE)
+    new_cache <- new.env(parent = emptyenv())
+    shared <- old_cache[["tx_gene_annotation"]]
+    if (!is.null(shared)) {
+      assign("tx_gene_annotation", shared, envir = new_cache)
+    }
+    attr(x, ".cache") <- new_cache
+  }
+  # Everything is set before the one validated assignment (`col_data`), which
+  # checks the new assays and the stored gene assays against the new samples.
+  # The new assays are parts of validated assays: only their hash is renewed.
   attr(x, "gene_assays") <- stored_gene
   attr(x, "metadata") <- metadata
   attr(x, "dea") <- dea
-  x@assays <- new_assays
+  attr(x, "assays") <- new_assays
+  attr(x, "assays_hash") <- rlang::hash(new_assays)
   x@col_data <- new_col_data
   x
 }
@@ -987,6 +1013,10 @@ subset_ids <- function(index, ids, what) {
 #' The draws may hold fewer transcripts than the assays ([add_uncertainty()]
 #' keeps the expressed ones), so rows are matched by ID. Draws that do not
 #' have every sample are left as they are; their consumers report them.
+#'
+#' Draws usually share their dimnames, so the positions are matched once and
+#' reused, the new draws share one dimnames list, and a draw that already is
+#' the selection is returned as it is, without a copy.
 #' @keywords internal
 #' @noRd
 subset_inf_reps <- function(reps, tx_ids, sample_ids) {
@@ -994,16 +1024,45 @@ subset_inf_reps <- function(reps, tx_ids, sample_ids) {
     return(reps)
   }
   extra <- attributes(reps)
-  out <- lapply(reps, function(m) {
+  out <- vector("list", length(reps))
+  last_dn <- NULL
+  rows <- NULL
+  cols <- NULL
+  new_dn <- NULL
+  unchanged <- FALSE
+  for (k in seq_along(reps)) {
+    m <- reps[[k]]
+    dn <- dimnames(m)
     if (
       is.null(dim(m)) ||
-        is.null(rownames(m)) ||
-        !all(sample_ids %in% colnames(m))
+        length(dn) != 2L ||
+        is.null(dn[[1L]]) ||
+        !all(sample_ids %in% dn[[2L]])
     ) {
-      return(m)
+      out[k] <- list(m)
+      next
     }
-    m[tx_ids[tx_ids %in% rownames(m)], sample_ids, drop = FALSE]
-  })
+    if (is.null(last_dn) || !identical(dn, last_dn)) {
+      rows <- match(tx_ids, dn[[1L]])
+      rows <- rows[!is.na(rows)]
+      cols <- match(sample_ids, dn[[2L]])
+      unchanged <- identical(rows, seq_along(dn[[1L]])) &&
+        identical(cols, seq_along(dn[[2L]]))
+      new_dn <- dn
+      new_dn[[1L]] <- dn[[1L]][rows]
+      new_dn[[2L]] <- dn[[2L]][cols]
+      last_dn <- dn
+    }
+    if (unchanged && is.matrix(m) && length(attributes(m)) == 2L) {
+      out[k] <- list(m)
+      next
+    }
+    res <- m[rows, cols, drop = FALSE]
+    if (is.matrix(res)) {
+      dimnames(res) <- new_dn
+    }
+    out[k] <- list(res)
+  }
   is_empty <- vapply(
     out,
     function(m) !is.null(dim(m)) && nrow(m) == 0L,
