@@ -12,14 +12,21 @@ uncertainty* by drawing replicates from the posterior of the abundances
 (Gibbs sampling, `--numGibbsSamples`, 30 by default in
 [`salmon_quant()`](https://luciorq.github.io/isoformic/reference/salmon_quant.md))
 and by writing the equivalence classes (`--dumpEq`) and a run summary
-(`meta_info.json`). `isoformic` turns them into four kinds of evidence
-for every isoform and one confidence class for every differential
-expression call:
+(`meta_info.json`). Gibbs samples resolve low counts better than
+bootstrap replicates, and the overdispersion used further down to scale
+counts is precise once the study has at least 60 degrees of freedom,
+counted as samples times replicates minus one (200 to 300 preferred)
+([Baldoni, L. Chen, et al. 2024](#ref-baldoni2024gibbs)): 30 draws are
+enough from three samples up, and
+[`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
+says so when a study falls short. `isoformic` turns them into four kinds
+of evidence for every isoform and one confidence class for every
+differential expression call:
 
 | Evidence | Question it answers | Columns |
 |----|----|----|
 | Quantification uncertainty | Is the abundance determined by the reads? | `mean_inf_rv`, `uncertain` |
-| Identifiability | Can the isoform be told apart from its siblings? | `min_sibling_cor`, `ambiguity_group` |
+| Ambiguity between isoforms | Can the isoform be told apart from its siblings? | `min_sibling_cor`, `ambiguity_group` |
 | Read support | How many of its reads map to it alone? | `unique_fraction` |
 | Fold-change stability | Does the contrast survive resampling the quantification? | `lfc_lo`, `lfc_hi`, `sign_agreement`, `frac_draws_sig` |
 
@@ -192,9 +199,12 @@ iso
 has one row per assessed transcript. `mean_inf_rv` is the inferential
 relative variance ([Zhu et al. 2019](#ref-swish)): the variance of the
 draws in excess of the counting noise (the mean), relative to the
-expression, averaged over samples. A well-determined isoform has a value
-near zero; the value of one that shares its reads with others can be
-several units.
+expression, averaged over samples. The formula is the one of `fishpond`
+and Terminus ([*Terminus Enables the Discovery of Data-Driven, Robust
+Transcript Groups from RNA-seq Data* 2020](#ref-terminus)):
+`max(variance - mean, 0) / (mean + 5) + 0.01`. A well-determined isoform
+has a value near zero (0.01 at the least); the value of one that shares
+its reads with others can be several units.
 
 ``` r
 
@@ -220,7 +230,7 @@ table(unc$transcript_type, unc$uncertain)
 #>                                  FALSE TRUE
 #>   nonsense_mediated_decay            1   16
 #>   protein_coding                    31  333
-#>   protein_coding_CDS_not_defined     4   21
+#>   protein_coding_CDS_not_defined     3   22
 #>   retained_intron                   34   41
 ```
 
@@ -250,7 +260,10 @@ taken from the other, and their draws are negatively correlated.
 [`isoform_ambiguity()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
 reports the mean correlation of every pair of isoforms of the same gene;
 pairs at or below `cor_cutoff` (-0.5) are ambiguous and connected into
-`ambiguity_group`s.
+`ambiguity_group`s. This is the idea of `mmcollapse` ([Turro et al.
+2014](#ref-turro2014)), which merges the most anti-correlated
+transcripts until a threshold taken from the data is passed; here the
+cutoff is fixed.
 
 ``` r
 
@@ -315,11 +328,11 @@ conf |>
 #> # A tibble: 10 × 9
 #>    gene_name transcript_name det_log2FC lfc_lo lfc_hi sign_agreement mean_inf_rv
 #>    <chr>     <chr>                <dbl>  <dbl>  <dbl>          <dbl>       <dbl>
-#>  1 OASL      OASL-206              7.11   7.02   7.79              1        2.35
-#>  2 OASL      OASL-211              6.83   6.39   7.35              1        2.36
-#>  3 OASL      OASL-201              5.62   5.29   6.08              1        1.32
-#>  4 ZC3HAV1   ZC3HAV1-204           5.43   5.04   6.53              1        4.71
-#>  5 OASL      OASL-202              4.62   4.21   5.23              1        4.41
+#>  1 OASL      OASL-206              7.11   7.02   7.79              1        2.36
+#>  2 OASL      OASL-211              6.83   6.39   7.35              1        2.37
+#>  3 OASL      OASL-201              5.62   5.29   6.08              1        1.33
+#>  4 ZC3HAV1   ZC3HAV1-204           5.43   5.04   6.53              1        4.72
+#>  5 OASL      OASL-202              4.62   4.21   5.23              1        4.42
 #>  6 FLNB      FLNB-202              4.30   3.28   6.23              1       45.7 
 #>  7 UBE3B     UBE3B-214             3.86   3.02   5.03              1       15.1 
 #>  8 CTNND1    CTNND1-257            3.36   2.47   4.92              1       25.3 
@@ -330,7 +343,7 @@ conf |>
 table(significant = conf$n_det_sig > 0, confidence = conf$confidence, useNA = "ifany")
 #>            confidence
 #> significant high moderate low
-#>       FALSE   13      155 285
+#>       FALSE   13      154 286
 #>       TRUE     3       20   5
 ```
 
@@ -373,7 +386,7 @@ conf |>
 #> 4 ENAH      ENAH-217             -2.03 -3.26  -0.291              1      23.3  
 #> 5 ENAH      ENAH-212              1.99  0.291  3.06               1      18.6  
 #> 6 ENAH      ENAH-215              1.94  0.498  3.53               1      39.5  
-#> 7 SCRIB     SCRIB-207            -1.66 -2.20  -1.30               1       0.340
+#> 7 SCRIB     SCRIB-207            -1.66 -2.20  -1.30               1       0.350
 #> # ℹ 2 more variables: unique_fraction <dbl>, confidence <ord>
 ```
 
@@ -415,11 +428,11 @@ de_confidence(iso_lung, gene_name = "CD44") |>
 #> # A tibble: 5 × 8
 #>   transcript_name lfc_median lfc_lo lfc_hi sign_agreement mean_inf_rv
 #>   <chr>                <dbl>  <dbl>  <dbl>          <dbl>       <dbl>
-#> 1 CD44-201              3.26  2.22   4.57           1            9.90
-#> 2 CD44-248              1.51  0.293  2.47           1            4.87
-#> 3 CD44-247             -1.60 -2.76  -0.167          0.967        6.80
+#> 1 CD44-201              3.26  2.22   4.57           1            9.91
+#> 2 CD44-248              1.51  0.293  2.47           1            4.88
+#> 3 CD44-247             -1.60 -2.76  -0.167          0.967        6.81
 #> 4 CD44-242             -2.25 -3.24  -1.16           1           12.1 
-#> 5 CD44-206             -2.58 -3.61  -1.28           1            8.19
+#> 5 CD44-206             -2.58 -3.61  -1.28           1            8.20
 #> # ℹ 2 more variables: unique_fraction <dbl>, confidence <ord>
 ```
 
@@ -514,14 +527,14 @@ read_split("terminus_comparison")
 #>  4 correlation-grouped transcripts also grouped by Terminus     5420   
 #>  5 Terminus-grouped transcripts also in a correlation group     5420   
 #>  6 correlation pairs also in the same Terminus group            2831   
-#>  7 median InfRV, correlation-grouped                               8.59
+#>  7 median InfRV, correlation-grouped                               8.60
 #>  8 median InfRV, Terminus-grouped                                 15.5 
-#>  9 median InfRV, in neither                                        1.44
-#> 10 large changes (|log2FC| > 1): high, correlation groups        203   
-#> 11 large changes (|log2FC| > 1): moderate, correlation groups   2450   
+#>  9 median InfRV, in neither                                        1.45
+#> 10 large changes (|log2FC| > 1): high, correlation groups        201   
+#> 11 large changes (|log2FC| > 1): moderate, correlation groups   2452   
 #> 12 large changes (|log2FC| > 1): low, correlation groups        1893   
-#> 13 large changes (|log2FC| > 1): high, Terminus groups           203   
-#> 14 large changes (|log2FC| > 1): moderate, Terminus groups      1525   
+#> 13 large changes (|log2FC| > 1): high, Terminus groups           201   
+#> 14 large changes (|log2FC| > 1): moderate, Terminus groups      1527   
 #> 15 large changes (|log2FC| > 1): low, Terminus groups           2818
 ```
 
@@ -531,7 +544,7 @@ group. Terminus groups more transcripts (20,703 against 8,076 of the
 assessed ones), and the isoforms it groups are the most uncertain
 (median inferential relative variance 15.5, against 8.6 for the
 correlation groups and 1.4 for the isoforms in neither). Among the large
-changes the high class stays at 203 isoforms, and about 900 isoforms
+changes the high class stays at 201 isoforms, and about 900 isoforms
 move from moderate to low because a Terminus group counts as an
 ambiguous sibling. Both groupings are heuristics built from the same
 replicates; neither is the truth, and the Terminus groups come from the
@@ -569,21 +582,21 @@ read_split("grouping_comparison")
 #> # A tibble: 3 × 11
 #>   grouping   assessed grouped groups uncertain_left_alone features_after_colla…¹
 #>   <chr>         <int>   <int>  <int>                <int>                  <int>
-#> 1 correlati…   116229    8076   3945                78892                 112258
-#> 2 Terminus     116229   20703   8011                67138                 103692
-#> 3 TreeTermi…   116229   31606   5543                58225                  90326
+#> 1 correlati…   116229    8076   3945                79208                 112258
+#> 2 Terminus     116229   20703   8011                67450                 103692
+#> 3 TreeTermi…   116229   31330   5496                58708                  90555
 #> # ℹ abbreviated name: ¹​features_after_collapse
 #> # ℹ 5 more variables: median_group_inf_rv <dbl>, groups_below_cutoff <dbl>,
 #> #   large_high <int>, large_moderate <int>, large_low <int>
 ```
 
-The trees reach many more of the uncertain isoforms (58,225 are left
-alone, against 67,138 with Terminus and 78,892 with the correlation
+The trees reach many more of the uncertain isoforms (58,708 are left
+alone, against 67,450 with Terminus and 79,208 with the correlation
 rule), and the features they produce are the ones the reads determine:
-the median inferential relative variance of a group is 0.19, against
-2.87 for the Terminus groups, most of which stay uncertain after
+the median inferential relative variance of a group is 0.20, against
+2.88 for the Terminus groups, most of which stay uncertain after
 summing. Grouping more isoforms also flags more of them as ambiguous, so
-fewer large changes stay in the high class (159 against 203). The
+fewer large changes stay in the high class (155 against 201). The
 isoforms still left alone are those whose whole tree stays above the
 cutoff; `unresolved = "root"` merges such trees into one group each.
 TreeTerminus needed 24 minutes and 18 GB of memory for the six samples;
@@ -647,8 +660,8 @@ read_split("replication_rv")
 #>   inferential_rv transcripts same_direction
 #>   <chr>                <int>          <dbl>
 #> 1 below 0.5              104          0.981
-#> 2 0.5 to 2               204          0.951
-#> 3 2 to 10                687          0.86 
+#> 2 0.5 to 2               203          0.951
+#> 3 2 to 10                688          0.86 
 #> 4 above 10               728          0.782
 ```
 
@@ -660,7 +673,7 @@ go into the test:
 estimates how much more variable than Poisson the count of each isoform
 is because of the read ambiguity, as
 [`edgeR::catchSalmon()`](https://rdrr.io/pkg/edgeR/man/catchSalmon.html)
-does ([Baldoni et al. 2024](#ref-baldoni2024)), and
+does ([Baldoni, Y. Chen, et al. 2024](#ref-baldoni2024)), and
 [`scale_counts()`](https://luciorq.github.io/isoformic/reference/inferential-overdispersion.md)
 divides the counts by it. The scaled counts can then be given to any
 count-based test. In the null contrasts above, `edgeR` on the raw counts
@@ -705,11 +718,11 @@ scaled_test |>
   left_join(unc[, c("transcript_id", "gene_name", "transcript_name", "mean_inf_rv")], by = "transcript_id") |>
   select(gene_name, transcript_name, logFC, FDR, mean_inf_rv)
 #>   gene_name transcript_name     logFC          FDR mean_inf_rv
-#> 1      OASL        OASL-211  7.314540 1.634817e-10    2.355846
-#> 2      OASL        OASL-206  8.320536 2.016337e-10    2.350012
-#> 3     ESRP2       ESRP2-202 -2.051695 1.310068e-09    3.126908
-#> 4      OASL        OASL-201  6.929644 1.764658e-09    1.317612
-#> 5   ZC3HAV1     ZC3HAV1-204  9.691498 2.307520e-07    4.709698
+#> 1      OASL        OASL-211  7.314540 1.634817e-10    2.365846
+#> 2      OASL        OASL-206  8.320536 2.016337e-10    2.359797
+#> 3     ESRP2       ESRP2-202 -2.051695 1.310068e-09    3.136908
+#> 4      OASL        OASL-201  6.929644 1.764658e-09    1.327612
+#> 5   ZC3HAV1     ZC3HAV1-204  9.691498 2.307520e-07    4.719698
 ```
 
 ## Testing transcript usage
@@ -890,8 +903,8 @@ dominant_isoform(iso, group = "condition") |>
 #>   <chr>     <chr>     <chr>                                <dbl>           <dbl>
 #> 1 SLK       control   SLK-207                              0.256          14.1  
 #> 2 SLK       knockdown SLK-213                              0.317          26.3  
-#> 3 FGFR2     control   FGFR2-215                            0.433           0.290
-#> 4 FGFR2     knockdown FGFR2-222                            0.259           0.101
+#> 3 FGFR2     control   FGFR2-215                            0.433           0.300
+#> 4 FGFR2     knockdown FGFR2-222                            0.259           0.111
 #> 5 ITGA6     control   ITGA6-212                            0.437          49.2  
 #> 6 ITGA6     knockdown ITGA6-202                            0.704          16.5  
 #> # ℹ 1 more variable: dominant_ambiguous <lgl>
@@ -908,16 +921,21 @@ collects the tables a methods or results section needs:
 
 report <- uncertainty_report(iso)
 names(report)
-#> [1] "settings"    "run"         "transcripts" "genes"       "de"         
-#> [6] "switches"
+#> [1] "settings"    "replicates"  "run"         "transcripts" "genes"      
+#> [6] "de"          "switches"
+report$replicates
+#> # A tibble: 1 × 4
+#>   replicate_type n_draws resampling_df median_overdispersion
+#>   <chr>            <int>         <int>                 <dbl>
+#> 1 gibbs               30           174                  6.82
 report$transcripts
 #> # A tibble: 4 × 7
 #>   transcript_type n_assessed n_uncertain pct_uncertain median_inf_rv n_ambiguous
 #>   <chr>                <int>       <int>         <dbl>         <dbl>       <int>
-#> 1 protein_coding         364         333          91.5         7.47           25
-#> 2 retained_intron         75          41          54.7         0.589           1
-#> 3 protein_coding…         25          21          84           1.32            0
-#> 4 nonsense_media…         17          16          94.1         4.76            0
+#> 1 protein_coding         364         333          91.5         7.48           25
+#> 2 retained_intron         75          41          54.7         0.599           1
+#> 3 protein_coding…         25          22          88           1.33            0
+#> 4 nonsense_media…         17          16          94.1         4.77            0
 #> # ℹ 1 more variable: median_unique_fraction <dbl>
 report$de
 #> # A tibble: 3 × 5
@@ -952,7 +970,7 @@ report$switches
 ``` r
 
 uncertainty_methods(iso)
-#> [1] "Transcript abundances were quantified with Salmon 2.8.0 and 30 Gibbs samples per sample were used to measure the inferential uncertainty of each isoform. For every transcript, the inferential relative variance (InfRV; Zhu et al. 2019) was averaged over samples, and transcripts with an InfRV of at least 0.5 were called uncertain. The correlation between the replicates of isoforms of the same gene was averaged over samples, and isoform pairs with a correlation of -0.5 or lower were called ambiguous and grouped. The log2 fold-change of each isoform was recomputed on every replicate (counts scaled to a common library size, pseudocount 5), and a fold-change was called stable when at least 95% of the replicates agreed on its direction. Differentially expressed isoforms were assigned high confidence when the fold-change was stable, the quantification was not uncertain and no sibling isoform was ambiguous, moderate confidence when one of these conditions failed and low confidence when two or more failed. Only transcripts with a mean estimated count of at least 1 were assessed. The contrast was knockdown versus control in the condition variable."
+#> [1] "Transcript abundances were quantified with Salmon 2.8.0 and 30 Gibbs samples per sample were used to measure the inferential uncertainty of each isoform (174 degrees of freedom over the study). For every transcript, the inferential relative variance (InfRV; Zhu et al. 2019) was averaged over samples, and transcripts with an InfRV of at least 0.5 were called uncertain. The correlation between the replicates of isoforms of the same gene was averaged over samples, and isoform pairs with a correlation of -0.5 or lower were called ambiguous and grouped (as in mmcollapse, Turro et al. 2014, with a fixed cutoff). The log2 fold-change of each isoform was recomputed on every replicate (counts scaled to a common library size, pseudocount 5), and a fold-change was called stable when at least 95% of the replicates agreed on its direction. Differentially expressed isoforms were assigned high confidence when the fold-change was stable, the quantification was not uncertain and no sibling isoform was ambiguous, moderate confidence when one of these conditions failed and low confidence when two or more failed. Only transcripts with a mean estimated count of at least 1 were assessed. The contrast was knockdown versus control in the condition variable."
 ```
 
 Some cautions belong in the text as well. The draws describe the
@@ -962,9 +980,20 @@ false positive of the primary test. The cutoffs (`inf_rv_cutoff`,
 `cor_cutoff`, `min_agreement`) are heuristics: rerun
 [`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
 with other values and report how the numbers change. The classes are
-calibrated against nothing but the data at hand. Finally, the contrast
-repeated on each draw is a screening statistic (a Welch test on the log
-scale, with a pseudocount of 5) and does not replace `swish` or
+calibrated against nothing but the data at hand. Two kinds of error are
+outside what the draws can show. An abundance can be non-identifiable,
+with several solutions that explain the reads equally well: only about
+half of the transcripts flagged by the variance of the draws were also
+non-identifiable in that sense in one comparison ([Zheng et al.
+2022](#ref-zheng2022)), so an ambiguous pair is a statement about the
+draws, not a proof. And an estimate can be wrong because the transcript
+the reads came from is missing from the annotation, which shows as read
+coverage that contradicts the model and not as variance ([Ma and
+Kingsford 2019](#ref-ma2019)). With long reads the overdispersion is
+expected close to 1 ([Baldoni, Y. Chen, et al. 2024](#ref-baldoni2024));
+`uncertainty_report()$replicates` gives its median. Finally, the
+contrast repeated on each draw is a screening statistic (a Welch test on
+the log scale, with a pseudocount of 5) and does not replace `swish` or
 `DESeq2`.
 
 ## Saving
@@ -978,21 +1007,22 @@ the draws are not, and are re-read from the Salmon directories with
 out_dir <- fs::path(tempdir(), "knockdown_uncertainty")
 invisible(write_isoformic(iso, out_dir, overwrite = TRUE))
 fs::dir_ls(fs::path(out_dir, "dea"))
-#> /tmp/RtmpPS4FBh/knockdown_uncertainty/dea/ambiguity.parquet
-#> /tmp/RtmpPS4FBh/knockdown_uncertainty/dea/confidence.parquet
-#> /tmp/RtmpPS4FBh/knockdown_uncertainty/dea/det.parquet
-#> /tmp/RtmpPS4FBh/knockdown_uncertainty/dea/uncertainty.parquet
+#> /tmp/RtmptGR3Zm/knockdown_uncertainty/dea/ambiguity.parquet
+#> /tmp/RtmptGR3Zm/knockdown_uncertainty/dea/confidence.parquet
+#> /tmp/RtmptGR3Zm/knockdown_uncertainty/dea/det.parquet
+#> /tmp/RtmptGR3Zm/knockdown_uncertainty/dea/uncertainty.parquet
 tx_uncertainty(read_isoformic(out_dir)) |> head(3)
-#> # A tibble: 3 × 18
+#> # A tibble: 3 × 19
 #>   transcript_id     gene_id gene_name transcript_name transcript_type mean_count
 #>   <chr>             <chr>   <chr>     <chr>           <chr>                <dbl>
 #> 1 ENST00000424832.6 ENSG00… HLA-C     HLA-C-268       protein_coding      755.  
 #> 2 ENST00000494158.5 ENSG00… HLA-C     HLA-C-275       retained_intron       3.83
 #> 3 ENST00000496419.5 ENSG00… HLA-C     HLA-C-276       retained_intron      21.1 
-#> # ℹ 12 more variables: assessed <lgl>, mean_inf_rv <dbl>, max_inf_rv <dbl>,
+#> # ℹ 13 more variables: assessed <lgl>, mean_inf_rv <dbl>, max_inf_rv <dbl>,
 #> #   mean_inf_cv <dbl>, uncertain <lgl>, min_sibling_cor <dbl>,
 #> #   n_ambiguous_partners <int>, ambiguity_group <chr>, n_classes <dbl>,
-#> #   n_fragments <dbl>, n_unique_fragments <dbl>, unique_fraction <dbl>
+#> #   n_fragments <dbl>, n_unique_fragments <dbl>, unique_fraction <dbl>,
+#> #   low_information <lgl>
 ```
 
 ## Session information
@@ -1026,7 +1056,7 @@ sessionInfo()
 #> loaded via a namespace (and not attached):
 #>  [1] limma_3.68.5       gtable_0.3.6       jsonlite_2.0.0     crayon_1.5.3      
 #>  [5] compiler_4.6.2     tidyselect_1.2.1   scales_1.4.0       statmod_1.5.2     
-#>  [9] yaml_2.3.12        fastmap_1.2.0      lattice_0.23-1     ggplot2_4.0.3     
+#>  [9] yaml_2.3.12        fastmap_1.2.0      lattice_0.23-1     ggplot2_4.0.4     
 #> [13] R6_2.6.1           labeling_0.4.3     generics_0.1.4     knitr_1.52        
 #> [17] tibble_3.3.1       DBI_1.3.0          pillar_1.11.1      RColorBrewer_1.1-3
 #> [21] rlang_1.3.0        utf8_1.2.6         xfun_0.62          fs_2.1.0          
@@ -1039,10 +1069,19 @@ sessionInfo()
 
 ## References
 
+Baldoni, Pedro L, Lizhong Chen, and Gordon K Smyth. 2024. “Faster and
+More Accurate Assessment of Differential Transcript Expression with
+Gibbs Sampling and edgeR V4.” *NAR Genomics and Bioinformatics* 6 (4):
+lqae151. <https://doi.org/10.1093/nargab/lqae151>.
+
 Baldoni, Pedro L, Yunshun Chen, Soroor Hediyeh-Zadeh, et al. 2024.
 “Dividing Out Quantification Uncertainty Allows Efficient Assessment of
 Differential Transcript Expression with edgeR.” *Nucleic Acids Research*
 52 (3): e13. <https://doi.org/10.1093/nar/gkad1167>.
+
+Ma, Cong, and Carl Kingsford. 2019. “Detecting, Categorizing, and
+Correcting Coverage Anomalies of RNA-seq Quantification.” *Cell Systems*
+9 (6): 589–599.e7. <https://doi.org/10.1016/j.cels.2019.10.005>.
 
 Munkley, Jennifer, Li Ling, S R Gokul Krishnan, et al. 2019.
 “Androgen-Regulated Transcription of ESRP2 Drives Alternative Splicing
@@ -1061,11 +1100,20 @@ Creating Transcript Trees Using Inferential Replicate Counts.”
 from RNA-seq Data*. 2020. bioRxiv.
 <https://doi.org/10.1101/2020.04.07.029967>.
 
+Turro, Ernest, William J Astle, and Simon Tavaré. 2014. “Flexible
+Analysis of RNA-seq Data Using Mixed Effects Models.” *Bioinformatics*
+30 (2): 180–88. <https://doi.org/10.1093/bioinformatics/btt624>.
+
 Yang, Yueqin, Juw Won Park, Thomas W Bebee, et al. 2016. “Determination
 of a Comprehensive Alternative Splicing Regulatory Network and
 Combinatorial Regulation by Key Factors During the
 Epithelial-to-Mesenchymal Transition.” *Molecular and Cellular Biology*
 36 (11): 1704–19. <https://doi.org/10.1128/MCB.00019-16>.
+
+Zheng, Hongyu, Cong Ma, and Carl Kingsford. 2022. “Deriving Ranges of
+Optimal Estimated Transcript Expression Due to Nonidentifiability.”
+*Journal of Computational Biology* 29 (2): 121–39.
+<https://doi.org/10.1089/cmb.2021.0444>.
 
 Zhu, A, A Srivastava, JG Ibrahim, R Patro, and MI Love. 2019.
 “Nonparametric expression analysis using inferential replicate counts.”

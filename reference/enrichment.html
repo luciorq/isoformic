@@ -80,7 +80,7 @@ plot_enrichment() draws a dot plot of enrichment results."><meta property="og:im
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Transcript-Type Aware Gene Set Enrichment</h1>
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/R/enrichment.R" class="external-link"><code>R/enrichment.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/R/enrichment.R" class="external-link"><code>R/enrichment.R</code></a></small>
       <div class="d-none name"><code>enrichment.Rd</code></div>
     </div>
 
@@ -109,6 +109,7 @@ a <code>tx_to_gene</code> table.</p>
 <span>  tx_types <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  min_size <span class="op">=</span> <span class="fl">15</span>,</span>
 <span>  max_size <span class="op">=</span> <span class="fl">500</span>,</span>
+<span>  rank_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"log2FC"</span>, <span class="st">"signed_p"</span>, <span class="st">"lfc_z"</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -136,7 +137,8 @@ a <code>tx_to_gene</code> table.</p>
 
 <dt id="arg-genesets-list">genesets_list<a class="anchor" aria-label="anchor" href="#arg-genesets-list"></a></dt>
 <dd><p>Named list of character vectors (gene symbols), as
-returned by <code>read_gmt()</code>.</p></dd>
+returned by <code>read_gmt()</code>, or a named list of such lists (see
+<em>Collections of gene sets</em>).</p></dd>
 
 
 <dt id="arg-tx-to-gene">tx_to_gene<a class="anchor" aria-label="anchor" href="#arg-tx-to-gene"></a></dt>
@@ -161,8 +163,18 @@ on the annotation version.</p></dd>
 <code>fgsea</code>.</p></dd>
 
 
+<dt id="arg-rank-by">rank_by<a class="anchor" aria-label="anchor" href="#arg-rank-by"></a></dt>
+<dd><p>Statistic that ranks the transcripts: <code>"log2FC"</code>
+(default), <code>"signed_p"</code> or <code>"lfc_z"</code> (see <em>Ranking</em>).</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed on to <code><a href="https://rdrr.io/pkg/fgsea/man/fgseaMultilevel.html" class="external-link">fgsea::fgseaMultilevel()</a></code>.</p></dd>
+<dd><p>Passed on to <code><a href="https://rdrr.io/pkg/fgsea/man/fgseaMultilevel.html" class="external-link">fgsea::fgseaMultilevel()</a></code>. fgsea runs in the
+session unless <code>nproc</code> or <code>BPPARAM</code> is given. On Unix-like systems these
+fork the session: the workers share its memory, but tools that add up
+the resident memory of the processes count it once per worker. Give the
+number of workers (<code>nproc = 4</code>); the default of <code>BiocParallel</code> is all
+the cores of the machine but two, whatever a job scheduler allocated.</p></dd>
 
 
 <dt id="arg-annotation-types">annotation_types<a class="anchor" aria-label="anchor" href="#arg-annotation-types"></a></dt>
@@ -203,8 +215,44 @@ plotting (default drops MSigDB collection prefixes such as <code>REACTOME_</code
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p><code>run_enrichment()</code> returns a tibble with the <code>fgsea</code> columns
-plus <code>experiment</code> (the transcript category). <code>read_gmt()</code> returns a
+plus <code>experiment</code> (the transcript category), <code>rank_by</code> and, for several
+collections, <code>collection</code>. <code>read_gmt()</code> returns a
 named list. <code>plot_enrichment()</code> returns a <code>ggplot</code> object.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="ranking">Ranking<a class="anchor" aria-label="anchor" href="#ranking"></a></h2>
+
+
+<p><code>rank_by</code> chooses the statistic that ranks the transcripts:</p><ul><li><p><code>"log2FC"</code> (default): the log2 fold-change of the stored results, a
+point estimate that ignores how well it is determined.</p></li>
+<li><p><code>"signed_p"</code>: <code>-log10(pvalue)</code> with the sign of the fold-change, so that
+the test of the differential expression weighs the ranking. A p-value
+of zero gets the largest finite value of the table.</p></li>
+<li><p><code>"lfc_z"</code>: the median fold-change over the inferential replicates
+divided by its standard deviation (<code>lfc_median / lfc_sd</code> of
+<code><a href="uncertainty.html">de_confidence()</a></code>), so that a fold-change the quantification cannot
+determine ranks low. It needs the confidence table that
+<code>add_uncertainty(x, group = )</code> stores, or these two columns in a data
+frame (the table of <code><a href="uncertainty.html">de_confidence()</a></code> works). The ranking has the
+contrast of that table, the last level of <code><a href="uncertainty.html">add_uncertainty()</a></code> against
+the first; a warning (<code>isoformic_contrast_mismatch</code>) says so when most
+of its fold-changes have the sign opposite to the stored results.
+Transcripts that were not assessed, that were collapsed into a group
+or, for an object, that are not in its differential expression results
+are not ranked. A fold-change that is the same in every replicate
+gets the largest finite value of the table.</p></li>
+</ul></div>
+    <div class="section level2">
+    <h2 id="collections-of-gene-sets">Collections of gene sets<a class="anchor" aria-label="anchor" href="#collections-of-gene-sets"></a></h2>
+
+
+<p><code>genesets_list</code> is either one collection (a named list of gene symbol
+vectors) or several (a named list of such lists, for example
+<code>list(hallmark = read_gmt(h), reactome = read_gmt(r))</code>). Each collection is
+tested on its own, so that the adjusted p-values are those of the
+collection, and the result has a <code>collection</code> column, by which
+<code>plot_enrichment()</code> splits its panels. Every gene set and every collection
+needs a name.</p>
     </div>
 
     <div class="section level2">

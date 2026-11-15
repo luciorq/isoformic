@@ -28,6 +28,7 @@ run_enrichment(
   tx_types = NULL,
   min_size = 15,
   max_size = 500,
+  rank_by = c("log2FC", "signed_p", "lfc_z"),
   ...
 )
 
@@ -56,7 +57,8 @@ plot_enrichment(
 - genesets_list:
 
   Named list of character vectors (gene symbols), as returned by
-  `read_gmt()`.
+  `read_gmt()`, or a named list of such lists (see *Collections of gene
+  sets*).
 
 - tx_to_gene:
 
@@ -77,10 +79,21 @@ plot_enrichment(
 
   Minimum and maximum gene set size passed to `fgsea`.
 
+- rank_by:
+
+  Statistic that ranks the transcripts: `"log2FC"` (default),
+  `"signed_p"` or `"lfc_z"` (see *Ranking*).
+
 - ...:
 
   Passed on to
   [`fgsea::fgseaMultilevel()`](https://rdrr.io/pkg/fgsea/man/fgseaMultilevel.html).
+  fgsea runs in the session unless `nproc` or `BPPARAM` is given. On
+  Unix-like systems these fork the session: the workers share its
+  memory, but tools that add up the resident memory of the processes
+  count it once per worker. Give the number of workers (`nproc = 4`);
+  the default of `BiocParallel` is all the cores of the machine but two,
+  whatever a job scheduler allocated.
 
 - annotation_types:
 
@@ -119,8 +132,46 @@ plot_enrichment(
 ## Value
 
 `run_enrichment()` returns a tibble with the `fgsea` columns plus
-`experiment` (the transcript category). `read_gmt()` returns a named
-list. `plot_enrichment()` returns a `ggplot` object.
+`experiment` (the transcript category), `rank_by` and, for several
+collections, `collection`. `read_gmt()` returns a named list.
+`plot_enrichment()` returns a `ggplot` object.
+
+## Ranking
+
+`rank_by` chooses the statistic that ranks the transcripts:
+
+- `"log2FC"` (default): the log2 fold-change of the stored results, a
+  point estimate that ignores how well it is determined.
+
+- `"signed_p"`: `-log10(pvalue)` with the sign of the fold-change, so
+  that the test of the differential expression weighs the ranking. A
+  p-value of zero gets the largest finite value of the table.
+
+- `"lfc_z"`: the median fold-change over the inferential replicates
+  divided by its standard deviation (`lfc_median / lfc_sd` of
+  [`de_confidence()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)),
+  so that a fold-change the quantification cannot determine ranks low.
+  It needs the confidence table that `add_uncertainty(x, group = )`
+  stores, or these two columns in a data frame (the table of
+  [`de_confidence()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
+  works). The ranking has the contrast of that table, the last level of
+  [`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
+  against the first; a warning (`isoformic_contrast_mismatch`) says so
+  when most of its fold-changes have the sign opposite to the stored
+  results. Transcripts that were not assessed, that were collapsed into
+  a group or, for an object, that are not in its differential expression
+  results are not ranked. A fold-change that is the same in every
+  replicate gets the largest finite value of the table.
+
+## Collections of gene sets
+
+`genesets_list` is either one collection (a named list of gene symbol
+vectors) or several (a named list of such lists, for example
+`list(hallmark = read_gmt(h), reactome = read_gmt(r))`). Each collection
+is tested on its own, so that the adjusted p-values are those of the
+collection, and the result has a `collection` column, by which
+`plot_enrichment()` splits its panels. Every gene set and every
+collection needs a name.
 
 ## Examples
 

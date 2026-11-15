@@ -61,8 +61,8 @@ download_reference(
 
 - version:
 
-  Release version. GENCODE: the release number (`"49"`, `49`, or `"M38"`
-  / `"38"` for mouse; default `"49"`). Ensembl: the release number
+  Release version. GENCODE: the release number (`"50"`, `50`, or `"M39"`
+  / `"39"` for mouse; default `"50"`). Ensembl: the release number
   (`"116"`); `NULL` (default) uses the current release. MANE: `"1.5"`;
   `NULL` uses the current release. NCBI/T2T: ignored (the accession
   identifies the assembly version).
@@ -167,10 +167,10 @@ consortium Liftoff, HPRC CAT) extract the FASTA from the assembly with
 ``` r
 if (FALSE) { # \dontrun{
 # GENCODE
-gff_file <- download_reference(version = "49", file_type = "gff")
+gff_file <- download_reference(version = "50", file_type = "gff")
 gtf_file <- download_reference(version = "50", file_type = "gtf", region = "chr")
-gff_file_mouse <- download_reference(version = "M38", organism = "mouse")
-genome_file <- download_reference(version = "49", file_type = "genome_fasta")
+gff_file_mouse <- download_reference(version = "M39", organism = "mouse")
+genome_file <- download_reference(version = "50", file_type = "genome_fasta")
 
 # Ensembl: current human release, Arabidopsis from Ensembl Plants
 ens_gff <- download_reference(reference = "ensembl")

@@ -60,8 +60,8 @@ The path to the annotation directory (character string).
 
 ## Details
 
-Reading a full human GENCODE release (about 3 million features,
-gzip-compressed) takes a few seconds; the result is cached so repeated
+Reading a full human GENCODE release (3 to 4 million features,
+gzip-compressed) takes under a minute; the result is cached so repeated
 calls with the same file and output location return immediately.
 
 The parser is vocabulary-agnostic so that annotations from different
@@ -135,7 +135,7 @@ when no biotype attribute exists.
 ``` r
 gff <- system.file("extdata", "example.gff3", package = "isoformic")
 annot_dir <- prepare_isoformic_annotation(gff, output_path = tempdir())
-#> ℹ Using cached annotation directory /tmp/RtmpmIi7db/example.
+#> ℹ Using cached annotation directory /tmp/RtmpatoNKq/example.
 list.files(annot_dir)
 #> [1] "annot_data_exons.parquet"       "annot_data_genes.parquet"      
 #> [3] "annot_data_transcripts.parquet" "annot_metadata.parquet"        

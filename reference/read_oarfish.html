@@ -76,7 +76,7 @@ of add_uncertainty()."><meta property="og:image" content="https://luciorq.github
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Read Oarfish Quantifications Into an IsoformicExperiment</h1>
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/R/oarfish.R" class="external-link"><code>R/oarfish.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/R/oarfish.R" class="external-link"><code>R/oarfish.R</code></a></small>
       <div class="d-none name"><code>read_oarfish.Rd</code></div>
     </div>
 
@@ -176,7 +176,7 @@ Oarfish prefixes as <code>paths</code>, but not together with Salmon directories
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu">read_oarfish</span><span class="op">(</span><span class="va">prefixes</span>, annot_path <span class="op">=</span> <span class="va">annot</span>, inferential <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">iso</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;IsoformicExperiment&gt; isoformic_edcd44d335</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;IsoformicExperiment&gt; isoformic_885e61b483</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   samples    : 3 [oarfish_num_processed, oarfish_num_mapped, oarfish_percent_mapped, oarfish_replicate_type, oarfish_num_replicates, oarfish_optimiser, oarfish_alignment_source, oarfish_prob_model, oarfish_qc_flag]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   transcripts: 72 assayed from 3 genes</span>
@@ -184,7 +184,7 @@ Oarfish prefixes as <code>paths</code>, but not together with Salmon directories
 <span class="r-out co"><span class="r-pr">#&gt;</span>   gene assays: derived from transcript assays on demand</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   DE results : &lt;none&gt;</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="uncertainty.html">tx_uncertainty</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 18</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 19</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   transcript_id     gene_id gene_name transcript_name transcript_type mean_count</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENST00000512351.5 ENSG00… RBPJ      RBPJ-222        protein_coding       59.9 </span>
@@ -193,10 +193,11 @@ Oarfish prefixes as <code>paths</code>, but not together with Salmon directories
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENST00000512671.5 ENSG00… RBPJ      RBPJ-223        protein_coding        1.19</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENST00000345843.7 ENSG00… RBPJ      RBPJ-203        protein_coding        8.92</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENST00000342295.5 ENSG00… RBPJ      RBPJ-201        protein_coding       41.3 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 12 more variables: assessed &lt;lgl&gt;, mean_inf_rv &lt;dbl&gt;, max_inf_rv &lt;dbl&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 13 more variables: assessed &lt;lgl&gt;, mean_inf_rv &lt;dbl&gt;, max_inf_rv &lt;dbl&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   mean_inf_cv &lt;dbl&gt;, uncertain &lt;lgl&gt;, min_sibling_cor &lt;dbl&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   n_ambiguous_partners &lt;int&gt;, ambiguity_group &lt;chr&gt;, n_classes &lt;dbl&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   n_fragments &lt;dbl&gt;, n_unique_fragments &lt;dbl&gt;, unique_fraction &lt;dbl&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   n_fragments &lt;dbl&gt;, n_unique_fragments &lt;dbl&gt;, unique_fraction &lt;dbl&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   low_information &lt;lgl&gt;</span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

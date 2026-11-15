@@ -93,12 +93,12 @@ by_type |>
 Three different pictures emerge.
 
 - **Protein-coding isoforms are the most uncertain and the most reliably
-  measured.** Their median InfRV is the highest (5.28): they belong to
+  measured.** Their median InfRV is the highest (5.29): they belong to
   genes with many isoforms (median 22) that share their exons, and half
   of them have no fragment of their own. But their InfRV is far above
   the cutoff, so 30 draws rarely put one on the other side (6.2% flip).
 - **Retained-intron, CDS-not-defined and lncRNA isoforms flip most**
-  (17.5%, 14.8% and 16.8%): they have fewer reads and their InfRV sits
+  (17.5%, 14.8% and 16.9%): they have fewer reads and their InfRV sits
   near the cutoff, where a noisier estimate decides the call.
 - **lncRNA trees are the least stable**: 53.3% of lncRNA isoforms are in
   a tree whose transcripts change between 30 and 100 draws, against
@@ -133,12 +133,12 @@ stability("tree_uncertainty") |>
 #> # A tibble: 6 × 5
 #>   type            uncertain isoforms cutoff_flip tree_changed
 #>   <chr>           <lgl>        <int>       <dbl>        <dbl>
-#> 1 protein_coding  FALSE         5598      0.243         0.216
-#> 2 protein_coding  TRUE         53829      0.0437        0.15 
-#> 3 retained_intron FALSE         2709      0.243         0.218
-#> 4 retained_intron TRUE          6266      0.146         0.179
-#> 5 lncRNA          FALSE         4892      0.151         0.549
-#> 6 lncRNA          TRUE          3760      0.189         0.518
+#> 1 protein_coding  FALSE         5498      0.248         0.216
+#> 2 protein_coding  TRUE         53929      0.0432        0.151
+#> 3 retained_intron FALSE         2666      0.245         0.216
+#> 4 retained_intron TRUE          6309      0.146         0.18 
+#> 5 lncRNA          FALSE         4844      0.153         0.548
+#> 6 lncRNA          TRUE          3808      0.19          0.519
 ```
 
 ## What the features say
@@ -173,11 +173,11 @@ bins |>
 
 - **Fragments of its own decide whether an isoform is determined.** The
   median InfRV falls from about 6 for isoforms without a unique fragment
-  to 0.02 for those with most fragments unique, within every type.
+  to 0.03 for those with most fragments unique, within every type.
 - **Sequence identity to siblings works the same way**: isoforms that
   differ from their closest sibling by few bases, or that have few
   exonic bases of their own, are the most uncertain.
-- **More isoforms in the gene, more uncertainty**: from 0.05 for genes
+- **More isoforms in the gene, more uncertainty**: from 0.06 for genes
   with one isoform to about 4 for genes with more than 30.
 - **Uncertainty is not a problem of low counts.** The InfRV rises with
   the number of reads up to a thousand reads: an ambiguous isoform stays
@@ -224,26 +224,26 @@ bins |>
 #> # A tibble: 20 × 7
 #>    feature       type      level isoforms median_inf_rv cutoff_flip tree_changed
 #>    <chr>         <chr>     <chr>    <int>         <dbl>       <dbl>        <dbl>
-#>  1 contained     all       no       59897          2.28      0.105         0.208
-#>  2 contained     all       yes      27533          5.56      0.058         0.175
-#>  3 contained     protein_… no       37319          4.41      0.0746        0.159
-#>  4 contained     protein_… yes      22108          6.83      0.0422        0.152
-#>  5 nagnag        all       no       67152          2.46      0.101         0.209
-#>  6 nagnag        all       yes      20278          6.41      0.0545        0.161
-#>  7 nagnag        protein_… no       42658          4.42      0.0714        0.161
-#>  8 nagnag        protein_… yes      16769          7.83      0.0399        0.145
-#>  9 near_acceptor all       no       34737          1.35      0.125         0.228
-#> 10 near_acceptor all       yes      52693          4.96      0.068         0.179
-#> 11 near_acceptor protein_… no       18873          2.87      0.0941        0.171
-#> 12 near_acceptor protein_… yes      40554          6.6       0.0478        0.15 
-#> 13 near_donor    all       no       52293          2.07      0.11          0.203
-#> 14 near_donor    all       yes      35137          5.26      0.0618        0.19 
-#> 15 near_donor    protein_… no       32421          4.02      0.0794        0.15 
-#> 16 near_donor    protein_… yes      27006          6.88      0.0423        0.163
-#> 17 mane          all       no       76688          3.13      0.0891        0.205
-#> 18 mane          all       yes      10742          3.2       0.101         0.149
-#> 19 mane          protein_… no       48693          5.73      0.0541        0.158
-#> 20 mane          protein_… yes      10734          3.21      0.101         0.149
+#>  1 contained     all       no       59897          2.29      0.105         0.208
+#>  2 contained     all       yes      27533          5.57      0.0572        0.175
+#>  3 contained     protein_… no       37319          4.42      0.0742        0.159
+#>  4 contained     protein_… yes      22108          6.84      0.0416        0.152
+#>  5 nagnag        all       no       67152          2.47      0.101         0.209
+#>  6 nagnag        all       yes      20278          6.42      0.0534        0.161
+#>  7 nagnag        protein_… no       42658          4.43      0.0711        0.161
+#>  8 nagnag        protein_… yes      16769          7.84      0.0391        0.145
+#>  9 near_acceptor all       no       34737          1.36      0.125         0.228
+#> 10 near_acceptor all       yes      52693          4.97      0.0671        0.179
+#> 11 near_acceptor protein_… no       18873          2.88      0.0942        0.171
+#> 12 near_acceptor protein_… yes      40554          6.61      0.0471        0.15 
+#> 13 near_donor    all       no       52293          2.08      0.11          0.203
+#> 14 near_donor    all       yes      35137          5.27      0.0607        0.19 
+#> 15 near_donor    protein_… no       32421          4.03      0.0793        0.15 
+#> 16 near_donor    protein_… yes      27006          6.89      0.0414        0.163
+#> 17 mane          all       no       76688          3.14      0.0887        0.205
+#> 18 mane          all       yes      10742          3.21      0.101         0.149
+#> 19 mane          protein_… no       48693          5.74      0.0535        0.158
+#> 20 mane          protein_… yes      10734          3.22      0.101         0.149
 ```
 
 Isoforms with a NAGNAG or a nearby alternative acceptor or donor are
@@ -290,15 +290,15 @@ stability("model_fit")
 #> # A tibble: 2 × 3
 #>   outcome             r_squared isoforms
 #>   <chr>                   <dbl>    <int>
-#> 1 log_inf_rv             0.629     85236
-#> 2 log_rv_disagreement    0.0788    85236
+#> 1 log_inf_rv             0.634     85236
+#> 2 log_rv_disagreement    0.0624    85236
 ```
 
-- **How uncertain an isoform is** is well explained (R² 0.629): the
+- **How uncertain an isoform is** is well explained (R² 0.634): the
   unique fragments, the reads, the MANE tag, the length and the distance
   to the closest sibling carry most of it.
 - **How much two sets of 30 draws disagree** is mostly not explained by
-  any feature (R² 0.0788): it is sampling noise of the draws, which only
+  any feature (R² 0.0624): it is sampling noise of the draws, which only
   more draws reduce. The disagreement on the log scale is largest for
   the best-determined isoforms, whose InfRV is close to zero; on the
   decisions that matter (the cutoff) the flips above are the better
@@ -318,19 +318,19 @@ stability("model_terms") |>
 #> # A tibble: 13 × 7
 #>    term         estimate_log_inf_rv estimate_log_rv_disa…¹ estimate_tree_changed
 #>    <chr>                      <dbl>                  <dbl>                 <dbl>
-#>  1 log_reads                0.248                  0.022                  0.0229
-#>  2 log_length               0.131                 -0.0129                -0.132 
-#>  3 log_exons                0.0821                -0.0211                -0.0376
-#>  4 log_isoforms            -0.0286                 0.00737                0.328 
-#>  5 gc                      -0.0161                 0.00308               -0.0548
-#>  6 log_unique_…            -0.0913                 0.0528                 0.0251
-#>  7 log_closest…            -0.114                  0.015                  0.103 
-#>  8 unique_frac…            -0.29                   0.0409                 0.126 
-#>  9 containedTR…            -0.00766                0.0058                -0.113 
-#> 10 nagnagTRUE               0.0115                -0.0023                -0.0917
-#> 11 near_accept…             0.0301                -0.00907               -0.114 
-#> 12 near_donorT…             0.0312                -0.00639                0.0718
-#> 13 maneTRUE                -0.465                  0.105                  0.0226
+#>  1 log_reads                0.243                  0.024                  0.0229
+#>  2 log_length               0.129                 -0.0116                -0.132 
+#>  3 log_exons                0.0813                -0.0195                -0.0376
+#>  4 log_isoforms            -0.0265                 0.00641                0.328 
+#>  5 gc                      -0.0162                 0.00296               -0.0548
+#>  6 log_unique_…            -0.0947                 0.0496                 0.0251
+#>  7 log_closest…            -0.116                  0.0142                 0.103 
+#>  8 unique_frac…            -0.23                   0.0273                 0.126 
+#>  9 containedTR…            -0.00923                0.00477               -0.113 
+#> 10 nagnagTRUE               0.0112                -0.00233               -0.0917
+#> 11 near_accept…             0.0292                -0.00797               -0.114 
+#> 12 near_donorT…             0.0315                -0.00605                0.0718
+#> 13 maneTRUE                -0.465                  0.0989                 0.0226
 #> # ℹ abbreviated name: ¹​estimate_log_rv_disagreement
 #> # ℹ 3 more variables: p_value_log_inf_rv <dbl>,
 #> #   p_value_log_rv_disagreement <dbl>, p_value_tree_changed <dbl>
@@ -398,7 +398,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] ggplot2_4.0.3   dplyr_1.2.1     isoformic_0.1.3
+#> [1] ggplot2_4.0.4   dplyr_1.2.1     isoformic_0.1.3
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6       jsonlite_2.0.0     compiler_4.6.2     tidyselect_1.2.1  

@@ -63,7 +63,8 @@ prepare_profile_data(
 
 - var_levels:
 
-  Order of the group levels. `NULL` uses the order of appearance.
+  Levels of `var` to show, in this order; samples of other groups are
+  ignored. `NULL` uses the factor levels or the order of appearance.
 
 - txi_gene:
 

@@ -66,7 +66,7 @@ build_frozen_gtex(output_path = ":cache:", sources_dir = NULL)
 - sources_dir:
 
   Directory holding (or receiving) the source files; default:
-  `get_isoformic_cache("sources", <name>)`.
+  `get_isoformic_cache("sources", <name>, <version>)`.
 
 ## Value
 

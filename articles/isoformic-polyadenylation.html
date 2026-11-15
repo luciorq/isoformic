@@ -91,7 +91,7 @@
       <p class="author">Lucio Rezende QueirozIzabela Mamede Conceição</p>
       <p class="date">October 17, 2026</p>
 
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/vignettes/articles/isoformic-polyadenylation.qmd" class="external-link"><code>vignettes/articles/isoformic-polyadenylation.qmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/vignettes/articles/isoformic-polyadenylation.qmd" class="external-link"><code>vignettes/articles/isoformic-polyadenylation.qmd</code></a></small>
       <div class="d-none name"><code></code></div>
     </div>
 
@@ -138,8 +138,8 @@
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/polyadenylation.html">polya_sites</a></span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"RBPJ"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: ! 91 transcripts have a sequence length differing from the exon length; their</span></span>
-<span><span class="co">#&gt;   ORFs are skipped.</span></span>
+<span><span class="co">#&gt; Warning: ! 1 transcript has a sequence length differing from the exon length; its ORF is</span></span>
+<span><span class="co">#&gt;   skipped.</span></span>
 <span><span class="va">pa</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"transcript_name"</span>, <span class="st">"tes_rank"</span>, <span class="st">"n_tes_groups"</span>, <span class="st">"apa_type"</span>, <span class="st">"utr3_length"</span>, <span class="st">"polya_signal"</span>, <span class="st">"polya_signal_distance"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; # A tibble: 10 × 7</span></span>
 <span><span class="co">#&gt;    transcript_name tes_rank n_tes_groups apa_type       utr3_length polya_signal</span></span>

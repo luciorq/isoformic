@@ -66,7 +66,7 @@ couple of seconds."><meta property="og:image" content="https://luciorq.github.io
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Create a Transcript-to-Gene Mapping Table</h1>
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/R/make_tx_to_gene.R" class="external-link"><code>R/make_tx_to_gene.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/R/make_tx_to_gene.R" class="external-link"><code>R/make_tx_to_gene.R</code></a></small>
       <div class="d-none name"><code>make_tx_to_gene.Rd</code></div>
     </div>
 
@@ -123,7 +123,7 @@ which read the same information from the annotation directory.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">gff</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"example.gff3"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">tx2gene</span> <span class="op">&lt;-</span> <span class="fu">make_tx_to_gene</span><span class="op">(</span><span class="va">gff</span>, output_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Parsing <span style="color: #0000BB;">example.gff3</span> (GFF) into <span style="color: #0000BB;">/tmp/RtmpmIi7db/example</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Parsing <span style="color: #0000BB;">example.gff3</span> (GFF) into <span style="color: #0000BB;">/tmp/RtmpatoNKq/example</span>.</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">tx2gene</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 8</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   transcript_id     gene_id  havana_gene_id havana_transcript_id transcript_name</span>

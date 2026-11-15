@@ -110,7 +110,7 @@ write_isoformic() and are restored with read_isoformic()."><meta property="og:im
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>IsoformicExperiment: Transcript, Gene and Exon Level Data in One Object</h1>
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/R/IsoformicExperiment-class.R" class="external-link"><code>R/IsoformicExperiment-class.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/R/IsoformicExperiment-class.R" class="external-link"><code>R/IsoformicExperiment-class.R</code></a></small>
       <div class="d-none name"><code>IsoformicExperiment.Rd</code></div>
     </div>
 
@@ -259,6 +259,25 @@ transcript type, used by all plots. Defaults to <code><a href="tx_type_palette.h
 
 </dl></div>
     <div class="section level2">
+    <h2 id="subsetting">Subsetting<a class="anchor" aria-label="anchor" href="#subsetting"></a></h2>
+
+
+<p><code>x[i, j]</code> keeps the transcripts <code>i</code> and the samples <code>j</code>, given as IDs,
+positions or logical vectors, and at least one of each. Everything stored by transcript or by sample
+follows: the assays, the sample table, stored gene assays (the genes of
+the kept transcripts) and the inferential replicates in
+<code>metadata(x)$inf_reps</code>. The uncertainty tables of <code><a href="uncertainty.html">add_uncertainty()</a></code> are
+restricted to the kept transcripts (a collapsed ambiguity group stays only
+with all its members); when samples are dropped they are not recomputed,
+and a message says so. Differential expression and enrichment
+results are kept as they are.</p>
+<p>A subset holds its own copy of the inferential replicates of the kept
+transcripts and samples. To compare two groups of a larger object, pass
+<code>levels</code> to the function instead of subsetting: the samples of the other
+groups are ignored and nothing is copied. A subset with other transcripts
+starts with an empty cache of derived tables.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="example_isoformic.html">example_isoformic()</a></code> for a ready-made object,
 <code><a href="read_salmon.html">read_salmon()</a></code> and <code><a href="isoformic-conversion.html">as_isoformic()</a></code> to create one from quantifications,
@@ -331,7 +350,8 @@ transcript type, used by all plots. Defaults to <code><a href="tx_type_palette.h
 <span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000008838.20    1117.793    1124.630    1119.471     952.758    1333.459</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000009413.16     924.570     742.140     629.304     927.810    1091.680</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Subset like a SummarizedExperiment</span></span></span>
+<span class="r-in"><span><span class="co"># Subset like a SummarizedExperiment. Stored gene assays, inferential</span></span></span>
+<span class="r-in"><span><span class="co"># replicates and uncertainty tables follow the transcripts and samples kept</span></span></span>
 <span class="r-in"><span><span class="va">iso</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"SRR11498039"</span>, <span class="st">"SRR11498063"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;IsoformicExperiment&gt; pe_placenta_example</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)</span>

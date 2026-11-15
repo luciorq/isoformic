@@ -160,7 +160,7 @@ coding_cutoff (0.364, the CPAT human cutoff) is called coding."><meta property="
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Open Reading Frames of Transcripts from Their Sequences</h1>
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/R/orfs.R" class="external-link"><code>R/orfs.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/R/orfs.R" class="external-link"><code>R/orfs.R</code></a></small>
       <div class="d-none name"><code>transcript_orfs.Rd</code></div>
     </div>
 
@@ -280,6 +280,26 @@ coding (default 0.364).</p></dd>
     <p>A tibble with one row per transcript.</p>
     </div>
     <div class="section level2">
+    <h2 id="stored-orf-table">Stored ORF table<a class="anchor" aria-label="anchor" href="#stored-orf-table"></a></h2>
+
+
+<p>The analysis takes minutes for a whole GENCODE release, so the rows
+computed are written to <code>annot_data_orfs.parquet</code> in the annotation
+directory and read back by later calls, sessions and objects that use the
+same annotation. A stored row is used when the canonical isoform of the
+gene, among the transcripts of the call, is the one it was computed with,
+so the result is the same with and without the table. A gene with a
+transcript that has no such row is computed whole, and its rows are stored
+when its canonical isoform is the one of the whole annotation. The table
+is computed again when the transcripts, exons or sequences of the
+annotation, <code>min_orf_length</code>, the coding potential model
+(<code><a href="build_coding_model.html">build_coding_model()</a></code>) or the package version change. It is not
+written into a read-only directory or the example annotation of the
+installed package, and <code>options(isoformic.orf_cache = FALSE)</code> turns it
+off. The warning about sequences that differ in length from their exons is
+given when the rows are computed, not when they are read back.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="productivity.html">transcript_productivity()</a></code>, <code><a href="transcript_features.html">transcript_features()</a></code></p></div>
     </div>
@@ -294,16 +314,16 @@ coding (default 0.364).</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 10 × 5</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    transcript_name orf_source         orf_length nmd_class coding_probability</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> RBPJ-222        annotation_partial        283 <span style="color: #BB0000;">NA</span>                    0.072<span style="text-decoration: underline;">3</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> RBPJ-201        annotation               <span style="text-decoration: underline;">1</span>503 none                  0.975 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> RBPJ-206        annotation               <span style="text-decoration: underline;">1</span>503 none                  0.984 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> RBPJ-225        projected                <span style="text-decoration: underline;">1</span>140 none                  0.950 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> RBPJ-204        annotation               <span style="text-decoration: underline;">1</span>464 none                  0.980 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> RBPJ-205        annotation               <span style="text-decoration: underline;">1</span>461 none                  0.968 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> RBPJ-214        annotation               <span style="text-decoration: underline;">1</span>398 none                  0.976 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> RBPJ-208        annotation               <span style="text-decoration: underline;">1</span>149 none                  0.931 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> RBPJ-202        annotation               <span style="text-decoration: underline;">1</span>461 none                  0.968 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> RBPJ-210        longest                   462 none                  0.548 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> RBPJ-222        annotation_partial        283 <span style="color: #BB0000;">NA</span>                    0.080<span style="text-decoration: underline;">9</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> RBPJ-201        annotation               <span style="text-decoration: underline;">1</span>503 none                  0.984 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> RBPJ-206        annotation               <span style="text-decoration: underline;">1</span>503 none                  0.959 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> RBPJ-225        projected                <span style="text-decoration: underline;">1</span>140 none                  0.909 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> RBPJ-204        annotation               <span style="text-decoration: underline;">1</span>464 none                  0.953 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> RBPJ-205        annotation               <span style="text-decoration: underline;">1</span>461 none                  0.981 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> RBPJ-214        annotation               <span style="text-decoration: underline;">1</span>398 none                  0.947 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> RBPJ-208        annotation               <span style="text-decoration: underline;">1</span>149 none                  0.895 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> RBPJ-202        annotation               <span style="text-decoration: underline;">1</span>461 none                  0.980 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> RBPJ-210        longest                   462 none                  0.528 </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

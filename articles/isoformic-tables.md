@@ -121,7 +121,7 @@ here from the small GFF3 bundled with the package.
 
 gff <- fs::path(extdata, "example.gff3")
 exons <- prepare_exon_annotation("RBPJ", gff, output_path = tempdir())
-#> ℹ Parsing 'example.gff3' (GFF) into '/tmp/RtmpKEX5bm/example'.
+#> ℹ Parsing 'example.gff3' (GFF) into '/tmp/Rtmpaa03Ug/example'.
 head(exons)
 #> # A tibble: 6 × 12
 #>   gene_id      gene_name transcript_id transcript_name transcript_type haplotype
@@ -206,7 +206,7 @@ sessionInfo()
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6       jsonlite_2.0.0     compiler_4.6.2     Rcpp_1.1.2        
 #>  [5] tidyselect_1.2.1   scales_1.4.0       yaml_2.3.12        fastmap_1.2.0     
-#>  [9] ggplot2_4.0.3      R6_2.6.1           labeling_0.4.3     generics_0.1.4    
+#>  [9] ggplot2_4.0.4      R6_2.6.1           labeling_0.4.3     generics_0.1.4    
 #> [13] curl_8.1.0         knitr_1.52         ggrepel_0.9.8      tibble_3.3.1      
 #> [17] DBI_1.3.0          pillar_1.11.1      RColorBrewer_1.1-3 rlang_1.3.0       
 #> [21] utf8_1.2.6         xfun_0.62          fs_2.1.0           S7_0.2.2          

@@ -70,7 +70,7 @@ table from loose tables."><meta property="og:image" content="https://luciorq.git
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Expression Profiles of Genes and Their Isoforms Across Groups</h1>
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/R/profile.R" class="external-link"><code>R/profile.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/R/profile.R" class="external-link"><code>R/profile.R</code></a></small>
       <div class="d-none name"><code>profiles.Rd</code></div>
     </div>
 
@@ -121,8 +121,10 @@ profile table produced by <code>profile_data()</code>/<code><a href="prepare_pro
 
 
 <dt id="arg-levels">levels<a class="anchor" aria-label="anchor" href="#arg-levels"></a></dt>
-<dd><p>Optional order of the group levels. Defaults to the factor
-levels or the order of appearance.</p></dd>
+<dd><p>Levels of <code>group</code> to show, in this order. Samples of other
+groups are ignored, as if the object had been subset to these samples.
+<code>NULL</code> takes all the levels of <code>group</code> (factor levels, else order of
+appearance). For a profile table, the groups of the table to draw.</p></dd>
 
 
 <dt id="arg-assay">assay<a class="anchor" aria-label="anchor" href="#arg-assay"></a></dt>

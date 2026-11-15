@@ -162,6 +162,26 @@ An `IsoformicExperiment` object.
 
   Read-only, cached annotation tables.
 
+## Subsetting
+
+`x[i, j]` keeps the transcripts `i` and the samples `j`, given as IDs,
+positions or logical vectors, and at least one of each. Everything
+stored by transcript or by sample follows: the assays, the sample table,
+stored gene assays (the genes of the kept transcripts) and the
+inferential replicates in `metadata(x)$inf_reps`. The uncertainty tables
+of
+[`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
+are restricted to the kept transcripts (a collapsed ambiguity group
+stays only with all its members); when samples are dropped they are not
+recomputed, and a message says so. Differential expression and
+enrichment results are kept as they are.
+
+A subset holds its own copy of the inferential replicates of the kept
+transcripts and samples. To compare two groups of a larger object, pass
+`levels` to the function instead of subsetting: the samples of the other
+groups are ignored and nothing is copied. A subset with other
+transcripts starts with an empty cache of derived tables.
+
 ## See also
 
 [`example_isoformic()`](https://luciorq.github.io/isoformic/reference/example_isoformic.md)
@@ -240,7 +260,8 @@ head(gene_assay(iso, "abundance"))
 #> ENSG00000008838.20    1117.793    1124.630    1119.471     952.758    1333.459
 #> ENSG00000009413.16     924.570     742.140     629.304     927.810    1091.680
 
-# Subset like a SummarizedExperiment
+# Subset like a SummarizedExperiment. Stored gene assays, inferential
+# replicates and uncertainty tables follow the transcripts and samples kept
 iso[1:10, c("SRR11498039", "SRR11498063")]
 #> <IsoformicExperiment> pe_placenta_example
 #>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)

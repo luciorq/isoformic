@@ -133,8 +133,8 @@ frozen_datasets()[, c("name", "version", "file")]
 #> # A tibble: 6 × 3
 #>   name                version       file                                        
 #>   <chr>               <chr>         <chr>                                       
-#> 1 appris              e113v49       appris_e113v49.parquet                      
-#> 2 appris_domains      e113v49       appris_domains_e113v49.parquet              
+#> 1 appris              e116v50       appris_e116v50.parquet                      
+#> 2 appris_domains      e116v50       appris_domains_e116v50.parquet              
 #> 3 riboseq_orfs        phase1_phase2 gencode_riboseq_orfs_phase1_phase2.parquet  
 #> 4 nmd_exons           karousis2021  nmd_exons_karousis2021.parquet              
 #> 5 polyasite           2.0_GRCh38.96 polyasite_2.0_GRCh38.96.parquet             

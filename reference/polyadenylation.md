@@ -42,6 +42,16 @@ used by
 [`test_productive_fraction()`](https://luciorq.github.io/isoformic/reference/productivity.md),
 on counts.
 
+`run_apa_enrichment()` runs a gene set enrichment analysis
+([`fgsea::fgseaMultilevel()`](https://rdrr.io/pkg/fgsea/man/fgseaMultilevel.html))
+on the genes ranked by their change in distal usage
+(`rank_by = "delta"`, the `delta_distal_fraction` of `apa_usage()`) or
+in weighted 3' UTR length (`rank_by = "utr3_length"`,
+`delta_weighted_utr3_length`): a positive score is a gene set whose
+genes move to distal 3' ends, or to longer 3' UTRs, in the last group
+level. It also takes the table of `apa_usage()` for two or more groups,
+so that one table serves several calls.
+
 ## Usage
 
 ``` r
@@ -76,6 +86,19 @@ test_apa(
   gene_name = NULL,
   ...
 )
+
+run_apa_enrichment(
+  self,
+  genesets_list,
+  group = NULL,
+  levels = NULL,
+  assay = "abundance",
+  min_size = 15,
+  max_size = 500,
+  rank_by = c("delta", "utr3_length"),
+  min_expr = 0,
+  ...
+)
 ```
 
 ## Arguments
@@ -83,7 +106,9 @@ test_apa(
 - self:
 
   An
-  [IsoformicExperiment](https://luciorq.github.io/isoformic/reference/IsoformicExperiment.md).
+  [IsoformicExperiment](https://luciorq.github.io/isoformic/reference/IsoformicExperiment.md);
+  for `run_apa_enrichment()` also the table of `apa_usage()` for two or
+  more groups.
 
 - gene_name:
 
@@ -106,7 +131,8 @@ test_apa(
 
 - ...:
 
-  Passed on to methods.
+  Passed on to methods; `run_apa_enrichment()` passes them to
+  [`fgsea::fgseaMultilevel()`](https://rdrr.io/pkg/fgsea/man/fgseaMultilevel.html).
 
 - path:
 
@@ -115,14 +141,17 @@ test_apa(
 - group:
 
   Name of a `col_data` column defining groups; `NULL` for per-sample
-  values.
+  values. The tests and `run_apa_enrichment()` on an object need it;
+  with a table it is not used.
 
 - levels:
 
-  Order of the group levels; the change is `last - first`. For the tests
+  Levels of `group` to use, in this order; the change is `last - first`.
+  Samples of other groups are ignored, as if the object had been subset
+  to these samples, so every returned value comes from the samples kept.
+  `NULL` takes all the levels of `group`. The tests
   ([`test_productive_fraction()`](https://luciorq.github.io/isoformic/reference/productivity.md),
-  `test_apa()`), the two groups to compare; samples of other groups are
-  ignored.
+  `test_apa()`) need exactly two levels.
 
 - assay:
 
@@ -138,10 +167,31 @@ test_apa(
   Logical, return the genes x samples matrix of distal fractions instead
   of the summary table.
 
+- genesets_list:
+
+  Named list of character vectors (gene symbols), as returned by
+  [`read_gmt()`](https://luciorq.github.io/isoformic/reference/enrichment.md),
+  or a named list of such lists: each collection is then tested on its
+  own and the result has a `collection` column (see
+  [`run_enrichment()`](https://luciorq.github.io/isoformic/reference/enrichment.md)).
+
+- min_size, max_size:
+
+  Minimum and maximum gene set size passed to `fgsea`.
+
+- rank_by:
+
+  Statistic that ranks the genes in `run_apa_enrichment()`: `"delta"`
+  (default), the change in distal fraction, or `"utr3_length"`, the
+  change in weighted 3' UTR length.
+
 ## Value
 
 Tibbles with one row per transcript (`polya_sites()`) or per gene
 (`apa_usage()`, `test_apa()`); a matrix for `as_matrix = TRUE`.
+`run_apa_enrichment()` returns the `fgsea` table with the columns
+`experiment` (`"distal_fraction"` or `"weighted_utr3_length"`),
+`rank_by` and, for several collections, `collection`.
 
 ## Examples
 
@@ -192,4 +242,18 @@ head(test_apa(iso, group = "condition"))
 #> # ℹ 8 more variables: delta_distal_fraction <dbl>, log_odds_ratio <dbl>,
 #> #   se <dbl>, statistic <dbl>, dispersion <dbl>, df <dbl>, pvalue <dbl>,
 #> #   padj <dbl>
+
+if (requireNamespace("fgsea", quietly = TRUE)) {
+  gmt <- system.file("extdata", "reactome_subset.gmt", package = "isoformic")
+  head(run_apa_enrichment(iso, read_gmt(gmt), group = "condition", min_size = 2))
+}
+#> # A tibble: 6 × 10
+#>   pathway  pval  padj log2err     ES    NES  size leadingEdge experiment rank_by
+#>   <chr>   <dbl> <dbl>   <dbl>  <dbl>  <dbl> <int> <list>      <chr>      <chr>  
+#> 1 REACTO… 0.103 0.470  0.186  -0.803 -1.38      5 <chr [3]>   distal_fr… delta  
+#> 2 REACTO… 0.538 0.582  0.0742 -0.717 -1.02      2 <chr [1]>   distal_fr… delta  
+#> 3 REACTO… 0.537 0.582  0.0717 -0.606 -0.997     4 <chr [2]>   distal_fr… delta  
+#> 4 REACTO… 0.361 0.508  0.0931 -0.691 -1.14      4 <chr [3]>   distal_fr… delta  
+#> 5 REACTO… 0.106 0.470  0.194   0.832  1.29      3 <chr [2]>   distal_fr… delta  
+#> 6 REACTO… 0.164 0.470  0.151  -0.879 -1.25      2 <chr [2]>   distal_fr… delta  
 ```

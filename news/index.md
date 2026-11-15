@@ -1,6 +1,6 @@
 # Changelog
 
-## Isoformic 0.2.0 (Development Version)
+## Isoformic 0.1.3 (Development Version)
 
 Release Date: Unreleased
 
@@ -120,11 +120,11 @@ every analysis and plot is now first a method on the object.
   [`fetch_frozen_data()`](https://luciorq.github.io/isoformic/reference/frozen_data.md),
   [`read_frozen_data()`](https://luciorq.github.io/isoformic/reference/frozen_data.md),
   `build_frozen_*()`): APPRIS principal isoforms and method scores plus
-  SPADE Pfam domain coordinates (e113v49), GENCODE Ribo-seq ORFs phase 1
-  and 2, NMD-inducing exons validated by NMD inhibition (Karousis et
-  al. 2021), the PolyASite 2.0 atlas and GTEx v8 median transcript TPM
-  per tissue. Files are pinned by version and MD5, downloaded from the
-  first mirror that has them
+  SPADE Pfam domain coordinates (e116v50, Ensembl 116 / GENCODE 50),
+  GENCODE Ribo-seq ORFs phase 1 and 2, NMD-inducing exons validated by
+  NMD inhibition (Karousis et al. 2021), the PolyASite 2.0 atlas and
+  GTEx v8 median transcript TPM per tissue. Files are pinned by version
+  and MD5, downloaded from the first mirror that has them
   ([`frozen_mirrors()`](https://luciorq.github.io/isoformic/reference/frozen_data.md):
   user option, the `frozen-data` GitHub release, the Zenodo snapshot of
   the processed files) or rebuilt from the sources;
@@ -216,6 +216,72 @@ every analysis and plot is now first a method on the object.
   in one half of the reads reproduce in the other half less often as the
   class or the inferential variance worsens. The small result tables are
   bundled and shown in the uncertainty article.
+- Splice-site strength without an external model.
+  [`extract_splice_sites()`](https://luciorq.github.io/isoformic/reference/splice_sites.md)
+  (and
+  [`extract_transcript_sequences()`](https://luciorq.github.io/isoformic/reference/transcript_sequences.md)
+  when given a genome FASTA) store the donor and acceptor windows of
+  every intron in the annotation directory
+  (`annot_data_splice_sites.parquet`);
+  [`splice_site_strength()`](https://luciorq.github.io/isoformic/reference/splice_sites.md)
+  scores them with position weight matrices trained on the introns of
+  the canonical transcripts of the same annotation and reports
+  `weakest_donor` and `weakest_acceptor` per transcript, or the scores
+  per intron. On GENCODE 50 (698,612 introns) the extraction takes about
+  1.5 minutes and the scoring 25 s. The scores describe the sites; on
+  their own they separate NMD from protein coding transcripts only
+  slightly (AUC 0.55), so they are evidence to read next to
+  [`transcript_productivity()`](https://luciorq.github.io/isoformic/reference/productivity.md),
+  not a classifier.
+- More evidence in the uncertainty tables, none of which changes a
+  default result.
+  [`isoform_ambiguity()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
+  has `collapse_gain`, the score Terminus groups on (inferential
+  relative variance of the sum of two isoforms minus the mean of their
+  own; negative when the sum is better determined).
+  [`tx_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
+  has `low_information`, `TRUE` for an uncertain isoform without a
+  single fragment of its own (the selection of `mmcollapse`), when
+  equivalence classes were read.
+  `add_uncertainty(cor_cutoff = "adaptive")` derives the correlation
+  cutoff from the data as `mmcollapse` does; the default stays -0.5, and
+  on the six GSE129540 samples the adaptive value is -0.25, which calls
+  36,910 isoforms ambiguous in place of 8,076.
+- [`equivalence_identifiability()`](https://luciorq.github.io/isoformic/reference/equivalence_identifiability.md)
+  reports which transcripts the equivalence classes of Salmon can tell
+  apart: a transcript is identifiable when its abundance is fixed once
+  the total of every class is fixed. It is a property of the observed
+  classes, not of the posterior draws, and close to independent of them.
+  On the six GSE129540 samples 13,790 of 116,389 expressed isoforms are
+  non-identifiable in every sample, and their estimates differ more
+  between two halves of the reads (median absolute log2 ratio 2.4
+  against 0.7 at 20 to 100 reads). Takes one to three minutes per human
+  sample and needs `Matrix` (new in `Suggests`) for the largest block of
+  transcripts.
+- `add_uncertainty(identifiability = TRUE)` runs it and adds
+  `identifiable` and `identifiable_fraction` to
+  [`tx_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md);
+  the table of
+  [`equivalence_identifiability()`](https://luciorq.github.io/isoformic/reference/equivalence_identifiability.md)
+  can be passed in its place.
+  [`de_confidence()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
+  then counts a non-identifiable isoform as a fourth condition against
+  the call (reason `not identifiable from the equivalence classes`) and
+  returns an `identifiable` column. Off by default, so existing results
+  do not change.
+- The coding potential model of
+  [`coding_potential()`](https://luciorq.github.io/isoformic/reference/transcript_orfs.md)
+  and
+  [`transcript_orfs()`](https://luciorq.github.io/isoformic/reference/transcript_orfs.md)
+  is retrained on GENCODE 50 (9,938 coding and 10,000 non-coding
+  transcripts): held-out sensitivity 0.941 and specificity 0.919 at the
+  0.364 cutoff, AUC 0.978. On the same transcripts the previous model
+  (GENCODE 49) has 0.928, 0.936 and 0.977, so `coding_probability`
+  values change slightly and the accuracy does not.
+- [`transcript_productivity()`](https://luciorq.github.io/isoformic/reference/productivity.md)
+  treats the GENCODE biotype `protein_coding_LoF` (148 transcripts in
+  release 50) as unproductive when `use_biotype = TRUE`: a variant of
+  the reference genome stops its translation.
 - Fixes from a code review: `write_isoformic(overwrite = TRUE)` writes
   to a sibling directory and swaps it in, so overwriting the directory
   an object was read from no longer deletes it (and refuses directories
@@ -432,8 +498,35 @@ every analysis and plot is now first a method on the object.
   ([\#24](https://github.com/luciorq/isoformic/issues/24),
   [\#25](https://github.com/luciorq/isoformic/issues/25)) and
   `inst/CITATION` carries its DOI.
+- `pixi.toml` and `pixi.lock` define an isolated development environment
+  for Linux, macOS (Apple silicon) and Windows: `pixi install`, then
+  `pixi run test`. Linux and macOS take all R packages from conda-forge
+  and bioconda. On Windows, `pixi run r-packages` installs the packages
+  that conda lacks there (`duckdb`, `condathis` and the Bioconductor
+  packages) as binary packages from CRAN, r-universe and Bioconductor
+  3.22. On Linux and macOS the environment also has LaTeX (a pinned
+  TinyTeX release, packaged by the recipe in `.github/pixi/tinytex`), so
+  `pixi run check` builds the PDF manual.
 
 ### Changed
+
+- [`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
+  reports when the replicates give fewer than 60 degrees of freedom over
+  the study (samples x (replicates - 1); Baldoni, Chen and Smyth 2024),
+  the number is stored and stated by
+  [`uncertainty_methods()`](https://luciorq.github.io/isoformic/reference/uncertainty.md),
+  and
+  [`uncertainty_report()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
+  has a new `replicates` table (replicate type, draws, degrees of
+  freedom, median overdispersion).
+
+- The documentation calls the correlation rule of
+  [`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
+  “ambiguity between isoforms” instead of “identifiability”, credits
+  `mmcollapse` (Turro et al. 2014) and states what the replicates do not
+  measure: non-identifiable abundances (Zheng et al. 2022) and estimates
+  that are wrong because the annotation is incomplete (Ma and Kingsford
+  2019).
 
 - [`plot_genomic_context()`](https://luciorq.github.io/isoformic/reference/plot_genomic_context.md)
   is a pure `ggplot2` implementation reading the exon table of the
@@ -444,6 +537,7 @@ every analysis and plot is now first a method on the object.
   [`plot_tx_context()`](https://luciorq.github.io/isoformic/reference/plot_genomic_context.md)
   is now an alias of its data frame method and accepts the legacy column
   names.
+
 - [`plot_genomic_context()`](https://luciorq.github.io/isoformic/reference/plot_genomic_context.md)
   labels each transcript on the y axis, aligned with its track (the
   labels floated above the tracks and overlapped transcripts starting at
@@ -451,11 +545,13 @@ every analysis and plot is now first a method on the object.
   a plain `ggplot2` object it renders the same on every graphics device,
   including Cairo and the RStudio plot panel
   ([\#21](https://github.com/luciorq/isoformic/issues/21)).
+
 - [`plot_log2fc()`](https://luciorq.github.io/isoformic/reference/plot_log2fc.md)
   facets several genes, orders the gene bar first and uses a common
   theme;
   [`plot_log2FC()`](https://luciorq.github.io/isoformic/reference/plot_log2fc.md)
   is kept as a wrapper.
+
 - [`plot_tx_expr()`](https://luciorq.github.io/isoformic/reference/profiles.md)
   and
   [`run_enrichment()`](https://luciorq.github.io/isoformic/reference/enrichment.md)
@@ -463,19 +559,23 @@ every analysis and plot is now first a method on the object.
   [`run_enrichment()`](https://luciorq.github.io/isoformic/reference/enrichment.md)
   no longer takes the unused `lfc_cutoff` argument and expands gene sets
   with a single join.
+
 - [`prepare_profile_data()`](https://luciorq.github.io/isoformic/reference/prepare_profile_data.md)
   returns the same long table as
   [`profile_data()`](https://luciorq.github.io/isoformic/reference/profiles.md)
   (`feature_name`, `feature_type`, `gene_name`, `group`, `mean_expr`,
   `sd_expr`, `is_de`); gene expression is the sum of the isoforms (it
   was the mean).
+
 - [`prepare_annotation()`](https://luciorq.github.io/isoformic/reference/prepare_annotation.md)
   and
   [`prepare_exon_annotation()`](https://luciorq.github.io/isoformic/reference/prepare_exon_annotation.md)
   read the Parquet annotation directory and return standard column names
   (`transcript_id`, `start_pos`, `end_pos`, …).
+
 - Bundled example tables are now Parquet (`pe_abundance.parquet`,
   `pe_det.parquet`, `pe_deg.parquet`, `pe_col_data.parquet`).
+
 - [`download_reference()`](https://luciorq.github.io/isoformic/reference/download_reference.md)
   discovers files by listing the release directory on the server instead
   of relying on hard-coded file names, so any current or future GENCODE
@@ -485,14 +585,223 @@ every analysis and plot is now first a method on the object.
   Errors are specific: no internet, release not found (listing the
   latest releases), file not found in the release (listing the
   candidates), and failed or empty transfers (partial files are
-  removed). Defaults: GENCODE release 49, `file_type = "gff"`,
-  `output_path = ":cache:"`.
+  removed). Defaults: GENCODE release 50 (M39 for mouse),
+  `file_type = "gff"`, `output_path = ":cache:"`.
+
 - Development tooling: `jarl.toml` (all jarl rules), a `jarl-check`
   GitHub workflow, lint and test-coverage workflows, and justfile
   recipes aligned with `condathis`.
 
+- `group` and `levels` choose the samples in the same way in every
+  function that has them
+  ([`productive_fraction()`](https://luciorq.github.io/isoformic/reference/productivity.md),
+  [`productivity_fractions()`](https://luciorq.github.io/isoformic/reference/productivity.md),
+  [`test_productive_fraction()`](https://luciorq.github.io/isoformic/reference/productivity.md),
+  [`run_productivity_enrichment()`](https://luciorq.github.io/isoformic/reference/productivity.md),
+  [`apa_usage()`](https://luciorq.github.io/isoformic/reference/polyadenylation.md),
+  [`test_apa()`](https://luciorq.github.io/isoformic/reference/polyadenylation.md),
+  [`profile_data()`](https://luciorq.github.io/isoformic/reference/profiles.md),
+  [`plot_tx_expr()`](https://luciorq.github.io/isoformic/reference/profiles.md),
+  [`dominant_isoform()`](https://luciorq.github.io/isoformic/reference/diversity.md),
+  [`haplotype_summary()`](https://luciorq.github.io/isoformic/reference/diversity.md),
+  [`test_usage()`](https://luciorq.github.io/isoformic/reference/test_usage.md),
+  [`de_confidence()`](https://luciorq.github.io/isoformic/reference/uncertainty.md),
+  [`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md),
+  [`prepare_profile_data()`](https://luciorq.github.io/isoformic/reference/prepare_profile_data.md)):
+  samples of groups outside `levels` are ignored, as if the object had
+  been subset to them, so a contrast between two of several groups needs
+  no sub-object. The summary functions aborted in this case. Every
+  returned value, including `as_matrix = TRUE` and the inferential
+  standard deviations, comes from the samples kept. A level in `levels`
+  without samples, or `levels` without `group`, is an error
+  (`isoformic_group_levels`); samples without a group value are ignored
+  with a message; factor levels without samples are not groups.
+  [`dominant_isoform()`](https://luciorq.github.io/isoformic/reference/diversity.md)
+  and
+  [`haplotype_summary()`](https://luciorq.github.io/isoformic/reference/diversity.md)
+  gain `levels`.
+
+- [`run_productivity_enrichment()`](https://luciorq.github.io/isoformic/reference/productivity.md)
+  gains `rank_by = c("delta", "delta_z")` to rank genes by the change in
+  productive fraction divided by its standard deviation over the
+  inferential replicates, and passes `include_altered`, `min_expr` and
+  `inf_reps` on to
+  [`productive_fraction()`](https://luciorq.github.io/isoformic/reference/productivity.md).
+  The result has a `rank_by` column. `delta_z` is 0, not `NA`, for a
+  gene whose productive fraction changes in no replicate; a change that
+  is the same in every replicate is ranked with the largest `delta_z`.
+
+- [`productive_fraction()`](https://luciorq.github.io/isoformic/reference/productivity.md)
+  reads the inferential replicates one at a time and keeps only running
+  sums, restricted to the transcripts of coding genes and the samples of
+  the `levels`, instead of holding the fractions of all the replicates:
+  about 18 times faster with a fraction of the memory on 295,000
+  transcripts, 12 samples and 100 replicates, with the same results.
+  `inf_reps = FALSE` skips the stored replicates. With the default
+  `rank_by = "delta"`,
+  [`run_productivity_enrichment()`](https://luciorq.github.io/isoformic/reference/productivity.md)
+  does not read them.
+
+- [`run_productivity_enrichment()`](https://luciorq.github.io/isoformic/reference/productivity.md)
+  also takes the table of
+  [`productive_fraction()`](https://luciorq.github.io/isoformic/reference/productivity.md),
+  so that one table serves several gene set collections.
+
+- [`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md),
+  [`de_confidence()`](https://luciorq.github.io/isoformic/reference/uncertainty.md),
+  [`inferential_overdispersion()`](https://luciorq.github.io/isoformic/reference/inferential-overdispersion.md),
+  [`scale_counts()`](https://luciorq.github.io/isoformic/reference/inferential-overdispersion.md),
+  [`uncertainty_report()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
+  and
+  [`test_usage()`](https://luciorq.github.io/isoformic/reference/test_usage.md)
+  read the inferential replicates one at a time from the stored list
+  instead of copying them into a dense array: on 534,000 transcripts, 12
+  samples and 100 replicates the memory above the object went from 19 GB
+  to under 4 GB for `add_uncertainty(group = )` and
+  [`de_confidence()`](https://luciorq.github.io/isoformic/reference/uncertainty.md),
+  with the same results.
+
+- [`run_enrichment()`](https://luciorq.github.io/isoformic/reference/enrichment.md)
+  gains `rank_by`: besides the fold-change (`"log2FC"`, the default) the
+  transcripts can be ranked by `-log10(pvalue)` with the sign of the
+  fold-change (`"signed_p"`) or by the median fold-change over the
+  inferential replicates divided by its standard deviation (`"lfc_z"`,
+  from the confidence table of `add_uncertainty(x, group = )`), so that
+  a fold-change the quantification cannot determine ranks low. The
+  result has a `rank_by` column.
+
+- [`run_apa_enrichment()`](https://luciorq.github.io/isoformic/reference/polyadenylation.md)
+  runs a gene set enrichment analysis on the genes ranked by their
+  change in distal 3’ end usage or in weighted 3’ UTR length, from an
+  object or from the table of
+  [`apa_usage()`](https://luciorq.github.io/isoformic/reference/polyadenylation.md).
+
+- [`run_enrichment()`](https://luciorq.github.io/isoformic/reference/enrichment.md),
+  [`run_productivity_enrichment()`](https://luciorq.github.io/isoformic/reference/productivity.md)
+  and
+  [`run_apa_enrichment()`](https://luciorq.github.io/isoformic/reference/polyadenylation.md)
+  take several collections of gene sets at once (a named list of gene
+  set lists, for example
+  `list(hallmark = read_gmt(h), reactome = read_gmt(r))`): each
+  collection is tested on its own and the result has a `collection`
+  column, by which
+  [`plot_enrichment()`](https://luciorq.github.io/isoformic/reference/enrichment.md)
+  splits its panels. Every gene set now needs a name: a list with a
+  missing or empty name is an error (`isoformic_invalid_genesets`)
+  instead of a set dropped without notice. An enrichment without result
+  is a table with the `fgsea` columns and no rows.
+
+- [`productive_fraction()`](https://luciorq.github.io/isoformic/reference/productivity.md)
+  with inferential replicates stops when a level of `group` is named
+  `sd`, whose column `productive_fraction_sd` used to be overwritten by
+  the standard deviation over the replicates.
+
+- [`transcript_orfs()`](https://luciorq.github.io/isoformic/reference/transcript_orfs.md)
+  keeps the ORFs it computes in `annot_data_orfs.parquet` in the
+  annotation directory, and later calls, sessions and objects with the
+  same annotation read them back: for the 534,000 transcripts of GENCODE
+  49 the ORFs take 5 seconds instead of more than 5 minutes, and
+  [`transcript_productivity()`](https://luciorq.github.io/isoformic/reference/productivity.md)
+  about 35 seconds instead of 7 minutes, once the table is written. The
+  results are the same. `options(isoformic.orf_cache = FALSE)` turns the
+  table off.
+
+- [`cut_transcript_trees()`](https://luciorq.github.io/isoformic/reference/treeterminus.md)
+  reads the inferential replicates one at a time and keeps only the mean
+  and variance of the tree nodes, instead of a dense array of all the
+  replicates.
+
+- `x[i, j]` subsets everything stored by transcript or by sample: the
+  inferential replicates in `metadata(x)$inf_reps` and stored gene
+  assays follow the assays, and the uncertainty tables are restricted to
+  the kept transcripts. Dropping samples leaves the uncertainty tables
+  as computed and says so (`add_uncertainty(x)` recomputes them from the
+  subset replicates). Subscripts are checked
+  (`isoformic_invalid_subset`), and must keep at least one transcript
+  and one sample.
+
+- [`test_usage()`](https://luciorq.github.io/isoformic/reference/test_usage.md)
+  estimates the inferential overdispersion on the samples of the test,
+  not on all the samples of the object.
+
+- The imported packages have minimum versions, those the package is
+  developed and tested with: `cli` 3.6.6, `DBI` 1.3.0, `dplyr` 1.2.1,
+  `duckdb` 1.5.4, `fs` 2.1.0, `ggplot2` 4.0.3, `ggrepel` 0.9.8, `glue`
+  1.8.1, `rlang` 1.3.0, `S7` 0.2.2, `scales` 1.4.0, `tibble` 3.3.1 and
+  `withr` 3.0.3. The tests also pass with `duckdb` 2.0.0.
+
+- `jsonlite` and `readr` are in `Suggests`. The test that compares the
+  inferential overdispersion with
+  [`edgeR::catchSalmon()`](https://rdrr.io/pkg/edgeR/man/catchSalmon.html)
+  needs them.
+
+- Lower memory use and faster subsetting on large objects, with the same
+  results.
+  [`read_inferential_replicates()`](https://luciorq.github.io/isoformic/reference/inferential-io.md)
+  (and `add_uncertainty(paths = )`) holds one sample at a time instead
+  of every sample twice: its peak falls from about 2.5 to about 1 time
+  the size of all the replicates. `x[i, j]` matches the transcripts once
+  instead of twice per replicate (about 9 times faster with 295,000
+  transcripts and 20 replicates), validates the object once, and returns
+  the replicates without a copy when the subset keeps everything. A
+  subset with other transcripts gets its own cache of derived tables, so
+  it no longer replaces those of the object it came from.
+  [`gene_assays()`](https://luciorq.github.io/isoformic/reference/IsoformicExperiment-accessors.md),
+  [`as_isoformic()`](https://luciorq.github.io/isoformic/reference/isoformic-conversion.md)
+  (IDs without `|`) and
+  [`write_isoformic()`](https://luciorq.github.io/isoformic/reference/isoformic-io.md)
+  no longer make spare copies of the assays.
+
+- [`as_summarized_experiment()`](https://luciorq.github.io/isoformic/reference/isoformic-conversion.md)
+  leaves the inferential replicates out of the metadata of the result.
+
+- `write_isoformic(copy_annotation = TRUE)` does not copy the stored ORF
+  table, which was not valid for the copy.
+
 ### Fixed
 
+- [`prepare_isoformic_annotation()`](https://luciorq.github.io/isoformic/reference/prepare_isoformic_annotation.md)
+  kept only the first `##sequence-region` of a GENCODE GFF3 file (one
+  row, `chr1`), because GENCODE writes one pragma before the features of
+  each sequence and only the header was read. The whole file is now
+  scanned (`annot_seq_regions.parquet` has 706 rows for GENCODE 50
+  `chr_patch_hapl_scaff`), and a sequence without a pragma keeps the
+  largest feature end. Annotation directories made before this fix hold
+  the single row: rebuild them with `overwrite = TRUE` if you use the
+  table.
+- The inferential relative variance (`mean_inf_rv`, `max_inf_rv`,
+  `group_inf_rv` of
+  [`cut_transcript_trees()`](https://luciorq.github.io/isoformic/reference/treeterminus.md))
+  now is the formula of
+  [`fishpond::computeInfRV()`](https://thelovelab.github.io/fishpond/reference/computeInfRV.html),
+  `max(var - mean, 0) / (mean + 5) + 0.01`, as the documentation said.
+  It was `max(0.01, var - mean) / (mean + 5)`: about 0.01 lower, and far
+  below 0.01 for transcripts whose draws vary no more than counts. A
+  transcript within 0.01 below `inf_rv_cutoff` is now `uncertain`. The
+  tables of the uncertainty and stability articles were rebuilt.
+- The source files of the frozen datasets are cached per dataset version
+  (`get_isoformic_cache("sources", <name>, <version>)`). With one
+  directory per dataset, a new version in the registry reused the cached
+  file of the old one, which has the same name, and rebuilt the old
+  data.
+- `x[, j]` no longer fails on an object with stored gene assays, and a
+  factor subscript is read as IDs, not as its integer codes.
+- [`dominant_isoform()`](https://luciorq.github.io/isoformic/reference/diversity.md)
+  and
+  [`haplotype_summary()`](https://luciorq.github.io/isoformic/reference/diversity.md)
+  failed with a single group.
+- `de_confidence(collapse_groups = TRUE)` labelled a transcript with the
+  ID of its ambiguity group when it was the only member left in the
+  object.
+- [`isoform_fraction()`](https://luciorq.github.io/isoformic/reference/diversity.md)
+  returned cached fractions after `gene_assays<-`.
+- Stored gene assays whose columns are in another order than the
+  transcript assays gave wrong fractions in
+  [`isoform_fraction()`](https://luciorq.github.io/isoformic/reference/diversity.md),
+  [`dominant_isoform()`](https://luciorq.github.io/isoformic/reference/diversity.md)
+  and
+  [`profile_data()`](https://luciorq.github.io/isoformic/reference/profiles.md);
+  the matrices are now matched by sample ID.
 - [`run_enrichment()`](https://luciorq.github.io/isoformic/reference/enrichment.md)
   and
   [`run_productivity_enrichment()`](https://luciorq.github.io/isoformic/reference/productivity.md)

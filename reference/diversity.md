@@ -69,6 +69,7 @@ dominant_isoform(
   assay = "abundance",
   gene_name = NULL,
   min_expr = 0,
+  levels = NULL,
   ...
 )
 
@@ -81,6 +82,7 @@ haplotype_summary(
   group = NULL,
   assay = "abundance",
   gene_name = NULL,
+  levels = NULL,
   ...
 )
 ```
@@ -120,6 +122,12 @@ haplotype_summary(
 
   Name of a `col_data` column defining sample groups, or `NULL` for all
   samples together.
+
+- levels:
+
+  Levels of `group` to use, in this order. Samples of other groups are
+  ignored, as if the object had been subset to these samples. `NULL`
+  takes all the levels of `group`.
 
 - confident_only:
 

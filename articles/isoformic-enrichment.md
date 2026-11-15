@@ -69,7 +69,7 @@ table(enrichment$experiment)
 #>         retained_intron            unproductive 
 #>                     195                     227
 head(enrichment)
-#> # A tibble: 6 × 9
+#> # A tibble: 6 × 10
 #>   pathway           pval   padj log2err    ES   NES  size leadingEdge experiment
 #>   <chr>            <dbl>  <dbl>   <dbl> <dbl> <dbl> <int> <list>      <chr>     
 #> 1 REACTOME_ABC_… 2.27e-3 0.0572   0.432 0.377  1.45   266 <chr [47]>  protein_c…
@@ -78,6 +78,7 @@ head(enrichment)
 #> 4 REACTOME_ACTI… 5.54e-4 0.0295   0.477 0.729  1.85    19 <chr [10]>  protein_c…
 #> 5 REACTOME_ACTI… 6.91e-3 0.101    0.407 0.602  1.61    26 <chr [5]>   protein_c…
 #> 6 REACTOME_ACTI… 1.00e-2 0.118    0.381 0.569  1.62    34 <chr [14]>  protein_c…
+#> # ℹ 1 more variable: rank_by <chr>
 ```
 
 [`plot_enrichment()`](https://luciorq.github.io/isoformic/reference/enrichment.md)
@@ -138,7 +139,7 @@ sessionInfo()
 #>  [4] compiler_4.6.2      tidyselect_1.2.1    Rcpp_1.1.2         
 #>  [7] parallel_4.6.2      scales_1.4.0        BiocParallel_1.46.0
 #> [10] yaml_2.3.12         fastmap_1.2.0       lattice_0.23-1     
-#> [13] ggplot2_4.0.3       R6_2.6.1            labeling_0.4.3     
+#> [13] ggplot2_4.0.4       R6_2.6.1            labeling_0.4.3     
 #> [16] generics_0.1.4      curl_8.1.0          knitr_1.52         
 #> [19] tibble_3.3.1        DBI_1.3.0           RColorBrewer_1.1-3 
 #> [22] pillar_1.11.1       rlang_1.3.0         utf8_1.2.6         

@@ -18,12 +18,13 @@ Every isoform gets four kinds of evidence:
   determined by the reads. `uncertain` flags
   `mean_inf_rv >= inf_rv_cutoff`.
 
-- **Identifiability**: the correlation between the replicates of
-  isoforms of the same gene. A strong negative correlation means the
+- **Ambiguity between isoforms**: the correlation between the replicates
+  of isoforms of the same gene. A strong negative correlation means the
   reads cannot tell the two isoforms apart and every read taken from one
   is given to the other. Pairs at or below `cor_cutoff` are *ambiguous*
   and are joined into `ambiguity_group`s that can be tested as one
-  feature.
+  feature. This is the idea of `mmcollapse` (Turro et al. 2014), with a
+  fixed cutoff.
 
 - **Read support**: the share of the fragments of an isoform that map to
   it alone (`unique_fraction`, from the equivalence classes).
@@ -38,11 +39,13 @@ Every isoform gets four kinds of evidence:
 `high` when the fold-change is stable
 (`sign_agreement >= min_agreement`), the isoform is not `uncertain` and
 has no ambiguous sibling; `moderate` when exactly one of these fails;
-`low` when two or more fail. The class says how far a call on the
-isoform can be trusted, so read it for the isoforms flagged by the
-primary test (`n_det_sig`, `confident_de`): an isoform without a real
-change is `moderate` or `low` simply because its fold-change is not
-stable.
+`low` when two or more fail. After
+`add_uncertainty(identifiability = TRUE)` a fourth condition counts: the
+equivalence classes must identify the isoform (`identifiable`). The
+class says how far a call on the isoform can be trusted, so read it for
+the isoforms flagged by the primary test (`n_det_sig`, `confident_de`):
+an isoform without a real change is `moderate` or `low` simply because
+its fold-change is not stable.
 
 - `add_uncertainty(x, paths)` reads the replicates, equivalence classes
   and run metadata from the Salmon output directories `paths` (named by
@@ -88,6 +91,7 @@ add_uncertainty(
   cor_cutoff = -0.5,
   min_agreement = 0.95,
   equivalence = TRUE,
+  identifiability = FALSE,
   run_qc = TRUE,
   keep_draws = TRUE,
   collapse_groups = FALSE,
@@ -138,8 +142,9 @@ uncertainty_methods(self, ...)
 
 - levels:
 
-  The two group levels to contrast, reference first. `NULL` uses the
-  levels of `group`, which must then be exactly two.
+  The two group levels to contrast, reference first. Samples of other
+  groups are left out of the contrast. `NULL` uses the levels of
+  `group`, which must then be exactly two.
 
 - n_draws:
 
@@ -157,7 +162,11 @@ uncertainty_methods(self, ...)
 - cor_cutoff:
 
   Mean replicate correlation at or below which two isoforms of a gene
-  are called ambiguous. `NULL` uses the stored value.
+  are called ambiguous: a number, or `"adaptive"` to derive it from the
+  data as `mmcollapse` does (minus the 97.5th percentile of the largest
+  mean correlation of each isoform, which treats the positive
+  correlations as noise). The value used is stored and stated by
+  `uncertainty_methods()`.
 
 - min_agreement:
 
@@ -170,6 +179,16 @@ uncertainty_methods(self, ...)
   returned by
   [`equivalence_support()`](https://luciorq.github.io/isoformic/reference/inferential-io.md),
   to attach read support when the draws are supplied without `paths`.
+
+- identifiability:
+
+  Logical, also compute which transcripts the equivalence classes can
+  tell apart
+  ([`equivalence_identifiability()`](https://luciorq.github.io/isoformic/reference/equivalence_identifiability.md);
+  minutes per sample, needs `paths` and, for human samples, the `Matrix`
+  package), or the table that function returned. `de_confidence()` then
+  counts a non-identifiable transcript as one more reason against the
+  call.
 
 - run_qc:
 
@@ -228,21 +247,33 @@ uncertainty_methods(self, ...)
   and type, `mean_count`, `mean_inf_rv`, `max_inf_rv`, `mean_inf_cv`,
   `uncertain`, `min_sibling_cor`, `n_ambiguous_partners`,
   `ambiguity_group` and, when equivalence classes were read,
-  `n_classes`, `n_unique_fragments` and `unique_fraction`.
+  `n_classes`, `n_unique_fragments`, `unique_fraction` and
+  `low_information` (`TRUE` for an uncertain isoform without a single
+  fragment of its own, the isoforms `mmcollapse` selects for
+  collapsing). With `identifiability`, also `identifiable_fraction` and
+  `identifiable`.
 
 - `isoform_ambiguity()`: a tibble of isoform pairs of the same gene with
-  `mean_cor`, `min_cor`, `n_samples` and `ambiguous`.
+  `mean_cor`, `min_cor`, `n_samples`, `collapse_gain` and `ambiguous`.
+  `collapse_gain` is the score Terminus groups on (Sarkar et al. 2020):
+  the inferential relative variance of the sum of the two isoforms minus
+  the mean of their own, averaged over samples. The more negative, the
+  more is gained by testing the pair as one feature.
 
 - `de_confidence()`: a tibble with one row per feature: `feature_id`,
   `feature_type` (`"transcript"` or `"group"`), gene and transcript
   names, the interval and stability of the fold-change, `mean_inf_rv`,
-  `ambiguous`, `confidence` (an ordered factor), `reason`, the existing
-  differential expression result (`det_log2FC`, `det_qvalue`,
-  `n_det_sig`) and `confident_de`, which is `TRUE` when a significant
-  isoform has `high` confidence.
+  `ambiguous`, `identifiable` (only when the identifiability was
+  computed; `NA` for groups), `confidence` (an ordered factor),
+  `reason`, the existing differential expression result (`det_log2FC`,
+  `det_qvalue`, `n_det_sig`) and `confident_de`, which is `TRUE` when a
+  significant isoform has `high` confidence.
 
-- `uncertainty_report()`: a list with `settings`, `run`, `transcripts`
-  (by transcript type), `genes`, `de` and `switches` tibbles.
+- `uncertainty_report()`: a list with `settings`, `replicates`
+  (replicate type, number of draws, degrees of freedom over the study
+  and, when the draws are in the object, the median overdispersion,
+  which is close to 1 for long reads), `run`, `transcripts` (by
+  transcript type), `genes`, `de` and `switches` tibbles.
 
 - `uncertainty_methods()`: a character string.
 
@@ -258,6 +289,26 @@ numbers next to the classes, and rerun with other cutoffs if the data
 call for it. The replicates measure the uncertainty of the
 quantification only; they do not replace biological replicates and
 cannot make a noisy contrast significant.
+
+What is not measured. The replicates describe how much an estimate moves
+under the quantification model. They do not find the transcripts whose
+abundance is not identifiable, that is, where several abundance vectors
+explain the reads equally well (Zheng et al. 2022 report that only about
+half of the transcripts flagged by replicate variance are also
+non-identifiable in that sense), and they do not find an estimate that
+is wrong because the annotation lacks the transcript the reads came from
+(Ma and Kingsford 2019). An ambiguous pair is a statement about the
+replicates, not a proof of non-identifiability.
+
+How many replicates. The inferential relative variance and the
+correlations are computed per sample, from the replicates of that
+sample. The overdispersion used to scale counts (see
+[`inferential_overdispersion()`](https://luciorq.github.io/isoformic/reference/inferential-overdispersion.md))
+pools all samples, and its precision depends on the total
+`n_samples * (n_replicates - 1)`: Baldoni, Chen and Smyth (2024)
+recommend at least 60 and prefer 200 to 300, and find that Gibbs samples
+resolve low counts better than bootstrap replicates. `add_uncertainty()`
+says so when the total is below 60.
 
 Fold-changes are computed on counts scaled to a common library size, as
 `log2(mean_b + pseudocount) - log2(mean_a + pseudocount)` with a
@@ -276,6 +327,25 @@ scaling.
 Zhu, A., Srivastava, A., Ibrahim, J.G., Patro, R., Love, M.I. (2019).
 Nonparametric expression analysis using inferential replicate counts.
 *Nucleic Acids Research* 47(18), e105.
+
+Sarkar, H., Srivastava, A., Bravo, H.C., Love, M.I., Patro, R. (2020).
+Terminus enables the discovery of data-driven, robust transcript groups
+from RNA-seq data. *Bioinformatics* 36(Suppl 1), i102-i110.
+
+Turro, E., Astle, W.J., Tavare, S. (2014). Flexible analysis of RNA-seq
+data using mixed effects models. *Bioinformatics* 30(2), 180-188.
+
+Zheng, H., Ma, C., Kingsford, C. (2022). Deriving ranges of optimal
+estimated transcript expression due to nonidentifiability. *Journal of
+Computational Biology* 29(2), 121-139.
+
+Ma, C., Kingsford, C. (2019). Detecting, categorizing, and correcting
+coverage anomalies of RNA-seq quantification. *Cell Systems* 9(6),
+589-599.
+
+Baldoni, P.L., Chen, L., Smyth, G.K. (2024). Faster and more accurate
+assessment of differential transcript expression with Gibbs sampling and
+edgeR v4. *NAR Genomics and Bioinformatics* 6(4), lqae151.
 
 ## See also
 
@@ -320,13 +390,13 @@ head(tx_uncertainty(iso))
 #> #   mean_inf_cv <dbl>, uncertain <lgl>, min_sibling_cor <dbl>,
 #> #   n_ambiguous_partners <int>, ambiguity_group <chr>
 isoform_ambiguity(iso, ambiguous_only = TRUE)
-#> # A tibble: 2 × 10
+#> # A tibble: 2 × 11
 #>   gene_id   gene_name transcript_id_1 transcript_id_2 mean_cor min_cor n_samples
 #>   <chr>     <chr>     <chr>           <chr>              <dbl>   <dbl>     <int>
 #> 1 ENSG0000… PTGS2     ENST0000036746… ENST0000068160…   -0.618  -0.873         6
 #> 2 ENSG0000… NFKBIA    ENST0000069795… ENST0000069796…   -0.528  -0.787         5
-#> # ℹ 3 more variables: ambiguous <lgl>, transcript_name_1 <chr>,
-#> #   transcript_name_2 <chr>
+#> # ℹ 4 more variables: collapse_gain <dbl>, ambiguous <lgl>,
+#> #   transcript_name_1 <chr>, transcript_name_2 <chr>
 head(de_confidence(iso))
 #> # A tibble: 6 × 23
 #>   feature_id       feature_type gene_id gene_name transcript_ids transcript_name
@@ -346,9 +416,9 @@ uncertainty_report(iso)$transcripts
 #> # A tibble: 4 × 7
 #>   transcript_type n_assessed n_uncertain pct_uncertain median_inf_rv n_ambiguous
 #>   <chr>                <int>       <int>         <dbl>         <dbl>       <int>
-#> 1 protein_coding          47          21          44.7         0.373           1
-#> 2 retained_intron         27          12          44.4         0.324           2
-#> 3 nonsense_media…         17          13          76.5         1.36            1
-#> 4 protein_coding…          6           5          83.3         1.36            0
+#> 1 protein_coding          47          21          44.7         0.383           1
+#> 2 retained_intron         27          12          44.4         0.334           2
+#> 3 nonsense_media…         17          13          76.5         1.37            1
+#> 4 protein_coding…          6           5          83.3         1.37            0
 #> # ℹ 1 more variable: median_unique_fraction <dbl>
 ```

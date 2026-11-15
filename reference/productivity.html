@@ -10,9 +10,10 @@ a different ORF than the canonical isoform: alternative start, in-frame
 change, frameshift or stop in novel sequence), &quot;unproductive&quot; (no
 ORF, premature stop codon by the 50-nt rule, no stop codon, an
 unproductive biotype such as nonsense_mediated_decay,
-retained_intron, protein_coding_CDS_not_defined, or a longest ORF
-without coding potential), &quot;noncoding&quot; (transcripts of genes without
-any coding isoform) or &quot;uncertain&quot; (incomplete CDS annotation without
+retained_intron, protein_coding_CDS_not_defined,
+protein_coding_LoF, or a longest ORF without coding potential),
+&quot;noncoding&quot; (transcripts of genes without any coding isoform) or
+&quot;uncertain&quot; (incomplete CDS annotation without
 a premature stop, a credible ORF unrelated to the canonical one, FANTOM
 uncertain_coding).
 The reason column explains each call and source tells whether it
@@ -66,9 +67,10 @@ a different ORF than the canonical isoform: alternative start, in-frame
 change, frameshift or stop in novel sequence), &quot;unproductive&quot; (no
 ORF, premature stop codon by the 50-nt rule, no stop codon, an
 unproductive biotype such as nonsense_mediated_decay,
-retained_intron, protein_coding_CDS_not_defined, or a longest ORF
-without coding potential), &quot;noncoding&quot; (transcripts of genes without
-any coding isoform) or &quot;uncertain&quot; (incomplete CDS annotation without
+retained_intron, protein_coding_CDS_not_defined,
+protein_coding_LoF, or a longest ORF without coding potential),
+&quot;noncoding&quot; (transcripts of genes without any coding isoform) or
+&quot;uncertain&quot; (incomplete CDS annotation without
 a premature stop, a credible ORF unrelated to the canonical one, FANTOM
 uncertain_coding).
 The reason column explains each call and source tells whether it
@@ -170,7 +172,7 @@ productivity_palette() gives colours for the classes.
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Productivity of Transcripts and Genes</h1>
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/R/productivity.R" class="external-link"><code>R/productivity.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/R/productivity.R" class="external-link"><code>R/productivity.R</code></a></small>
       <div class="d-none name"><code>productivity.Rd</code></div>
     </div>
 
@@ -185,9 +187,10 @@ a different ORF than the canonical isoform: alternative start, in-frame
 change, frameshift or stop in novel sequence), <code>"unproductive"</code> (no
 ORF, premature stop codon by the 50-nt rule, no stop codon, an
 unproductive biotype such as <code>nonsense_mediated_decay</code>,
-<code>retained_intron</code>, <code>protein_coding_CDS_not_defined</code>, or a longest ORF
-without coding potential), <code>"noncoding"</code> (transcripts of genes without
-any coding isoform) or <code>"uncertain"</code> (incomplete CDS annotation without
+<code>retained_intron</code>, <code>protein_coding_CDS_not_defined</code>,
+<code>protein_coding_LoF</code>, or a longest ORF without coding potential),
+<code>"noncoding"</code> (transcripts of genes without any coding isoform) or
+<code>"uncertain"</code> (incomplete CDS annotation without
 a premature stop, a credible ORF unrelated to the canonical one, FANTOM
 <code>uncertain_coding</code>).
 The <code>reason</code> column explains each call and <code>source</code> tells whether it
@@ -284,11 +287,15 @@ transcripts by the sequence/structure rules alone, and the share of
 <span><span class="fu">run_productivity_enrichment</span><span class="op">(</span></span>
 <span>  <span class="va">self</span>,</span>
 <span>  <span class="va">genesets_list</span>,</span>
-<span>  <span class="va">group</span>,</span>
+<span>  group <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  levels <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  assay <span class="op">=</span> <span class="st">"abundance"</span>,</span>
 <span>  min_size <span class="op">=</span> <span class="fl">15</span>,</span>
 <span>  max_size <span class="op">=</span> <span class="fl">500</span>,</span>
+<span>  rank_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"delta"</span>, <span class="st">"delta_z"</span><span class="op">)</span>,</span>
+<span>  include_altered <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  min_expr <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  inf_reps <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -302,7 +309,11 @@ transcripts by the sequence/structure rules alone, and the share of
 
 
 <dl><dt id="arg-self">self<a class="anchor" aria-label="anchor" href="#arg-self"></a></dt>
-<dd><p>An <a href="IsoformicExperiment.html">IsoformicExperiment</a>.</p></dd>
+<dd><p>An <a href="IsoformicExperiment.html">IsoformicExperiment</a>. <code>run_productivity_enrichment()</code> also
+takes the table of <code>productive_fraction()</code> for two or more groups, so
+that one table serves several gene set collections; the arguments that
+build the table (<code>group</code>, <code>levels</code>, <code>assay</code>, <code>include_altered</code>,
+<code>min_expr</code>, <code>inf_reps</code>) are then ignored.</p></dd>
 
 
 <dt id="arg-gene-name">gene_name<a class="anchor" aria-label="anchor" href="#arg-gene-name"></a></dt>
@@ -340,13 +351,16 @@ that could not be projected from the canonical start) is not believed
 
 <dt id="arg-group">group<a class="anchor" aria-label="anchor" href="#arg-group"></a></dt>
 <dd><p>Name of a <code>col_data</code> column defining groups; <code>NULL</code> for
-per-sample values.</p></dd>
+per-sample values. <code>run_productivity_enrichment()</code> requires it for an
+<a href="IsoformicExperiment.html">IsoformicExperiment</a> and ignores it for a <code>productive_fraction()</code> table.</p></dd>
 
 
 <dt id="arg-levels">levels<a class="anchor" aria-label="anchor" href="#arg-levels"></a></dt>
-<dd><p>Order of the group levels; the change is <code>last - first</code>.
-For the tests (<code>test_productive_fraction()</code>, <code><a href="polyadenylation.html">test_apa()</a></code>), the two
-groups to compare; samples of other groups are ignored.</p></dd>
+<dd><p>Levels of <code>group</code> to use, in this order; the change is
+<code>last - first</code>. Samples of other groups are ignored, as if the object
+had been subset to these samples, so every returned value comes from
+the samples kept. <code>NULL</code> takes all the levels of <code>group</code>. The tests
+(<code>test_productive_fraction()</code>, <code><a href="polyadenylation.html">test_apa()</a></code>) need exactly two levels.</p></dd>
 
 
 <dt id="arg-assay">assay<a class="anchor" aria-label="anchor" href="#arg-assay"></a></dt>
@@ -372,7 +386,10 @@ productive fractions instead of the summary table.</p></dd>
 <dt id="arg-inf-reps">inf_reps<a class="anchor" aria-label="anchor" href="#arg-inf-reps"></a></dt>
 <dd><p>Optional list of transcript matrices (inferential
 replicates with the same dimnames as the assay); <code>NULL</code> uses
-<code>metadata(x)$inf_reps</code> when present.</p></dd>
+<code>metadata(x)$inf_reps</code> when present and <code>FALSE</code> skips the replicates,
+which leaves out the standard deviations and <code>delta_z</code> and is much
+faster. <code>run_productivity_enrichment()</code> reads the replicates only for
+<code>rank_by = "delta_z"</code>.</p></dd>
 
 
 <dt id="arg-reference">reference<a class="anchor" aria-label="anchor" href="#arg-reference"></a></dt>
@@ -381,11 +398,24 @@ tissue name, giving the healthy-tissue productive fraction per gene.</p></dd>
 
 
 <dt id="arg-genesets-list">genesets_list<a class="anchor" aria-label="anchor" href="#arg-genesets-list"></a></dt>
-<dd><p>Named list of gene symbol vectors (see <code><a href="enrichment.html">read_gmt()</a></code>).</p></dd>
+<dd><p>Named list of gene symbol vectors (see <code><a href="enrichment.html">read_gmt()</a></code>),
+or a named list of such lists: each collection is then tested on its own
+and the result has a <code>collection</code> column (see <code><a href="enrichment.html">run_enrichment()</a></code>).</p></dd>
 
 
 <dt id="arg-min-size-max-size">min_size, max_size<a class="anchor" aria-label="anchor" href="#arg-min-size-max-size"></a></dt>
 <dd><p>Gene set size limits passed to <code>fgsea</code>.</p></dd>
+
+
+<dt id="arg-rank-by">rank_by<a class="anchor" aria-label="anchor" href="#arg-rank-by"></a></dt>
+<dd><p>Statistic that ranks the genes in
+<code>run_productivity_enrichment()</code>: <code>"delta"</code> (default), the change in
+productive fraction, or <code>"delta_z"</code>, that change divided by its
+standard deviation over the inferential replicates, which moves the
+genes with an uncertain change towards the middle of the ranking.
+<code>"delta_z"</code> needs inferential replicates; a change that is the same in
+every replicate gets the largest <code>delta_z</code> of the table. It reflects the
+quantification uncertainty only, not the variation between samples.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -464,7 +494,7 @@ a named character vector for <code>productivity_palette()</code>, a list with
 <span class="r-out co"><span class="r-pr">#&gt;</span>   metric                                  n value source  </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                               <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> nmd_biotype_called_unproductive        38 0.974 sequence</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> retained_intron_called_unproductive   145 0.607 sequence</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> retained_intron_called_unproductive   145 0.6   sequence</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> protein_coding_called_productive      252 0.782 sequence</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> canonical_called_productive            67 1     sequence</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> lncrna_called_noncoding                19 1     sequence</span>

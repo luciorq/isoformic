@@ -47,8 +47,10 @@ plot_tx_expr(
 
 - levels:
 
-  Optional order of the group levels. Defaults to the factor levels or
-  the order of appearance.
+  Levels of `group` to show, in this order. Samples of other groups are
+  ignored, as if the object had been subset to these samples. `NULL`
+  takes all the levels of `group` (factor levels, else order of
+  appearance). For a profile table, the groups of the table to draw.
 
 - assay:
 

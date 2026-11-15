@@ -1,33 +1,34 @@
 # Case study: a splicing kinase inhibitor in nanopore long reads
 
 This article applies `isoformic` to Oxford Nanopore long-read cDNA
-sequencing of 22Rv1 prostate cancer cells treated with lorecivivint, an
-inhibitor of the CDC-like kinases (CLKs) that phosphorylate splicing
-factors, against vehicle-treated cells \[Van Goubergen et al.
+sequencing of 22Rv1 prostate cancer cells treated with lorecivivint
+against vehicle-treated cells \[Van Goubergen et al.
 ([2024](#ref-vangoubergen2024)); GEO
 [GSE259334](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE259334)\].
-Long reads often span a transcript from end to end, so they assign reads
-to isoforms with less ambiguity than short reads. The analysis is the
-same as for short reads; only the quantification step changes.
+Lorecivivint inhibits the CDC-like kinases (CLKs), which phosphorylate
+splicing factors. Long reads often span a transcript from end to end, so
+they assign reads to isoforms with less ambiguity than short reads. The
+analysis is the same as for short reads. Only the quantification step
+changes.
 
 ## The data
 
 The 6 samples (3 vehicle, 3 lorecivivint) were quantified with Oarfish
-([Jousheghani et al. 2025](#ref-oarfish)) against the GENCODE v49
-transcripts ([Frankish et al. 2018](#ref-gencode)) in its nanopore cDNA
-mode, with 30 bootstrap replicates per sample; each sample has 6.3 to
-7.0 million reads assigned to transcripts. Transcripts were tested with
-`swish` ([Zhu et al. 2019](#ref-swish)) on the bootstrap replicates and
-genes with `DESeq2` on the summed counts. The scripts that download the
-reads from SRA and run every step are in `data-raw/case_studies/` of the
-package repository.
+([Jousheghani et al. 2025](#ref-oarfish)) in its nanopore cDNA mode. The
+reference was the GENCODE v49 transcripts ([Frankish et al.
+2018](#ref-gencode)), with 30 bootstrap replicates per sample. Each
+sample has 6.3 to 7.0 million reads assigned to transcripts. Transcripts
+were tested with `swish` ([Zhu et al. 2019](#ref-swish)) on the
+bootstrap replicates. Genes were tested with `DESeq2` on the summed
+counts. The scripts that download the reads from SRA and run every step
+are in `data-raw/case_studies/` of the package repository.
 
 The result is an `IsoformicExperiment` saved with
 [`write_isoformic()`](https://luciorq.github.io/isoformic/reference/isoformic-io.md).
 It keeps the complete differential expression tables (every tested
-transcript and gene) but the expression assays and exon structures only
-of a panel of 48 genes, so that it fits in the repository; it is not
-installed with the package.
+transcript and gene). The expression assays and exon structures cover
+only a panel of 48 genes, so that the object fits in the repository. It
+is not installed with the package.
 [`read_oarfish()`](https://luciorq.github.io/isoformic/reference/read_oarfish.md)
 creates the same object from the Oarfish output directly, as shown in
 the [preprocessing
@@ -110,8 +111,8 @@ c(
 
 At a false discovery rate of 5%, `DESeq2` finds 140 genes and `swish`
 287 transcripts. `swish` computes its p-values from permutations of the
-samples, and three against three samples allow only a few distinct
-permutations: all 287 significant transcripts share the smallest
+samples. Three against three samples allow only a few distinct
+permutations. All 287 significant transcripts share the smallest
 q-value, so they are ranked by fold change below.
 
 ``` r
@@ -140,9 +141,9 @@ det |>
 ```
 
 [`isoform_switches()`](https://luciorq.github.io/isoformic/reference/diversity.md)
-relates the two levels with the default cutoffs of the experiment (an
-absolute log2 fold change of at least 1 and a false discovery rate below
-5%). Two thirds of the genes with a significant transcript have no
+relates the two levels. It uses the default cutoffs of the experiment:
+an absolute log2 fold change of at least 1 and a false discovery rate
+below 5%. Two thirds of the genes with a significant transcript have no
 significant change of their total expression (`det_not_deg`).
 
 ``` r
@@ -185,7 +186,7 @@ plot_log2fc(iso, feature = c("CLK1", "CLK3", "CLK4"), ncol = 2)
 
 The gene-level results show why the classification needs care. *CLK1*
 and *CLK3* are significant in `DESeq2`, but their shrunken fold changes
-(1.8-fold) are below the cutoff of 2-fold, so
+(1.8-fold) are below the 2-fold cutoff. For that reason
 [`isoform_switches()`](https://luciorq.github.io/isoformic/reference/diversity.md)
 does not count them as changed genes:
 
@@ -204,15 +205,15 @@ deg |>
 ```
 
 The isoforms of *CLK1* explain most of its gene-level change. `CLK1-201`
-encodes the full-length kinase; `CLK1-204` is the same transcript
+encodes the full-length kinase. `CLK1-204` is the same transcript
 without exon 4, which shifts the reading frame and makes it a target of
-nonsense-mediated decay; `CLK1-210` keeps the introns on both sides of
+nonsense-mediated decay. `CLK1-210` keeps the introns on both sides of
 exon 4. CLK1 activity favours the skipping of its own exon 4, and CLK
 inhibitors shift the balance towards the full-length isoform ([Uzor et
-al. 2018](#ref-uzor2018)). The long reads show that shift: the
-full-length isoform rises from about 17 to 46 transcripts per million
-while the skipped one falls from about 4 to 1.5 (not significant on its
-own, with q = 0.25).
+al. 2018](#ref-uzor2018)). The long reads show that shift. The
+full-length isoform rises from about 17 to 46 transcripts per million.
+The skipped one falls from about 4 to 1.5 (not significant on its own,
+with q = 0.25).
 
 ``` r
 
@@ -234,7 +235,7 @@ Van Goubergen et al. ([2024](#ref-vangoubergen2024)) report that CLK
 inhibition lowers the expression of the androgen receptor splice variant
 ARV7 through the CLK2/SRSF9 axis. In these three against three nanopore
 samples, no transcript of *AR*, *CLK2* or *SRSF9* reaches a false
-discovery rate of 5%; *SRSF3* has one protein coding isoform with a
+discovery rate of 5%. *SRSF3* has one protein coding isoform with a
 small but significant decrease.
 
 ``` r
@@ -283,19 +284,20 @@ plot_enrichment(enrichment, n = 20)
 
 ![](isoformic-case-long-reads_files/figure-html/unnamed-chunk-13-1.png)
 
-The androgen response, cholesterol homeostasis and mitotic spindle genes
-go down in the protein coding isoforms of the treated cells, in line
-with the anti-proliferative effect of lorecivivint reported by Van
-Goubergen et al. ([2024](#ref-vangoubergen2024)). The proliferation sets
-(G2M checkpoint, E2F and MYC targets) go down in the retained intron and
-other unproductive isoforms, but not in the protein coding ones: a part
-of the response to the drug that only the transcript-level analysis
-shows.
+At an adjusted p-value below 0.05, three gene sets go down in the
+protein coding isoforms of the treated cells: androgen response,
+cholesterol homeostasis and mitotic spindle. This agrees with the
+anti-proliferative effect of lorecivivint reported by Van Goubergen et
+al. ([2024](#ref-vangoubergen2024)). The proliferation sets (G2M
+checkpoint, E2F and MYC targets) go down in the retained intron and
+other unproductive isoforms. They do not go down in the protein coding
+ones. Only the transcript-level analysis shows this part of the response
+to the drug.
 
 ## Citing isoformic
 
 If you use `isoformic` in publications, please cite Mamede et al.
-([2025](#ref-isoformic)); `citation("isoformic")` prints the reference.
+([2025](#ref-isoformic)). `citation("isoformic")` prints the reference.
 
 ## Session information
 
@@ -323,7 +325,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] ggplot2_4.0.3   dplyr_1.2.1     isoformic_0.1.3
+#> [1] ggplot2_4.0.4   dplyr_1.2.1     isoformic_0.1.3
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] Matrix_1.7-6        gtable_0.3.6        jsonlite_2.0.0     

@@ -130,6 +130,25 @@ coding_potential(
 
 A tibble with one row per transcript.
 
+## Stored ORF table
+
+The analysis takes minutes for a whole GENCODE release, so the rows
+computed are written to `annot_data_orfs.parquet` in the annotation
+directory and read back by later calls, sessions and objects that use
+the same annotation. A stored row is used when the canonical isoform of
+the gene, among the transcripts of the call, is the one it was computed
+with, so the result is the same with and without the table. A gene with
+a transcript that has no such row is computed whole, and its rows are
+stored when its canonical isoform is the one of the whole annotation.
+The table is computed again when the transcripts, exons or sequences of
+the annotation, `min_orf_length`, the coding potential model
+([`build_coding_model()`](https://luciorq.github.io/isoformic/reference/build_coding_model.md))
+or the package version change. It is not written into a read-only
+directory or the example annotation of the installed package, and
+`options(isoformic.orf_cache = FALSE)` turns it off. The warning about
+sequences that differ in length from their exons is given when the rows
+are computed, not when they are read back.
+
 ## See also
 
 [`transcript_productivity()`](https://luciorq.github.io/isoformic/reference/productivity.md),
@@ -146,14 +165,14 @@ orfs[, c("transcript_name", "orf_source", "orf_length", "nmd_class", "coding_pro
 #> # A tibble: 10 × 5
 #>    transcript_name orf_source         orf_length nmd_class coding_probability
 #>    <chr>           <chr>                   <dbl> <chr>                  <dbl>
-#>  1 RBPJ-222        annotation_partial        283 NA                    0.0723
-#>  2 RBPJ-201        annotation               1503 none                  0.975 
-#>  3 RBPJ-206        annotation               1503 none                  0.984 
-#>  4 RBPJ-225        projected                1140 none                  0.950 
-#>  5 RBPJ-204        annotation               1464 none                  0.980 
-#>  6 RBPJ-205        annotation               1461 none                  0.968 
-#>  7 RBPJ-214        annotation               1398 none                  0.976 
-#>  8 RBPJ-208        annotation               1149 none                  0.931 
-#>  9 RBPJ-202        annotation               1461 none                  0.968 
-#> 10 RBPJ-210        longest                   462 none                  0.548 
+#>  1 RBPJ-222        annotation_partial        283 NA                    0.0809
+#>  2 RBPJ-201        annotation               1503 none                  0.984 
+#>  3 RBPJ-206        annotation               1503 none                  0.959 
+#>  4 RBPJ-225        projected                1140 none                  0.909 
+#>  5 RBPJ-204        annotation               1464 none                  0.953 
+#>  6 RBPJ-205        annotation               1461 none                  0.981 
+#>  7 RBPJ-214        annotation               1398 none                  0.947 
+#>  8 RBPJ-208        annotation               1149 none                  0.895 
+#>  9 RBPJ-202        annotation               1461 none                  0.980 
+#> 10 RBPJ-210        longest                   462 none                  0.528 
 ```

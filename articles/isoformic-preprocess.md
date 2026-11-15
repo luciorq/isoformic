@@ -40,7 +40,7 @@ into `aux_info/bootstrap/`.
 
 ``` bash
 salmon index \
-  --transcripts gencode.v49.transcripts.fa.gz \
+  --transcripts gencode.v50.transcripts.fa.gz \
   --index salmon_index \
   --gencode \
   --threads 8
@@ -70,8 +70,8 @@ Salmon 2.8.0:
 ``` r
 
 library(isoformic)
-tx_fasta <- download_reference(version = "49", file_type = "fasta")
-gff_path <- download_reference(version = "49", file_type = "gff")
+tx_fasta <- download_reference(version = "50", file_type = "fasta")
+gff_path <- download_reference(version = "50", file_type = "gff")
 
 salmon_index(fasta_path = tx_fasta, index_path = "salmon_index", is_gencode = TRUE, num_threads = 8)
 salmon_quant(
@@ -333,13 +333,13 @@ Parquet files and restored with
 out_dir <- fs::path(tempdir(), "mini_placenta")
 iso <- write_isoformic(iso, out_dir, overwrite = TRUE)
 iso@data_path
-#> [1] "/tmp/Rtmpz3YaIS/mini_placenta"
+#> [1] "/tmp/RtmpREvlr3/mini_placenta"
 fs::dir_ls(out_dir)
-#> /tmp/Rtmpz3YaIS/mini_placenta/assays
-#> /tmp/Rtmpz3YaIS/mini_placenta/col_data.parquet
-#> /tmp/Rtmpz3YaIS/mini_placenta/dea
-#> /tmp/Rtmpz3YaIS/mini_placenta/experiment.parquet
-#> /tmp/Rtmpz3YaIS/mini_placenta/tx_type_palette.parquet
+#> /tmp/RtmpREvlr3/mini_placenta/assays
+#> /tmp/RtmpREvlr3/mini_placenta/col_data.parquet
+#> /tmp/RtmpREvlr3/mini_placenta/dea
+#> /tmp/RtmpREvlr3/mini_placenta/experiment.parquet
+#> /tmp/RtmpREvlr3/mini_placenta/tx_type_palette.parquet
 ```
 
 ## Long reads with Oarfish
@@ -374,7 +374,7 @@ iso_long <- read_oarfish(
   inferential = TRUE
 )
 iso_long
-#> <IsoformicExperiment> isoformic_7670d839a2
+#> <IsoformicExperiment> isoformic_18c6a75d81
 #>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)
 #>   samples    : 3 [oarfish_num_processed, oarfish_num_mapped, oarfish_percent_mapped, oarfish_replicate_type, oarfish_num_replicates, oarfish_optimiser, oarfish_alignment_source, oarfish_prob_model, oarfish_qc_flag]
 #>   transcripts: 72 assayed from 3 genes
@@ -388,12 +388,12 @@ tx_uncertainty(iso_long) |>
 #> # A tibble: 6 × 4
 #>   transcript_name mean_count mean_inf_rv unique_fraction
 #>   <chr>                <dbl>       <dbl>           <dbl>
-#> 1 PNCK-201             46.6         2.17         0      
-#> 2 PNCK-230             18.1         1.83         0.0455 
-#> 3 PNCK-203             41.9         1.76         0.00234
-#> 4 PNCK-220              9.35        1.76         0      
-#> 5 PNCK-223              2.49        1.69         0      
-#> 6 RBPJ-205             56.2         1.64         0
+#> 1 PNCK-201             46.6         2.18         0      
+#> 2 PNCK-230             18.1         1.84         0.0455 
+#> 3 PNCK-203             41.9         1.77         0.00234
+#> 4 PNCK-220              9.35        1.77         0      
+#> 5 PNCK-223              2.49        1.70         0      
+#> 6 RBPJ-205             56.2         1.65         0
 ```
 
 The Oarfish output has no TPM, so the `abundance` assay is computed from
@@ -492,63 +492,64 @@ sessionInfo()
 #> [11] matrixStats_1.5.0           isoformic_0.1.3            
 #> 
 #> loaded via a namespace (and not attached):
-#>   [1] DBI_1.3.0                   bitops_1.1-0               
-#>   [3] httr2_1.3.0                 biomaRt_2.68.6             
-#>   [5] rlang_1.3.0                 magrittr_2.0.5             
-#>   [7] otel_0.3.0                  compiler_4.6.2             
-#>   [9] RSQLite_3.53.3              GenomicFeatures_1.64.0     
-#>  [11] reshape2_1.4.5              png_0.1-9                  
-#>  [13] vctrs_0.7.3                 txdbmaker_1.8.0            
-#>  [15] stringr_1.6.0               ProtGenerics_1.44.0        
-#>  [17] pkgconfig_2.0.3             crayon_1.5.3               
-#>  [19] fastmap_1.2.0               dbplyr_2.6.0               
-#>  [21] XVector_0.52.0              labeling_0.4.3             
-#>  [23] utf8_1.2.6                  Rsamtools_2.28.0           
-#>  [25] rmarkdown_2.32              UCSC.utils_1.8.0           
-#>  [27] bit_4.6.0                   xfun_0.62                  
-#>  [29] cachem_1.1.0                cigarillo_1.2.1            
-#>  [31] GenomeInfoDb_1.48.0         jsonlite_2.0.0             
-#>  [33] progress_1.2.3              blob_1.3.0                 
-#>  [35] DelayedArray_0.38.2         BiocParallel_1.46.0        
-#>  [37] parallel_4.6.2              prettyunits_1.2.0          
-#>  [39] R6_2.6.1                    RColorBrewer_1.1-3         
-#>  [41] stringi_1.8.9               rtracklayer_1.72.0         
-#>  [43] numDeriv_2016.8-1.1         Rcpp_1.1.2                 
-#>  [45] knitr_1.52                  splines_4.6.2              
-#>  [47] Matrix_1.7-6                tidyselect_1.2.1           
-#>  [49] qvalue_2.44.0               abind_1.4-8                
-#>  [51] yaml_2.3.12                 codetools_0.2-20           
-#>  [53] svMisc_1.4.3                curl_8.1.0                 
-#>  [55] plyr_1.8.9                  lattice_0.23-1             
-#>  [57] tibble_3.3.1                withr_3.0.3                
-#>  [59] KEGGREST_1.52.2             S7_0.2.2                   
-#>  [61] coda_0.19-4.1               evaluate_1.0.5             
-#>  [63] BiocFileCache_3.2.0         Biostrings_2.80.2          
-#>  [65] pillar_1.11.1               BiocManager_1.30.27        
-#>  [67] filelock_1.0.3              RCurl_1.98-1.20            
-#>  [69] emdbook_1.3.14              BiocVersion_3.23.1         
-#>  [71] ensembldb_2.36.1            hms_1.1.4                  
-#>  [73] ggplot2_4.0.3               scales_1.4.0               
-#>  [75] gtools_3.9.5                glue_1.8.1                 
-#>  [77] lazyeval_0.2.3              apeglm_1.34.0              
-#>  [79] tools_4.6.2                 AnnotationHub_4.2.2        
-#>  [81] BiocIO_1.22.0               tximeta_1.30.1             
-#>  [83] locfit_1.5-9.12             GenomicAlignments_1.48.0   
-#>  [85] mvtnorm_1.4-2               fs_2.1.0                   
-#>  [87] XML_3.99-0.25               grid_4.6.2                 
-#>  [89] bbmle_1.0.26                bdsmatrix_1.3-7            
-#>  [91] AnnotationDbi_1.74.0        SingleCellExperiment_1.34.0
-#>  [93] duckdb_2.0.0                restfulr_0.0.17            
-#>  [95] cli_3.6.6                   rappdirs_0.3.4             
-#>  [97] S4Arrays_1.12.1             dplyr_1.2.1                
-#>  [99] AnnotationFilter_1.36.0     gtable_0.3.6               
-#> [101] DESeq2_1.52.0               digest_0.6.39              
-#> [103] ggrepel_0.9.8               SparseArray_1.12.3         
-#> [105] tximport_1.40.0             farver_2.1.2               
-#> [107] rjson_0.2.23                memoise_2.0.1              
-#> [109] htmltools_0.5.9             lifecycle_1.0.5            
-#> [111] httr_1.4.9                  MASS_7.3-66                
-#> [113] bit64_4.8.6
+#>   [1] RColorBrewer_1.1-3          jsonlite_2.0.0             
+#>   [3] tximport_1.40.0             magrittr_2.0.5             
+#>   [5] GenomicFeatures_1.64.0      farver_2.1.2               
+#>   [7] rmarkdown_2.32              fs_2.1.0                   
+#>   [9] BiocIO_1.22.0               vctrs_0.7.3                
+#>  [11] memoise_2.0.1               Rsamtools_2.28.0           
+#>  [13] RCurl_1.98-1.20             htmltools_0.5.9            
+#>  [15] S4Arrays_1.12.1             progress_1.2.3             
+#>  [17] AnnotationHub_4.2.2         curl_8.1.0                 
+#>  [19] SparseArray_1.12.3          plyr_1.8.9                 
+#>  [21] httr2_1.3.0                 cachem_1.1.0               
+#>  [23] GenomicAlignments_1.48.0    lifecycle_1.0.5            
+#>  [25] pkgconfig_2.0.3             Matrix_1.7-6               
+#>  [27] R6_2.6.1                    fastmap_1.2.0              
+#>  [29] digest_0.6.39               numDeriv_2016.8-1.1        
+#>  [31] AnnotationDbi_1.74.0        DESeq2_1.52.0              
+#>  [33] tximeta_1.30.1              RSQLite_3.53.3             
+#>  [35] filelock_1.0.3              labeling_0.4.3             
+#>  [37] httr_1.4.9                  abind_1.4-8                
+#>  [39] compiler_4.6.2              bit64_4.8.6                
+#>  [41] withr_3.0.3                 S7_0.2.2                   
+#>  [43] BiocParallel_1.46.0         DBI_1.3.0                  
+#>  [45] duckdb_2.0.0                biomaRt_2.68.6             
+#>  [47] MASS_7.3-66                 rappdirs_0.3.4             
+#>  [49] DelayedArray_0.38.2         rjson_0.2.23               
+#>  [51] gtools_3.9.5                tools_4.6.2                
+#>  [53] otel_0.3.0                  glue_1.8.1                 
+#>  [55] restfulr_0.0.17             grid_4.6.2                 
+#>  [57] reshape2_1.4.5              gtable_0.3.6               
+#>  [59] tzdb_0.5.0                  ensembldb_2.36.1           
+#>  [61] hms_1.1.4                   utf8_1.2.6                 
+#>  [63] XVector_0.52.0              ggrepel_0.9.8              
+#>  [65] BiocVersion_3.23.1          pillar_1.11.1              
+#>  [67] stringr_1.6.0               emdbook_1.3.14             
+#>  [69] vroom_1.7.1                 splines_4.6.2              
+#>  [71] dplyr_1.2.1                 BiocFileCache_3.2.0        
+#>  [73] lattice_0.23-1              rtracklayer_1.72.0         
+#>  [75] bit_4.6.0                   tidyselect_1.2.1           
+#>  [77] SingleCellExperiment_1.34.0 locfit_1.5-9.12            
+#>  [79] Biostrings_2.80.2           knitr_1.52                 
+#>  [81] ProtGenerics_1.44.0         xfun_0.62                  
+#>  [83] stringi_1.8.9               UCSC.utils_1.8.0           
+#>  [85] lazyeval_0.2.3              yaml_2.3.12                
+#>  [87] evaluate_1.0.5              codetools_0.2-20           
+#>  [89] cigarillo_1.2.1             bbmle_1.0.26               
+#>  [91] tibble_3.3.1                qvalue_2.44.0              
+#>  [93] BiocManager_1.30.27         cli_3.6.6                  
+#>  [95] Rcpp_1.1.2                  GenomeInfoDb_1.48.0        
+#>  [97] svMisc_1.4.3                dbplyr_2.6.0               
+#>  [99] coda_0.19-4.1               png_0.1-9                  
+#> [101] bdsmatrix_1.3-7             XML_3.99-0.25              
+#> [103] parallel_4.6.2              ggplot2_4.0.4              
+#> [105] readr_2.2.0                 blob_1.3.0                 
+#> [107] prettyunits_1.2.0           AnnotationFilter_1.36.0    
+#> [109] bitops_1.1-0                txdbmaker_1.8.0            
+#> [111] mvtnorm_1.4-2               apeglm_1.34.0              
+#> [113] scales_1.4.0                crayon_1.5.3               
+#> [115] rlang_1.3.0                 KEGGREST_1.52.2
 ```
 
 ## References

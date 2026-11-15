@@ -79,14 +79,14 @@ its productive fraction falls is regulated post-transcriptionally.
 ``` r
 
 prod <- transcript_productivity(iso)
-#> Warning: ! 91 transcripts have a sequence length differing from the exon length; their
-#>   ORFs are skipped.
+#> Warning: ! 1 transcript has a sequence length differing from the exon length; its ORF is
+#>   skipped.
 table(prod$productivity)
 #> 
 #>         productive altered_productive       unproductive          noncoding 
-#>              18292              14271              24301              10123 
+#>              18292              14271              24299              10123 
 #>          uncertain 
-#>               5398
+#>               5400
 pf <- productive_fraction(iso, group = "condition")
 head(pf)
 #> # A tibble: 6 × 7
@@ -188,7 +188,7 @@ benchmark_productivity(iso)$summary
 #>   metric                                  n value source  
 #>   <chr>                               <int> <dbl> <chr>   
 #> 1 nmd_biotype_called_unproductive      5088 0.994 sequence
-#> 2 retained_intron_called_unproductive 13074 0.569 sequence
+#> 2 retained_intron_called_unproductive 13074 0.551 sequence
 #> 3 protein_coding_called_productive    38376 0.848 sequence
 #> 4 canonical_called_productive         15242 0.963 sequence
 #> 5 lncrna_called_noncoding              7343 1     sequence
@@ -246,7 +246,14 @@ of each fraction, and a healthy-tissue `reference` from GTEx (below).
 
 Genes ranked by the change in productive fraction can be tested for
 enrichment directly, which targets regulated unproductive splicing such
-as AS-NMD. Exons found only in unproductive isoforms (poison exons) are
+as AS-NMD. With inferential replicates, `rank_by = "delta_z"` ranks by
+the change divided by its standard deviation over the replicates, and
+`levels` chooses the two groups when the object has more. The function
+also takes the table of
+[`productive_fraction()`](https://luciorq.github.io/isoformic/reference/productivity.md),
+which avoids computing it again for each gene set collection;
+`inf_reps = FALSE` skips stored replicates when only the fractions are
+needed. Exons found only in unproductive isoforms (poison exons) are
 listed by
 [`poison_exons()`](https://luciorq.github.io/isoformic/reference/productivity.md)
 and outlined in the genomic context plot:
@@ -304,8 +311,8 @@ frozen_datasets()[, c("name", "version")]
 #> # A tibble: 6 × 2
 #>   name                version      
 #>   <chr>               <chr>        
-#> 1 appris              e113v49      
-#> 2 appris_domains      e113v49      
+#> 1 appris              e116v50      
+#> 2 appris_domains      e116v50      
 #> 3 riboseq_orfs        phase1_phase2
 #> 4 nmd_exons           karousis2021 
 #> 5 polyasite           2.0_GRCh38.96
@@ -375,7 +382,7 @@ sessionInfo()
 #>  [4] compiler_4.6.2      tidyselect_1.2.1    Rcpp_1.1.2         
 #>  [7] parallel_4.6.2      scales_1.4.0        BiocParallel_1.46.0
 #> [10] yaml_2.3.12         fastmap_1.2.0       lattice_0.23-1     
-#> [13] ggplot2_4.0.3       R6_2.6.1            labeling_0.4.3     
+#> [13] ggplot2_4.0.4       R6_2.6.1            labeling_0.4.3     
 #> [16] generics_0.1.4      curl_8.1.0          knitr_1.52         
 #> [19] tibble_3.3.1        DBI_1.3.0           RColorBrewer_1.1-3 
 #> [22] pillar_1.11.1       rlang_1.3.0         fastmatch_1.1-8    

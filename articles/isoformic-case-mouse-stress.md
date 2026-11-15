@@ -1,12 +1,12 @@
 # Case study: chronic stress in the mouse brain
 
-This article applies `isoformic` to a complete public dataset: bulk
-RNA-seq of the anterodorsal bed nucleus of the stria terminalis (adBNST)
-of male mice after six weeks of chronic variable mild stress, against
-unstressed controls \[Degroat et al. ([2024](#ref-degroat2024));
-BioProject
+This article applies `isoformic` to a complete public dataset. It
+contains bulk RNA-seq of the anterodorsal bed nucleus of the stria
+terminalis (adBNST) of male mice. The mice had six weeks of chronic
+variable mild stress and are compared with unstressed controls \[Degroat
+et al. ([2024](#ref-degroat2024)); BioProject
 [PRJNA984605](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA984605)\]. It
-shows a common outcome of transcript-level analysis: stress leaves the
+shows a common outcome of transcript-level analysis. Stress leaves the
 expression of genes almost unchanged, but changes which of their
 isoforms are expressed.
 
@@ -14,19 +14,19 @@ isoforms are expressed.
 
 The 19 male samples (10 control, 9 stressed) were quantified with Salmon
 ([Patro et al. 2017](#ref-salmon)) against the GENCODE vM38 transcripts
-([Frankish et al. 2018](#ref-gencode)), with the GRCm39 genome as decoy
-and 30 Gibbs draws per sample. Transcripts were tested with `swish`
-([Zhu et al. 2019](#ref-swish)) on the inferential replicates and genes
-with `DESeq2` on the summed counts. The scripts that download the reads
-from SRA and run every step are in `data-raw/case_studies/` of the
-package repository.
+([Frankish et al. 2018](#ref-gencode)). The GRCm39 genome served as
+decoy, and each sample has 30 Gibbs draws. Transcripts were tested with
+`swish` ([Zhu et al. 2019](#ref-swish)) on the inferential replicates.
+Genes were tested with `DESeq2` on the summed counts. The scripts that
+download the reads from SRA and run every step are in
+`data-raw/case_studies/` of the package repository.
 
 The result is an `IsoformicExperiment` saved with
 [`write_isoformic()`](https://luciorq.github.io/isoformic/reference/isoformic-io.md).
 It keeps the complete differential expression tables (every tested
-transcript and gene) but the expression assays and exon structures only
-of a panel of 47 genes, so that it fits in the repository; it is not
-installed with the package.
+transcript and gene). The expression assays and exon structures cover
+only a panel of 47 genes, so that the object fits in the repository. It
+is not installed with the package.
 
 ``` r
 
@@ -73,11 +73,11 @@ col_data(iso)
 ## Checking the samples first
 
 A principal component analysis of the gene-level counts shows that the
-first component does not separate the conditions but two groups of
-samples, one per range of SRA run accessions. The groups are not
-annotated in GEO but are most likely two processing batches; they are
-balanced between conditions (4 + 4 and 6 + 5 samples), so the tests can
-adjust for them: `swish` stratifies its permutations by batch and
+first component does not separate the conditions. It separates two
+groups of samples, one per range of SRA run accessions. The groups are
+not annotated in GEO but are most likely two processing batches. They
+are balanced between conditions (4 + 4 and 6 + 5 samples), so the tests
+can adjust for them. `swish` stratifies its permutations by batch and
 `DESeq2` uses the design `~ batch + condition`. Without the adjustment,
 no transcript and no gene reaches a false discovery rate of 10%.
 
@@ -98,8 +98,8 @@ ggplot(pca, aes(PC1, PC2, color = batch, shape = condition)) +
 
 The sample far below the others on the second component (`control_3`)
 has the smallest library (18.6 million read pairs) and the lowest
-mapping rate (71%); it is kept in the analysis, but it is the first
-sample to look at when a result depends on a single animal.
+mapping rate (71%). It is kept in the analysis. It is the first sample
+to check when a result depends on a single animal.
 
 ## Genes barely change, isoforms do
 
@@ -124,16 +124,16 @@ c(
 ```
 
 At a false discovery rate of 5%, `DESeq2` finds 4 genes and `swish` 137
-transcripts. Many of the transcript changes are moderate, so this
-article lowers the fold-change cutoff of the significance calls from the
-default of 1 to 0.5 (a 1.4-fold change):
+transcripts. Many of the transcript changes are moderate. This article
+therefore lowers the fold-change cutoff of the significance calls from
+the default of 1 to 0.5 (a 1.4-fold change):
 
 ``` r
 
 de_cutoffs(iso) <- list(log2fc = 0.5, pvalue = 0.05, use_fdr = TRUE)
 ```
 
-The significant transcripts are not only protein coding isoforms: about
+The significant transcripts are not only protein coding isoforms. About
 a third are retained intron, nonsense-mediated decay, other non-coding
 isoforms of protein coding genes or lncRNAs.
 
@@ -156,7 +156,7 @@ det |>
 
 [`isoform_switches()`](https://luciorq.github.io/isoformic/reference/diversity.md)
 relates the two levels. Almost every gene with significant isoforms has
-no significant change of its total expression (`det_not_deg`): a
+no significant change of its total expression (`det_not_deg`). A
 gene-level analysis would miss all of them.
 
 ``` r
@@ -187,9 +187,9 @@ switches |>
 ## An isoform switch in *Taf15*
 
 *Taf15* encodes an RNA-binding protein of the FET family. Its total
-expression does not change, but its protein coding isoform `Taf15-201`
-goes down while `Taf15-204`, a transcript without a coding sequence,
-goes up: a switch from a productive to an unproductive isoform.
+expression does not change. Its protein coding isoform `Taf15-201` goes
+down while `Taf15-204`, a transcript without a coding sequence, goes up.
+This is a switch from a productive to an unproductive isoform.
 
 ``` r
 
@@ -229,10 +229,10 @@ plot_log2fc(iso, feature = c("Clstn2", "Sympk", "Neu2", "Prrc2c"), ncol = 2)
 
 ![](isoformic-case-mouse-stress_files/figure-html/unnamed-chunk-10-1.png)
 
-The genes chosen for the first analysis of this dataset by the
-`isoformic` authors (*Trip12*, *Meg3* and *Map4*) and classic stress
-response genes such as *Fkbp5* and *Sgk1* do not reach a false discovery
-rate of 5% once the batches are taken into account:
+Some genes do not reach a false discovery rate of 5% once the batches
+are taken into account. These include the genes of the first `isoformic`
+analysis of this dataset (*Trip12*, *Meg3* and *Map4*). They also
+include classic stress response genes such as *Fkbp5* and *Sgk1*:
 
 ``` r
 
@@ -287,18 +287,18 @@ plot_enrichment(
 ![](isoformic-case-mouse-stress_files/figure-html/unnamed-chunk-13-1.png)
 
 Translation, ribosome biogenesis and respiration pathways go down in the
-protein coding isoforms of the stressed animals, while synaptic pathways
+protein coding isoforms of the stressed animals. Synaptic pathways go up
 (protein interactions at synapses, neurexins and neuroligins,
-transmission across chemical synapses) go up. The translation pathways
-go down in the unproductive isoforms of the same genes as well. The
-ribosomal protein genes also dominate the *nonsense-mediated decay*
-pathways of Reactome, which is why those appear as well; that pathway
-name describes the genes, not the transcript type.
+transmission across chemical synapses). The translation pathways go down
+in the unproductive isoforms of the same genes as well. The ribosomal
+protein genes also dominate the *nonsense-mediated decay* pathways of
+Reactome, which is why those appear as well. That pathway name describes
+the genes, not the transcript type.
 
 ## Citing isoformic
 
 If you use `isoformic` in publications, please cite Mamede et al.
-([2025](#ref-isoformic)); `citation("isoformic")` prints the reference.
+([2025](#ref-isoformic)). `citation("isoformic")` prints the reference.
 
 ## Session information
 
@@ -326,7 +326,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] ggplot2_4.0.3   dplyr_1.2.1     isoformic_0.1.3
+#> [1] ggplot2_4.0.4   dplyr_1.2.1     isoformic_0.1.3
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] Matrix_1.7-6        gtable_0.3.6        jsonlite_2.0.0     

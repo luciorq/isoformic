@@ -49,8 +49,8 @@ end from the sequence:
 ``` r
 
 pa <- polya_sites(iso, gene_name = "RBPJ")
-#> Warning: ! 91 transcripts have a sequence length differing from the exon length; their
-#>   ORFs are skipped.
+#> Warning: ! 1 transcript has a sequence length differing from the exon length; its ORF is
+#>   skipped.
 pa[, c("transcript_name", "tes_rank", "n_tes_groups", "apa_type", "utr3_length", "polya_signal", "polya_signal_distance")]
 #> # A tibble: 10 × 7
 #>    transcript_name tes_rank n_tes_groups apa_type       utr3_length polya_signal

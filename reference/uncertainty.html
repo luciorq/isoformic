@@ -13,11 +13,13 @@ Quantification uncertainty: the inferential relative variance
 replicates in excess of what counting noise alone would give, relative
 to the expression. Isoforms with a high value are not well determined by
 the reads. uncertain flags mean_inf_rv &amp;gt;= inf_rv_cutoff.
-Identifiability: the correlation between the replicates of isoforms
-of the same gene. A strong negative correlation means the reads cannot
-tell the two isoforms apart and every read taken from one is given to
-the other. Pairs at or below cor_cutoff are ambiguous and are
-joined into ambiguity_groups that can be tested as one feature.
+Ambiguity between isoforms: the correlation between the replicates
+of isoforms of the same gene. A strong negative correlation means the
+reads cannot tell the two isoforms apart and every read taken from one
+is given to the other. Pairs at or below cor_cutoff are ambiguous
+and are joined into ambiguity_groups that can be tested as one
+feature. This is the idea of mmcollapse (Turro et al. 2014), with a
+fixed cutoff.
 Read support: the share of the fragments of an isoform that map to
 it alone (unique_fraction, from the equivalence classes).
 Stability of the fold-change: the contrast between two groups is
@@ -30,7 +32,9 @@ which the isoform is called differentially expressed.
 de_confidence() combines the last three into one class per isoform:
 high when the fold-change is stable (sign_agreement &amp;gt;= min_agreement),
 the isoform is not uncertain and has no ambiguous sibling; moderate
-when exactly one of these fails; low when two or more fail. The class
+when exactly one of these fails; low when two or more fail. After
+add_uncertainty(identifiability = TRUE) a fourth condition counts: the
+equivalence classes must identify the isoform (identifiable). The class
 says how far a call on the isoform can be trusted, so read it for the
 isoforms flagged by the primary test (n_det_sig, confident_de): an
 isoform without a real change is moderate or low simply because its
@@ -70,11 +74,13 @@ Quantification uncertainty: the inferential relative variance
 replicates in excess of what counting noise alone would give, relative
 to the expression. Isoforms with a high value are not well determined by
 the reads. uncertain flags mean_inf_rv &amp;gt;= inf_rv_cutoff.
-Identifiability: the correlation between the replicates of isoforms
-of the same gene. A strong negative correlation means the reads cannot
-tell the two isoforms apart and every read taken from one is given to
-the other. Pairs at or below cor_cutoff are ambiguous and are
-joined into ambiguity_groups that can be tested as one feature.
+Ambiguity between isoforms: the correlation between the replicates
+of isoforms of the same gene. A strong negative correlation means the
+reads cannot tell the two isoforms apart and every read taken from one
+is given to the other. Pairs at or below cor_cutoff are ambiguous
+and are joined into ambiguity_groups that can be tested as one
+feature. This is the idea of mmcollapse (Turro et al. 2014), with a
+fixed cutoff.
 Read support: the share of the fragments of an isoform that map to
 it alone (unique_fraction, from the equivalence classes).
 Stability of the fold-change: the contrast between two groups is
@@ -87,7 +93,9 @@ which the isoform is called differentially expressed.
 de_confidence() combines the last three into one class per isoform:
 high when the fold-change is stable (sign_agreement &amp;gt;= min_agreement),
 the isoform is not uncertain and has no ambiguous sibling; moderate
-when exactly one of these fails; low when two or more fail. The class
+when exactly one of these fails; low when two or more fail. After
+add_uncertainty(identifiability = TRUE) a fourth condition counts: the
+equivalence classes must identify the isoform (identifiable). The class
 says how far a call on the isoform can be trusted, so read it for the
 isoforms flagged by the primary test (n_det_sig, confident_de): an
 isoform without a real change is moderate or low simply because its
@@ -172,7 +180,7 @@ unexpressed."><meta property="og:image" content="https://luciorq.github.io/isofo
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Quantify and report the uncertainty of isoform-level results</h1>
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/R/uncertainty.R" class="external-link"><code>R/uncertainty.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/R/uncertainty.R" class="external-link"><code>R/uncertainty.R</code></a></small>
       <div class="d-none name"><code>uncertainty.Rd</code></div>
     </div>
 
@@ -190,11 +198,13 @@ be filtered on and reported.</p>
 replicates in excess of what counting noise alone would give, relative
 to the expression. Isoforms with a high value are not well determined by
 the reads. <code>uncertain</code> flags <code>mean_inf_rv &gt;= inf_rv_cutoff</code>.</p></li>
-<li><p><strong>Identifiability</strong>: the correlation between the replicates of isoforms
-of the same gene. A strong negative correlation means the reads cannot
-tell the two isoforms apart and every read taken from one is given to
-the other. Pairs at or below <code>cor_cutoff</code> are <em>ambiguous</em> and are
-joined into <code>ambiguity_group</code>s that can be tested as one feature.</p></li>
+<li><p><strong>Ambiguity between isoforms</strong>: the correlation between the replicates
+of isoforms of the same gene. A strong negative correlation means the
+reads cannot tell the two isoforms apart and every read taken from one
+is given to the other. Pairs at or below <code>cor_cutoff</code> are <em>ambiguous</em>
+and are joined into <code>ambiguity_group</code>s that can be tested as one
+feature. This is the idea of <code>mmcollapse</code> (Turro et al. 2014), with a
+fixed cutoff.</p></li>
 <li><p><strong>Read support</strong>: the share of the fragments of an isoform that map to
 it alone (<code>unique_fraction</code>, from the equivalence classes).</p></li>
 <li><p><strong>Stability of the fold-change</strong>: the contrast between two groups is
@@ -205,7 +215,9 @@ which the isoform is called differentially expressed.</p></li>
 </ul><p><code>de_confidence()</code> combines the last three into one class per isoform:
 <code>high</code> when the fold-change is stable (<code>sign_agreement &gt;= min_agreement</code>),
 the isoform is not <code>uncertain</code> and has no ambiguous sibling; <code>moderate</code>
-when exactly one of these fails; <code>low</code> when two or more fail. The class
+when exactly one of these fails; <code>low</code> when two or more fail. After
+<code>add_uncertainty(identifiability = TRUE)</code> a fourth condition counts: the
+equivalence classes must identify the isoform (<code>identifiable</code>). The class
 says how far a call on the isoform can be trusted, so read it for the
 isoforms flagged by the primary test (<code>n_det_sig</code>, <code>confident_de</code>): an
 isoform without a real change is <code>moderate</code> or <code>low</code> simply because its
@@ -244,6 +256,7 @@ unexpressed.</p>
 <span>  cor_cutoff <span class="op">=</span> <span class="op">-</span><span class="fl">0.5</span>,</span>
 <span>  min_agreement <span class="op">=</span> <span class="fl">0.95</span>,</span>
 <span>  equivalence <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  identifiability <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  run_qc <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  keep_draws <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  collapse_groups <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -291,8 +304,9 @@ object.</p></dd>
 
 
 <dt id="arg-levels">levels<a class="anchor" aria-label="anchor" href="#arg-levels"></a></dt>
-<dd><p>The two group levels to contrast, reference first. <code>NULL</code>
-uses the levels of <code>group</code>, which must then be exactly two.</p></dd>
+<dd><p>The two group levels to contrast, reference first. Samples
+of other groups are left out of the contrast. <code>NULL</code> uses the levels of
+<code>group</code>, which must then be exactly two.</p></dd>
 
 
 <dt id="arg-n-draws">n_draws<a class="anchor" aria-label="anchor" href="#arg-n-draws"></a></dt>
@@ -311,7 +325,11 @@ called uncertain. <code>NULL</code> uses the value the tables were computed with
 
 <dt id="arg-cor-cutoff">cor_cutoff<a class="anchor" aria-label="anchor" href="#arg-cor-cutoff"></a></dt>
 <dd><p>Mean replicate correlation at or below which two isoforms
-of a gene are called ambiguous. <code>NULL</code> uses the stored value.</p></dd>
+of a gene are called ambiguous: a number, or <code>"adaptive"</code> to derive it
+from the data as <code>mmcollapse</code> does (minus the 97.5th percentile of the
+largest mean correlation of each isoform, which treats the positive
+correlations as noise). The value used is stored and stated by
+<code>uncertainty_methods()</code>.</p></dd>
 
 
 <dt id="arg-min-agreement">min_agreement<a class="anchor" aria-label="anchor" href="#arg-min-agreement"></a></dt>
@@ -324,6 +342,15 @@ value.</p></dd>
 <dd><p>Logical, read the equivalence classes when present, or
 the table returned by <code><a href="inferential-io.html">equivalence_support()</a></code>, to attach read support when
 the draws are supplied without <code>paths</code>.</p></dd>
+
+
+<dt id="arg-identifiability">identifiability<a class="anchor" aria-label="anchor" href="#arg-identifiability"></a></dt>
+<dd><p>Logical, also compute which transcripts the
+equivalence classes can tell apart (<code><a href="equivalence_identifiability.html">equivalence_identifiability()</a></code>;
+minutes per sample, needs <code>paths</code> and, for human samples, the <code>Matrix</code>
+package), or the table that function returned. <code>de_confidence()</code> then
+counts a non-identifiable transcript as one more reason against the
+call.</p></dd>
 
 
 <dt id="arg-run-qc">run_qc<a class="anchor" aria-label="anchor" href="#arg-run-qc"></a></dt>
@@ -377,18 +404,30 @@ and, when <code>group</code> is given, <code>dea$confidence</code> filled in.</p
 type, <code>mean_count</code>, <code>mean_inf_rv</code>, <code>max_inf_rv</code>, <code>mean_inf_cv</code>,
 <code>uncertain</code>, <code>min_sibling_cor</code>, <code>n_ambiguous_partners</code>,
 <code>ambiguity_group</code> and, when equivalence classes were read, <code>n_classes</code>,
-<code>n_unique_fragments</code> and <code>unique_fraction</code>.</p></li>
+<code>n_unique_fragments</code>, <code>unique_fraction</code> and <code>low_information</code> (<code>TRUE</code>
+for an uncertain isoform without a single fragment of its own, the
+isoforms <code>mmcollapse</code> selects for collapsing). With <code>identifiability</code>,
+also <code>identifiable_fraction</code> and <code>identifiable</code>.</p></li>
 <li><p><code>isoform_ambiguity()</code>: a tibble of isoform pairs of the same gene with
-<code>mean_cor</code>, <code>min_cor</code>, <code>n_samples</code> and <code>ambiguous</code>.</p></li>
+<code>mean_cor</code>, <code>min_cor</code>, <code>n_samples</code>, <code>collapse_gain</code> and <code>ambiguous</code>.
+<code>collapse_gain</code> is the score Terminus groups on (Sarkar et al. 2020):
+the inferential relative variance of the sum of the two isoforms minus
+the mean of their own, averaged over samples. The more negative, the
+more is gained by testing the pair as one feature.</p></li>
 <li><p><code>de_confidence()</code>: a tibble with one row per feature: <code>feature_id</code>,
 <code>feature_type</code> (<code>"transcript"</code> or <code>"group"</code>), gene and transcript names,
 the interval and stability of the fold-change, <code>mean_inf_rv</code>,
-<code>ambiguous</code>, <code>confidence</code> (an ordered factor), <code>reason</code>, the existing
+<code>ambiguous</code>, <code>identifiable</code> (only when the identifiability was
+computed; <code>NA</code> for groups), <code>confidence</code> (an ordered factor), <code>reason</code>,
+the existing
 differential expression result (<code>det_log2FC</code>, <code>det_qvalue</code>,
 <code>n_det_sig</code>) and <code>confident_de</code>, which is <code>TRUE</code> when a significant
 isoform has <code>high</code> confidence.</p></li>
-<li><p><code>uncertainty_report()</code>: a list with <code>settings</code>, <code>run</code>, <code>transcripts</code>
-(by transcript type), <code>genes</code>, <code>de</code> and <code>switches</code> tibbles.</p></li>
+<li><p><code>uncertainty_report()</code>: a list with <code>settings</code>, <code>replicates</code> (replicate
+type, number of draws, degrees of freedom over the study and, when the
+draws are in the object, the median overdispersion, which is close to 1
+for long reads), <code>run</code>, <code>transcripts</code> (by transcript type), <code>genes</code>,
+<code>de</code> and <code>switches</code> tibbles.</p></li>
 <li><p><code>uncertainty_methods()</code>: a character string.</p></li>
 </ul></div>
     <div class="section level2">
@@ -402,6 +441,23 @@ typically reach values of several units. Report the numbers next to the
 classes, and rerun with other cutoffs if the data call for it. The replicates measure the
 uncertainty of the quantification only; they do not replace biological
 replicates and cannot make a noisy contrast significant.</p>
+<p>What is not measured. The replicates describe how much an estimate moves
+under the quantification model. They do not find the transcripts whose
+abundance is not identifiable, that is, where several abundance vectors
+explain the reads equally well (Zheng et al. 2022 report that only about
+half of the transcripts flagged by replicate variance are also
+non-identifiable in that sense), and they do not find an estimate that is
+wrong because the annotation lacks the transcript the reads came from
+(Ma and Kingsford 2019). An ambiguous pair is a statement about the
+replicates, not a proof of non-identifiability.</p>
+<p>How many replicates. The inferential relative variance and the
+correlations are computed per sample, from the replicates of that sample.
+The overdispersion used to scale counts (see <code><a href="inferential-overdispersion.html">inferential_overdispersion()</a></code>)
+pools all samples, and its precision depends on the total
+<code>n_samples * (n_replicates - 1)</code>: Baldoni, Chen and Smyth (2024) recommend
+at least 60 and prefer 200 to 300, and find that Gibbs samples resolve
+low counts better than bootstrap replicates. <code>add_uncertainty()</code> says so
+when the total is below 60.</p>
 <p>Fold-changes are computed on counts scaled to a common library size, as
 <code>log2(mean_b + pseudocount) - log2(mean_a + pseudocount)</code> with a pseudocount
 of 5 (the <code>swish</code> convention), and the per-replicate test is a Welch
@@ -418,6 +474,20 @@ subset does not change the scaling.</p>
     <p>Zhu, A., Srivastava, A., Ibrahim, J.G., Patro, R., Love, M.I. (2019).
 Nonparametric expression analysis using inferential replicate counts.
 <em>Nucleic Acids Research</em> 47(18), e105.</p>
+<p>Sarkar, H., Srivastava, A., Bravo, H.C., Love, M.I., Patro, R. (2020).
+Terminus enables the discovery of data-driven, robust transcript groups
+from RNA-seq data. <em>Bioinformatics</em> 36(Suppl 1), i102-i110.</p>
+<p>Turro, E., Astle, W.J., Tavare, S. (2014). Flexible analysis of RNA-seq
+data using mixed effects models. <em>Bioinformatics</em> 30(2), 180-188.</p>
+<p>Zheng, H., Ma, C., Kingsford, C. (2022). Deriving ranges of optimal
+estimated transcript expression due to nonidentifiability. <em>Journal of
+Computational Biology</em> 29(2), 121-139.</p>
+<p>Ma, C., Kingsford, C. (2019). Detecting, categorizing, and correcting
+coverage anomalies of RNA-seq quantification. <em>Cell Systems</em> 9(6),
+589-599.</p>
+<p>Baldoni, P.L., Chen, L., Smyth, G.K. (2024). Faster and more accurate
+assessment of differential transcript expression with Gibbs sampling and
+edgeR v4. <em>NAR Genomics and Bioinformatics</em> 6(4), lqae151.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -461,13 +531,13 @@ Nonparametric expression analysis using inferential replicate counts.
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   mean_inf_cv &lt;dbl&gt;, uncertain &lt;lgl&gt;, min_sibling_cor &lt;dbl&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   n_ambiguous_partners &lt;int&gt;, ambiguity_group &lt;chr&gt;</span></span>
 <span class="r-in"><span><span class="fu">isoform_ambiguity</span><span class="op">(</span><span class="va">iso</span>, ambiguous_only <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 2 × 10</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 2 × 11</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   gene_id   gene_name transcript_id_1 transcript_id_2 mean_cor min_cor n_samples</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG0000… PTGS2     ENST0000036746… ENST0000068160…   -<span style="color: #BB0000;">0.618</span>  -<span style="color: #BB0000;">0.873</span>         6</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG0000… NFKBIA    ENST0000069795… ENST0000069796…   -<span style="color: #BB0000;">0.528</span>  -<span style="color: #BB0000;">0.787</span>         5</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 3 more variables: ambiguous &lt;lgl&gt;, transcript_name_1 &lt;chr&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   transcript_name_2 &lt;chr&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 4 more variables: collapse_gain &lt;dbl&gt;, ambiguous &lt;lgl&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   transcript_name_1 &lt;chr&gt;, transcript_name_2 &lt;chr&gt;</span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">de_confidence</span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 23</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   feature_id       feature_type gene_id gene_name transcript_ids transcript_name</span>
@@ -487,10 +557,10 @@ Nonparametric expression analysis using inferential replicate counts.
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 7</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   transcript_type n_assessed n_uncertain pct_uncertain median_inf_rv n_ambiguous</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> protein_coding          47          21          44.7         0.373           1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> retained_intron         27          12          44.4         0.324           2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> nonsense_media…         17          13          76.5         1.36            1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> protein_coding…          6           5          83.3         1.36            0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> protein_coding          47          21          44.7         0.383           1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> retained_intron         27          12          44.4         0.334           2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> nonsense_media…         17          13          76.5         1.37            1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> protein_coding…          6           5          83.3         1.37            0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 1 more variable: median_unique_fraction &lt;dbl&gt;</span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

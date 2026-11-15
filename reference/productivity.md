@@ -12,13 +12,14 @@ summarise it per gene:
   in-frame change, frameshift or stop in novel sequence),
   `"unproductive"` (no ORF, premature stop codon by the 50-nt rule, no
   stop codon, an unproductive biotype such as `nonsense_mediated_decay`,
-  `retained_intron`, `protein_coding_CDS_not_defined`, or a longest ORF
-  without coding potential), `"noncoding"` (transcripts of genes without
-  any coding isoform) or `"uncertain"` (incomplete CDS annotation
-  without a premature stop, a credible ORF unrelated to the canonical
-  one, FANTOM `uncertain_coding`). The `reason` column explains each
-  call and `source` tells whether it came from the sequence
-  (`"sequence"`, when the annotation has transcript sequences, see
+  `retained_intron`, `protein_coding_CDS_not_defined`,
+  `protein_coding_LoF`, or a longest ORF without coding potential),
+  `"noncoding"` (transcripts of genes without any coding isoform) or
+  `"uncertain"` (incomplete CDS annotation without a premature stop, a
+  credible ORF unrelated to the canonical one, FANTOM
+  `uncertain_coding`). The `reason` column explains each call and
+  `source` tells whether it came from the sequence (`"sequence"`, when
+  the annotation has transcript sequences, see
   [`extract_transcript_sequences()`](https://luciorq.github.io/isoformic/reference/transcript_sequences.md)
   and
   [`transcript_orfs()`](https://luciorq.github.io/isoformic/reference/transcript_orfs.md)),
@@ -126,11 +127,15 @@ test_productive_fraction(
 run_productivity_enrichment(
   self,
   genesets_list,
-  group,
+  group = NULL,
   levels = NULL,
   assay = "abundance",
   min_size = 15,
   max_size = 500,
+  rank_by = c("delta", "delta_z"),
+  include_altered = TRUE,
+  min_expr = 0,
+  inf_reps = NULL,
   ...
 )
 
@@ -145,6 +150,11 @@ benchmark_productivity(self, nmd_rule = 50, use_sequence = TRUE, ...)
 
   An
   [IsoformicExperiment](https://luciorq.github.io/isoformic/reference/IsoformicExperiment.md).
+  `run_productivity_enrichment()` also takes the table of
+  `productive_fraction()` for two or more groups, so that one table
+  serves several gene set collections; the arguments that build the
+  table (`group`, `levels`, `assay`, `include_altered`, `min_expr`,
+  `inf_reps`) are then ignored.
 
 - gene_name:
 
@@ -183,14 +193,19 @@ benchmark_productivity(self, nmd_rule = 50, use_sequence = TRUE, ...)
 - group:
 
   Name of a `col_data` column defining groups; `NULL` for per-sample
-  values.
+  values. `run_productivity_enrichment()` requires it for an
+  [IsoformicExperiment](https://luciorq.github.io/isoformic/reference/IsoformicExperiment.md)
+  and ignores it for a `productive_fraction()` table.
 
 - levels:
 
-  Order of the group levels; the change is `last - first`. For the tests
+  Levels of `group` to use, in this order; the change is `last - first`.
+  Samples of other groups are ignored, as if the object had been subset
+  to these samples, so every returned value comes from the samples kept.
+  `NULL` takes all the levels of `group`. The tests
   (`test_productive_fraction()`,
-  [`test_apa()`](https://luciorq.github.io/isoformic/reference/polyadenylation.md)),
-  the two groups to compare; samples of other groups are ignored.
+  [`test_apa()`](https://luciorq.github.io/isoformic/reference/polyadenylation.md))
+  need exactly two levels.
 
 - assay:
 
@@ -216,7 +231,10 @@ benchmark_productivity(self, nmd_rule = 50, use_sequence = TRUE, ...)
 
   Optional list of transcript matrices (inferential replicates with the
   same dimnames as the assay); `NULL` uses `metadata(x)$inf_reps` when
-  present.
+  present and `FALSE` skips the replicates, which leaves out the
+  standard deviations and `delta_z` and is much faster.
+  `run_productivity_enrichment()` reads the replicates only for
+  `rank_by = "delta_z"`.
 
 - reference:
 
@@ -228,11 +246,25 @@ benchmark_productivity(self, nmd_rule = 50, use_sequence = TRUE, ...)
 - genesets_list:
 
   Named list of gene symbol vectors (see
-  [`read_gmt()`](https://luciorq.github.io/isoformic/reference/enrichment.md)).
+  [`read_gmt()`](https://luciorq.github.io/isoformic/reference/enrichment.md)),
+  or a named list of such lists: each collection is then tested on its
+  own and the result has a `collection` column (see
+  [`run_enrichment()`](https://luciorq.github.io/isoformic/reference/enrichment.md)).
 
 - min_size, max_size:
 
   Gene set size limits passed to `fgsea`.
+
+- rank_by:
+
+  Statistic that ranks the genes in `run_productivity_enrichment()`:
+  `"delta"` (default), the change in productive fraction, or
+  `"delta_z"`, that change divided by its standard deviation over the
+  inferential replicates, which moves the genes with an uncertain change
+  towards the middle of the ranking. `"delta_z"` needs inferential
+  replicates; a change that is the same in every replicate gets the
+  largest `delta_z` of the table. It reflects the quantification
+  uncertainty only, not the variation between samples.
 
 ## Value
 
@@ -310,7 +342,7 @@ benchmark_productivity(iso)$summary
 #>   metric                                  n value source  
 #>   <chr>                               <int> <dbl> <chr>   
 #> 1 nmd_biotype_called_unproductive        38 0.974 sequence
-#> 2 retained_intron_called_unproductive   145 0.607 sequence
+#> 2 retained_intron_called_unproductive   145 0.6   sequence
 #> 3 protein_coding_called_productive      252 0.782 sequence
 #> 4 canonical_called_productive            67 1     sequence
 #> 5 lncrna_called_noncoding                19 1     sequence

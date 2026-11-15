@@ -31,7 +31,15 @@ groups: the share of expression ending at the distal-most 3' end
 (weighted_utr3_length), per sample or per group with the change
 between the last and the first group level. test_apa() tests the change
 in distal usage between two groups with the quasi-binomial test used by
-test_productive_fraction(), on counts."><meta property="og:description" content="polya_sites() describes the 3' end of every assayed transcript:
+test_productive_fraction(), on counts.
+run_apa_enrichment() runs a gene set enrichment analysis
+(fgsea::fgseaMultilevel()) on the genes ranked by their change in
+distal usage (rank_by = &quot;delta&quot;, the delta_distal_fraction of
+apa_usage()) or in weighted 3' UTR length (rank_by = &quot;utr3_length&quot;,
+delta_weighted_utr3_length): a positive score is a gene set whose genes
+move to distal 3' ends, or to longer 3' UTRs, in the last group level. It
+also takes the table of apa_usage() for two or more groups, so that one
+table serves several calls."><meta property="og:description" content="polya_sites() describes the 3' end of every assayed transcript:
 tes_pos, tes_group (alternative 3' ends of the gene, from
 transcript_features()), tes_rank (1 = most proximal 3' end along
 the direction of transcription), n_tes_groups, is_proximal,
@@ -63,7 +71,15 @@ groups: the share of expression ending at the distal-most 3' end
 (weighted_utr3_length), per sample or per group with the change
 between the last and the first group level. test_apa() tests the change
 in distal usage between two groups with the quasi-binomial test used by
-test_productive_fraction(), on counts."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
+test_productive_fraction(), on counts.
+run_apa_enrichment() runs a gene set enrichment analysis
+(fgsea::fgseaMultilevel()) on the genes ranked by their change in
+distal usage (rank_by = &quot;delta&quot;, the delta_distal_fraction of
+apa_usage()) or in weighted 3' UTR length (rank_by = &quot;utr3_length&quot;,
+delta_weighted_utr3_length): a positive score is a gene set whose genes
+move to distal 3' ends, or to longer 3' UTRs, in the last group level. It
+also takes the table of apa_usage() for two or more groups, so that one
+table serves several calls."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -122,7 +138,7 @@ test_productive_fraction(), on counts."><meta property="og:image" content="https
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Poly(A) Sites and Alternative Polyadenylation of Transcripts</h1>
-      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/frozen-data/R/polyadenylation.R" class="external-link"><code>R/polyadenylation.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/luciorq/isoformic/blob/main/R/polyadenylation.R" class="external-link"><code>R/polyadenylation.R</code></a></small>
       <div class="d-none name"><code>polyadenylation.Rd</code></div>
     </div>
 
@@ -157,6 +173,14 @@ groups: the share of expression ending at the distal-most 3' end
 between the last and the first group level. <code>test_apa()</code> tests the change
 in distal usage between two groups with the quasi-binomial test used by
 <code><a href="productivity.html">test_productive_fraction()</a></code>, on counts.</p>
+<p><code>run_apa_enrichment()</code> runs a gene set enrichment analysis
+(<code><a href="https://rdrr.io/pkg/fgsea/man/fgseaMultilevel.html" class="external-link">fgsea::fgseaMultilevel()</a></code>) on the genes ranked by their change in
+distal usage (<code>rank_by = "delta"</code>, the <code>delta_distal_fraction</code> of
+<code>apa_usage()</code>) or in weighted 3' UTR length (<code>rank_by = "utr3_length"</code>,
+<code>delta_weighted_utr3_length</code>): a positive score is a gene set whose genes
+move to distal 3' ends, or to longer 3' UTRs, in the last group level. It
+also takes the table of <code>apa_usage()</code> for two or more groups, so that one
+table serves several calls.</p>
     </div>
 
     <div class="section level2">
@@ -191,6 +215,19 @@ in distal usage between two groups with the quasi-binomial test used by
 <span>  min_expr <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  gene_name <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">run_apa_enrichment</span><span class="op">(</span></span>
+<span>  <span class="va">self</span>,</span>
+<span>  <span class="va">genesets_list</span>,</span>
+<span>  group <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  levels <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  assay <span class="op">=</span> <span class="st">"abundance"</span>,</span>
+<span>  min_size <span class="op">=</span> <span class="fl">15</span>,</span>
+<span>  max_size <span class="op">=</span> <span class="fl">500</span>,</span>
+<span>  rank_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"delta"</span>, <span class="st">"utr3_length"</span><span class="op">)</span>,</span>
+<span>  min_expr <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -199,7 +236,8 @@ in distal usage between two groups with the quasi-binomial test used by
 
 
 <dl><dt id="arg-self">self<a class="anchor" aria-label="anchor" href="#arg-self"></a></dt>
-<dd><p>An <a href="IsoformicExperiment.html">IsoformicExperiment</a>.</p></dd>
+<dd><p>An <a href="IsoformicExperiment.html">IsoformicExperiment</a>; for <code>run_apa_enrichment()</code> also the
+table of <code>apa_usage()</code> for two or more groups.</p></dd>
 
 
 <dt id="arg-gene-name">gene_name<a class="anchor" aria-label="anchor" href="#arg-gene-name"></a></dt>
@@ -222,7 +260,8 @@ poly(A) signal (default 50 nt).</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed on to methods.</p></dd>
+<dd><p>Passed on to methods; <code>run_apa_enrichment()</code> passes them to
+<code><a href="https://rdrr.io/pkg/fgsea/man/fgseaMultilevel.html" class="external-link">fgsea::fgseaMultilevel()</a></code>.</p></dd>
 
 
 <dt id="arg-path">path<a class="anchor" aria-label="anchor" href="#arg-path"></a></dt>
@@ -231,13 +270,16 @@ poly(A) signal (default 50 nt).</p></dd>
 
 <dt id="arg-group">group<a class="anchor" aria-label="anchor" href="#arg-group"></a></dt>
 <dd><p>Name of a <code>col_data</code> column defining groups; <code>NULL</code> for
-per-sample values.</p></dd>
+per-sample values. The tests and <code>run_apa_enrichment()</code> on an object need
+it; with a table it is not used.</p></dd>
 
 
 <dt id="arg-levels">levels<a class="anchor" aria-label="anchor" href="#arg-levels"></a></dt>
-<dd><p>Order of the group levels; the change is <code>last - first</code>.
-For the tests (<code><a href="productivity.html">test_productive_fraction()</a></code>, <code>test_apa()</code>), the two
-groups to compare; samples of other groups are ignored.</p></dd>
+<dd><p>Levels of <code>group</code> to use, in this order; the change is
+<code>last - first</code>. Samples of other groups are ignored, as if the object
+had been subset to these samples, so every returned value comes from
+the samples kept. <code>NULL</code> takes all the levels of <code>group</code>. The tests
+(<code><a href="productivity.html">test_productive_fraction()</a></code>, <code>test_apa()</code>) need exactly two levels.</p></dd>
 
 
 <dt id="arg-assay">assay<a class="anchor" aria-label="anchor" href="#arg-assay"></a></dt>
@@ -253,11 +295,32 @@ groups to compare; samples of other groups are ignored.</p></dd>
 <dd><p>Logical, return the genes x samples matrix of distal
 fractions instead of the summary table.</p></dd>
 
+
+<dt id="arg-genesets-list">genesets_list<a class="anchor" aria-label="anchor" href="#arg-genesets-list"></a></dt>
+<dd><p>Named list of character vectors (gene symbols), as
+returned by <code><a href="enrichment.html">read_gmt()</a></code>, or a named list of such lists: each collection
+is then tested on its own and the result has a <code>collection</code> column (see
+<code><a href="enrichment.html">run_enrichment()</a></code>).</p></dd>
+
+
+<dt id="arg-min-size-max-size">min_size, max_size<a class="anchor" aria-label="anchor" href="#arg-min-size-max-size"></a></dt>
+<dd><p>Minimum and maximum gene set size passed to
+<code>fgsea</code>.</p></dd>
+
+
+<dt id="arg-rank-by">rank_by<a class="anchor" aria-label="anchor" href="#arg-rank-by"></a></dt>
+<dd><p>Statistic that ranks the genes in <code>run_apa_enrichment()</code>:
+<code>"delta"</code> (default), the change in distal fraction, or <code>"utr3_length"</code>,
+the change in weighted 3' UTR length.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>Tibbles with one row per transcript (<code>polya_sites()</code>) or per gene
-(<code>apa_usage()</code>, <code>test_apa()</code>); a matrix for <code>as_matrix = TRUE</code>.</p>
+(<code>apa_usage()</code>, <code>test_apa()</code>); a matrix for <code>as_matrix = TRUE</code>.
+<code>run_apa_enrichment()</code> returns the <code>fgsea</code> table with the columns
+<code>experiment</code> (<code>"distal_fraction"</code> or <code>"weighted_utr3_length"</code>),
+<code>rank_by</code> and, for several collections, <code>collection</code>.</p>
     </div>
 
     <div class="section level2">
@@ -308,6 +371,20 @@ fractions instead of the summary table.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 8 more variables: delta_distal_fraction &lt;dbl&gt;, log_odds_ratio &lt;dbl&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   se &lt;dbl&gt;, statistic &lt;dbl&gt;, dispersion &lt;dbl&gt;, df &lt;dbl&gt;, pvalue &lt;dbl&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   padj &lt;dbl&gt;</span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"fgsea"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="va">gmt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"reactome_subset.gmt"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">run_apa_enrichment</span><span class="op">(</span><span class="va">iso</span>, <span class="fu"><a href="enrichment.html">read_gmt</a></span><span class="op">(</span><span class="va">gmt</span><span class="op">)</span>, group <span class="op">=</span> <span class="st">"condition"</span>, min_size <span class="op">=</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 10</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   pathway  pval  padj log2err     ES    NES  size leadingEdge experiment rank_by</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;list&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> REACTO… 0.103 0.470  0.186  -<span style="color: #BB0000;">0.803</span> -<span style="color: #BB0000;">1.38</span>      5 <span style="color: #949494;">&lt;chr [3]&gt;</span>   distal_fr… delta  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> REACTO… 0.538 0.582  0.074<span style="text-decoration: underline;">2</span> -<span style="color: #BB0000;">0.717</span> -<span style="color: #BB0000;">1.02</span>      2 <span style="color: #949494;">&lt;chr [1]&gt;</span>   distal_fr… delta  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> REACTO… 0.537 0.582  0.071<span style="text-decoration: underline;">7</span> -<span style="color: #BB0000;">0.606</span> -<span style="color: #BB0000;">0.997</span>     4 <span style="color: #949494;">&lt;chr [2]&gt;</span>   distal_fr… delta  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> REACTO… 0.361 0.508  0.093<span style="text-decoration: underline;">1</span> -<span style="color: #BB0000;">0.691</span> -<span style="color: #BB0000;">1.14</span>      4 <span style="color: #949494;">&lt;chr [3]&gt;</span>   distal_fr… delta  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> REACTO… 0.106 0.470  0.194   0.832  1.29      3 <span style="color: #949494;">&lt;chr [2]&gt;</span>   distal_fr… delta  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> REACTO… 0.164 0.470  0.151  -<span style="color: #BB0000;">0.879</span> -<span style="color: #BB0000;">1.25</span>      2 <span style="color: #949494;">&lt;chr [2]&gt;</span>   distal_fr… delta  </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

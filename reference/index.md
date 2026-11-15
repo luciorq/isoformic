@@ -99,6 +99,8 @@ results.
   [`inferential_replicates_table()`](https://luciorq.github.io/isoformic/reference/inferential-io.md)
   [`as_inferential_replicates()`](https://luciorq.github.io/isoformic/reference/inferential-io.md)
   : Read the inferential uncertainty that Salmon writes
+- [`equivalence_identifiability()`](https://luciorq.github.io/isoformic/reference/equivalence_identifiability.md)
+  : Which transcripts can the equivalence classes tell apart?
 - [`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
   [`tx_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
   [`isoform_ambiguity()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
@@ -133,6 +135,10 @@ results.
   [`has_sequences()`](https://luciorq.github.io/isoformic/reference/transcript_sequences.md)
   [`transcript_sequences()`](https://luciorq.github.io/isoformic/reference/transcript_sequences.md)
   : Extract Transcript Sequences into an Annotation Directory
+- [`extract_splice_sites()`](https://luciorq.github.io/isoformic/reference/splice_sites.md)
+  [`has_splice_sites()`](https://luciorq.github.io/isoformic/reference/splice_sites.md)
+  [`splice_site_strength()`](https://luciorq.github.io/isoformic/reference/splice_sites.md)
+  : Splice-Site Strength from the Annotation and the Genome
 - [`transcript_orfs()`](https://luciorq.github.io/isoformic/reference/transcript_orfs.md)
   [`coding_potential()`](https://luciorq.github.io/isoformic/reference/transcript_orfs.md)
   : Open Reading Frames of Transcripts from Their Sequences
@@ -158,6 +164,7 @@ results.
   [`read_polya_gff()`](https://luciorq.github.io/isoformic/reference/polyadenylation.md)
   [`apa_usage()`](https://luciorq.github.io/isoformic/reference/polyadenylation.md)
   [`test_apa()`](https://luciorq.github.io/isoformic/reference/polyadenylation.md)
+  [`run_apa_enrichment()`](https://luciorq.github.io/isoformic/reference/polyadenylation.md)
   : Poly(A) Sites and Alternative Polyadenylation of Transcripts
 
 ## Frozen evidence datasets

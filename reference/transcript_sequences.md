@@ -18,7 +18,10 @@ The genome is streamed in chunks (plain or gzip-compressed FASTA, no
 index needed) and only one chromosome is held in memory at a time; a
 human genome takes a few minutes. Chromosome names are matched to the
 annotation `seqid` directly, or after adding or removing a `chr` prefix.
-Soft-masked (lower-case) bases are upper-cased.
+Soft-masked (lower-case) bases are upper-cased. With a genome FASTA the
+sequences around the splice sites of every intron are written in the
+same pass (`annot_data_splice_sites.parquet`, see
+[`splice_site_strength()`](https://luciorq.github.io/isoformic/reference/splice_sites.md)).
 
 ## Usage
 
@@ -88,10 +91,10 @@ from a transcript FASTA) are reported and left out.
 gff <- system.file("extdata", "example.gff3", package = "isoformic")
 fasta <- system.file("extdata", "example_transcripts.fa.gz", package = "isoformic")
 annot <- prepare_isoformic_annotation(gff, output_path = tempdir(), annot_name = "seq_demo")
-#> ℹ Parsing example.gff3 (GFF) into /tmp/RtmpmIi7db/seq_demo.
+#> ℹ Parsing example.gff3 (GFF) into /tmp/RtmpatoNKq/seq_demo.
 extract_transcript_sequences(annot, transcript_fasta = fasta, overwrite = TRUE)
 #> ✔ Wrote 72 transcript sequences to
-#>   /tmp/RtmpmIi7db/seq_demo/annot_data_sequences.parquet.
+#>   /tmp/RtmpatoNKq/seq_demo/annot_data_sequences.parquet.
 has_sequences(annot)
 #> [1] TRUE
 head(transcript_sequences(annot)[, c("transcript_id", "seq_length")])
@@ -107,7 +110,7 @@ head(transcript_sequences(annot)[, c("transcript_id", "seq_length")])
 
 if (FALSE) { # \dontrun{
 # From a genome FASTA (covers novel transcripts of any annotation)
-genome <- download_reference(version = "49", file_type = "genome_fasta", region = "primary")
+genome <- download_reference(version = "50", file_type = "genome_fasta", region = "primary")
 extract_transcript_sequences(annot, genome_fasta = genome)
 } # }
 ```

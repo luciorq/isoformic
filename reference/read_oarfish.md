@@ -104,7 +104,7 @@ annot <- system.file(
 )
 iso <- read_oarfish(prefixes, annot_path = annot, inferential = TRUE)
 iso
-#> <IsoformicExperiment> isoformic_edcd44d335
+#> <IsoformicExperiment> isoformic_885e61b483
 #>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)
 #>   samples    : 3 [oarfish_num_processed, oarfish_num_mapped, oarfish_percent_mapped, oarfish_replicate_type, oarfish_num_replicates, oarfish_optimiser, oarfish_alignment_source, oarfish_prob_model, oarfish_qc_flag]
 #>   transcripts: 72 assayed from 3 genes
@@ -112,7 +112,7 @@ iso
 #>   gene assays: derived from transcript assays on demand
 #>   DE results : <none>
 head(tx_uncertainty(iso))
-#> # A tibble: 6 × 18
+#> # A tibble: 6 × 19
 #>   transcript_id     gene_id gene_name transcript_name transcript_type mean_count
 #>   <chr>             <chr>   <chr>     <chr>           <chr>                <dbl>
 #> 1 ENST00000512351.5 ENSG00… RBPJ      RBPJ-222        protein_coding       59.9 
@@ -121,8 +121,9 @@ head(tx_uncertainty(iso))
 #> 4 ENST00000512671.5 ENSG00… RBPJ      RBPJ-223        protein_coding        1.19
 #> 5 ENST00000345843.7 ENSG00… RBPJ      RBPJ-203        protein_coding        8.92
 #> 6 ENST00000342295.5 ENSG00… RBPJ      RBPJ-201        protein_coding       41.3 
-#> # ℹ 12 more variables: assessed <lgl>, mean_inf_rv <dbl>, max_inf_rv <dbl>,
+#> # ℹ 13 more variables: assessed <lgl>, mean_inf_rv <dbl>, max_inf_rv <dbl>,
 #> #   mean_inf_cv <dbl>, uncertain <lgl>, min_sibling_cor <dbl>,
 #> #   n_ambiguous_partners <int>, ambiguity_group <chr>, n_classes <dbl>,
-#> #   n_fragments <dbl>, n_unique_fragments <dbl>, unique_fraction <dbl>
+#> #   n_fragments <dbl>, n_unique_fragments <dbl>, unique_fraction <dbl>,
+#> #   low_information <lgl>
 ```

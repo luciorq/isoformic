@@ -20,7 +20,7 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/luciorq/isoformic/blob/frozen-data/inst/CITATION)
+[`inst/CITATION`](https://github.com/luciorq/isoformic/blob/main/inst/CITATION)
 
 Mamede I, Queiroz L, Mata-Machado C, Rodrigues J, Luscher-Dias T, de
 Toledo N, Amaral P, Marchionni L, Franco G (2025). “Isoformic: a

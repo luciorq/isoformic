@@ -385,16 +385,16 @@ Parquet files and restored with
 out_dir <- fs::path(tempdir(), "preeclampsia_placenta")
 iso <- write_isoformic(iso, out_dir, overwrite = TRUE)
 iso@data_path
-#> [1] "/tmp/RtmpgLeZsJ/preeclampsia_placenta"
+#> [1] "/tmp/RtmpE0v7Q0/preeclampsia_placenta"
 fs::dir_ls(out_dir, recurse = TRUE)
-#> /tmp/RtmpgLeZsJ/preeclampsia_placenta/assays
-#> /tmp/RtmpgLeZsJ/preeclampsia_placenta/assays/abundance.parquet
-#> /tmp/RtmpgLeZsJ/preeclampsia_placenta/col_data.parquet
-#> /tmp/RtmpgLeZsJ/preeclampsia_placenta/dea
-#> /tmp/RtmpgLeZsJ/preeclampsia_placenta/dea/deg.parquet
-#> /tmp/RtmpgLeZsJ/preeclampsia_placenta/dea/det.parquet
-#> /tmp/RtmpgLeZsJ/preeclampsia_placenta/experiment.parquet
-#> /tmp/RtmpgLeZsJ/preeclampsia_placenta/tx_type_palette.parquet
+#> /tmp/RtmpE0v7Q0/preeclampsia_placenta/assays
+#> /tmp/RtmpE0v7Q0/preeclampsia_placenta/assays/abundance.parquet
+#> /tmp/RtmpE0v7Q0/preeclampsia_placenta/col_data.parquet
+#> /tmp/RtmpE0v7Q0/preeclampsia_placenta/dea
+#> /tmp/RtmpE0v7Q0/preeclampsia_placenta/dea/deg.parquet
+#> /tmp/RtmpE0v7Q0/preeclampsia_placenta/dea/det.parquet
+#> /tmp/RtmpE0v7Q0/preeclampsia_placenta/experiment.parquet
+#> /tmp/RtmpE0v7Q0/preeclampsia_placenta/tx_type_palette.parquet
 read_isoformic(out_dir)
 #> <IsoformicExperiment> preeclampsia_placenta
 #>   annotation : gencode_v33_chr_patch_hapl_scaff_annotation_gff3 (67,017 genes, 248,882 transcripts, 1,497,350 exons)
@@ -403,7 +403,7 @@ read_isoformic(out_dir)
 #>   assays     : abundance
 #>   gene assays: derived from transcript assays on demand
 #>   DE results : det (72,385 transcripts), deg (21,637 genes)
-#>   on disk    : /tmp/RtmpgLeZsJ/preeclampsia_placenta
+#>   on disk    : /tmp/RtmpE0v7Q0/preeclampsia_placenta
 ```
 
 Every other article starts from this object; the block below is all it
@@ -460,7 +460,7 @@ sessionInfo()
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6       jsonlite_2.0.0     compiler_4.6.2     crayon_1.5.3      
 #>  [5] tidyselect_1.2.1   scales_1.4.0       yaml_2.3.12        fastmap_1.2.0     
-#>  [9] ggplot2_4.0.3      R6_2.6.1           labeling_0.4.3     generics_0.1.4    
+#>  [9] ggplot2_4.0.4      R6_2.6.1           labeling_0.4.3     generics_0.1.4    
 #> [13] curl_8.1.0         knitr_1.52         tibble_3.3.1       DBI_1.3.0         
 #> [17] pillar_1.11.1      RColorBrewer_1.1-3 rlang_1.3.0        utf8_1.2.6        
 #> [21] xfun_0.62          fs_2.1.0           S7_0.2.2           otel_0.3.0        
