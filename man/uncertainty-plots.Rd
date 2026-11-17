@@ -25,7 +25,7 @@ table of \code{add_uncertainty(group = )}.}
 
 \item{ncol}{Number of panel columns.}
 
-\item{...}{Unused.}
+\item{...}{Not used; reserved for methods.}
 
 \item{top_types}{Number of the most frequent transcript types to show.}
 }

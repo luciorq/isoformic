@@ -19,7 +19,7 @@
 #' @param color_palette Named colour vector per transcript type; defaults
 #'   to the object's palette or [tx_type_palette()].
 #' @param ncol Number of facet columns, `NULL` for automatic.
-#' @param ... Passed on to methods.
+#' @param ... Not used; reserved for methods.
 #'
 #' @returns A `ggplot` object.
 #'

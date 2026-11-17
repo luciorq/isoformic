@@ -1,0 +1,16 @@
+[workspace]
+authors = ["luciorq <luciorqueiroz@gmail.com>"]
+channels = ['conda-forge']
+name = "alphagenome"
+platforms = ['linux-64']
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+python = "3.12.*"
+pyarrow = ">=26.0.1"
+pandas = ">=3.1.1"
+
+[pypi-dependencies]
+alphagenome = ">=2.0.0"

@@ -92,7 +92,8 @@ on it unchanged.
 ## D. IsoformSwitchAnalyzeR v2 comparison
 
 - [x] D1 Install IsoformSwitchAnalyzeR (v2 line); import the GSE129540 Salmon
-      quantifications with the GENCODE v49 annotation
+      quantifications with the GENCODE v49 annotation (rerun on v50 on
+      2026-11-17: 325 switches, 154 shared with the raw-count calls)
 - [x] D2 Run its switch test; list the significant switches
 - [x] D3 Compare with `isoform_switches()` and the confidence classes
       (agreement, switches only one tool calls, confidence of each)

@@ -47,7 +47,7 @@ of the stored cutoffs.}
 
 \item{sig_only}{Logical, return only significant features.}
 
-\item{...}{Passed on to methods.}
+\item{...}{Not used; reserved for methods.}
 
 \item{value}{A data frame of results (\verb{de_tx<-}, \verb{de_gene<-}) or a list
 of cutoffs (\verb{de_cutoffs<-}).}

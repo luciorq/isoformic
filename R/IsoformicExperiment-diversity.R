@@ -62,7 +62,7 @@
 #'   restrict the result to.
 #' @param confident_only Logical. Count only the significant isoforms with
 #'   high confidence (see [de_confidence()]) in `isoform_switches()`.
-#' @param ... Passed on to methods.
+#' @param ... Not used; reserved for methods.
 #'
 #' @returns A matrix for `isoform_fraction()`, tibbles otherwise.
 #'

@@ -69,6 +69,28 @@ testthat::test_that("Salmon indexes and quantifies the example transcripts", {
     num_threads = 2
   ))
   testthat::expect_true(fs::dir_exists(index))
+
+  # Decoy-aware index with a small synthetic decoy (gzipped)
+  decoy <- fs::path(root, "decoy.fa.gz")
+  decoy_con <- gzfile(decoy, "w")
+  writeLines(
+    c(
+      ">chrDecoy synthetic",
+      paste(sample(c("A", "C", "G", "T"), 2000L, replace = TRUE), collapse = "")
+    ),
+    decoy_con
+  )
+  close(decoy_con)
+  decoy_index <- fs::path(root, "salmon_index_decoy")
+  suppressMessages(salmon_index(
+    fasta_path = fasta,
+    index_path = decoy_index,
+    is_gencode = TRUE,
+    decoy_fasta = decoy,
+    num_threads = 2
+  ))
+  testthat::expect_true(fs::dir_exists(decoy_index))
+
   quant <- fs::path(root, "sample_quant")
   suppressMessages(salmon_quant(
     input_r1 = fastq,

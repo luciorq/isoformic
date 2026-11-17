@@ -21,7 +21,7 @@ the frozen dataset.}
 \item{include_altered}{Logical, count \code{altered_productive} isoforms as
 productive (default \code{TRUE}).}
 
-\item{...}{Passed on to methods.}
+\item{...}{Not used; reserved for methods.}
 }
 \value{
 \code{gtex_reference()} returns a tibble with one row per gene of \code{x}

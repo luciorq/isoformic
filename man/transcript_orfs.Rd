@@ -40,7 +40,7 @@ classed \code{ptc_start_proximal} instead of \code{ptc}; default 150.}
 \item{long_utr3}{3' UTR length (nt) above which \code{long_3utr} is flagged;
 default \code{Inf}.}
 
-\item{...}{Passed on to methods.}
+\item{...}{Not used; reserved for methods.}
 
 \item{coding_cutoff}{Coding probability above which a transcript is called
 coding (default 0.364).}

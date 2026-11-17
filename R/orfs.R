@@ -93,7 +93,7 @@
 #'   classed `ptc_start_proximal` instead of `ptc`; default 150.
 #' @param long_utr3 3' UTR length (nt) above which `long_3utr` is flagged;
 #'   default `Inf`.
-#' @param ... Passed on to methods.
+#' @param ... Not used; reserved for methods.
 #'
 #' @returns `transcript_orfs()` returns a tibble with one row per
 #'   transcript: `transcript_id`, `transcript_name`, `gene_id`, `gene_name`,

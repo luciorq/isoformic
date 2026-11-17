@@ -84,12 +84,13 @@ salmon_quant(
 `salmon_quant()` draws 30 Gibbs samples per sample by default (`num_gibbs = 0` skips them).
 Besides `swish`, they quantify how well the reads determine each isoform, which isoforms cannot be told apart and how confident each differential expression call is; `read_salmon(inferential = TRUE)` reads them and the [uncertainty article](isoformic-uncertainty.html) explains how to use and report them.
 
-For a decoy-aware index (recommended by the Salmon authors), build the `gentrome` FASTA and `decoys.txt` from the genome as described in the Salmon documentation and pass `--decoys decoys.txt` to `salmon index`.
+For a decoy-aware index (recommended by the Salmon authors), pass the genome FASTA as `decoy_fasta`, for GENCODE the `GRCh38.primary_assembly.genome.fa.gz` of the same release: `salmon_index()` writes the `gentrome` FASTA (transcripts followed by the genome) and `decoys.txt` (the genome sequence names) in a temporary directory, runs `salmon index --decoys decoys.txt` and removes them.
+The genome makes the index much larger and slower to build, and needs free disk space in `tempdir()` for a copy of the genome while it runs.
 
 ## Reading quantifications directly
 
 `read_salmon()` reads any number of `quant.sf` files with DuckDB and returns an `IsoformicExperiment` with `abundance` (TPM), `counts` and `length` assays.
-The package ships a down-sampled dataset of six placenta samples quantified against GENCODE v49.
+The package ships the Salmon output of six placenta samples (three with preeclampsia, three controls) quantified against the GENCODE v50 transcripts of 15 genes.
 
 ```{r}
 #| message: false
@@ -101,17 +102,17 @@ names(quant_dirs) <- sub("_quant$", "", fs::path_file(quant_dirs))
 
 col_data <- tibble::tibble(
   sample_id = names(quant_dirs),
-  condition = factor(c(rep("control", 3), rep("treatment", 3)), levels = c("control", "treatment"))
+  condition = factor(c(rep("preeclampsia", 3), rep("control", 3)), levels = c("control", "preeclampsia"))
 )
 col_data
 ```
 
-The annotation must match the reference used for quantification, GENCODE v49 here.
+The annotation must match the reference used for quantification, GENCODE v50 here.
 For real data it is downloaded once into the package cache and converted to Parquet once:
 
 ```{r}
 #| eval: false
-gff_path <- download_reference(version = "49", file_type = "gff")
+gff_path <- download_reference(version = "50", file_type = "gff")
 annot_dir <- prepare_isoformic_annotation(gff_path)
 ```
 
@@ -128,7 +129,7 @@ head(row_data(iso))
 
 ## Transcript-level differential expression with swish
 
-`swish` needs the inferential replicates, which `tximeta` imports from the Salmon output (the bundled quantifications carry them separately to keep the package small).
+`swish` needs the inferential replicates, which `tximeta` imports from the Salmon output (the bundled quantifications carry their 20 Gibbs draws separately, in `mini_draws.parquet`, to keep the package small, so `tximeta` is told to skip them).
 
 ```{r}
 #| message: false
@@ -149,7 +150,8 @@ se_tx <- tximeta::tximeta(
   skipMeta = TRUE,
   useHub = FALSE,
   ignoreAfterBar = TRUE,
-  skipSeqinfo = TRUE
+  skipSeqinfo = TRUE,
+  dropInfReps = TRUE # the draws are not in the bundled directories
 )
 mini_draws <- as_inferential_replicates(
   read_parquet(fs::path_package("isoformic", "extdata", "mini_draws.parquet"))
@@ -184,14 +186,14 @@ head(de_tx(iso))
 #| warning: false
 se_gene <- as_summarized_experiment(iso, level = "gene")
 assay(se_gene, "counts") <- round(assay(se_gene, "counts"))
-se_gene$condition <- factor(se_gene$condition, levels = c("control", "treatment"))
+se_gene$condition <- factor(se_gene$condition, levels = c("control", "preeclampsia"))
 
 dds <- DESeq2::DESeqDataSet(se_gene, design = ~condition)
 dds <- dds[rowSums(DESeq2::counts(dds) >= 10) >= 3, ]
 dds <- DESeq2::DESeq(dds, quiet = TRUE)
-res <- DESeq2::results(dds, contrast = c("condition", "treatment", "control"))
+res <- DESeq2::results(dds, contrast = c("condition", "preeclampsia", "control"))
 shrink_type <- if (rlang::is_installed("apeglm")) "apeglm" else "normal"
-res_shr <- DESeq2::lfcShrink(dds, coef = "condition_treatment_vs_control", res = res, type = shrink_type, quiet = TRUE)
+res_shr <- DESeq2::lfcShrink(dds, coef = "condition_preeclampsia_vs_control", res = res, type = shrink_type, quiet = TRUE)
 
 de_gene(iso) <- as.data.frame(res_shr)
 head(de_gene(iso))
@@ -229,7 +231,7 @@ fs::dir_ls(out_dir)
 
 Oxford Nanopore and PacBio reads are quantified with Oarfish, which writes bootstrap replicates and a table of unique and shared reads next to the counts.
 `read_oarfish()` reads them like `read_salmon()` and the uncertainty functions of the [uncertainty article](isoformic-uncertainty.html) work on them unchanged.
-The three samples below are simulated nanopore reads of the RBPJ transcripts, quantified with Oarfish 0.10.3 and 30 bootstrap replicates (`data-raw/oarfish/`), so they only show the file layout and the functions, not a real library.
+The three samples below are simulated nanopore reads of the 141 GENCODE v50 transcripts of RBPJ, PNCK and FLT1 (`example_transcripts.fa.gz`), quantified with Oarfish 0.10.3 and 30 bootstrap replicates (`data-raw/oarfish/`), so they only show the file layout and the functions, not a real library.
 
 ```{r}
 oarfish_dir <- fs::path_package("isoformic", "extdata", "oarfish")

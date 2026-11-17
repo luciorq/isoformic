@@ -6,6 +6,7 @@
 \alias{equivalence_support}
 \alias{salmon_run_qc}
 \alias{inferential_replicates_table}
+\alias{inferential_moments_table}
 \alias{as_inferential_replicates}
 \title{Read the inferential uncertainty that Salmon writes}
 \usage{
@@ -22,7 +23,9 @@ salmon_run_qc(paths, min_percent_mapped = 50)
 
 inferential_replicates_table(reps)
 
-as_inferential_replicates(table, samp_type = "gibbs")
+inferential_moments_table(reps)
+
+as_inferential_replicates(table, samp_type = "gibbs", moments = NULL)
 }
 \arguments{
 \item{paths}{Character vector of Salmon output directories (containing
@@ -51,15 +54,22 @@ before the first \code{|} (GENCODE FASTA headers used as Salmon references).}
 
 \item{samp_type}{Replicate type recorded on the result, \code{"gibbs"} or
 \code{"bootstrap"}.}
+
+\item{moments}{Optional table of \code{inferential_moments_table()} (columns
+\code{transcript_id}, \code{sample_id}, \code{n_draws}, \code{mean} and \code{var}) to record as
+the \code{moments} attribute of the result.}
 }
 \value{
 \itemize{
 \item \code{read_inferential_replicates()}: a list of numeric matrices (transcripts
 by samples, counts) with the replicate type (\code{"gibbs"} or \code{"bootstrap"})
-in the \code{samp_type} attribute.
+in the \code{samp_type} attribute and the moments of every transcript in the
+\code{moments} attribute (a list with the \code{mean} and \code{var} matrices,
+transcripts by samples, and the number of replicates \code{n}).
 \item \code{inferential_replicates_table()}: a tibble with \code{transcript_id},
 \code{sample_id}, \code{draw} and \code{count}. \code{as_inferential_replicates()} is its
-inverse.
+inverse. \code{inferential_moments_table()}: a tibble with \code{transcript_id},
+\code{sample_id}, \code{n_draws}, \code{mean} and \code{var}.
 \item \code{equivalence_support()}: a tibble with one row per transcript:
 \code{transcript_id}, \code{n_classes} (mean number of equivalence classes that
 contain the transcript, per sample), \code{n_fragments} and
@@ -90,7 +100,11 @@ bootstrap (\code{--numBootstraps}) replicates from \verb{aux_info/bootstrap/}
 replicate, the layout used by \code{\link[=productive_fraction]{productive_fraction()}} and
 \code{\link[=add_uncertainty]{add_uncertainty()}}. The samples are read one at a time, so memory holds
 the result and the replicates of a single sample. When the samples have
-different numbers of replicates, the smallest number is kept.
+different numbers of replicates, the smallest number is kept. The mean
+and variance over the kept replicates of every transcript, including
+those left out by \code{transcripts}, are recorded in the \code{moments}
+attribute: \code{\link[=inferential_overdispersion]{inferential_overdispersion()}} estimates its prior from them,
+so it does not depend on which transcripts are kept.
 \item \code{equivalence_support()} reads the equivalence classes
 (\code{--dumpEq}, \code{aux_info/eq_classes.txt.gz}) and reports, for every
 transcript, how many of its fragments are compatible with no other
@@ -103,7 +117,9 @@ convert the list of replicates to and from a long table (one row per
 transcript, sample and replicate), which can be stored as Parquet with
 \code{\link[=write_parquet]{write_parquet()}} and read back with \code{\link[=read_parquet]{read_parquet()}}. This is the way to
 keep the replicates of an object, which \code{\link[=write_isoformic]{write_isoformic()}} does not
-write.
+write. \code{inferential_moments_table()} converts the \code{moments} attribute to
+a table in the same way (one row per transcript and sample); pass it to
+the \code{moments} argument of \code{as_inferential_replicates()} to restore it.
 }
 
 The functions also read Oarfish output (see \code{\link[=read_oarfish]{read_oarfish()}}): its

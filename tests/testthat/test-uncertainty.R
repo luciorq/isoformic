@@ -79,14 +79,31 @@ testthat::test_that("salmon_run_qc summarises meta_info.json", {
   testthat::expect_true(all(qc$em_converged))
   testthat::expect_identical(unique(qc$replicate_type), "gibbs")
   testthat::expect_equal(unique(qc$num_replicates), 30)
-  # No replicates is flagged
+  # No replicates is flagged, alone or with another flag
+  meta_file <- fs::path(fx$dirs[[1L]], "aux_info", "meta_info.json")
+  meta <- readLines(meta_file)
+  meta <- sub('"num_bootstraps": [0-9]+', '"num_bootstraps": 0', meta)
+  writeLines(meta, meta_file)
+  qc0 <- salmon_run_qc(fx$dirs)
+  testthat::expect_equal(qc0$num_replicates[1L], 0)
+  testthat::expect_identical(qc0$qc_flag[1L], "no_replicates")
+  testthat::expect_true(is.na(qc0$qc_flag[2L]))
+  meta_file <- fs::path(fx$dirs[[3L]], "aux_info", "meta_info.json")
+  meta <- readLines(meta_file)
+  meta <- sub('"num_bootstraps": [0-9]+', '"num_bootstraps": 0', meta)
+  writeLines(meta, meta_file)
+  testthat::expect_identical(
+    salmon_run_qc(fx$dirs)$qc_flag[3L],
+    "low_mapping_rate;no_replicates"
+  )
+  # The bundled mini quantifications map to 15 genes only, with 20 draws
   quants <- list.files(
-    testthat::test_path("..", "..", "inst", "extdata", "mini_quants"),
+    fs::path_package("isoformic", "extdata", "mini_quants"),
     full.names = TRUE
   )
-  if (length(quants)) {
-    testthat::expect_match(salmon_run_qc(quants[1L])$qc_flag, "no_replicates")
-  }
+  mini <- salmon_run_qc(quants[1L])
+  testthat::expect_equal(mini$num_replicates, 20)
+  testthat::expect_identical(mini$qc_flag, "low_mapping_rate")
 })
 
 testthat::test_that("add_uncertainty measures quantification uncertainty and ambiguity", {
@@ -456,8 +473,45 @@ testthat::test_that("replicates convert to a long table and back without loss", 
   )
   back <- as_inferential_replicates(tab, samp_type = "gibbs")
   testthat::expect_identical(attr(back, "samp_type"), "gibbs")
+  testthat::expect_null(attr(back, "moments"))
+  # The moments of the replicates go to a table of their own
+  mom_tab <- inferential_moments_table(reps)
+  testthat::expect_identical(
+    colnames(mom_tab),
+    c("transcript_id", "sample_id", "n_draws", "mean", "var")
+  )
+  with_mom <- as_inferential_replicates(tab, moments = mom_tab)
+  testthat::expect_equal(attr(with_mom, "moments"), attr(reps, "moments"))
+  # Row order of the table only changes the order of the dimnames
+  rev_mom <- attr(
+    as_inferential_replicates(
+      tab,
+      moments = mom_tab[rev(seq_len(nrow(mom_tab))), ]
+    ),
+    "moments"
+  )
+  testthat::expect_equal(
+    rev_mom$var[rownames(reps[[1L]]), colnames(reps[[1L]])],
+    attr(reps, "moments")$var
+  )
+  testthat::expect_error(
+    as_inferential_replicates(tab, moments = mom_tab[-1L, ]),
+    class = "isoformic_invalid_inferential_replicates"
+  )
+  testthat::expect_error(
+    as_inferential_replicates(
+      tab[tab$draw <= 6L, ],
+      moments = mom_tab
+    ),
+    class = "isoformic_invalid_inferential_replicates"
+  )
+  testthat::expect_error(
+    inferential_moments_table(back),
+    class = "isoformic_no_replicate_moments"
+  )
   attr(reps, "samp_type") <- NULL
   attr(back, "samp_type") <- NULL
+  attr(reps, "moments") <- NULL
   testthat::expect_equal(back, reps)
   # Row order of the table only changes the order of the dimnames
   shuffled <- as_inferential_replicates(tab[rev(seq_len(nrow(tab))), ])
@@ -532,6 +586,72 @@ testthat::test_that("inferential_overdispersion follows the quasi-Poisson estima
     unname(by_id[rownames(cs$counts)]),
     unname(cs$annotation$Overdispersion)
   )
+})
+
+testthat::test_that("the overdispersion does not depend on the transcripts whose replicates are kept", {
+  x <- uncertainty_experiment()
+  all_reps <- read_inferential_replicates(x$fixture$dirs)
+  full <- x$iso
+  full@metadata$inf_reps <- all_reps
+  attr(full@metadata$inf_reps, "moments") <- NULL
+  od_full <- inferential_overdispersion(full)
+
+  # add_uncertainty() keeps the transcripts with a mean count of at least
+  # min_count: tA5 (mean 0.2) has no stored replicates
+  kept <- add_uncertainty(x$iso, paths = x$fixture$dirs, min_count = 1)
+  testthat::expect_false("tA5" %in% rownames(kept@metadata$inf_reps[[1L]]))
+  od_kept <- inferential_overdispersion(kept)
+  testthat::expect_equal(attr(od_kept, "prior"), attr(od_full, "prior"))
+  testthat::expect_equal(
+    od_kept$overdispersion[match(od_full$transcript_id, od_kept$transcript_id)],
+    od_full$overdispersion
+  )
+  # A higher min_count keeps fewer transcripts and changes nothing
+  fewer <- add_uncertainty(x$iso, paths = x$fixture$dirs, min_count = 60)
+  testthat::expect_lt(
+    nrow(fewer@metadata$inf_reps[[1L]]),
+    nrow(kept@metadata$inf_reps[[1L]])
+  )
+  testthat::expect_equal(
+    inferential_overdispersion(fewer)$overdispersion,
+    od_kept$overdispersion
+  )
+  scaled <- scale_counts(fewer)
+  counts <- assay(fewer, "counts")
+  ratio <- counts / assay(scaled, "counts_scaled")
+  ratio <- ratio[counts[, 1L] > 0, 1L]
+  by_id <- stats::setNames(od_full$overdispersion, od_full$transcript_id)
+  testthat::expect_true("tA5" %in% names(ratio))
+  testthat::expect_equal(unname(ratio), unname(by_id[names(ratio)]))
+
+  # Without the moments the estimates cover the stored transcripts only
+  testthat::expect_true("tA5" %in% od_kept$transcript_id)
+  no_mom <- kept
+  attr(no_mom@metadata$inf_reps, "moments") <- NULL
+  testthat::expect_false(
+    "tA5" %in% inferential_overdispersion(no_mom)$transcript_id
+  )
+
+  # Subsetting the samples keeps the moments of those samples only
+  two <- suppressMessages(kept[, c("s1", "s4")])
+  mom <- attr(two@metadata$inf_reps, "moments")
+  testthat::expect_identical(colnames(mom$mean), c("s1", "s4"))
+  testthat::expect_true("tA5" %in% rownames(mom$mean))
+})
+
+testthat::test_that("the moments use the replicates kept in every sample", {
+  many <- salmon_uncertainty_fixture(n_draws = 30L)
+  few <- salmon_uncertainty_fixture(n_draws = 10L)
+  dirs <- c(many$dirs[c("s1", "s2")], few$dirs[c("s3", "s4")])
+  reps <- read_inferential_replicates(dirs, transcripts = c("tA1", "tA3"))
+  testthat::expect_length(reps, 10L)
+  mom <- attr(reps, "moments")
+  testthat::expect_identical(mom$n, 10L)
+  testthat::expect_identical(rownames(mom$mean), rownames(many$draws))
+  all_reps <- read_inferential_replicates(dirs)
+  expected <- draw_moments(simplify2array(unname(lapply(all_reps, unclass))))
+  testthat::expect_equal(unname(mom$mean), unname(expected$mean))
+  testthat::expect_equal(unname(mom$var), unname(expected$var))
 })
 
 testthat::test_that("scale_counts divides the counts by the overdispersion", {

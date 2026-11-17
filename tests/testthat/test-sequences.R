@@ -540,11 +540,18 @@ testthat::test_that("the stored ORF rows follow the annotation and are written o
   testthat::expect_false(fs::file_exists(file))
 })
 
-testthat::test_that("the example annotation of the package gets no ORF table", {
+testthat::test_that("the ORF table of the example goes to its private copy", {
   iso <- example_isoformic()
   orfs <- suppressWarnings(transcript_orfs(iso))
   testthat::expect_gt(nrow(orfs), 0L)
-  testthat::expect_false(
+  testthat::expect_true(
     fs::file_exists(fs::path(iso@annot_path, "annot_data_orfs.parquet"))
   )
+  testthat::expect_false(fs::file_exists(system.file(
+    "extdata",
+    "example_experiment",
+    "annotation",
+    "annot_data_orfs.parquet",
+    package = "isoformic"
+  )))
 })

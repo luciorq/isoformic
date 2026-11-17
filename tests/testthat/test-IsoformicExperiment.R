@@ -388,6 +388,62 @@ testthat::test_that("example_isoformic loads the bundled experiment", {
   testthat::expect_null(iso@data_path)
 })
 
+testthat::test_that("example_isoformic writes go to a private annotation copy", {
+  source_dir <- system.file(
+    "extdata",
+    "example_experiment",
+    "annotation",
+    package = "isoformic"
+  )
+  snapshot <- function() {
+    info <- fs::file_info(fs::dir_ls(source_dir, recurse = TRUE))
+    info[order(info$path), c("path", "size", "modification_time")]
+  }
+  before <- snapshot()
+
+  iso <- example_isoformic()
+  other <- example_isoformic()
+  annot <- iso@annot_path
+  testthat::expect_false(fs::path_has_parent(
+    fs::path_real(annot),
+    fs::path_real(system.file(package = "isoformic"))
+  ))
+  testthat::expect_true(fs::path_has_parent(
+    fs::path_real(annot),
+    fs::path_real(tempdir())
+  ))
+  testthat::expect_false(identical(annot, other@annot_path))
+  testthat::expect_true(unname(fs::file_access(annot, mode = "write")))
+
+  # An add_* function stores a table in the annotation of the object
+  tx_ids <- strip_id_version(row_data(iso)$transcript_id[1:3])
+  testthat::expect_message(
+    add_appris(
+      iso,
+      table = data.frame(
+        transcript_id = tx_ids,
+        appris_annotation = "PRINCIPAL:1",
+        appris_principal = TRUE
+      )
+    ),
+    "APPRIS|appris"
+  )
+  dummy <- fs::path(annot, "annot_data_dummy.parquet")
+  write_parquet(data.frame(x = 1L), dummy)
+  testthat::expect_true(fs::file_exists(dummy))
+  testthat::expect_true("appris_principal" %in% colnames(row_data(iso)))
+
+  # Neither the installed package nor another example object sees it
+  testthat::expect_identical(snapshot(), before)
+  testthat::expect_false(fs::file_exists(
+    fs::path(source_dir, "annot_data_dummy.parquet")
+  ))
+  testthat::expect_false(fs::file_exists(
+    fs::path(other@annot_path, "annot_data_dummy.parquet")
+  ))
+  testthat::expect_false("appris_principal" %in% colnames(row_data(other)))
+})
+
 testthat::test_that("read_salmon reads quant.sf files into an experiment", {
   quant_dirs <- list.files(
     system.file("extdata", "mini_quants", package = "isoformic"),

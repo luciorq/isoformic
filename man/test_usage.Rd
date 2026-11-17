@@ -53,7 +53,7 @@ parallel on Unix-like systems).}
 \item{gene_name}{Gene names or IDs to keep in the result. The filter is
 applied after the test.}
 
-\item{...}{Unused.}
+\item{...}{Not used; reserved for methods.}
 }
 \value{
 A tibble with one row per tested transcript and contrast:

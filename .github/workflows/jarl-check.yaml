@@ -47,5 +47,6 @@ jobs:
 
       - uses: etiennebacher/setup-jarl@v0.1.1
         with:
-          args: check
+          # the action's default, kept explicit: findings become annotations
+          args: check --output-format github
           src: .

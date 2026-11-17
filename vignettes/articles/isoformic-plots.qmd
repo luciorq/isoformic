@@ -57,7 +57,7 @@ They start from the object built in the [introduction](isoformic-introduction.ht
 library(isoformic)
 
 extdata <- fs::path_package("isoformic", "extdata")
-annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 iso <- IsoformicExperiment(
   experiment_name = "preeclampsia_placenta",
   annot_path = annot_dir,
@@ -90,7 +90,7 @@ tx_type_palette()
 
 ```{r}
 plot_tx_expr(iso, gene_name = "RBPJ", group = "condition")
-plot_tx_expr(iso, gene_name = c("IL2RA", "EGFR"), group = "condition", ncol = 2)
+plot_tx_expr(iso, gene_name = c("FLT1", "EGFR"), group = "condition", ncol = 2)
 ```
 
 The underlying table is available with `profile_data()`.
@@ -102,6 +102,7 @@ head(profile_data(iso, gene_name = "RBPJ", group = "condition"))
 ## Genomic context plot
 
 `plot_genomic_context()` draws the exon-intron structure of every annotated isoform of a gene along the genome, coloured by transcript type, labelled with its mean expression and outlined when differentially expressed.
+Isoforms missing from the abundance table, here those not tested by swish, are drawn with their name only.
 Poison exons (see the [productivity article](isoformic-productivity.html)) are outlined as well.
 
 ```{r}

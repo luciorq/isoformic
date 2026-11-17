@@ -58,10 +58,10 @@ library(isoformic)
 library(dplyr)
 
 extdata <- fs::path_package("isoformic", "extdata")
-annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 extract_transcript_sequences(
   annot_dir,
-  transcript_fasta = download_reference(version = "33", file_type = "fasta")
+  transcript_fasta = download_reference(version = "50", file_type = "fasta")
 )
 iso <- IsoformicExperiment(
   experiment_name = "preeclampsia_placenta",

@@ -338,7 +338,7 @@ add_evidence <- function(x, annot_dir, res, what) {
 #' @param gene_name Optional genes (names or IDs) to restrict the result to.
 #' @param domains Data frame or Parquet path of the domain table; `NULL`
 #'   fetches the frozen `appris_domains` dataset.
-#' @param ... Passed on to methods.
+#' @param ... Not used; reserved for methods.
 #'
 #' @returns A tibble with one row per transcript: `transcript_id`,
 #'   `transcript_name`, `gene_id`, `gene_name`, `canonical_transcript_id`,
@@ -571,7 +571,7 @@ domain_coverage <- function(feats, canonical_key, can_dom, exons) {
 #'   the frozen dataset.
 #' @param include_altered Logical, count `altered_productive` isoforms as
 #'   productive (default `TRUE`).
-#' @param ... Passed on to methods.
+#' @param ... Not used; reserved for methods.
 #'
 #' @returns `gtex_reference()` returns a tibble with one row per gene of `x`
 #'   that has a transcript in the GTEx table: `gene_id`, `gene_name`,

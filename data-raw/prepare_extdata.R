@@ -1,35 +1,210 @@
-# Regenerates the files under inst/extdata/ from the original CSV tables of
-# the preeclampsia placenta dataset (PRJNA622166, GENCODE v33) and the
-# GENCODE v33 GFF3 annotation. Run from the package root:
-#   Rscript data-raw/prepare_extdata.R
-library(dplyr)
+# Regenerates the bundled example data under inst/extdata/ from the Salmon
+# quantifications of the preeclampsia placenta dataset (PRJNA622166) against
+# GENCODE release 50, made by data-raw/placenta/quantify_placenta.sh, and
+# from the GENCODE 50 annotation. Run from the package root:
+#   ISOFORMIC_PLACENTA_DIR=/path/to/workdir Rscript data-raw/prepare_extdata.R
+#
+# Writes:
+#   pe_abundance.parquet, pe_det.parquet, pe_deg.parquet, pe_col_data.parquet
+#     TPM of the tested transcripts in the 25 samples, swish results for
+#     every tested transcript and gene, and the sample table
+#   example_experiment/  69 genes (showcase genes + top 60 genes by q-value),
+#     annotation with transcript sequences copied inside
+#   example.gff3, example_transcripts.fa.gz  three genes, for the annotation
+#     and sequence examples
+#   mini_quants/, mini_draws.parquet, mini_annotation/  six samples
+#     quantified against the transcripts of 15 genes, their 20 Gibbs draws as
+#     a long table, and the matching annotation subset
+#   reactome_subset.gmt  the 40 Reactome pathways with most example genes
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(SummarizedExperiment)
+})
 devtools::load_all(quiet = TRUE)
 
+release <- "50"
+work_dir <- Sys.getenv("ISOFORMIC_PLACENTA_DIR", unset = NA)
+if (is.na(work_dir) || !dir.exists(fs::path(work_dir, "placenta", "quants"))) {
+  stop(
+    "Set ISOFORMIC_PLACENTA_DIR to the work directory of ",
+    "data-raw/placenta/quantify_placenta.sh.",
+    call. = FALSE
+  )
+}
 extdata <- fs::path("inst", "extdata")
-raw_dir <- fs::path("data-raw", "pe_csv") # original CSV tables (not tracked)
+sheet <- utils::read.delim(fs::path(
+  "data-raw",
+  "placenta",
+  "placenta_samples.tsv"
+))
 
-# 1. GENCODE v33 annotation directory (cached in the user cache) ---------------
-gff_v33 <- download_reference(version = "33", file_type = "gff")
-fasta_v33 <- download_reference(version = "33", file_type = "fasta")
-annot_v33 <- prepare_isoformic_annotation(gff_v33, overwrite = TRUE)
-genes_v33 <- read_parquet(fs::path(annot_v33, "annot_data_genes.parquet"))
-tx_v33 <- read_parquet(fs::path(annot_v33, "annot_data_transcripts.parquet"))
-exons_v33 <- read_parquet(fs::path(annot_v33, "annot_data_exons.parquet"))
+# 1. GENCODE annotation (cached in the user cache) ------------------------------
+gff <- download_reference(version = release, file_type = "gff")
+fasta <- download_reference(version = release, file_type = "fasta")
+annot <- prepare_isoformic_annotation(gff)
+genes_all <- read_parquet(fs::path(annot, "annot_data_genes.parquet"))
+tx_all <- read_parquet(fs::path(annot, "annot_data_transcripts.parquet"))
+exons_all <- read_parquet(fs::path(annot, "annot_data_exons.parquet"))
+meta_all <- read_parquet(fs::path(annot, "annot_metadata.parquet"))
+seq_all <- read_parquet(fs::path(annot, "annot_seq_regions.parquet"))
+# Genes on the reference chromosomes, without the PAR copies on chrY: gene
+# names also match the copies on patches and alternate haplotypes
+primary_genes <- genes_all$gene_id[
+  grepl("^chr([0-9]+|X|Y|M)$", genes_all$seqid) &
+    !grepl("_PAR_Y$", genes_all$gene_id)
+]
 
-# 2. Full preeclampsia tables as Parquet ---------------------------------------
-abundance <- read_tabular(fs::path(raw_dir, "PE_1_counts.csv"))
-names(abundance)[1] <- "transcript_id"
-det <- read_tabular(fs::path(raw_dir, "DETs_fixed.csv"))
-deg <- read_tabular(fs::path(raw_dir, "DEGs_PE_fixed2.csv"))
-sample_ids <- setdiff(colnames(abundance), "transcript_id")
+# Writes an annotation subset to `dir`
+write_annotation_subset <- function(dir, tx_ids, name) {
+  if (fs::dir_exists(dir)) {
+    fs::dir_delete(dir)
+  }
+  fs::dir_create(dir)
+  tx <- filter(tx_all, transcript_id %in% tx_ids)
+  write_parquet(
+    filter(genes_all, gene_id %in% tx$gene_id),
+    fs::path(dir, "annot_data_genes.parquet")
+  )
+  write_parquet(tx, fs::path(dir, "annot_data_transcripts.parquet"))
+  write_parquet(
+    filter(exons_all, transcript_id %in% tx_ids),
+    fs::path(dir, "annot_data_exons.parquet")
+  )
+  meta <- meta_all
+  meta$value[meta$key == "annot_name"] <- name
+  write_parquet(
+    meta[!meta$key %in% c("source_path", "created_at"), ],
+    fs::path(dir, "annot_metadata.parquet")
+  )
+  write_parquet(
+    filter(seq_all, seqid %in% unique(tx$seqid)),
+    fs::path(dir, "annot_seq_regions.parquet")
+  )
+  invisible(dir)
+}
+
+# 2. Complete placenta quantifications and swish -------------------------------
 col_data <- tibble::tibble(
-  sample_id = sample_ids,
-  condition = c(rep("preeclampsia", 8), rep("control", length(sample_ids) - 8))
+  sample_id = sheet$run,
+  condition = factor(sheet$condition, levels = c("control", "preeclampsia"))
 )
-write_parquet(abundance, fs::path(extdata, "pe_abundance.parquet"))
+quant_dirs <- fs::path(work_dir, "placenta", "quants", sheet$run)
+se <- tximeta::tximeta(
+  data.frame(
+    files = fs::path(quant_dirs, "quant.sf"),
+    names = sheet$run,
+    condition = col_data$condition
+  ),
+  type = "salmon",
+  txOut = TRUE,
+  skipMeta = TRUE,
+  useHub = FALSE,
+  ignoreAfterBar = TRUE,
+  skipSeqinfo = TRUE,
+  dropInfReps = FALSE
+)
+inf_names <- grep("^infRep", assayNames(se), value = TRUE)
+
+# Transcripts: swish on the 30 Gibbs draws
+y_tx <- fishpond::scaleInfReps(se, quiet = TRUE)
+y_tx <- fishpond::labelKeep(y_tx, minCount = 10, minN = 3)
+y_tx <- y_tx[mcols(y_tx)$keep, ]
+set.seed(20261113) # swish computes its p-values from permutations
+y_tx <- fishpond::swish(y_tx, x = "condition", quiet = TRUE)
+det <- tibble::tibble(
+  transcript_id = rownames(y_tx),
+  log2FC = mcols(y_tx)$log2FC,
+  pvalue = mcols(y_tx)$pvalue,
+  qvalue = mcols(y_tx)$qvalue
+)
+
+# Genes: counts and draws summed over the transcripts of each gene, length
+# weighted by abundance (as tximport does), then swish
+tx2gene <- tx_all$gene_id[match(rownames(se), tx_all$transcript_id)]
+known <- !is.na(tx2gene)
+gene_sum <- function(m) rowsum(m[known, , drop = FALSE], tx2gene[known])
+abund_g <- gene_sum(SummarizedExperiment::assay(se, "abundance"))
+len_g <- gene_sum(
+  SummarizedExperiment::assay(se, "abundance") *
+    SummarizedExperiment::assay(se, "length")
+) /
+  abund_g
+len_g[!is.finite(len_g)] <- NA
+mean_len <- rowMeans(len_g, na.rm = TRUE)
+for (j in seq_len(ncol(len_g))) {
+  miss <- is.na(len_g[, j])
+  len_g[miss, j] <- mean_len[miss]
+}
+# Genes without abundance in any sample have no length: one NA length makes
+# every scaled draw NA in fishpond::scaleInfReps()
+len_g[!is.finite(len_g)] <- stats::median(len_g, na.rm = TRUE)
+gene_assays <- c(
+  list(
+    counts = gene_sum(SummarizedExperiment::assay(se, "counts")),
+    abundance = abund_g,
+    length = len_g
+  ),
+  lapply(stats::setNames(inf_names, inf_names), function(a) {
+    gene_sum(SummarizedExperiment::assay(se, a))
+  })
+)
+se_gene <- SummarizedExperiment(
+  assays = gene_assays,
+  colData = SummarizedExperiment::colData(se)
+)
+y_gene <- fishpond::scaleInfReps(se_gene, quiet = TRUE)
+y_gene <- fishpond::labelKeep(y_gene, minCount = 10, minN = 3)
+y_gene <- y_gene[mcols(y_gene)$keep, ]
+set.seed(20261113)
+y_gene <- fishpond::swish(y_gene, x = "condition", quiet = TRUE)
+deg <- tibble::tibble(
+  gene_id = rownames(y_gene),
+  log10mean = mcols(y_gene)$log10mean,
+  stat = mcols(y_gene)$stat,
+  log2FC = mcols(y_gene)$log2FC,
+  pvalue = mcols(y_gene)$pvalue,
+  locfdr = mcols(y_gene)$locfdr,
+  qvalue = mcols(y_gene)$qvalue
+)
+
+# Only the tested transcripts (the rows of pe_det): the whole annotation would
+# make the table five times larger, mostly with transcripts without reads
+abundance <- tibble::as_tibble(
+  as.data.frame(SummarizedExperiment::assay(se, "abundance")),
+  rownames = "transcript_id"
+)
+abundance <- abundance[abundance$transcript_id %in% det$transcript_id, ]
+# TPM as 32-bit floats (seven significant digits; read back as double): half
+# the size of doubles
+write_parquet_float <- function(x, path) {
+  con <- DBI::dbConnect(duckdb::duckdb())
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
+  duckdb::duckdb_register(con, "x", x)
+  num <- names(x)[vapply(x, is.double, logical(1))]
+  cols <- ifelse(
+    names(x) %in% num,
+    paste0("CAST(\"", names(x), "\" AS FLOAT) AS \"", names(x), "\""),
+    paste0("\"", names(x), "\"")
+  )
+  DBI::dbExecute(
+    con,
+    paste0(
+      "COPY (SELECT ",
+      paste(cols, collapse = ", "),
+      " FROM x) TO '",
+      path,
+      "' (FORMAT parquet, COMPRESSION zstd)"
+    )
+  )
+  invisible(path)
+}
+write_parquet_float(abundance, fs::path(extdata, "pe_abundance.parquet"))
 write_parquet(det, fs::path(extdata, "pe_det.parquet"))
 write_parquet(deg, fs::path(extdata, "pe_deg.parquet"))
-write_parquet(col_data, fs::path(extdata, "pe_col_data.parquet"))
+write_parquet(
+  dplyr::mutate(col_data, condition = as.character(.data$condition)),
+  fs::path(extdata, "pe_col_data.parquet")
+)
 
 # 3. Example experiment: showcase genes + top differentially expressed genes ---
 showcase <- c(
@@ -44,55 +219,51 @@ showcase <- c(
   "MTG2"
 )
 top_deg <- deg |>
-  filter(gene_id %in% tx_v33$gene_id) |>
-  arrange(qvalue) |>
+  filter(gene_id %in% tx_all$gene_id) |>
+  arrange(qvalue, pvalue) |>
   slice_head(n = 60) |>
   pull(gene_id)
 gene_ids <- unique(c(
-  genes_v33$gene_id[genes_v33$gene_name %in% showcase],
+  genes_all$gene_id[
+    genes_all$gene_name %in% showcase & genes_all$gene_id %in% primary_genes
+  ],
   top_deg
 ))
-tx_sel <- tx_v33 |> filter(gene_id %in% gene_ids)
-example_annot <- fs::path(tempdir(), "example_annotation")
-fs::dir_create(example_annot)
-genes_sel <- filter(genes_v33, gene_id %in% gene_ids)
-exons_sel <- filter(exons_v33, transcript_id %in% tx_sel$transcript_id)
-write_parquet(genes_sel, fs::path(example_annot, "annot_data_genes.parquet"))
-write_parquet(tx_sel, fs::path(example_annot, "annot_data_transcripts.parquet"))
-write_parquet(exons_sel, fs::path(example_annot, "annot_data_exons.parquet"))
-meta <- read_parquet(fs::path(annot_v33, "annot_metadata.parquet"))
-meta$value[meta$key == "annot_name"] <- "gencode_v33_example_subset"
-meta <- meta[!meta$key %in% c("source_path", "created_at"), ]
-write_parquet(meta, fs::path(example_annot, "annot_metadata.parquet"))
-seq_regions <- read_parquet(fs::path(annot_v33, "annot_seq_regions.parquet"))
-seq_regions_sel <- filter(seq_regions, seqid %in% unique(tx_sel$seqid))
-write_parquet(
-  seq_regions_sel,
-  fs::path(example_annot, "annot_seq_regions.parquet")
+tx_sel <- tx_all$transcript_id[tx_all$gene_id %in% gene_ids]
+example_annot <- write_annotation_subset(
+  fs::path(tempdir(), "example_annotation"),
+  tx_sel,
+  paste0("gencode_v", release, "_example_subset")
 )
 # Transcript sequences (for transcript_orfs(), coding_potential(), polya_sites())
 extract_transcript_sequences(
   example_annot,
-  transcript_fasta = fasta_v33,
+  transcript_fasta = fasta,
   overwrite = TRUE
 )
-
-abundance_sel <- abundance |> filter(transcript_id %in% tx_sel$transcript_id)
-tpm <- as.matrix(abundance_sel[, sample_ids])
-rownames(tpm) <- abundance_sel$transcript_id
-counts <- round(tpm * 20) # pseudo-counts for a second assay (TPM x scaling)
+in_example <- rownames(se) %in% tx_sel
 iso <- IsoformicExperiment(
   experiment_name = "pe_placenta_example",
   annot_path = example_annot,
-  assays = list(abundance = tpm, counts = counts),
-  col_data = col_data,
+  assays = list(
+    abundance = SummarizedExperiment::assay(se, "abundance")[in_example, ],
+    counts = SummarizedExperiment::assay(se, "counts")[in_example, ]
+  ),
+  col_data = dplyr::mutate(col_data, condition = as.character(.data$condition)),
   metadata = list(
-    source = "PRJNA622166 (Landscape of dysregulated placental RNA editing associated with preeclampsia)",
-    annotation = "GENCODE v33 subset",
-    note = "counts are TPM x 20 rounded, for demonstration only"
+    source = paste(
+      "PRJNA622166 (Landscape of dysregulated placental RNA editing",
+      "associated with preeclampsia), 8 preeclampsia and 17 control placentas"
+    ),
+    annotation = paste0("GENCODE v", release, " subset"),
+    quantification = paste(
+      "Salmon 2.8.0 against GENCODE v50 transcripts with the GRCh38 genome",
+      "as decoy, 30 Gibbs draws, --seqBias --gcBias; swish on the transcripts",
+      "and on the genes (draws summed per gene)"
+    )
   )
 )
-de_tx(iso) <- filter(det, transcript_id %in% tx_sel$transcript_id)
+de_tx(iso) <- filter(det, transcript_id %in% tx_sel)
 de_gene(iso) <- filter(deg, gene_id %in% gene_ids)
 example_dir <- fs::path(extdata, "example_experiment")
 if (fs::dir_exists(example_dir)) {
@@ -101,10 +272,12 @@ if (fs::dir_exists(example_dir)) {
 write_isoformic(iso, example_dir, copy_annotation = TRUE)
 
 # 4. Tiny GFF3 for annotation examples ----------------------------------------
-tiny_genes <- genes_v33$gene_id[
-  genes_v33$gene_name %in% c("RBPJ", "PNCK", "FLT1")
+tiny_genes <- genes_all$gene_id[
+  genes_all$gene_name %in%
+    c("RBPJ", "PNCK", "FLT1") &
+    genes_all$gene_id %in% primary_genes
 ]
-lines <- readLines(gzfile(gff_v33))
+lines <- readLines(gzfile(gff))
 header <- lines[startsWith(lines, "#")]
 header <- header[
   !startsWith(header, "##sequence-region") | grepl("chr4 |chrX |chr13 ", header)
@@ -112,12 +285,12 @@ header <- header[
 pattern <- paste0("gene_id=(", paste(tiny_genes, collapse = "|"), ");")
 body <- lines[grepl(pattern, lines)]
 writeLines(c(header, body), fs::path(extdata, "example.gff3"))
-# Matching transcript FASTA (GENCODE v33 sequences of the same transcripts)
-tiny_tx <- tx_v33$transcript_id[tx_v33$gene_id %in% tiny_genes]
+# Matching transcript FASTA (sequences of the same transcripts)
+tiny_tx <- tx_all$transcript_id[tx_all$gene_id %in% tiny_genes]
 tiny_fasta <- fs::path(extdata, "example_transcripts.fa.gz")
 con <- gzfile(tiny_fasta, "w")
 stream_fasta(
-  fasta_v33,
+  fasta,
   keep = function(name) {
     strsplit(name, "|", fixed = TRUE)[[1L]][[1L]] %in% tiny_tx
   },
@@ -137,45 +310,56 @@ stream_fasta(
 )
 close(con)
 
-# 5. GENCODE v49 annotation subset matching the bundled Salmon quantifications
-quant_files <- fs::dir_ls(
-  fs::path(extdata, "mini_quants"),
-  recurse = TRUE,
-  glob = "*quant.sf"
+# 5. Mini quantifications, their Gibbs draws and annotation --------------------
+# The Salmon directories are copied without the draws (aux_info/bootstrap),
+# which go to mini_draws.parquet, and with the paths of the work directory
+# replaced by /work.
+mini_src <- fs::dir_ls(
+  fs::path(work_dir, "placenta", "mini_quants"),
+  type = "directory",
+  regexp = "_quant$"
 )
-quant_ids <- unique(sub("\\|.*$", "", read_tabular(quant_files[1])$Name))
-gff_v49 <- download_reference(version = "49", file_type = "gff")
-annot_v49 <- prepare_isoformic_annotation(gff_v49, overwrite = TRUE)
-tx49 <- read_parquet(fs::path(annot_v49, "annot_data_transcripts.parquet")) |>
-  filter(transcript_id %in% quant_ids)
-mini_annot <- fs::path(extdata, "mini_annotation")
-if (fs::dir_exists(mini_annot)) {
-  fs::dir_delete(mini_annot)
-}
-fs::dir_create(mini_annot)
-genes49 <- read_parquet(fs::path(annot_v49, "annot_data_genes.parquet"))
-genes49 <- filter(genes49, gene_id %in% tx49$gene_id)
-exons49 <- read_parquet(fs::path(annot_v49, "annot_data_exons.parquet"))
-exons49 <- filter(exons49, transcript_id %in% tx49$transcript_id)
-write_parquet(genes49, fs::path(mini_annot, "annot_data_genes.parquet"))
-write_parquet(tx49, fs::path(mini_annot, "annot_data_transcripts.parquet"))
-write_parquet(exons49, fs::path(mini_annot, "annot_data_exons.parquet"))
-meta49 <- read_parquet(fs::path(annot_v49, "annot_metadata.parquet"))
-meta49$value[meta49$key == "annot_name"] <- "gencode_v49_mini_subset"
+names(mini_src) <- sub("_quant$", "", fs::path_file(mini_src))
+draws <- read_inferential_replicates(mini_src)
 write_parquet(
-  meta49[!meta49$key %in% c("source_path", "created_at"), ],
-  fs::path(mini_annot, "annot_metadata.parquet")
+  inferential_replicates_table(draws),
+  fs::path(extdata, "mini_draws.parquet")
 )
-seq49 <- read_parquet(fs::path(annot_v49, "annot_seq_regions.parquet"))
-seq49 <- filter(seq49, seqid %in% unique(tx49$seqid))
-write_parquet(seq49, fs::path(mini_annot, "annot_seq_regions.parquet"))
+mini_dir <- fs::path(extdata, "mini_quants")
+if (fs::dir_exists(mini_dir)) {
+  fs::dir_delete(mini_dir)
+}
+fs::dir_create(mini_dir)
+for (src in mini_src) {
+  dest <- fs::path(mini_dir, fs::path_file(src))
+  fs::dir_copy(src, dest)
+  fs::dir_delete(fs::path(dest, "aux_info", "bootstrap"))
+  for (f in fs::dir_ls(dest, recurse = TRUE, type = "file")) {
+    if (grepl("[.](json|log|txt)$", f)) {
+      txt <- readLines(f, warn = FALSE)
+      writeLines(gsub(work_dir, "/work", txt, fixed = TRUE), f)
+    }
+  }
+}
+quant_ids <- unique(sub(
+  "[|].*$",
+  "",
+  read_tabular(
+    fs::path(mini_dir, "SRR11498039_quant", "quant.sf")
+  )$Name
+))
+write_annotation_subset(
+  fs::path(extdata, "mini_annotation"),
+  quant_ids,
+  paste0("gencode_v", release, "_mini_subset")
+)
 
 # 6. Reactome gene set subset (pathways with example genes) -------------------
 all_sets <- read_gmt(fs::path(
   extdata,
   "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"
 ))
-example_gene_names <- genes_v33$gene_name[genes_v33$gene_id %in% gene_ids]
+example_gene_names <- genes_all$gene_name[genes_all$gene_id %in% gene_ids]
 hits <- vapply(all_sets, function(s) sum(s %in% example_gene_names), integer(1))
 subset <- all_sets[order(-hits)][seq_len(40)]
 writeLines(

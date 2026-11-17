@@ -1060,6 +1060,15 @@ subset_inf_reps <- function(reps, tx_ids, sample_ids) {
     # No kept transcript has draws: the object has no replicates left
     return(NULL)
   }
+  # The moments keep every transcript (the overdispersion prior uses them
+  # all) but only the kept samples
+  mom <- extra$moments
+  if (!is.null(mom) && all(sample_ids %in% colnames(mom$mean))) {
+    cols <- match(sample_ids, colnames(mom$mean))
+    mom$mean <- mom$mean[, cols, drop = FALSE]
+    mom$var <- mom$var[, cols, drop = FALSE]
+    extra$moments <- mom
+  }
   attributes(out) <- extra
   out
 }

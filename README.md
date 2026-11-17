@@ -39,16 +39,16 @@ For development, `pixi.toml` defines an isolated environment for Linux, macOS (A
 ```r
 library(isoformic)
 
-# A bundled experiment: isoforms of 69 genes, 25 placenta samples, GENCODE v33
+# A bundled experiment: isoforms of 69 genes, 25 placenta samples, GENCODE v50
 iso <- example_isoformic()
 iso
 #> <IsoformicExperiment> pe_placenta_example
-#>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)
+#>   annotation : gencode_v50_example_subset (69 genes, 1,914 transcripts, 18,656 exons)
 #>   samples    : 25 [condition]
-#>   transcripts: 499 assayed from 69 genes
+#>   transcripts: 1,911 assayed from 69 genes
 #>   assays     : abundance, counts
 #>   gene assays: derived from transcript assays on demand
-#>   DE results : det (499 transcripts), deg (69 genes)
+#>   DE results : det (710 transcripts), deg (69 genes)
 
 # Three levels, one object
 assay(iso, "abundance")[1:3, 1:3]   # transcripts x samples

@@ -34,7 +34,7 @@ experiment reports its own transcripts.}
 
 \item{by}{\code{"transcript"} (default) or \code{"intron"}.}
 
-\item{...}{Unused.}
+\item{...}{Not used; reserved for methods.}
 }
 \value{
 \itemize{

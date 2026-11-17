@@ -11,7 +11,11 @@
 #'   replicate, the layout used by [productive_fraction()] and
 #'   [add_uncertainty()]. The samples are read one at a time, so memory holds
 #'   the result and the replicates of a single sample. When the samples have
-#'   different numbers of replicates, the smallest number is kept.
+#'   different numbers of replicates, the smallest number is kept. The mean
+#'   and variance over the kept replicates of every transcript, including
+#'   those left out by `transcripts`, are recorded in the `moments`
+#'   attribute: [inferential_overdispersion()] estimates its prior from them,
+#'   so it does not depend on which transcripts are kept.
 #' * `equivalence_support()` reads the equivalence classes
 #'   (`--dumpEq`, `aux_info/eq_classes.txt.gz`) and reports, for every
 #'   transcript, how many of its fragments are compatible with no other
@@ -24,7 +28,9 @@
 #'   transcript, sample and replicate), which can be stored as Parquet with
 #'   [write_parquet()] and read back with [read_parquet()]. This is the way to
 #'   keep the replicates of an object, which [write_isoformic()] does not
-#'   write.
+#'   write. `inferential_moments_table()` converts the `moments` attribute to
+#'   a table in the same way (one row per transcript and sample); pass it to
+#'   the `moments` argument of `as_inferential_replicates()` to restore it.
 #'
 #' The functions also read Oarfish output (see [read_oarfish()]): its
 #' bootstrap replicates (`.infreps.pq`), its unique and ambiguous read counts
@@ -48,16 +54,22 @@
 #'   `count` columns, as returned by `inferential_replicates_table()`.
 #' @param samp_type Replicate type recorded on the result, `"gibbs"` or
 #'   `"bootstrap"`.
+#' @param moments Optional table of `inferential_moments_table()` (columns
+#'   `transcript_id`, `sample_id`, `n_draws`, `mean` and `var`) to record as
+#'   the `moments` attribute of the result.
 #' @param min_percent_mapped Samples below this mapping rate (percent) get the
 #'   `low_mapping_rate` flag in `salmon_run_qc()`.
 #'
 #' @returns
 #' * `read_inferential_replicates()`: a list of numeric matrices (transcripts
 #'   by samples, counts) with the replicate type (`"gibbs"` or `"bootstrap"`)
-#'   in the `samp_type` attribute.
+#'   in the `samp_type` attribute and the moments of every transcript in the
+#'   `moments` attribute (a list with the `mean` and `var` matrices,
+#'   transcripts by samples, and the number of replicates `n`).
 #' * `inferential_replicates_table()`: a tibble with `transcript_id`,
 #'   `sample_id`, `draw` and `count`. `as_inferential_replicates()` is its
-#'   inverse.
+#'   inverse. `inferential_moments_table()`: a tibble with `transcript_id`,
+#'   `sample_id`, `n_draws`, `mean` and `var`.
 #' * `equivalence_support()`: a tibble with one row per transcript:
 #'   `transcript_id`, `n_classes` (mean number of equivalence classes that
 #'   contain the transcript, per sample), `n_fragments` and
@@ -105,6 +117,9 @@ read_inferential_replicates <- function(
   reps <- NULL
   samp_type <- NULL
   available <- NULL
+  mom_mean <- NULL
+  mom_var <- NULL
+  mom_n <- integer(n_sample)
   # One sample is in memory at a time: its kept transcripts and replicates go
   # into the matrices of the replicates, which are allocated once
   for (i in seq_len(n_sample)) {
@@ -147,6 +162,13 @@ read_inferential_replicates <- function(
           dimnames = shared_names
         )
       })
+      mom_mean <- matrix(
+        0,
+        nrow = length(ids),
+        ncol = n_sample,
+        dimnames = list(ids, dirs$sample_id)
+      )
+      mom_var <- mom_mean
     } else {
       if (!setequal(sample_ids, ids)) {
         cli::cli_abort(
@@ -169,7 +191,31 @@ read_inferential_replicates <- function(
     for (k in seq_along(reps)) {
       reps[[k]][, i] <- x$counts[rows, k]
     }
-    rm(x)
+    # Moments of every transcript, kept or not, for the overdispersion prior
+    mom <- replicate_moments(x$counts, length(reps))
+    all_rows <- if (i == 1L) seq_along(ids) else match(ids, sample_ids)
+    mom_mean[, i] <- mom$mean[all_rows]
+    mom_var[, i] <- mom$var[all_rows]
+    mom_n[[i]] <- length(reps)
+    rm(x, mom)
+  }
+  # A later sample with fewer replicates: recompute the earlier samples on
+  # the replicates that are kept
+  for (i in which(mom_n > length(reps))) {
+    x <- if (identical(dirs$kind[[i]], "oarfish")) {
+      read_oarfish_replicates(dirs$dir[[i]])
+    } else {
+      read_bootstrap_dir(dirs$dir[[i]])
+    }
+    sample_ids <- rownames(x$counts)
+    if (isTRUE(ignore_after_bar)) {
+      sample_ids <- sub("\\|.*$", "", sample_ids)
+    }
+    mom <- replicate_moments(x$counts, length(reps))
+    all_rows <- match(ids, sample_ids)
+    mom_mean[, i] <- mom$mean[all_rows]
+    mom_var[, i] <- mom$var[all_rows]
+    rm(x, mom)
   }
   if (!is.null(n_draws) && n_draws > available) {
     cli::cli_inform(c(
@@ -177,7 +223,33 @@ read_inferential_replicates <- function(
     ))
   }
   attr(reps, "samp_type") <- samp_type
+  attr(reps, "moments") <- list(
+    mean = mom_mean,
+    var = mom_var,
+    n = length(reps)
+  )
   reps
+}
+
+#' Mean and variance of each row over the first `n` replicates of a sample
+#'
+#' Same sums as `slice_moments()`, so the values match those computed from
+#' the kept replicates.
+#' @keywords internal
+#' @noRd
+replicate_moments <- function(counts, n) {
+  if (n < ncol(counts)) {
+    counts <- counts[, seq_len(n), drop = FALSE]
+  }
+  s1 <- rowSums(counts)
+  s2 <- rowSums(counts * counts)
+  mean_draw <- s1 / n
+  var_draw <- if (n > 1L) {
+    pmax(s2 - n * mean_draw^2, 0) / (n - 1L)
+  } else {
+    mean_draw * 0
+  }
+  list(mean = unname(mean_draw), var = unname(var_draw))
 }
 
 #' @rdname inferential-io
@@ -583,7 +655,79 @@ inferential_replicates_table <- function(reps) {
 
 #' @rdname inferential-io
 #' @export
-as_inferential_replicates <- function(table, samp_type = "gibbs") {
+inferential_moments_table <- function(reps) {
+  mom <- attr(reps, "moments", exact = TRUE)
+  if (is.null(mom)) {
+    cli::cli_abort(
+      message = c(
+        x = "{.arg reps} has no moments of the replicates.",
+        i = "They are recorded by {.fn read_inferential_replicates}."
+      ),
+      class = "isoformic_no_replicate_moments"
+    )
+  }
+  n_tx <- nrow(mom$mean)
+  n_sample <- ncol(mom$mean)
+  tibble::tibble(
+    transcript_id = rep(rownames(mom$mean), times = n_sample),
+    sample_id = rep(colnames(mom$mean), each = n_tx),
+    n_draws = rep(as.integer(mom$n), n_tx * n_sample),
+    mean = as.vector(mom$mean),
+    var = as.vector(mom$var)
+  )
+}
+
+#' Moments of the replicates from a table of `inferential_moments_table()`
+#' @keywords internal
+#' @noRd
+moments_from_table <- function(moments) {
+  required <- c("transcript_id", "sample_id", "n_draws", "mean", "var")
+  if (!is.data.frame(moments) || !all(required %in% colnames(moments))) {
+    cli::cli_abort(
+      message = c(
+        x = "{.arg moments} needs the columns {.field {required}}."
+      ),
+      class = "isoformic_invalid_inferential_replicates"
+    )
+  }
+  n_draws <- unique(moments$n_draws)
+  ids <- unique(as.character(moments$transcript_id))
+  samples <- unique(as.character(moments$sample_id))
+  if (
+    length(n_draws) != 1L ||
+      nrow(moments) != length(ids) * length(samples) ||
+      anyNA(moments$mean) ||
+      anyNA(moments$var)
+  ) {
+    cli::cli_abort(
+      message = c(
+        x = paste0(
+          "{.arg moments} must have one mean and variance for every ",
+          "transcript and sample, over one number of replicates."
+        )
+      ),
+      class = "isoformic_invalid_inferential_replicates"
+    )
+  }
+  slot <- cbind(
+    match(moments$transcript_id, ids),
+    match(moments$sample_id, samples)
+  )
+  mean_draw <- matrix(0, length(ids), length(samples))
+  var_draw <- mean_draw
+  mean_draw[slot] <- moments$mean
+  var_draw[slot] <- moments$var
+  dimnames(mean_draw) <- dimnames(var_draw) <- list(ids, samples)
+  list(mean = mean_draw, var = var_draw, n = as.integer(n_draws))
+}
+
+#' @rdname inferential-io
+#' @export
+as_inferential_replicates <- function(
+  table,
+  samp_type = "gibbs",
+  moments = NULL
+) {
   required <- c("transcript_id", "sample_id", "draw", "count")
   if (!all(required %in% colnames(table))) {
     cli::cli_abort(
@@ -620,5 +764,24 @@ as_inferential_replicates <- function(table, samp_type = "gibbs") {
     )
   })
   attr(reps, "samp_type") <- samp_type
+  if (!is.null(moments)) {
+    mom <- moments_from_table(moments)
+    if (
+      mom$n != length(reps) ||
+        !setequal(colnames(mom$mean), samples) ||
+        !all(ids %in% rownames(mom$mean))
+    ) {
+      cli::cli_abort(
+        message = c(
+          x = paste0(
+            "{.arg moments} must cover the transcripts, samples and number ",
+            "of replicates of {.arg table}."
+          )
+        ),
+        class = "isoformic_invalid_inferential_replicates"
+      )
+    }
+    attr(reps, "moments") <- mom
+  }
   reps
 }

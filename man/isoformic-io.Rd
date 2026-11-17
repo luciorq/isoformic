@@ -28,7 +28,7 @@ defaults to the object's \code{data_path}, or to
 \item{copy_annotation}{Logical, copy the annotation directory inside
 \code{path}.}
 
-\item{...}{Passed on to methods.}
+\item{...}{Not used; reserved for methods.}
 
 \item{annot_path}{Optional annotation directory overriding the stored
 one when reading.}

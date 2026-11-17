@@ -39,7 +39,7 @@ appearance). For a profile table, the groups of the table to draw.}
 \item{assay}{Name of the transcript assay to summarise (default
 \code{"abundance"}); not used for a profile table.}
 
-\item{...}{Passed on to methods.}
+\item{...}{Not used; reserved for methods.}
 
 \item{log_scale}{Logical, show \code{log2(mean + 1)} on the y axis.}
 

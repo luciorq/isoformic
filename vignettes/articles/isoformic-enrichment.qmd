@@ -58,7 +58,7 @@ library(isoformic)
 library(dplyr)
 
 extdata <- fs::path_package("isoformic", "extdata")
-annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 iso <- IsoformicExperiment(
   experiment_name = "preeclampsia_placenta",
   annot_path = annot_dir,
@@ -104,7 +104,7 @@ plot_enrichment(enrichment, n = 30, experiments = c("protein_coding", "unproduct
 ```{r}
 #| fig-height: 8
 #| fig-width: 10
-plot_enrichment(enrichment, n = 20, experiments = c("retained_intron", "nonsense_mediated_decay", "processed_transcript"), nes_cutoff = 1.5)
+plot_enrichment(enrichment, n = 20, experiments = c("retained_intron", "nonsense_mediated_decay", "protein_coding_CDS_not_defined"), nes_cutoff = 1.5)
 ```
 
 ## Ranking statistic

@@ -26,7 +26,7 @@ junction above which NMD is predicted (default 50).}
 \item{end_window}{Distance in bp within which transcription starts (or
 ends) are grouped as the same promoter (or 3' end); default 50.}
 
-\item{...}{Passed on to methods.}
+\item{...}{Not used; reserved for methods.}
 }
 \value{
 A tibble with one row per transcript. \code{transcript_features()}:

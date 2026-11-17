@@ -16,7 +16,7 @@ scale_counts(self, assay = "counts", name = paste0(assay, "_scaled"), ...)
 
 \item{prior_df}{Degrees of freedom of the prior (3 in \code{edgeR}).}
 
-\item{...}{Unused.}
+\item{...}{Not used; reserved for methods.}
 
 \item{assay}{Name of the counts assay to scale.}
 
@@ -44,11 +44,16 @@ of \code{edgeR::catchSalmon()} (checked against edgeR 4.8): the Pearson
 statistic of a quasi-Poisson fit to the replicates of each sample, pooled over the
 samples where the transcript has a non-zero mean, moderated towards the
 median with a prior of \code{prior_df} degrees of freedom and floored at one.
-The estimates use the transcripts whose replicates are in the object
-(those with a mean count of at least \code{min_count} in \code{\link[=add_uncertainty]{add_uncertainty()}}),
-so the prior differs from the one \code{catchSalmon()} computes over every
-expressed transcript of the index; transcripts without replicates get
-the prior.
+The prior comes from every transcript of the index, as in
+\code{catchSalmon()}, also when \code{\link[=add_uncertainty]{add_uncertainty()}} keeps only the
+replicates of the transcripts with a mean count of at least \code{min_count}:
+\code{\link[=read_inferential_replicates]{read_inferential_replicates()}} records the mean and variance of the
+replicates of every transcript, and the overdispersion of a transcript
+without stored replicates is estimated from them as well. Replicates
+without these moments (for example rebuilt with
+\code{\link[=as_inferential_replicates]{as_inferential_replicates()}} without its \code{moments} argument) give
+estimates from the stored transcripts only; transcripts without
+replicates then get the prior.
 \item \code{scale_counts()} divides an assay by the overdispersion and stores the
 result as a new assay, ready for a count-based test (the counts divided
 by the \code{Overdispersion} column of \code{catchSalmon()} in Baldoni et al.
@@ -69,7 +74,7 @@ iso <- read_salmon(
   annot_path = file.path(extdata, "mini_annotation"),
   col_data = data.frame(
     sample_id = names(quant_dirs),
-    condition = rep(c("control", "treatment"), each = 3)
+    condition = rep(c("preeclampsia", "control"), each = 3)
   )
 )
 iso@metadata$inf_reps <- as_inferential_replicates(read_parquet(

@@ -50,7 +50,7 @@
 #' @param chunk_bytes Number of bytes read per chunk while streaming.
 #' @param gene_name Optional gene names or IDs to keep.
 #' @param by `"transcript"` (default) or `"intron"`.
-#' @param ... Unused.
+#' @param ... Not used; reserved for methods.
 #'
 #' @returns
 #' * `extract_splice_sites()`: the path of the written Parquet file,

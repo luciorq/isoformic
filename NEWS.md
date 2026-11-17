@@ -211,8 +211,8 @@ analysis and plot is now first a method on the object.
   argument of `as_inferential_replicates()`).
 * Real ESRP knockdown examples for the uncertainty article: GSE129540
   (prostate cancer, `ESRP2` siRNA) and GSE75489 (H358 cells, `ESRP1/2`
-  shRNA), re-quantified with Salmon 2.8.0 and 30 Gibbs draws, reduced to 41
-  genes (under 1 MB). `data-raw/knockdown/quantify_knockdown.sh` and
+  shRNA), re-quantified with Salmon 2.8.0 and 30 Gibbs draws, reduced to 39
+  genes (about 1.1 MB). `data-raw/knockdown/quantify_knockdown.sh` and
   `data-raw/build_knockdown_example.R` rebuild them. `add_uncertainty()` scales
   the counts with the `library_size` column of `col_data()` when present (for
   objects holding a subset of the transcripts) and accepts the table of
@@ -484,6 +484,24 @@ analysis and plot is now first a method on the object.
   `write_isoformic()` no longer make spare copies of the assays.
 * `as_summarized_experiment()` leaves the inferential replicates out of the
   metadata of the result.
+* All the bundled examples (`example_isoformic()`, the `pe_*.parquet`
+  tables, `example.gff3`, `example_transcripts.fa.gz`, `mini_quants/`,
+  `oarfish/`, `oarfish_sc/`), the ESRP knockdown examples and the
+  case-study bundles are rebuilt on GENCODE 50 (mouse M39), with Salmon
+  2.8.0 and Oarfish 0.10.3 (the case studies with Salmon 2.11.0 and Oarfish
+  0.11.0), from scripts now tracked in `data-raw/`
+  (`placenta/`, `knockdown/`, `case_studies/`, `oarfish/`, with
+  `prepare_extdata.R` and `build_knockdown_example.R`).
+* The mini example (`mini_quants/`, `mini_draws.parquet`,
+  `mini_annotation/`) now holds three preeclampsia (SRR11498039 to
+  SRR11498041) and three control placentas (SRR11498077 to SRR11498079),
+  quantified against the transcripts of 15 genes with 20 Gibbs draws,
+  instead of SRR11498039 to SRR11498041 and SRR11498079 to SRR11498081, so
+  the examples compare preeclampsia with control.
+* The identifiers of the bundled examples changed with the release: code
+  that hardcodes GENCODE v33 transcript or gene IDs of the example
+  experiment, `example.gff3` or `example_transcripts.fa.gz` (or v49 IDs of
+  `mini_annotation/`) must be updated to their GENCODE 50 versions.
 
 ### Fixed
 

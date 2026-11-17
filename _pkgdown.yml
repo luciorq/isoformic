@@ -9,6 +9,10 @@ navbar:
   structure:
     left: [intro, reference, articles, news]
     right: [search, github, lightswitch]
+  components:
+    intro:
+      text: Get started
+      href: articles/isoformic-introduction.html
 
 articles:
   - title: Get started

@@ -38,7 +38,9 @@
 #'   labels computed from `assay`.
 #' @param ncol Number of facet columns when several genes are plotted.
 #' @param exon_table Legacy argument of `plot_tx_context()`.
-#' @param ... Passed on to methods.
+#' @param ... For `plot_tx_context()`, passed on to the data frame method of
+#'   `plot_genomic_context()`. Not used by `plot_genomic_context()`; reserved
+#'   for methods.
 #'
 #' @returns A `ggplot` object.
 #'

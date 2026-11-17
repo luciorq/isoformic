@@ -51,7 +51,7 @@
 #'   `path`.
 #' @param annot_path Optional annotation directory overriding the stored
 #'   one when reading.
-#' @param ... Passed on to methods.
+#' @param ... Not used; reserved for methods.
 #'
 #' @returns `write_isoformic()` returns the object with `data_path` set,
 #'   invisibly. `read_isoformic()` returns an [IsoformicExperiment].
@@ -394,7 +394,7 @@ read_isoformic <- function(path, annot_path = NULL) {
 #'   annotation instead of failing.
 #' @param self An [IsoformicExperiment].
 #' @param level `"transcript"` (default) or `"gene"`.
-#' @param ... Passed on to methods.
+#' @param ... Not used; reserved for methods.
 #'
 #' @returns `as_isoformic()` returns an [IsoformicExperiment];
 #'   `as_summarized_experiment()` returns a `SummarizedExperiment`.
@@ -558,7 +558,21 @@ S7::method(as_summarized_experiment, IsoformicExperiment) <- function(
 #' It is used throughout the documentation and is suitable for trying every
 #' method of the class in well under a second.
 #'
-#' @returns An [IsoformicExperiment].
+#' @details
+#' The annotation directory of the bundled experiment is copied on every call
+#' into a new directory under [tempdir()], and the returned object points
+#' there (`iso@annot_path`). Functions that store tables in the
+#' annotation directory, such as [extract_transcript_sequences()],
+#' [transcript_orfs()], [add_appris()], [add_riboseq_orfs()] or
+#' [add_nmd_exons()], therefore change only that private copy: the installed
+#' package is never modified, two calls never see each other's changes, and
+#' the copy is removed with the temporary directory when the R session ends.
+#' To keep an annotated object beyond the session, save it with
+#' `write_isoformic(iso, path, copy_annotation = TRUE)`, which stores the
+#' annotation inside the experiment directory.
+#'
+#' @returns An [IsoformicExperiment] whose annotation directory is a private
+#'   temporary copy of the bundled one.
 #'
 #' @examples
 #' iso <- example_isoformic()
@@ -575,7 +589,31 @@ example_isoformic <- function() {
       class = "isoformic_missing_example"
     )
   }
-  iso <- read_isoformic(path)
+  iso <- read_isoformic(
+    path,
+    annot_path = private_annotation_copy(fs::path(path, "annotation"))
+  )
   iso@data_path <- NULL
   iso
+}
+
+#' Copy a bundled annotation directory to a new writable temporary directory
+#'
+#' Bundled data lives inside the installed package, which can be read-only
+#' and must never be modified: the copy gives the caller a directory that
+#' functions storing tables in the annotation can write to.
+#' @keywords internal
+#' @noRd
+private_annotation_copy <- function(source) {
+  dest <- fs::path(
+    fs::file_temp(pattern = "isoformic_example_", tmp_dir = tempdir()),
+    "annotation"
+  )
+  fs::dir_copy(source, dest)
+  # Installed files can be read-only; the new directories are not
+  files <- fs::dir_ls(dest, recurse = TRUE, type = "file")
+  if (length(files) > 0L) {
+    fs::file_chmod(files, "u+w")
+  }
+  as.character(fs::path_real(dest))
 }

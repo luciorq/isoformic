@@ -168,7 +168,7 @@
 #'   before testing the contrast.
 #' @param ambiguous_only Logical, `isoform_ambiguity()` returns only the
 #'   ambiguous pairs.
-#' @param ... Unused.
+#' @param ... Not used; reserved for methods.
 #'
 #' @returns
 #' * `add_uncertainty()`: the object with `dea$uncertainty`, `dea$ambiguity`
@@ -250,7 +250,7 @@
 #' annot <- system.file("extdata", "mini_annotation", package = "isoformic")
 #' col_data <- data.frame(
 #'   sample_id = names(quant_dirs),
-#'   condition = rep(c("control", "treatment"), each = 3)
+#'   condition = rep(c("preeclampsia", "control"), each = 3)
 #' )
 #' iso <- read_salmon(quant_dirs, annot_path = annot, col_data = col_data)
 #'
@@ -1655,7 +1655,7 @@ S7::method(uncertainty_report, IsoformicExperiment) <- function(self, ...) {
   meta <- self@metadata
   overdispersion <- NA_real_
   if (!is.null(meta$inf_reps)) {
-    od <- compute_overdispersion(draws_view(self))
+    od <- inferential_overdispersion(self)
     overdispersion <- stats::median(od$overdispersion[od$df > 0L])
   }
   replicates <- tibble::tibble(
@@ -1838,11 +1838,16 @@ S7::method(uncertainty_methods, IsoformicExperiment) <- function(self, ...) {
 #'   statistic of a quasi-Poisson fit to the replicates of each sample, pooled over the
 #'   samples where the transcript has a non-zero mean, moderated towards the
 #'   median with a prior of `prior_df` degrees of freedom and floored at one.
-#'   The estimates use the transcripts whose replicates are in the object
-#'   (those with a mean count of at least `min_count` in [add_uncertainty()]),
-#'   so the prior differs from the one `catchSalmon()` computes over every
-#'   expressed transcript of the index; transcripts without replicates get
-#'   the prior.
+#'   The prior comes from every transcript of the index, as in
+#'   `catchSalmon()`, also when [add_uncertainty()] keeps only the
+#'   replicates of the transcripts with a mean count of at least `min_count`:
+#'   [read_inferential_replicates()] records the mean and variance of the
+#'   replicates of every transcript, and the overdispersion of a transcript
+#'   without stored replicates is estimated from them as well. Replicates
+#'   without these moments (for example rebuilt with
+#'   [as_inferential_replicates()] without its `moments` argument) give
+#'   estimates from the stored transcripts only; transcripts without
+#'   replicates then get the prior.
 #' * `scale_counts()` divides an assay by the overdispersion and stores the
 #'   result as a new assay, ready for a count-based test (the counts divided
 #'   by the `Overdispersion` column of `catchSalmon()` in Baldoni et al.
@@ -1858,7 +1863,7 @@ S7::method(uncertainty_methods, IsoformicExperiment) <- function(self, ...) {
 #' @param prior_df Degrees of freedom of the prior (3 in `edgeR`).
 #' @param assay Name of the counts assay to scale.
 #' @param name Name of the new assay.
-#' @param ... Unused.
+#' @param ... Not used; reserved for methods.
 #'
 #' @returns `inferential_overdispersion()`: a tibble with `transcript_id`,
 #'   `overdispersion` and `df` (degrees of freedom of the estimate, the number
@@ -1883,7 +1888,7 @@ S7::method(uncertainty_methods, IsoformicExperiment) <- function(self, ...) {
 #'   annot_path = file.path(extdata, "mini_annotation"),
 #'   col_data = data.frame(
 #'     sample_id = names(quant_dirs),
-#'     condition = rep(c("control", "treatment"), each = 3)
+#'     condition = rep(c("preeclampsia", "control"), each = 3)
 #'   )
 #' )
 #' iso@metadata$inf_reps <- as_inferential_replicates(read_parquet(
@@ -1912,14 +1917,62 @@ S7::method(inferential_overdispersion, IsoformicExperiment) <- function(
   prior_df = 3,
   ...
 ) {
-  compute_overdispersion(draws_view(self), prior_df = prior_df)
+  od <- object_overdispersion(self, prior_df = prior_df)
+  # The transcripts of the object: those of its assays, or of its replicates
+  assays <- attr(self, "assays", exact = TRUE)
+  tx <- if (length(assays)) {
+    rownames(assays[[1L]])
+  } else {
+    draws_ids(draws_view(self))
+  }
+  keep <- od$transcript_id %in%
+    tx &
+    od$transcript_id %in% self@annot_data_transcripts$transcript_id
+  res <- od[keep, , drop = FALSE]
+  attr(res, "prior") <- attr(od, "prior")
+  res
+}
+
+#' Overdispersion of the transcripts of an object
+#'
+#' From the moments of every transcript recorded by
+#' `read_inferential_replicates()` when the stored replicates have them, so
+#' that the prior does not depend on the transcripts kept; otherwise from the
+#' stored replicates. `samples` restricts the estimate to those samples.
+#' @keywords internal
+#' @noRd
+object_overdispersion <- function(self, samples = NULL, prior_df = 3) {
+  reps <- self@metadata$inf_reps
+  mom <- attr(reps, "moments", exact = TRUE)
+  samples <- samples %||% object_samples(self)
+  if (
+    !is.null(mom) &&
+      length(reps) == mom$n &&
+      all(samples %in% colnames(mom$mean))
+  ) {
+    cols <- match(samples, colnames(mom$mean))
+    mom$mean <- mom$mean[, cols, drop = FALSE]
+    mom$var <- mom$var[, cols, drop = FALSE]
+    return(overdispersion_from_moments(mom, prior_df = prior_df))
+  }
+  arr <- draws_view(self)
+  if (!identical(samples, draws_samples(arr))) {
+    arr <- draws_select_samples(arr, samples)
+  }
+  compute_overdispersion(arr, prior_df = prior_df)
 }
 
 #' Overdispersion of every transcript of an array of draws
 #' @keywords internal
 #' @noRd
 compute_overdispersion <- function(arr, prior_df = 3) {
-  moments <- draw_moments(arr)
+  overdispersion_from_moments(draw_moments(arr), prior_df = prior_df)
+}
+
+#' Overdispersion from the per transcript and sample moments of the draws
+#' @keywords internal
+#' @noRd
+overdispersion_from_moments <- function(moments, prior_df = 3) {
   n_draw <- moments$n
   if (n_draw < 2L) {
     cli::cli_abort(
@@ -1991,11 +2044,7 @@ S7::method(scale_counts, IsoformicExperiment) <- function(
 #' @keywords internal
 #' @noRd
 overdispersion_for <- function(self, transcript_ids, samples = NULL) {
-  arr <- draws_view(self)
-  if (!is.null(samples)) {
-    arr <- draws_select_samples(arr, samples)
-  }
-  od <- compute_overdispersion(arr)
+  od <- object_overdispersion(self, samples = samples)
   factor <- od$overdispersion[match(transcript_ids, od$transcript_id)]
   factor[is.na(factor)] <- attr(od, "prior") %||% 1
   factor

@@ -34,8 +34,8 @@ Only the quantification step changes.
 ## The data
 
 The 6 samples (3 vehicle, 3 lorecivivint) were quantified with Oarfish [@oarfish] in its nanopore cDNA mode.
-The reference was the GENCODE v49 transcripts [@gencode], with 30 bootstrap replicates per sample.
-Each sample has 6.3 to 7.0 million reads assigned to transcripts.
+The reference was the GENCODE v50 transcripts [@gencode], with 30 bootstrap replicates per sample.
+Each sample has 6.4 to 7.1 million reads assigned to transcripts.
 Transcripts were tested with `swish` [@swish] on the bootstrap replicates.
 Genes were tested with `DESeq2` on the summed counts.
 The scripts that download the reads from SRA and run every step are in `data-raw/case_studies/` of the package repository.
@@ -91,10 +91,10 @@ c(
 )
 ```
 
-At a false discovery rate of 5%, `DESeq2` finds 140 genes and `swish` 287 transcripts.
+At a false discovery rate of 5%, `DESeq2` finds 137 genes and `swish` 275 transcripts.
 `swish` computes its p-values from permutations of the samples.
 Three against three samples allow only a few distinct permutations.
-All 287 significant transcripts share the smallest q-value, so they are ranked by fold change below.
+All 275 significant transcripts share the smallest q-value, so they are ranked by fold change below.
 
 ```{r}
 range(det$qvalue[det$qvalue < 0.05], na.rm = TRUE)
@@ -112,8 +112,8 @@ det |>
 `isoform_switches()` relates the two levels.
 It uses the default cutoffs of the experiment:
 an absolute log2 fold change of at least 1 and a false discovery rate below 5%.
-Two thirds of the genes with a significant transcript have no significant change of their total expression
-(`det_not_deg`).
+Three quarters of the genes with a significant transcript (53 of 71) have no significant change of their
+total expression (`det_not_deg`).
 
 ```{r}
 switches <- isoform_switches(iso)
@@ -153,8 +153,8 @@ nonsense-mediated decay.
 CLK1 activity favours the skipping of its own exon 4,
 and CLK inhibitors shift the balance towards the full-length isoform [@uzor2018].
 The long reads show that shift.
-The full-length isoform rises from about 17 to 46 transcripts per million.
-The skipped one falls from about 4 to 1.5 (not significant on its own, with q = 0.25).
+The full-length isoform rises from about 19 to 52 transcripts per million.
+The skipped one falls from about 4 to 1.5 (not significant on its own, with q = 0.36).
 
 ```{r}
 #| fig-height: 4
@@ -207,11 +207,14 @@ table(enrichment$experiment)
 plot_enrichment(enrichment, n = 20)
 ```
 
-At an adjusted p-value below 0.05, three gene sets go down in the protein coding isoforms of the treated cells:
-androgen response, cholesterol homeostasis and mitotic spindle.
-This agrees with the anti-proliferative effect of lorecivivint reported by @vangoubergen2024.
-The proliferation sets (G2M checkpoint, E2F and MYC targets) go down in the retained intron
-and other unproductive isoforms.
+At an adjusted p-value below 0.05, six gene sets go down in the protein coding isoforms of the treated cells,
+among them androgen response, cholesterol homeostasis and mitotic spindle,
+and four go up (interferon alpha and gamma responses, KRAS signalling and the p53 pathway).
+The loss of the mitotic spindle set agrees with the anti-proliferative effect of lorecivivint reported by
+@vangoubergen2024.
+The proliferation sets go down in the unproductive isoforms:
+G2M checkpoint and E2F targets in the retained intron, the nonsense-mediated decay and the grouped
+unproductive isoforms, and MYC targets in the retained intron ones.
 They do not go down in the protein coding ones.
 Only the transcript-level analysis shows this part of the response to the drug.
 

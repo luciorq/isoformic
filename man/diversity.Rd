@@ -50,7 +50,7 @@ haplotype_summary(
 \item{assay}{Name of the transcript assay to use (default \code{"abundance"},
 falling back to the first assay).}
 
-\item{...}{Passed on to methods.}
+\item{...}{Not used; reserved for methods.}
 
 \item{min_expr}{Minimum assay value for a transcript to count as
 expressed in a sample (default \code{1} in \code{tx_diversity()}). In

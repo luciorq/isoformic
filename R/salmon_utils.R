@@ -63,6 +63,18 @@ check_env_installed <- function(env_name = "salmon-env") {
 #' Transcripts with identical sequences are all kept (`--keepDuplicates`),
 #' so that every annotated transcript is quantified.
 #'
+#' With `decoy_fasta`, the index is decoy-aware, as recommended by the Salmon
+#' authors: the function writes, in a temporary directory, a `gentrome` FASTA
+#' (the transcripts followed by the decoy sequences) and a `decoys.txt` file
+#' with the names of the decoy sequences (the first word of each FASTA
+#' header), passes them to `salmon index` as `--transcripts` and `--decoys`,
+#' and removes them afterwards. Reads that align better to a decoy than to a
+#' transcript are then discarded instead of being assigned to a transcript.
+#' The `gentrome` has the compression of `decoy_fasta` (the decoy file is
+#' appended byte by byte, and concatenated gzip streams are valid gzip), so a
+#' gzipped genome is not decompressed to disk; the transcript FASTA, plain or
+#' gzipped, is re-encoded to match.
+#'
 #' @param fasta_path Path to the reference transcriptome FASTA file.
 #' @param index_path Directory path to save the Salmon index (default is
 #' "salmon_index").
@@ -73,8 +85,13 @@ check_env_installed <- function(env_name = "salmon-env") {
 #' @param is_gencode Logical indicating if the FASTA is from GENCODE
 #' (default is `FALSE`); the transcript names are then truncated at the
 #' first `|` so that they match the annotation.
-#' @param decoy_fasta Optional path to a FASTA file containing decoy sequences
-#' (default is `NULL`). Not used yet: the index is built without decoys.
+#' @param decoy_fasta Optional path to a FASTA file, plain or gzipped, with
+#' the decoy sequences (default is `NULL`, an index without decoys). Usually
+#' the genome assembly the transcripts come from (for GENCODE, the
+#' `GRCh38.primary_assembly.genome.fa.gz` of the same release). A full human
+#' genome makes the index several times larger and slower to build (tens of
+#' GB of memory and disk instead of a few), and needs free space in
+#' [tempdir()] for a copy of the genome while the index is built.
 #' @param clip_poly_a Logical indicating whether to clip poly-A tails
 #' (default is `TRUE`).
 #'
@@ -93,6 +110,10 @@ salmon_index <- function(
 ) {
   rlang::check_installed("condathis")
   rlang::check_required(fasta_path)
+  if (!is.null(decoy_fasta)) {
+    check_fasta_file(fasta_path)
+    check_fasta_file(decoy_fasta)
+  }
   check_env_installed(env_name)
 
   if (isTRUE(is_gencode)) {
@@ -100,9 +121,15 @@ salmon_index <- function(
   } else {
     gencode_arg <- NULL
   }
-  # TODO: @luciorq add decoy support: a text file with sequence IDs from the
-  # reference to be treated as decoys (passed as --decoys decoys.txt).
   decoy_args <- NULL
+  if (!is.null(decoy_fasta)) {
+    decoy_dir <- tempfile("salmon_decoys_")
+    dir.create(decoy_dir)
+    on.exit(unlink(decoy_dir, recursive = TRUE), add = TRUE)
+    decoy_files <- write_salmon_gentrome(fasta_path, decoy_fasta, decoy_dir)
+    fasta_path <- decoy_files$gentrome
+    decoy_args <- c("--decoys", decoy_files$decoys)
+  }
 
   if (isFALSE(clip_poly_a)) {
     no_clip_arg <- "--no-clip"
@@ -127,6 +154,98 @@ salmon_index <- function(
     env_name = env_name,
     verbose = "output"
   )
+}
+
+#' Write the gentrome FASTA and the decoy names for a decoy-aware index
+#'
+#' @param fasta_path Path to the transcript FASTA (plain or gzipped).
+#' @param decoy_fasta Path to the decoy FASTA (plain or gzipped).
+#' @param out_dir Existing directory for the output files.
+#'
+#' @returns A list with the paths `gentrome` and `decoys`.
+#'
+#' @keywords internal
+#' @noRd
+write_salmon_gentrome <- function(fasta_path, decoy_fasta, out_dir) {
+  check_fasta_file(fasta_path)
+  check_fasta_file(decoy_fasta)
+  decoy_is_gz <- is_gzip_file(decoy_fasta)
+  gentrome <- file.path(
+    out_dir,
+    if (decoy_is_gz) "gentrome.fa.gz" else "gentrome.fa"
+  )
+  decoys <- file.path(out_dir, "decoys.txt")
+
+  # Transcripts first, re-encoded to the compression of the decoy file;
+  # writeLines() also guarantees a final newline before the decoys.
+  out_con <- if (decoy_is_gz) {
+    gzfile(gentrome, open = "wb", compression = 1L)
+  } else {
+    file(gentrome, open = "wb")
+  }
+  write_ok <- FALSE
+  on.exit(if (!write_ok) close(out_con), add = TRUE)
+  for_each_line_chunk(fasta_path, function(lines) writeLines(lines, out_con))
+  write_ok <- TRUE
+  close(out_con)
+
+  # A plain decoy file without a final newline still ends the gentrome
+  if (!file.append(gentrome, decoy_fasta)) {
+    cli::cli_abort(
+      "Could not append {.path {decoy_fasta}} to {.path {gentrome}}.",
+      class = "isoformic_gentrome_error"
+    )
+  }
+
+  # Decoy names: first word of each header, without '>'
+  name_con <- file(decoys, open = "wb")
+  names_ok <- FALSE
+  on.exit(if (!names_ok) close(name_con), add = TRUE)
+  for_each_line_chunk(decoy_fasta, function(lines) {
+    headers <- lines[startsWith(lines, ">")]
+    if (length(headers) > 0L) {
+      ids <- sub("^>[[:space:]]*([^[:space:]]*).*$", "\\1", headers)
+      writeLines(ids, name_con)
+    }
+  })
+  names_ok <- TRUE
+  close(name_con)
+  if (file.size(decoys) == 0) {
+    cli::cli_abort(
+      "{.path {decoy_fasta}} has no FASTA header ({.code >}).",
+      class = "isoformic_gentrome_error"
+    )
+  }
+  list(gentrome = gentrome, decoys = decoys)
+}
+
+check_fasta_file <- function(path, arg = rlang::caller_arg(path)) {
+  if (!rlang::is_string(path) || !file.exists(path) || dir.exists(path)) {
+    cli::cli_abort(
+      "{.arg {arg}} must be the path to an existing FASTA file.",
+      class = "isoformic_file_not_found"
+    )
+  }
+  invisible(TRUE)
+}
+
+for_each_line_chunk <- function(path, fun, chunk_size = 1000000L) {
+  # gzfile() reads plain and gzipped files alike
+  con <- gzfile(path, open = "rb")
+  on.exit(close(con), add = TRUE)
+  repeat {
+    lines <- readLines(con, n = chunk_size, warn = FALSE)
+    if (length(lines) == 0L) {
+      break
+    }
+    fun(lines)
+  }
+  invisible(NULL)
+}
+
+is_gzip_file <- function(path) {
+  magic <- readBin(path, what = "raw", n = 2L)
+  length(magic) == 2L && identical(magic, as.raw(c(0x1f, 0x8b)))
 }
 
 #' Run Salmon Quantification

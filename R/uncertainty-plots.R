@@ -23,7 +23,7 @@
 #' @param gene_name Gene names or IDs to plot.
 #' @param ncol Number of panel columns.
 #' @param top_types Number of the most frequent transcript types to show.
-#' @param ... Unused.
+#' @param ... Not used; reserved for methods.
 #'
 #' @returns A `ggplot` object, or a named character vector for
 #'   `confidence_palette()`.

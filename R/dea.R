@@ -46,7 +46,7 @@
 #' @param log2fc_cutoff,pvalue_cutoff,use_fdr Optional per-call overrides
 #'   of the stored cutoffs.
 #' @param sig_only Logical, return only significant features.
-#' @param ... Passed on to methods.
+#' @param ... Not used; reserved for methods.
 #'
 #' @returns Tibbles, or the modified object for replacement functions.
 #'

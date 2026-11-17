@@ -1,11 +1,15 @@
 {
-    "salmon_version": "1.10.1",
-    "index": "/work/mini_idx",
-    "libType": "A",
-    "mates1": "/work/sub_fastq/SRR11498040_sub_1.fastq.gz",
-    "mates2": "/work/sub_fastq/SRR11498040_sub_2.fastq.gz",
-    "validateMappings": [],
-    "threads": "7",
-    "output": "/work/mini_quants/SRR11498040_quant",
-    "auxDir": "aux_info"
+  "salmon_version": "2.8.0",
+  "index": "/work/placenta/ref/mini_index_v50",
+  "libType": "A",
+  "output": "/work/placenta/mini_quants/SRR11498040_quant.tmp",
+  "mates1": [
+    "/work/placenta/reads/SRR11498040/SRR11498040_1.fastq"
+  ],
+  "mates2": [
+    "/work/placenta/reads/SRR11498040/SRR11498040_2.fastq"
+  ],
+  "unmatedReads": [],
+  "threads": 12,
+  "sketch": false
 }

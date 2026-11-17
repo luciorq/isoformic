@@ -1,7 +1,7 @@
 ---
 title: "What makes an isoform hard to quantify?"
 date: 2026-10-31
-date-modified: 2026-10-31
+date-modified: 2026-11-17
 date-format: long
 author:
   - name: Lucio Rezende Queiroz
@@ -40,7 +40,7 @@ and relates them to the transcript type and to molecular features of the isoform
 
 ## The data
 
-Three samples of the prostate ESRP2 knockdown of the uncertainty article (two controls and one knockdown; 12 million read pairs each) were quantified with Salmon 2.8.0 against GENCODE v49, with 100 Gibbs draws, and once more with 30.
+Three samples of the prostate ESRP2 knockdown of the uncertainty article (two controls and one knockdown; 12 million read pairs each) were quantified with Salmon 2.8.0 against GENCODE v50, with 100 Gibbs draws, and once more with 30.
 Isoforms with at least 5 estimated reads in a sample are kept, and the measures are averaged over the samples where the isoform is expressed.
 The features come from the annotation, the transcript sequences and the equivalence classes:
 
@@ -90,7 +90,7 @@ by_type |>
 
 Three different pictures emerge.
 
-- **Protein-coding isoforms are the most uncertain and the most reliably measured.** Their median InfRV is the highest (`r by_type$median_inf_rv[by_type$type == "protein_coding"]`): they belong to genes with many isoforms (median `r by_type$median_isoforms_in_gene[by_type$type == "protein_coding"]`) that share their exons, and half of them have no fragment of their own. But their InfRV is far above the cutoff, so 30 draws rarely put one on the other side (`r round(100 * by_type$cutoff_flip[by_type$type == "protein_coding"], 1)`% flip).
+- **NMD and protein-coding isoforms are the most uncertain and the most reliably measured.** Their median InfRV is the highest (`r by_type$median_inf_rv[by_type$type == "nonsense_mediated_decay"]` and `r by_type$median_inf_rv[by_type$type == "protein_coding"]`): they belong to genes with many isoforms (median `r by_type$median_isoforms_in_gene[by_type$type == "nonsense_mediated_decay"]` and `r by_type$median_isoforms_in_gene[by_type$type == "protein_coding"]`) that share their exons, and half of them have no fragment of their own. But their InfRV is far above the cutoff, so 30 draws rarely put one on the other side (`r round(100 * by_type$cutoff_flip[by_type$type == "nonsense_mediated_decay"], 1)`% and `r round(100 * by_type$cutoff_flip[by_type$type == "protein_coding"], 1)`% flip). NMD isoforms are `r round(100 * by_type$isoforms[by_type$type == "nonsense_mediated_decay"] / sum(by_type$isoforms))`% of the expressed isoforms in GENCODE v50.
 - **Retained-intron, CDS-not-defined and lncRNA isoforms flip most** (`r round(100 * by_type$cutoff_flip[by_type$type == "retained_intron"], 1)`%, `r round(100 * by_type$cutoff_flip[by_type$type == "protein_coding_CDS_not_defined"], 1)`% and `r round(100 * by_type$cutoff_flip[by_type$type == "lncRNA"], 1)`%): they have fewer reads and their InfRV sits near the cutoff, where a noisier estimate decides the call.
 - **lncRNA trees are the least stable**: `r round(100 * by_type$tree_changed[by_type$type == "lncRNA"], 1)`% of lncRNA isoforms are in a tree whose transcripts change between 30 and 100 draws, against `r round(100 * by_type$tree_changed[by_type$type == "protein_coding"], 1)`% of protein-coding ones.
 
@@ -145,9 +145,9 @@ bins |>
   theme(axis.text.x = element_text(angle = 30, hjust = 1), legend.position = "top")
 ```
 
-- **Fragments of its own decide whether an isoform is determined.** The median InfRV falls from about 6 for isoforms without a unique fragment to 0.03 for those with most fragments unique, within every type.
+- **Fragments of its own decide whether an isoform is determined.** The median InfRV falls from about 5 for isoforms without a unique fragment to 0.03 for those with most fragments unique, within every type.
 - **Sequence identity to siblings works the same way**: isoforms that differ from their closest sibling by few bases, or that have few exonic bases of their own, are the most uncertain.
-- **More isoforms in the gene, more uncertainty**: from 0.06 for genes with one isoform to about 4 for genes with more than 30.
+- **More isoforms in the gene, more uncertainty**: from 0.05 for genes with one isoform to about 4 for genes with more than 30.
 - **Uncertainty is not a problem of low counts.** The InfRV rises with the number of reads up to a thousand reads: an ambiguous isoform stays ambiguous however deep it is sequenced, plausibly because the variance that assignment adds grows with the reads that have to be assigned. Length works the same way for protein-coding isoforms, which share more exons as they grow.
 - **GC content hardly matters** once the rest is known.
 
@@ -180,7 +180,7 @@ bins |>
 ```
 
 Isoforms with a NAGNAG or a nearby alternative acceptor or donor are more uncertain, but the model below attributes almost none of that to the splice sites themselves once the unique fragments are known: a three-base difference leaves the isoform with very few fragments of its own, and that is what the replicates register.
-MANE Select isoforms are less uncertain than the other protein-coding isoforms of their genes, and closer to the cutoff, so they flip more often.
+MANE Select isoforms have a higher median InfRV than the other protein-coding isoforms (`r bins$median_inf_rv[bins$feature == "mane" & bins$type == "protein_coding" & bins$level == "yes"]` against `r bins$median_inf_rv[bins$feature == "mane" & bins$type == "protein_coding" & bins$level == "no"]`) mainly because they carry most of the reads of their genes (median 197 estimated reads against 21) and the InfRV grows with the reads: at the same depth they are less uncertain, in every bin of reads, and the model below gives the MANE tag a lower InfRV.
 
 ## Separating the factors
 
@@ -208,7 +208,7 @@ importance |>
 stability("model_fit")
 ```
 
-- **How uncertain an isoform is** is well explained (R² `r stability("model_fit")$r_squared[1]`): the unique fragments, the reads, the MANE tag, the length and the distance to the closest sibling carry most of it.
+- **How uncertain an isoform is** is well explained (R² `r stability("model_fit")$r_squared[1]`): the reads and the unique fragments carry most of it (`r round(100 * importance$share[importance$outcome == "log_inf_rv" & importance$term == "log_reads"])`% and `r round(100 * importance$share[importance$outcome == "log_inf_rv" & importance$term == "unique_fraction"])`% of the explained deviance), followed by the distance to the closest sibling and the MANE tag.
 - **How much two sets of 30 draws disagree** is mostly not explained by any feature (R² `r stability("model_fit")$r_squared[2]`): it is sampling noise of the draws, which only more draws reduce. The disagreement on the log scale is largest for the best-determined isoforms, whose InfRV is close to zero; on the decisions that matter (the cutoff) the flips above are the better summary.
 - **Whether the tree changes** depends mostly on the transcript type and on the number of isoforms of the gene: lncRNA loci and genes with many isoforms have the least stable trees.
 
@@ -227,7 +227,7 @@ stability("model_terms") |>
 - **Calls near the cutoff are the fragile ones.** Isoforms with a few unique fragments, few reads, retained introns, lncRNAs and transcripts without a defined CDS are where 30 draws can tip the call; for those, 100 draws make the classes more stable (`salmon_quant(num_gibbs = 100)`).
 - **TreeTerminus on lncRNA-rich questions needs more draws.** About half of the lncRNA trees change between 30 and 100 draws, also for uncertain isoforms.
 - **Splice-site structure acts through the reads.** NAGNAG and nearby alternative splice sites make isoforms hard to separate because they leave them without unique fragments; `unique_fraction` already measures that, so there is no need to correct for it separately.
-- **The MANE isoform is the easiest isoform of a coding gene to quantify**, which also makes it the most common reference when the other isoforms are uncertain.
+- **Compare InfRV between isoforms of similar depth.** The MANE isoform is easier to quantify than its siblings at the same number of reads, but it usually carries most of the reads of its gene, and so a higher InfRV.
 
 ## Cautions
 

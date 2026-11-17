@@ -19,8 +19,9 @@ oarfish_example <- function() {
 testthat::test_that("read_oarfish builds the assays from the real Oarfish output", {
   x <- oarfish_example()
   iso <- read_oarfish(x$prefixes, annot_path = x$annot)
-  testthat::expect_identical(dim(iso), c(72L, 3L))
   quant <- read.delim(paste0(x$prefixes[["control_1"]], ".quant"))
+  n_tx <- nrow(quant)
+  testthat::expect_identical(dim(iso), c(n_tx, 3L))
   counts <- assay(iso, "counts")
   testthat::expect_equal(
     unname(counts[, "control_1"]),
@@ -38,14 +39,14 @@ testthat::test_that("read_oarfish builds the assays from the real Oarfish output
   fs::file_copy(paste0(x$prefixes[["control_1"]], ".quant"), one)
   testthat::expect_identical(
     dim(read_oarfish(one, annot_path = x$annot)),
-    c(72L, 1L)
+    c(n_tx, 1L)
   )
   testthat::expect_identical(
     dim(read_oarfish(
       paste0(x$prefixes[["control_2"]], ".quant"),
       annot_path = x$annot
     )),
-    c(72L, 1L)
+    c(n_tx, 1L)
   )
 })
 
@@ -54,7 +55,8 @@ testthat::test_that("Oarfish replicates, support and run metadata use the shared
   reps <- read_inferential_replicates(x$prefixes)
   testthat::expect_length(reps, 30L)
   testthat::expect_identical(attr(reps, "samp_type"), "bootstrap")
-  testthat::expect_identical(dim(reps[[1L]]), c(72L, 3L))
+  n_tx <- nrow(read.delim(paste0(x$prefixes[["treated_1"]], ".quant")))
+  testthat::expect_identical(dim(reps[[1L]]), c(n_tx, 3L))
   testthat::expect_identical(colnames(reps[[1L]]), names(x$prefixes))
   raw <- read_parquet(paste0(x$prefixes[["treated_1"]], ".infreps.pq"))
   testthat::expect_equal(
@@ -183,7 +185,8 @@ testthat::test_that("read_oarfish_sc_counts reads the real single-cell output of
 testthat::test_that("read_oarfish_sc sums the cells of each sample", {
   x <- oarfish_sc_example()
   iso <- read_oarfish_sc(x$prefix, cells = x$cells, annot_path = x$annot)
-  testthat::expect_identical(dim(iso), c(72L, 3L))
+  n_tx <- length(readLines(paste0(x$prefix, ".features.txt")))
+  testthat::expect_identical(dim(iso), c(n_tx, 3L))
   cd <- col_data(iso)
   testthat::expect_identical(
     cd$sample_id,
@@ -198,15 +201,20 @@ testthat::test_that("read_oarfish_sc sums the cells of each sample", {
     list(counts$transcript_id, counts$sample_id),
     sum
   )
+  # A transcript seen in no cell of a sample sums to zero in that sample
+  by_hand[is.na(by_hand)] <- 0
   pseudo <- assay(iso, "counts")
   ids <- rownames(by_hand)
+  testthat::expect_lt(length(ids), n_tx)
   testthat::expect_equal(
-    unname(pseudo[ids, "treated_1"]),
-    unname(by_hand[ids, "treated_1"])
+    unname(pseudo[ids, colnames(by_hand)]),
+    unname(by_hand)
   )
+  # Transcripts seen in no cell at all are kept with zero counts
+  testthat::expect_true(all(pseudo[setdiff(rownames(pseudo), ids), ] == 0))
   testthat::expect_equal(unname(colSums(assay(iso, "abundance"))), rep(1e6, 3L))
   # The simulation raises three isoforms four-fold in the treated cells; the
-  # one with enough reads to tell (RBPJ-203, about 80 in each control) shows it
+  # one with enough reads to tell (RBPJ-213, about 56 in the controls) shows it
   fasta <- readLines(gzfile(fs::path_package(
     "isoformic",
     "extdata",
@@ -215,7 +223,7 @@ testthat::test_that("read_oarfish_sc sums the cells of each sample", {
   headers <- sub("^>([^|]*)\\|.*", "\\1", fasta[startsWith(fasta, ">")])
   boosted <- headers[c(2L, 5L, 9L)]
   control <- rowMeans(pseudo[boosted, c("control_1", "control_2")])
-  enough <- boosted[control >= 20]
+  enough <- boosted[control >= 40]
   testthat::expect_length(enough, 1L)
   testthat::expect_gt(pseudo[enough, "treated_1"] / control[[enough]], 3)
 
@@ -317,7 +325,7 @@ testthat::test_that("read_oarfish_sc handles transcripts missing from the annota
     annot_path = x$annot,
     drop_unannotated = TRUE
   ))
-  testthat::expect_identical(nrow(iso), 71L)
+  testthat::expect_identical(nrow(iso), length(features) - 1L)
   testthat::expect_true(all(is.finite(assay(iso, "abundance"))))
 })
 
@@ -409,7 +417,7 @@ testthat::test_that("Oarfish readers report inconsistent or incomplete input", {
     annot_path = x$annot,
     drop_unannotated = TRUE
   ))
-  testthat::expect_identical(nrow(iso), 71L)
+  testthat::expect_identical(nrow(iso), length(quant) - 2L)
   # Run flags
   qc <- salmon_run_qc(x$prefixes, min_percent_mapped = 101)
   testthat::expect_identical(qc$qc_flag, rep("low_mapping_rate", 3L))

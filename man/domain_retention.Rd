@@ -14,7 +14,7 @@ domain_retention(self, gene_name = NULL, domains = NULL, ...)
 \item{domains}{Data frame or Parquet path of the domain table; \code{NULL}
 fetches the frozen \code{appris_domains} dataset.}
 
-\item{...}{Passed on to methods.}
+\item{...}{Not used; reserved for methods.}
 }
 \value{
 A tibble with one row per transcript: \code{transcript_id},

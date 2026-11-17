@@ -32,7 +32,7 @@ Stress leaves the expression of genes almost unchanged, but changes which of the
 ## The data
 
 The 19 male samples (10 control, 9 stressed) were quantified with Salmon [@salmon]
-against the GENCODE vM38 transcripts [@gencode].
+against the GENCODE vM39 transcripts [@gencode].
 The GRCm39 genome served as decoy, and each sample has 30 Gibbs draws.
 Transcripts were tested with `swish` [@swish] on the inferential replicates.
 Genes were tested with `DESeq2` on the summed counts.
@@ -63,7 +63,8 @@ It separates two groups of samples, one per range of SRA run accessions.
 The groups are not annotated in GEO but are most likely two processing batches.
 They are balanced between conditions (4 + 4 and 6 + 5 samples), so the tests can adjust for them.
 `swish` stratifies its permutations by batch and `DESeq2` uses the design `~ batch + condition`.
-Without the adjustment, no transcript and no gene reaches a false discovery rate of 10%.
+Without the adjustment, no transcript and no gene reaches a false discovery rate of 5%,
+and only 4 transcripts and no gene reach 10%.
 
 ```{r}
 #| fig-height: 4
@@ -79,7 +80,7 @@ ggplot(pca, aes(PC1, PC2, color = batch, shape = condition)) +
 ```
 
 The sample far below the others on the second component (`control_3`) has the smallest library
-(18.6 million read pairs) and the lowest mapping rate (71%).
+(18.6 million read pairs) and the lowest mapping rate (72%).
 It is kept in the analysis.
 It is the first sample to check when a result depends on a single animal.
 
@@ -97,8 +98,8 @@ c(
 )
 ```
 
-At a false discovery rate of 5%, `DESeq2` finds 4 genes and `swish` 137 transcripts.
-Many of the transcript changes are moderate.
+At a false discovery rate of 5%, `DESeq2` finds 4 genes and `swish` 126 transcripts.
+Many of the transcript changes are moderate: 74 of the 126 transcripts change less than 2-fold.
 This article therefore lowers the fold-change cutoff of the significance calls from the default of 1 to 0.5
 (a 1.4-fold change):
 
@@ -107,8 +108,8 @@ de_cutoffs(iso) <- list(log2fc = 0.5, pvalue = 0.05, use_fdr = TRUE)
 ```
 
 The significant transcripts are not only protein coding isoforms.
-About a third are retained intron, nonsense-mediated decay, other non-coding isoforms of protein coding genes
-or lncRNAs.
+More than half of them (69 of 126) are nonsense-mediated decay, retained intron or other non-coding isoforms
+of protein coding genes, lncRNAs or a TEC transcript.
 
 ```{r}
 det |>
@@ -118,7 +119,8 @@ det |>
 ```
 
 `isoform_switches()` relates the two levels.
-Almost every gene with significant isoforms has no significant change of its total expression (`det_not_deg`).
+With these cutoffs, 107 genes have one significant isoform each,
+and none of them has a significant change of its total expression (`det_not_deg`).
 A gene-level analysis would miss all of them.
 
 ```{r}
@@ -129,40 +131,44 @@ switches |>
   head(10)
 ```
 
-## An isoform switch in *Taf15*
+## A change of isoforms in *Celf1*
 
-*Taf15* encodes an RNA-binding protein of the FET family.
+*Celf1* encodes an RNA-binding protein of the CELF family that regulates alternative splicing.
 Its total expression does not change.
-Its protein coding isoform `Taf15-201` goes down while `Taf15-204`, a transcript without a coding sequence, goes up.
-This is a switch from a productive to an unproductive isoform.
+Its protein coding isoform `Celf1-203` goes up (log2 fold change 2.8),
+from 1.2 to 13 transcripts per million on average.
+`Celf1-203` encodes the same protein as `Celf1-205`, one of the two most expressed isoforms in the controls,
+but starts at a first exon far upstream and has a longer last exon.
+`Celf1-205` goes down from 16 to 11 transcripts per million, which is not significant on its own (q = 0.15).
 
 ```{r}
 #| fig-height: 4
-plot_log2fc(iso, feature = "Taf15")
+plot_log2fc(iso, feature = "Celf1")
 ```
 
-The expression profile shows the same switch in transcripts per million:
+The expression profile shows the change in transcripts per million:
 
 ```{r}
 #| fig-height: 4
-plot_tx_expr(iso, gene_name = "Taf15", group = "condition")
+plot_tx_expr(iso, gene_name = "Celf1", group = "condition")
 ```
 
 and the genomic context shows the structures of the isoforms, with the differentially expressed ones outlined:
 
 ```{r}
 #| fig-height: 6
-plot_genomic_context(iso, gene_name = "Taf15")
+plot_genomic_context(iso, gene_name = "Celf1")
 ```
 
 ## More genes with isoform-level changes
 
-The other panel genes show the same pattern: one or two significant isoforms in genes whose total does not move.
+Most other panel genes (34 of the other 46) show the same pattern: a single significant isoform in a gene
+whose total expression does not change significantly.
 
 ```{r}
 #| fig-height: 8
 #| fig-width: 10
-plot_log2fc(iso, feature = c("Clstn2", "Sympk", "Neu2", "Prrc2c"), ncol = 2)
+plot_log2fc(iso, feature = c("Clstn2", "Gng7", "Npas2", "Ptk2b"), ncol = 2)
 ```
 
 Some genes do not reach a false discovery rate of 5% once the batches are taken into account.
@@ -202,14 +208,16 @@ plot_enrichment(
 )
 ```
 
-Translation, ribosome biogenesis and respiration pathways go down in the protein coding isoforms
-of the stressed animals.
-Synaptic pathways go up (protein interactions at synapses, neurexins and neuroligins,
-transmission across chemical synapses).
-The translation pathways go down in the unproductive isoforms of the same genes as well.
-The ribosomal protein genes also dominate the *nonsense-mediated decay* pathways of Reactome,
-which is why those appear as well.
+Translation and mitochondrial pathways go down in the protein coding isoforms of the stressed animals
+(eukaryotic translation initiation, mitochondrial translation, respiratory electron transport,
+complex I biogenesis and complex IV assembly).
+Few pathways go up in the protein coding isoforms, and none of them is synaptic.
+The ribosomal protein genes dominate the *nonsense-mediated decay* pathways of Reactome
+(75 of the 92 leading-edge genes in the protein coding isoforms),
+which is why those pathways are the most significant ones.
 That pathway name describes the genes, not the transcript type.
+In the unproductive isoforms the nonsense-mediated decay pathways and mitochondrial translation go down as well,
+while apoptosis and programmed cell death go up.
 
 ## Citing isoformic
 

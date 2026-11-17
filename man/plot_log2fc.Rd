@@ -37,7 +37,7 @@ to the object's palette or \code{\link[=tx_type_palette]{tx_type_palette()}}.}
 
 \item{ncol}{Number of facet columns, \code{NULL} for automatic.}
 
-\item{...}{Passed on to methods.}
+\item{...}{Not used; reserved for methods.}
 
 \item{de_data}{A long DE table (see \code{\link[=de_table]{de_table()}}).}
 }

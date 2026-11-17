@@ -76,7 +76,7 @@ clear_cache(self, annotation = FALSE, ...)
 \arguments{
 \item{self}{An \link{IsoformicExperiment}.}
 
-\item{...}{Passed on to methods.}
+\item{...}{Not used; reserved for methods.}
 
 \item{value}{Replacement value.}
 

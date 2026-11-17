@@ -73,8 +73,9 @@ Two case studies apply the workflow to complete public datasets: [chronic stress
 
 ## The data
 
-The examples use the placenta RNA-seq dataset from ["Landscape of Dysregulated Placental RNA Editing Associated With Preeclampsia"][pe-paper-ref]: 8 preeclamptic and 17 control placentas quantified with Salmon [@salmon] against GENCODE v33 and tested for differential expression at the transcript level with `swish` [@swish] and at the gene level with `DESeq2`.
+The examples use the placenta RNA-seq dataset from ["Landscape of Dysregulated Placental RNA Editing Associated With Preeclampsia"][pe-paper-ref]: 8 preeclamptic and 17 control placentas quantified with Salmon [@salmon] against GENCODE v50 and tested for differential expression with `swish` [@swish] on the 30 Gibbs draws, at the transcript level and at the gene level (counts and draws summed over the isoforms of each gene).
 The tables ship with the package as Parquet files.
+The abundance table holds the TPM of the 126,670 transcripts tested by `swish`, the same ones as the transcript-level results; the other transcripts of each gene come from the annotation.
 
 ```{r}
 #| message: false
@@ -100,11 +101,11 @@ head(deg)
 ## The annotation
 
 `isoformic` relies on the transcript types of the [GENCODE][gencode-ref] annotation.
-The annotation must be the one used for quantification, here GENCODE v33.
+The annotation must be the one used for quantification, here GENCODE v50.
 `download_reference()` fetches it into the package cache (this step needs an internet connection the first time) and `prepare_isoformic_annotation()` converts the GFF3 file, once, into a directory of Parquet tables.
 
 ```{r}
-gff_file <- download_reference(version = "33", file_type = "gff")
+gff_file <- download_reference(version = "50", file_type = "gff")
 annot_dir <- prepare_isoformic_annotation(gff_file)
 fs::dir_ls(annot_dir)
 ```
@@ -196,7 +197,7 @@ Every other article starts from this object; the block below is all it takes to 
 #| eval: false
 library(isoformic)
 extdata <- fs::path_package("isoformic", "extdata")
-annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 iso <- IsoformicExperiment(
   experiment_name = "preeclampsia_placenta",
   annot_path = annot_dir,

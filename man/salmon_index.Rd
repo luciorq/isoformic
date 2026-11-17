@@ -32,8 +32,13 @@ salmon_index(
 (default is \code{FALSE}); the transcript names are then truncated at the
 first \code{|} so that they match the annotation.}
 
-\item{decoy_fasta}{Optional path to a FASTA file containing decoy sequences
-(default is \code{NULL}). Not used yet: the index is built without decoys.}
+\item{decoy_fasta}{Optional path to a FASTA file, plain or gzipped, with
+the decoy sequences (default is \code{NULL}, an index without decoys). Usually
+the genome assembly the transcripts come from (for GENCODE, the
+\code{GRCh38.primary_assembly.genome.fa.gz} of the same release). A full human
+genome makes the index several times larger and slower to build (tens of
+GB of memory and disk instead of a few), and needs free space in
+\code{\link[=tempdir]{tempdir()}} for a copy of the genome while the index is built.}
 
 \item{clip_poly_a}{Logical indicating whether to clip poly-A tails
 (default is \code{TRUE}).}
@@ -52,4 +57,16 @@ upgrading.
 
 Transcripts with identical sequences are all kept (\code{--keepDuplicates}),
 so that every annotated transcript is quantified.
+
+With \code{decoy_fasta}, the index is decoy-aware, as recommended by the Salmon
+authors: the function writes, in a temporary directory, a \code{gentrome} FASTA
+(the transcripts followed by the decoy sequences) and a \code{decoys.txt} file
+with the names of the decoy sequences (the first word of each FASTA
+header), passes them to \verb{salmon index} as \code{--transcripts} and \code{--decoys},
+and removes them afterwards. Reads that align better to a decoy than to a
+transcript are then discarded instead of being assigned to a transcript.
+The \code{gentrome} has the compression of \code{decoy_fasta} (the decoy file is
+appended byte by byte, and concatenated gzip streams are valid gzip), so a
+gzipped genome is not decompressed to disk; the transcript FASTA, plain or
+gzipped, is re-encoded to match.
 }

@@ -48,7 +48,7 @@
 #' @param gene_name Character vector of gene names or gene IDs.
 #' @param with_exons Logical, also join the exon table (one row per exon).
 #' @param annotation Logical, also clear the shared annotation cache.
-#' @param ... Passed on to methods.
+#' @param ... Not used; reserved for methods.
 #'
 #' @returns See the individual descriptions above.
 #'

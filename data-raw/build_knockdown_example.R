@@ -88,7 +88,7 @@ known_targets <- c(
 )
 
 annot_dir <- prepare_isoformic_annotation(
-  download_reference(version = "49", file_type = "gff")
+  download_reference(version = "50", file_type = "gff")
 )
 tx_all <- read_parquet(fs::path(annot_dir, "annot_data_transcripts.parquet"))
 genes_all <- read_parquet(fs::path(annot_dir, "annot_data_genes.parquet"))
@@ -186,7 +186,7 @@ write_parquet(
   fs::path(annot_out, "annot_data_exons.parquet")
 )
 meta_all <- read_parquet(fs::path(annot_dir, "annot_metadata.parquet"))
-meta_all$value[meta_all$key == "annot_name"] <- "gencode_v49_knockdown_subset"
+meta_all$value[meta_all$key == "annot_name"] <- "gencode_v50_knockdown_subset"
 write_parquet(
   meta_all[!meta_all$key %in% c("source_path", "created_at"), ],
   fs::path(annot_out, "annot_metadata.parquet")
@@ -237,6 +237,9 @@ for (s in names(full)) {
   write_parquet(col_data, fs::path(out, "col_data.parquet"))
 
   draws <- read_inferential_replicates(f$dirs, transcripts = use, n_draws = 30)
+  # The moments of every transcript of the index (the overdispersion prior)
+  # are not kept: about 20 MB per series. The bundled draws are a panel, so
+  # their overdispersion prior comes from the panel.
   draws <- lapply(draws, function(m) round(m, 2))
   write_parquet(
     inferential_replicates_table(draws),
@@ -252,7 +255,7 @@ for (s in names(full)) {
       paste0("series: ", s),
       paste0("description: ", series[[s]]$description),
       "reads: first 12 million read pairs of each run",
-      "reference: GENCODE v49 transcripts with the GRCh38 genome as decoy",
+      "reference: GENCODE v50 transcripts with the GRCh38 genome as decoy",
       "quantification: Salmon 2.8.0, 30 Gibbs draws, --dumpEq --seqBias --gcBias",
       paste0("runs: ", paste(series[[s]]$runs, collapse = ", ")),
       paste0("transcripts kept: ", length(use))

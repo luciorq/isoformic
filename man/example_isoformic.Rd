@@ -7,7 +7,8 @@
 example_isoformic()
 }
 \value{
-An \link{IsoformicExperiment}.
+An \link{IsoformicExperiment} whose annotation directory is a private
+temporary copy of the bundled one.
 }
 \description{
 Loads a small \link{IsoformicExperiment} bundled with the package: transcript
@@ -17,6 +18,19 @@ samples), GENCODE v33 annotation and transcript sequences for those
 genes, and transcript- and gene-level differential expression results.
 It is used throughout the documentation and is suitable for trying every
 method of the class in well under a second.
+}
+\details{
+The annotation directory of the bundled experiment is copied on every call
+into a new directory under \code{\link[=tempdir]{tempdir()}}, and the returned object points
+there (\code{iso@annot_path}). Functions that store tables in the
+annotation directory, such as \code{\link[=extract_transcript_sequences]{extract_transcript_sequences()}},
+\code{\link[=transcript_orfs]{transcript_orfs()}}, \code{\link[=add_appris]{add_appris()}}, \code{\link[=add_riboseq_orfs]{add_riboseq_orfs()}} or
+\code{\link[=add_nmd_exons]{add_nmd_exons()}}, therefore change only that private copy: the installed
+package is never modified, two calls never see each other's changes, and
+the copy is removed with the temporary directory when the R session ends.
+To keep an annotated object beyond the session, save it with
+\code{write_isoformic(iso, path, copy_annotation = TRUE)}, which stores the
+annotation inside the experiment directory.
 }
 \examples{
 iso <- example_isoformic()

@@ -3,8 +3,8 @@
   "alignment_source": "from_raw_reads",
   "alignment_time": {
     "comment": "Time to parse (in alignment mode) or generate (in raw read mode) alignments, as well as apply filters, and compute conditional probabilities.",
-    "human_time": "2s 232ms 271us 173ns",
-    "seconds": 2.232271173
+    "human_time": "14s 186ms 559us 374ns",
+    "seconds": 14.186559374
   },
   "bin_width": 100,
   "filter_options": {
@@ -23,7 +23,7 @@
   "discard_table": {
     "discard_5p": 0,
     "discard_3p": 0,
-    "discard_score": 8321,
+    "discard_score": 29590,
     "discard_aln_frac": 0,
     "discard_aln_len": 0,
     "discard_ori": 0,
@@ -33,7 +33,7 @@
     "valid_best_aln": 3000
   },
   "alignments": null,
-  "output": "oarfish_out/control_1",
+  "output": "/data/gamma/luciorq/workspaces/temp/isoformic-v50/oarfish/out/control_1",
   "verbose": false,
   "single_cell": false,
   "quiet": false,
@@ -48,14 +48,14 @@
     "annotated_transcripts_digest": {
       "seqcol_digest": {
         "level": 1,
-        "names": "9RJXzt43zzj0NY8iCmRrD11X4cc_XDaA",
-        "lengths": "suvWgAsLnWZhyPRVAlC0JKzdH1JNWR_A",
-        "sequences": "3u_zfpTzotNY_ykMeayeF1GfyRg26o2I",
-        "sorted_name_length_pairs": "aiOkaSJdrWTGbRl8Yofxxqv9rBhngOuX"
+        "names": "bLWjnG8ewgzKGXR0xMOuhWdrFR4U958v",
+        "lengths": "3NDYrKrHdpbB-Va1qaQpc9q4yTyxtMKY",
+        "sequences": "05P_kfbPlYrPq713NAF4oDrEz_WOW90J",
+        "sorted_name_length_pairs": "od1d9cRdIsqsnIWod4ad3RXgXQxHUsYL"
       },
       "sha256_digests": {
-        "sha256_names": "1719e767440ee4153d51daaab8c87d9db8ee4c6db6f9ed26b3faa959aaa3d893",
-        "sha256_seqs": "f8b7dc13d16da4a8da252d1fcf61a20e2b3ab761e18fe6ecd4996ed16650e51c"
+        "sha256_names": "a12e9533c1a04105655de358b9d78ae962923c7aca67d219602581e92eb18f0d",
+        "sha256_seqs": "281840f7a8ffa0c4680c94c4fe08477fc7f64fb10c61edd8406bde5b6e7c0ef5"
       }
     }
   }

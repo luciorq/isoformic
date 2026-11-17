@@ -15,10 +15,22 @@ renv.lock
 revdep
 .Rprofile
 README.html
-data-raw/*
+# data-raw: the scripts, sample sheets and README are tracked; downloads,
+# work directories and tool environments are not
+data-raw/**
+!data-raw/**/
 !data-raw/.gitkeep
-!data-raw/*.R
-!data-raw/pe_csv/
+!data-raw/**/*.R
+!data-raw/**/*.sh
+!data-raw/**/*.py
+!data-raw/**/*.tsv
+!data-raw/README.md
+!data-raw/alphagenome/pixi.toml
+!data-raw/alphagenome/pixi.lock
+!data-raw/alphagenome/.gitattributes
+!data-raw/alphagenome/.gitignore
+data-raw/**/.pixi/
+data-raw/**/__pycache__/
 **/.quarto/
 docs
 *.RData

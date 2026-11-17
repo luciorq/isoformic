@@ -28,7 +28,7 @@
 #' @param ncol Number of facet columns, `NULL` for automatic.
 #' @param color_palette Named colour vector per transcript type; defaults
 #'   to the object's palette or [tx_type_palette()].
-#' @param ... Passed on to methods.
+#' @param ... Not used; reserved for methods.
 #'
 #' @returns `profile_data()` returns a tibble with columns `feature_id`,
 #'   `feature_name`, `feature_type`, `gene_id`, `gene_name`, `group`,

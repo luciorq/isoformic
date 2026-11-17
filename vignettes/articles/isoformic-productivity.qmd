@@ -59,7 +59,7 @@ library(isoformic)
 library(dplyr)
 
 extdata <- fs::path_package("isoformic", "extdata")
-annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 iso <- IsoformicExperiment(
   experiment_name = "preeclampsia_placenta",
   annot_path = annot_dir,
@@ -107,7 +107,7 @@ The annotation only describes the CDS it was given, and novel transcripts have n
 With sequences, `transcript_orfs()` projects the canonical start codon of each gene onto every isoform and translates it, so the ORF, its stop codon, upstream ORFs, the frame relative to the canonical protein and the NMD class are computed rather than read from the annotation, and `transcript_productivity()` reports `source = "sequence"`:
 
 ```{r}
-fasta_file <- download_reference(version = "33", file_type = "fasta")
+fasta_file <- download_reference(version = "50", file_type = "fasta")
 extract_transcript_sequences(annot_dir, transcript_fasta = fasta_file)
 has_sequences(iso)
 orfs <- transcript_orfs(iso, gene_name = "RBPJ")
@@ -132,7 +132,7 @@ The scores need the sequences around the splice sites, which come from the genom
 
 ```{r}
 #| eval: false
-genome <- download_reference(version = "33", file_type = "genome_fasta", region = "primary")
+genome <- download_reference(version = "50", file_type = "genome_fasta", region = "primary")
 extract_splice_sites(annot_dir, genome_fasta = genome)
 splice_site_strength(iso, gene_name = "RBPJ")
 ```

@@ -60,7 +60,7 @@ abundance <- read_parquet(fs::path(extdata, "pe_abundance.parquet"))
 col_data <- read_parquet(fs::path(extdata, "pe_col_data.parquet"))
 det <- read_parquet(fs::path(extdata, "pe_det.parquet"))
 deg <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
-annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 ```
 
 ## Transcript-to-gene table

@@ -56,7 +56,9 @@ before and after the gene.}
 
 \item{ncol}{Number of facet columns when several genes are plotted.}
 
-\item{...}{Passed on to methods.}
+\item{...}{For \code{plot_tx_context()}, passed on to the data frame method of
+\code{plot_genomic_context()}. Not used by \code{plot_genomic_context()}; reserved
+for methods.}
 
 \item{exon_table}{Legacy argument of \code{plot_tx_context()}.}
 }

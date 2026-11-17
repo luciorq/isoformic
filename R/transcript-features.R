@@ -36,7 +36,7 @@
 #'   junction above which NMD is predicted (default 50).
 #' @param end_window Distance in bp within which transcription starts (or
 #'   ends) are grouped as the same promoter (or 3' end); default 50.
-#' @param ... Passed on to methods.
+#' @param ... Not used; reserved for methods.
 #'
 #' @returns A tibble with one row per transcript. `transcript_features()`:
 #'   `transcript_id`, `transcript_name`, `transcript_type`, `gene_id`,

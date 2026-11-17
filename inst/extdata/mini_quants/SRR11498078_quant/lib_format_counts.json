@@ -1,0 +1,26 @@
+{
+  "read_files": [
+    "/work/placenta/reads/SRR11498078/SRR11498078_1.fastq",
+    "/work/placenta/reads/SRR11498078/SRR11498078_2.fastq"
+  ],
+  "expected_format": "IU",
+  "compatible_fragment_ratio": 1.0,
+  "num_compatible_fragments": 138427,
+  "num_incompatible_fragments": 0,
+  "num_assigned_fragments": 138427,
+  "num_frags_with_concordant_consistent_mappings": 44492,
+  "num_frags_with_inconsistent_or_orphan_mappings": 93943,
+  "strand_mapping_bias": 0.4946731996763463,
+  "IU": 0,
+  "ISF": 22009,
+  "ISR": 22483,
+  "OU": 0,
+  "OSF": 0,
+  "OSR": 0,
+  "MU": 0,
+  "MSF": 0,
+  "MSR": 0,
+  "U": 0,
+  "SF": 44540,
+  "SR": 49403
+}

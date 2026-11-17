@@ -68,7 +68,7 @@
 #'   parallel on Unix-like systems).
 #' @param gene_name Gene names or IDs to keep in the result. The filter is
 #'   applied after the test.
-#' @param ... Unused.
+#' @param ... Not used; reserved for methods.
 #'
 #' @returns A tibble with one row per tested transcript and contrast:
 #'   `gene_id`, `gene_name`, `transcript_id`, `transcript_name`,

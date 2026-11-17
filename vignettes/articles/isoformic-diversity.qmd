@@ -59,7 +59,7 @@ library(dplyr)
 library(ggplot2)
 
 extdata <- fs::path_package("isoformic", "extdata")
-annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 iso <- IsoformicExperiment(
   experiment_name = "preeclampsia_placenta",
   annot_path = annot_dir,
@@ -112,7 +112,8 @@ table(switches$switch_type)
 head(switches)
 ```
 
-The expression profile plot makes a switch visible as crossing lines (see the [plots article](isoformic-plots.html)):
+The expression profile plot shows how the isoforms of a gene share its expression in each condition, and a switch appears as crossing lines (see the [plots article](isoformic-plots.html)).
+RBPJ is not a switch: none of its isoforms passes the significance cutoffs (`det_sig`) and its canonical isoform, RBPJ-205, dominates in both conditions:
 
 ```{r}
 plot_tx_expr(iso, gene_name = "RBPJ", group = "condition")

@@ -1,0 +1,15 @@
+{
+  "salmon_version": "2.8.0",
+  "index": "/work/placenta/ref/mini_index_v50",
+  "libType": "A",
+  "output": "/work/placenta/mini_quants/SRR11498077_quant.tmp",
+  "mates1": [
+    "/work/placenta/reads/SRR11498077/SRR11498077_1.fastq"
+  ],
+  "mates2": [
+    "/work/placenta/reads/SRR11498077/SRR11498077_2.fastq"
+  ],
+  "unmatedReads": [],
+  "threads": 12,
+  "sketch": false
+}

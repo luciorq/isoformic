@@ -54,11 +54,11 @@ testthat::test_that("the ESRP knockdown reproduces the expected isoform calls", 
   testthat::expect_identical(as.character(scrib$confidence), "high")
   testthat::expect_lt(scrib$lfc_hi, -1)
   testthat::expect_lt(scrib$mean_inf_rv, 0.5)
-  amb <- isoform_ambiguity(iso, gene_name = "SCRIB", ambiguous_only = TRUE)
-  testthat::expect_setequal(
-    c(amb$transcript_name_1, amb$transcript_name_2),
-    c("SCRIB-201", "SCRIB-211")
-  )
+  # SCRIB-201, the most expressed isoform, is poorly determined by the reads
+  unc <- tx_uncertainty(iso)
+  unc <- unc[unc$gene_name == "SCRIB", ]
+  testthat::expect_true(unc$uncertain[unc$transcript_name == "SCRIB-201"])
+  testthat::expect_false(unc$uncertain[unc$transcript_name == "SCRIB-207"])
 
   lung <- read_knockdown_example("GSE75489")
   iso_lung <- add_uncertainty(
@@ -68,11 +68,16 @@ testthat::test_that("the ESRP knockdown reproduces the expected isoform calls", 
     equivalence = lung$equivalence
   )
   cd44 <- de_confidence(iso_lung, gene_name = "CD44")
-  short <- cd44[cd44$transcript_name == "CD44-201", ]
-  testthat::expect_gt(short$lfc_lo, 1)
-  testthat::expect_gte(short$sign_agreement, 0.95)
-  # The reads cannot separate the CD44 transcripts
-  testthat::expect_identical(as.character(short$confidence), "moderate")
+  up <- cd44[cd44$transcript_name == "CD44-207", ]
+  testthat::expect_gt(up$lfc_lo, 1)
+  testthat::expect_gte(up$sign_agreement, 0.95)
+  # The reads cannot separate the CD44 transcripts: a certain direction,
+  # but an uncertain isoform with almost no fragments of its own
+  testthat::expect_identical(as.character(up$confidence), "moderate")
+  unc_lung <- tx_uncertainty(iso_lung)
+  cd44_207 <- unc_lung[unc_lung$transcript_name == "CD44-207", ]
+  testthat::expect_true(cd44_207$uncertain)
+  testthat::expect_lt(cd44_207$unique_fraction, 0.01)
 })
 
 testthat::test_that("library_size keeps the scaling of a transcript subset", {

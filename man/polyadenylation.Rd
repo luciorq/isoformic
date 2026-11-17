@@ -69,7 +69,8 @@ file path (Parquet table or GENCODE poly(A) GFF3).}
 \item{signal_window}{Length of the 3' terminal sequence searched for a
 poly(A) signal (default 50 nt).}
 
-\item{...}{Passed on to methods; \code{run_apa_enrichment()} passes them to
+\item{...}{Not used by \code{polya_sites()}, \code{apa_usage()} and \code{test_apa()};
+reserved for methods. \code{run_apa_enrichment()} passes them to
 \code{fgsea::fgseaMultilevel()}, which runs in the session unless \code{nproc} or
 \code{BPPARAM} is given (see \code{\link[=run_enrichment]{run_enrichment()}}).}
 
@@ -153,7 +154,9 @@ groups: the share of expression ending at the distal-most 3' end
 (\code{weighted_utr3_length}), per sample or per group with the change
 between the last and the first group level. \code{test_apa()} tests the change
 in distal usage between two groups with the quasi-binomial test used by
-\code{\link[=test_productive_fraction]{test_productive_fraction()}}, on counts.
+\code{\link[=test_productive_fraction]{test_productive_fraction()}}, on counts. A gene with fewer than 5 reads
+at its distal or at its other ends, pooled over both groups, is not
+tested (no statistic or p-value).
 
 \code{run_apa_enrichment()} runs a gene set enrichment analysis
 (\code{fgsea::fgseaMultilevel()}) on the genes ranked by their change in

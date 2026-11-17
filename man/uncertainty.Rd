@@ -114,7 +114,7 @@ a table with \code{transcript_id} and \code{group_id}, or the path to Terminus o
 \code{collapse_groups} then follow these groups; the pairs of
 \code{\link[=isoform_ambiguity]{isoform_ambiguity()}} keep describing the correlation.}
 
-\item{...}{Unused.}
+\item{...}{Not used; reserved for methods.}
 
 \item{gene_name}{Optional gene names or IDs to keep.}
 
@@ -295,7 +295,7 @@ names(quant_dirs) <- sub("_quant$", "", basename(quant_dirs))
 annot <- system.file("extdata", "mini_annotation", package = "isoformic")
 col_data <- data.frame(
   sample_id = names(quant_dirs),
-  condition = rep(c("control", "treatment"), each = 3)
+  condition = rep(c("preeclampsia", "control"), each = 3)
 )
 iso <- read_salmon(quant_dirs, annot_path = annot, col_data = col_data)
 

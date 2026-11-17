@@ -1,8 +1,8 @@
 {
   "prob_model": "no_coverage",
   "bin_width": 100,
-  "alignments": "cells.bam",
-  "output": "sc_default/out",
+  "alignments": "/data/gamma/luciorq/workspaces/temp/isoformic-v50/oarfish_sc/sc/cells.bam",
+  "output": "/data/gamma/luciorq/workspaces/temp/isoformic-v50/oarfish_sc/sc/out/out",
   "verbose": false,
   "single_cell": true,
   "quiet": false,
@@ -15,12 +15,12 @@
     "bam_digest": {
       "seqcol_digest": {
         "level": 1,
-        "names": "9RJXzt43zzj0NY8iCmRrD11X4cc_XDaA",
-        "lengths": "suvWgAsLnWZhyPRVAlC0JKzdH1JNWR_A",
-        "sorted_name_length_pairs": "aiOkaSJdrWTGbRl8Yofxxqv9rBhngOuX"
+        "names": "bLWjnG8ewgzKGXR0xMOuhWdrFR4U958v",
+        "lengths": "3NDYrKrHdpbB-Va1qaQpc9q4yTyxtMKY",
+        "sorted_name_length_pairs": "od1d9cRdIsqsnIWod4ad3RXgXQxHUsYL"
       },
       "sha256_digests": {
-        "sha256_names": "1719e767440ee4153d51daaab8c87d9db8ee4c6db6f9ed26b3faa959aaa3d893",
+        "sha256_names": "a12e9533c1a04105655de358b9d78ae962923c7aca67d219602581e92eb18f0d",
         "sha256_seqs": null
       }
     }

@@ -38,7 +38,7 @@ annotation instead of failing.}
 
 \item{level}{\code{"transcript"} (default) or \code{"gene"}.}
 
-\item{...}{Passed on to methods.}
+\item{...}{Not used; reserved for methods.}
 }
 \value{
 \code{as_isoformic()} returns an \link{IsoformicExperiment};
