@@ -19,7 +19,7 @@ as_summarized_experiment(self, level = c("transcript", "gene"), ...)
 }
 \arguments{
 \item{x}{A \code{SummarizedExperiment}, a \code{tximport} list or a named list of
-matrices.}
+matrices. An \link{IsoformicExperiment} is returned as it is.}
 
 \item{annot_path}{Annotation directory or GFF3/GTF file.}
 
@@ -51,7 +51,9 @@ annotation instead of failing.}
 matrices. \code{as_summarized_experiment()} does the reverse at the transcript
 or gene level, which is convenient for running Bioconductor tools such as
 \code{DESeq2} or \code{fishpond} on the stored assays (a \code{counts} assay is placed
-first, as those tools expect).
+first, as those tools expect). The \code{metadata} of the result holds
+\code{experiment_name}, \code{annot_path} and the object's \code{metadata} without the
+inferential replicates.
 }
 \examples{
 iso <- example_isoformic()

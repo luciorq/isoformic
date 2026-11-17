@@ -42,22 +42,39 @@ invisibly. \code{read_isoformic()} returns an \link{IsoformicExperiment}.
 Parquet files and \code{read_isoformic()} restores it. The layout is:
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{<path>/
-  experiment.parquet        key/value: experiment_name, annot_path, ...
+  experiment.parquet        key/value: experiment_name, annot_path,
+                            isoformic_version, written_at
   col_data.parquet          sample metadata
   metadata.parquet          key/value: scalar entries of `metadata`
   tx_type_palette.parquet   transcript_type, color
   assays/<name>.parquet     transcript_id + one column per sample
   gene_assays/<name>.parquet  only explicitly set gene assays
   dea/det.parquet, dea/deg.parquet, dea/cutoffs.parquet
-  gsea/<name>.parquet
+  dea/uncertainty.parquet, dea/ambiguity.parquet, dea/confidence.parquet
+  gsea/<name>.parquet       list columns joined with ";"
   annotation/               copy of the annotation directory (optional)
 }\if{html}{\out{</div>}}
 
+Each file is written only when the object holds that part. Entries of
+\code{metadata} that are not single values are dropped with a warning. The
+inferential replicates (\code{self@metadata$inf_reps}) are not written: they
+are large and are read again from the quantification output; the
+uncertainty tables derived from them (see \code{\link[=add_uncertainty]{add_uncertainty()}}) are.
+
 With \code{copy_annotation = TRUE} the annotation directory is copied inside
 the experiment directory so that the result is self-contained and
-portable. Otherwise \code{annot_path} is stored as an absolute path and must
-still exist when the object is read back (it can be overridden with the
-\code{annot_path} argument of \code{read_isoformic()}).
+portable. The cached ORF table (\code{annot_data_orfs.parquet}) is left out
+of the copy and computed again when needed. An annotation that lies
+inside the directory being replaced is always copied. Otherwise
+\code{annot_path} is stored as an absolute path and must still exist when the
+object is read back (it can be overridden with the \code{annot_path} argument
+of \code{read_isoformic()}). Without that argument, \code{read_isoformic()} uses
+an \verb{annotation/} directory inside \code{path} whenever there is one.
+
+The new directory is built next to \code{path} and moved in place at the end,
+so a failed write leaves an existing experiment as it was. With
+\code{overwrite = TRUE}, a non-empty \code{path} is replaced only when it holds an
+\code{experiment.parquet} file.
 }
 \examples{
 iso <- example_isoformic()

@@ -139,7 +139,7 @@ Ordered by value.
 6. **Remove the host pins** when #7214 is fixed.
 7. **A `tex` feature** if the TinyTeX download becomes a problem for users
    who never build the manual (C20).
-8. **Decide on the other workflows.** `R-CMD-check` and `pkgdown` use
+8. **Decide on the other workflows.** `r-cmd-check` and `pkgdown` use
    `r-lib/actions`, not pixi. Two ways to install the dependencies exist in
    CI. Keeping both is a test of both; it is also two things to maintain.
 9. **Check the R startup variables on Windows** (C12) in the first `pixi`

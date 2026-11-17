@@ -80,7 +80,9 @@ clear_cache(self, annotation = FALSE, ...)
 
 \item{value}{Replacement value.}
 
-\item{name}{Name of the assay. \code{NULL} selects the first assay.}
+\item{name}{Name of the assay (a position also works for \code{assay()} and
+\code{gene_assay()}). \code{NULL} selects the first assay. Required, as a single
+string, for \verb{assay<-}.}
 
 \item{with_exons}{Logical, also join the exon table (one row per exon).}
 
@@ -135,7 +137,8 @@ the raw annotation tables.
 \strong{Housekeeping}
 \itemize{
 \item \code{clear_cache()}: drop cached derived data for the object (and, with
-\code{annotation = TRUE}, the shared annotation tables).
+\code{annotation = TRUE}, the shared annotation tables); returns the object
+invisibly.
 }
 }
 \examples{

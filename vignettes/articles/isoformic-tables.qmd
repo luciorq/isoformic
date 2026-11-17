@@ -1,7 +1,7 @@
 ---
 title: "Working with plain tables"
 date: 2026-10-17
-date-modified: 2026-10-17
+date-modified: 2026-11-12
 date-format: long
 author:
   - name: Izabela Mamede Conceição
@@ -119,7 +119,8 @@ plot_genomic_context(exons, gene_name = "RBPJ")
 
 ## Structural features and enrichment
 
-`transcript_features()`, `transcript_orfs()`, `transcript_productivity()` and `polya_sites()` accept an annotation directory in place of the object, and `run_enrichment()` accepts a transcript table together with a `tx_to_gene` table.
+`transcript_features()`, `splicing_events()`, `transcript_orfs()`, `coding_potential()` and `splice_site_strength()` accept an annotation directory in place of the object and then report every transcript of the annotation.
+`run_enrichment()` accepts a transcript table together with a `tx_to_gene` table, and `run_productivity_enrichment()` and `run_apa_enrichment()` accept the gene tables of `productive_fraction()` and `apa_usage()`.
 
 ```{r}
 feats <- transcript_features(annot_dir, gene_name = "RBPJ")

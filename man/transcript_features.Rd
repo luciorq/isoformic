@@ -29,7 +29,12 @@ ends) are grouped as the same promoter (or 3' end); default 50.}
 \item{...}{Passed on to methods.}
 }
 \value{
-A tibble with one row per transcript.
+A tibble with one row per transcript. \code{transcript_features()}:
+\code{transcript_id}, \code{transcript_name}, \code{transcript_type}, \code{gene_id},
+\code{gene_name}, \code{strand}, \code{n_exons}, \code{tx_length}, \code{is_canonical} and the
+feature columns listed above. \code{splicing_events()}: \code{transcript_id},
+\code{transcript_name}, \code{gene_id}, \code{gene_name}, \code{canonical_transcript_id}
+and the event columns.
 }
 \description{
 Computes, for every assayed transcript, features that go beyond the
@@ -57,8 +62,8 @@ transcript with the longest CDS, else the longest transcript),
 }
 
 \code{splicing_events()} returns the event counts alone; both are cached per
-object. The data-frame methods accept the exon table of an annotation
-(see \code{\link[=exon_table]{exon_table()}}) joined with the transcript columns.
+object. With an annotation directory path every transcript of the
+annotation is described.
 }
 \examples{
 iso <- example_isoformic()

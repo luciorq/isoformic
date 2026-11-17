@@ -516,8 +516,17 @@ testthat::test_that("inferential_overdispersion follows the quasi-Poisson estima
   testthat::skip_if_not_installed("edgeR")
   testthat::skip_if_not_installed("jsonlite")
   testthat::skip_if_not_installed("readr")
+  # edgeR 4.99 (Bioconductor devel) takes the directories as `sample.dirs`
+  # (its first argument is now `parent.dir`) and returns a DGEList by
+  # default; earlier versions take them as `paths` and return a list
+  dirs <- unname(x$fixture$dirs)
+  cs_args <- if ("sample.dirs" %in% names(formals(edgeR::catchSalmon))) {
+    list(sample.dirs = dirs, DGEList = FALSE, divide = FALSE)
+  } else {
+    list(paths = dirs)
+  }
   cs <- suppressMessages(
-    edgeR::catchSalmon(unname(x$fixture$dirs), verbose = FALSE)
+    do.call(edgeR::catchSalmon, c(cs_args, list(verbose = FALSE)))
   )
   testthat::expect_equal(
     unname(by_id[rownames(cs$counts)]),

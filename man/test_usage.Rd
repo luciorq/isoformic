@@ -30,14 +30,14 @@ groups are ignored. \code{NULL} takes all the levels of \code{group}.}
 \item{contrasts}{The comparisons to test: \code{NULL} (default) compares every
 level with the first one; \code{"pairwise"} tests every pair of levels (the
 later level against the earlier one); \code{"omnibus"} tests whether usage
-differs among any of the groups (see Details); otherwise a list of
+differs among any of the groups (see Description); otherwise a list of
 \code{c(numerator, denominator)} pairs of levels, or one such pair. With two
 levels the default is the single contrast second against first.}
 
 \item{method}{\code{"diffsplice"}, \code{"satuRn"} or \code{"DEXSeq"}. The backend must be
 installed.}
 
-\item{assay}{Counts assay to test.}
+\item{assay}{Counts assay to test (default \code{"counts"}).}
 
 \item{scale}{Logical, divide the counts by the overdispersion of the
 replicates. \code{NULL} (default) does it when the object has replicates. In
@@ -47,8 +47,8 @@ and \code{"DEXSeq"} and made their calls reproducible, so keep it on.}
 
 \item{min_count, min_prop}{Filters described above.}
 
-\item{workers}{Number of workers for \code{satuRn} and \code{DEXSeq} (parallel on
-Unix-like systems).}
+\item{workers}{Number of workers for \code{satuRn} and \code{DEXSeq} (default 1;
+parallel on Unix-like systems).}
 
 \item{gene_name}{Gene names or IDs to keep in the result. The filter is
 applied after the test.}

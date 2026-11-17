@@ -6,8 +6,9 @@
 #' directory specification.
 #'
 #' @details
-#' This function uses the `[tools::R_user_dir()]` function to determine the
-#' user cache directory.
+#' This function uses [tools::R_user_dir()] to determine the user cache
+#' directory, so `R_USER_CACHE_DIR` and `XDG_CACHE_HOME` move it (see
+#' [isoformic_options]). The directory is not created.
 #'
 #' @param ... Additional path components to append to the cache directory.
 #' @param ext An optional file extension (e.g., "rds", "csv") to append to
@@ -16,6 +17,10 @@
 #' @returns
 #' A path character string representing the path to the user cache
 #' directory for the `isoformic` package.
+#'
+#' @examples
+#' get_isoformic_cache()
+#' get_isoformic_cache("frozen")
 #'
 #' @export
 get_isoformic_cache <- function(..., ext = NULL) {

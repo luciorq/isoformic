@@ -2,22 +2,24 @@
 #'
 #' @description
 #' * `plot_de_confidence(x, gene_name)` shows, for the isoforms of the given
-#'   genes, the median log2 fold-change over the Salmon replicates with its 95%
-#'   interval, coloured by the confidence class of [de_confidence()] and with
-#'   the shape marking the calls of the primary differential expression
-#'   test. An interval that crosses zero, a faded colour or an ambiguous
-#'   isoform tell the reader not to trust the call.
+#'   genes, the median log2 fold-change over the inferential replicates with
+#'   its 95% interval, coloured by the confidence class that
+#'   `add_uncertainty(group = )` stored (see [de_confidence()]; grey for
+#'   isoforms not assessed) and with the shape marking the calls of the
+#'   primary differential expression test. An interval that crosses zero or a
+#'   `moderate` or `low` class tells the reader not to trust the call.
 #' * `plot_isoform_correlation(x, gene_name)` draws the correlation between
 #'   the replicates of every pair of isoforms of a gene. Strongly negative
 #'   cells (outlined when ambiguous) mark isoforms whose reads cannot be told
 #'   apart.
 #' * `plot_inf_rv(x)` shows the distribution of the inferential relative
-#'   variance per transcript type with the cutoff used to call isoforms
-#'   uncertain.
+#'   variance (log scale) of the assessed transcripts per transcript type,
+#'   with the cutoff used to call isoforms uncertain.
 #' * `confidence_palette()` gives the colours of the confidence classes.
 #'
 #' @param self An [IsoformicExperiment] with uncertainty tables (see
-#'   [add_uncertainty()]).
+#'   [add_uncertainty()]); `plot_de_confidence()` also needs the confidence
+#'   table of `add_uncertainty(group = )`.
 #' @param gene_name Gene names or IDs to plot.
 #' @param ncol Number of panel columns.
 #' @param top_types Number of the most frequent transcript types to show.

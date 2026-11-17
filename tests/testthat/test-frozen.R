@@ -501,15 +501,11 @@ testthat::test_that("a download that fails its checksum is discarded and the nex
 
 testthat::test_that("the sources cache is keyed by the dataset version", {
   withr::local_envvar(XDG_CACHE_HOME = withr::local_tempdir())
-  urls <- character()
   testthat::local_mocked_bindings(
     frozen_dataset_entry = function(name) {
       list(version = version, sources = "https://example.org/pub/data.txt")
     },
-    download_reference_file = function(url, destfile, ...) {
-      urls <<- c(urls, destfile)
-      destfile
-    }
+    download_reference_file = function(url, destfile, ...) destfile
   )
   version <- "v1"
   first <- frozen_sources("demo")

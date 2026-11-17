@@ -61,7 +61,9 @@ equivalence classes of Salmon in \code{\link[=equivalence_support]{equivalence_s
 is the share of reads mapped to the transcript alone, while \code{n_classes} is
 not available. The functions \code{\link[=read_inferential_replicates]{read_inferential_replicates()}},
 \code{\link[=equivalence_support]{equivalence_support()}}, \code{\link[=salmon_run_qc]{salmon_run_qc()}} and \code{\link[=add_uncertainty]{add_uncertainty()}} accept
-Oarfish prefixes as \code{paths}, but not together with Salmon directories.
+Oarfish prefixes as \code{paths}, but not together with Salmon directories;
+\code{\link[=equivalence_identifiability]{equivalence_identifiability()}} and \code{\link[=run_terminus]{run_terminus()}} need the equivalence
+classes of Salmon and do not.
 }
 \examples{
 prefixes <- file.path(

@@ -120,15 +120,18 @@ duckdb_run <- function(
 #'
 #' `read_parquet()` reads a Parquet file. `read_tabular()` reads Parquet,
 #' CSV or TSV files (`.csv`, `.tsv`, `.tab`, `.txt`, Salmon `.sf`; optionally
-#' gzip-compressed), auto-detecting delimiter and types. `write_parquet()` writes any data frame to a
-#' Parquet file, creating parent directories as needed.
+#' gzip-compressed) and auto-detects the column types (and the delimiter of
+#' `.txt` files; `.tsv`, `.tab` and `.sf` are read as tab-separated).
+#' `write_parquet()` writes any data frame to a Parquet file, creating
+#' parent directories as needed.
 #'
 #' @param path Path to the file to read or write.
 #' @param x A data frame (or tibble) to write.
 #' @param columns Optional character vector of columns to read.
 #'   `NULL` reads all columns.
 #' @param n_max Maximum number of rows to read. `Inf` (default) reads all.
-#' @param compression Parquet compression codec.
+#' @param compression Parquet compression codec: `"zstd"` (default),
+#'   `"snappy"`, `"gzip"` or `"uncompressed"`.
 #' @param ... Reserved for future use; must be empty.
 #'
 #' @returns `read_parquet()` and `read_tabular()` return a tibble.

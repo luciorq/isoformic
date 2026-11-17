@@ -17,10 +17,12 @@ fetches the frozen \code{appris_domains} dataset.}
 \item{...}{Passed on to methods.}
 }
 \value{
-A tibble with one row per transcript: \code{n_domains_canonical},
-\code{n_retained}, \code{n_partial}, \code{n_lost}, \code{domains_lost} (Pfam names) and
-\code{domain_retention_fraction} (\code{NA} when the canonical isoform has no
-domain).
+A tibble with one row per transcript: \code{transcript_id},
+\code{transcript_name}, \code{gene_id}, \code{gene_name}, \code{canonical_transcript_id},
+\code{in_domain_table} (\code{TRUE} when the isoform itself is in the domain
+table), \code{n_domains_canonical}, \code{n_retained}, \code{n_partial}, \code{n_lost},
+\code{domains_lost} (Pfam names) and \code{domain_retention_fraction} (\code{NA} when
+the canonical isoform has no domain).
 }
 \description{
 Compares the Pfam domains of every isoform with those of the canonical
@@ -35,8 +37,8 @@ when only part of the span is covered, and \code{lost} otherwise.
 
 An \code{altered_productive} isoform that keeps all domains of the canonical
 protein is a milder event than one that loses a domain; the
-\code{domain_retention_fraction} column grades this and is included in
-\code{\link[=transcript_productivity]{transcript_productivity()}} output when the dataset is available.
+\code{domain_retention_fraction} column grades this. It is not part of the
+\code{\link[=transcript_productivity]{transcript_productivity()}} table; join the two by \code{transcript_id}.
 }
 \examples{
 \dontrun{

@@ -78,11 +78,21 @@ of \code{\link[=plot_log2fc]{plot_log2fc()}}.
 }
 }
 \details{
-Recognised column synonyms: \code{log2FoldChange}/\code{logFC} for \code{log2FC};
-\code{padj}/\code{FDR}/\code{adj.P.Val}/\code{svalue} for \code{qvalue}; \code{PValue}/\code{P.Value} for
-\code{pvalue}. Row names are used as IDs when no ID column is present, and
-GENCODE-style \code{|}-suffixed transcript IDs are truncated. When \code{qvalue}
-is absent it is computed with Benjamini-Hochberg adjustment of \code{pvalue}.
+Recognised column synonyms: \code{log2FoldChange}/\code{logFC}/\code{log2fc}/\code{log2_fc}
+for \code{log2FC}; \code{padj}/\code{FDR}/\code{adj.P.Val}/\code{svalue}/\code{fdr}/\code{q_value} for
+\code{qvalue}; \code{PValue}/\code{P.Value}/\code{pval}/\code{p_value} for \code{pvalue}. The ID
+column (\code{transcript_id} or \code{gene_id}) is also found as \code{feature_id},
+\code{id} or \code{ID} (and \code{tx_id}/\code{transcript} or \code{gene}). Row names are used as
+IDs when no ID column is present, and GENCODE-style \code{|}-suffixed
+transcript IDs are truncated. When \code{qvalue} is absent it is computed with
+Benjamini-Hochberg adjustment of \code{pvalue}.
+
+\verb{de_cutoffs<-} takes a named list with any of \code{log2fc}, \code{pvalue} and
+\code{use_fdr} (also as \code{log2FC}/\code{lfc}, \code{padj} and \code{fdr}); missing entries
+take the defaults and other names are an error.
+
+The \code{dea} property also holds the uncertainty tables of
+\code{\link[=add_uncertainty]{add_uncertainty()}} (\code{uncertainty}, \code{ambiguity}, \code{confidence}).
 }
 \examples{
 iso <- example_isoformic()

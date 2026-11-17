@@ -11,11 +11,12 @@ An \link{IsoformicExperiment}.
 }
 \description{
 Loads a small \link{IsoformicExperiment} bundled with the package: transcript
-abundances (TPM) for the isoforms of a handful of genes from a
-preeclampsia placenta RNA-seq study (25 samples), GENCODE v33
-annotation for those genes, and transcript- and gene-level differential
-expression results. It is used throughout the documentation and is
-suitable for trying every method of the class in well under a second.
+abundances (TPM) and demonstration counts (TPM x 20, rounded) for the
+isoforms of 69 genes from a preeclampsia placenta RNA-seq study (25
+samples), GENCODE v33 annotation and transcript sequences for those
+genes, and transcript- and gene-level differential expression results.
+It is used throughout the documentation and is suitable for trying every
+method of the class in well under a second.
 }
 \examples{
 iso <- example_isoformic()

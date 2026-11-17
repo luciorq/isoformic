@@ -30,7 +30,8 @@ write_parquet(
 
 \item{x}{A data frame (or tibble) to write.}
 
-\item{compression}{Parquet compression codec.}
+\item{compression}{Parquet compression codec: \code{"zstd"} (default),
+\code{"snappy"}, \code{"gzip"} or \code{"uncompressed"}.}
 }
 \value{
 \code{read_parquet()} and \code{read_tabular()} return a tibble.
@@ -45,8 +46,10 @@ bundled example data are all stored as Parquet.
 \details{
 \code{read_parquet()} reads a Parquet file. \code{read_tabular()} reads Parquet,
 CSV or TSV files (\code{.csv}, \code{.tsv}, \code{.tab}, \code{.txt}, Salmon \code{.sf}; optionally
-gzip-compressed), auto-detecting delimiter and types. \code{write_parquet()} writes any data frame to a
-Parquet file, creating parent directories as needed.
+gzip-compressed) and auto-detects the column types (and the delimiter of
+\code{.txt} files; \code{.tsv}, \code{.tab} and \code{.sf} are read as tab-separated).
+\code{write_parquet()} writes any data frame to a Parquet file, creating
+parent directories as needed.
 
 Factor columns are stored as Parquet strings and come back as character.
 Row names are not stored; keep identifiers in a regular column.

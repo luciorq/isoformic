@@ -8,7 +8,7 @@
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-Isoform-level biological interpretation of transcriptomic data. Provides the 'IsoformicExperiment' class, a disk-backed (Parquet) container holding transcript, gene and exon level data for the same samples, fast DuckDB based readers for annotations and quantifications, summaries of isoform usage and diversity, and plots of isoform-level differential expression, expression profiles and genomic context.
+Isoform-level biological interpretation of transcriptomic data. Provides the 'IsoformicExperiment' class, a disk-backed (Parquet) container holding transcript, gene and exon level data for the same samples, fast DuckDB based readers for annotations and for 'Salmon' and 'Oarfish' quantifications, summaries of isoform usage and diversity, the productivity of isoforms computed from their sequences, the uncertainty of isoform-level results from inferential replicates and equivalence classes, alternative polyadenylation, gene set enrichment by transcript type, and plots of isoform-level differential expression, expression profiles and genomic context.
 }
 \seealso{
 Useful links:

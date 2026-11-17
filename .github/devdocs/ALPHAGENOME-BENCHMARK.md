@@ -5,10 +5,10 @@ four conditions. AlphaGenome features do not improve on the rules plus
 splice-site strength (section 4, step 3), so by the stop rule nothing is
 integrated: A6 is closed, A5 stays open without AlphaGenome.
 
-**Where to start.** Section 4 "To resume" has the three commands that
-continue the pilot once a key exists. Section 7 is the backlog (A1 to A9):
-what is implementable now without AlphaGenome, what waits for the pilot, and
-two defects found on the way (A1, A2; fixed, with A7, on 2026-11-11).
+**Where to start.** Section 4 "To resume" has the commands that rerun the
+pilot (an API key is needed). Section 7 is the backlog (A1 to A9) with the
+status of each item; two defects were found on the way (A1, A2; fixed, with
+A7, on 2026-11-11).
 
 ## 1. Question
 
@@ -28,7 +28,8 @@ rules of `transcript_productivity()`?
   (`inst/extdata/coding_model/`) works on the mature transcript, which
   AlphaGenome never sees.
 - Useful as indirect evidence: splice-site strength and junction support
-  (listed as not implemented in `ARCHITECTURE.md`), intron retention
+  (then listed as not implemented in `ARCHITECTURE.md`; a first-order
+  splice-site score is implemented since, A4), intron retention
   propensity from predicted intronic coverage, TSS / TES support.
 - Circularity: it is trained on steady-state RNA-seq, so junctions of
   NMD-degraded isoforms are already under-represented in predicted usage. Low
@@ -295,14 +296,16 @@ and transcript, register it in `R/frozen-data.R`, join with an
 - Left on v49 on purpose: bundled example data and the mini annotation, the
   knockdown and case-study bundles (tied to existing quantifications), and
   the coding potential model (`data-raw/build_coding_model.R`,
-  `release <- "49"`; retraining changes the coefficients).
+  `release <- "49"`; retraining changes the coefficients). Later: the model
+  was retrained on GENCODE 50 (A8).
 - The benchmark table in `ARCHITECTURE.md` is from GENCODE v33; it was not
-  recomputed on v50.
+  recomputed on v50. Later: recomputed on v50 (A7).
 
 ## 7. Backlog: what is relevant and implementable
 
-Status on 2026-11-12: A1, A2, A4 and A7 are done; the others are open. Effort: S = under half a
-day, M = one to two days, L = more.
+Status on 2026-11-12: A1, A2, A3, A4, A7 and A8 are done, A6 is closed, A9
+is partly done and A5 is open. Effort: S = under half a day, M = one to two
+days, L = more.
 
 | ID | Item | Effort | Blocked by | Kind |
 |---|---|---|---|---|

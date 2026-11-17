@@ -8,7 +8,7 @@ cover.
 **Where to start.** Section 1 is the conclusion. Section 4 maps each
 definition to the function that implements it. Section 5 is the backlog:
 ten items (U1 to U10) with the function to change, the effect, the tests and
-the effort; U1 to U3 and U9 are small and can go in one pass. Section 2 holds
+the effort, and its status (5.1). Section 2 holds
 the formulas and numbers behind them.
 
 Evidence level per paper is marked: `[full]` the full text was read (through
@@ -40,7 +40,10 @@ the bias model is wrong, so the estimate is confidently wrong. Neither (1)
 nor (2) under a complete reference detects it.
 
 isoformic implements (1). It has no measure of (2) or of misfit, and since
-2026-11-11 its documentation says so. See section 4.
+2026-11-11 its documentation says so. See section 4. Since 2026-11-12
+`equivalence_identifiability()` measures the structural part of (2) from
+equivalence class membership (section 5.4); ranges of optima and misfit
+are still not measured.
 
 ## 2. Definitions found
 
@@ -327,7 +330,7 @@ Function names are given instead of line numbers.
 | Groups and trees | `read_terminus_groups()`, `run_terminus()`, `read_treeterminus()`, `cut_transcript_trees()` | Sarkar 2020, Singh 2023 | Covered. mehenDi (Singh 2025) testing on the tree is not |
 | Long reads | `read_oarfish()`, Parquet replicates | RTA overdispersion near 1 for ONT | Covered; the expectation "near 1" is not stated in the docs |
 | Non-identifiability | none | Ranges of optima (2.5) | `equivalence_identifiability()`: structural, from class membership (U5, section 5.4); ranges not implemented |
-| Misfit | none | SAD, JCC, perplexity (2.6) | Not implemented, see section 5.3 |
+| Misfit | none | SAD, JCC, perplexity (2.6) | Not implemented, see section 5.5 |
 
 ## 5. Backlog: what is relevant and implementable
 

@@ -40,31 +40,39 @@ table used by the package and returns the file path. They are what
 what \code{data-raw/build_frozen_data.R} runs to publish a new version. The
 resulting tables:
 \itemize{
-\item \code{build_frozen_appris()}: one row per transcript with
+\item \code{build_frozen_appris()}: one row per transcript (\code{transcript_id},
+\code{gene_id}, \code{gene_name}, \code{translation_id}, \code{transcript_type}) with
 \code{appris_annotation} (\code{PRINCIPAL:1} to \code{ALTERNATIVE:2}, \code{MINOR}),
+\code{appris_principal} (\code{TRUE} for the \code{PRINCIPAL} labels),
 \code{appris_score}, the method scores (\code{firestar_residues},
 \code{matador_structure}, \code{corsair_conservation}, \code{spade_domain_score},
 \code{thump_tm_helices}, \code{crash_signal}, \code{trifid_score}), \code{protein_length},
 \code{ccds_id} and \code{mane} label.
 \item \code{build_frozen_appris_domains()}: one row per Pfam domain per transcript
-with its genomic span (\code{seqid}, \code{start_pos}, \code{end_pos}, \code{strand}),
-\code{pfam_acc}, \code{pfam_name}, \code{evalue}, \code{pep_start}, \code{pep_end}.
-\item \code{build_frozen_riboseq_orfs()}: one row per Ribo-seq ORF with \code{phase},
-genomic span, \code{block_starts}/\code{block_ends} (1-based, \verb{;}-separated),
-\code{orf_type}, \code{gene_id}, \code{gene_name}, \code{transcript_ids} (compatible
-transcripts, phase 1 only), \code{replicated} and \code{studies}.
+(\code{transcript_id}, \code{gene_id}) with its genomic span (\code{seqid},
+\code{start_pos}, \code{end_pos}, \code{strand}), \code{score}, \code{pfam_acc}, \code{pfam_name},
+\code{evalue}, \code{pep_start}, \code{pep_end}.
+\item \code{build_frozen_riboseq_orfs()}: one row per Ribo-seq ORF with \code{orf_id},
+\code{phase}, genomic span, \code{n_blocks}, \code{block_starts}/\code{block_ends}
+(1-based, \verb{;}-separated), \code{orf_type}, \code{gene_id}, \code{gene_name},
+\code{transcript_biotype}, \code{transcript_ids} (compatible transcripts),
+\code{replicated}, \code{studies} and \code{protein}. \code{orf_type}, \code{gene_id},
+\code{transcript_ids}, \code{replicated}, \code{studies} and \code{protein} are \code{NA} for
+the phase 2 ORFs.
 \item \code{build_frozen_nmd_exons()}: one row per validated NMD-inducing exon with
 \code{seqid}, \code{start_pos}, \code{end_pos}, \code{strand}, the flanking exons,
-\code{nmd_transcript_ids}, \code{non_nmd_transcript_ids}, \code{gene_id}, \code{gene_name}.
-Reading the supplementary spreadsheet needs the \code{readxl} package.
+\code{nmd_transcript_ids}, \code{non_nmd_transcript_ids}, \code{gene_id}, \code{gene_name},
+\code{source}. Reading the supplementary spreadsheet needs the \code{readxl}
+package.
 \item \code{build_frozen_polyasite()}: one row per poly(A) site cluster with
-\code{seqid}, \code{start_pos}, \code{end_pos}, \code{cleavage_pos}, \code{strand}, \code{tpm},
-\code{frac_samples}, \code{n_protocols}, \code{site_class} (TE terminal exon, EX exon,
-IN intron, DS downstream, AE/AI/AU antisense, IG intergenic) and
-\code{signals}.
-\item \code{build_frozen_gtex()}: one row per transcript and tissue with
-\code{median_tpm} and \code{n_samples} (GTEx v8, RSEM transcript TPM; identifiers
-are GENCODE v26, stored without version).
+\code{site_id}, \code{seqid}, \code{start_pos}, \code{end_pos}, \code{cleavage_pos}, \code{strand},
+\code{tpm}, \code{frac_samples}, \code{n_protocols}, \code{site_class} (TE terminal exon,
+EX exon, IN intron, DS downstream, AE/AI/AU antisense, IG intergenic)
+and \code{signals}.
+\item \code{build_frozen_gtex()}: one row per transcript and tissue
+(\code{transcript_id}, \code{gene_id}, \code{tissue}) with \code{median_tpm} and
+\code{n_samples} (GTEx v8, RSEM transcript TPM; identifiers are GENCODE
+v26, stored without version).
 }
 }
 \examples{

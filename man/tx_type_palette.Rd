@@ -12,9 +12,10 @@ A named character vector of hexadecimal colours.
 \description{
 Default colour palette for transcript types: the GENCODE/Ensembl biotypes
 used by the workflow, the \code{gene} level, generic labels for annotations
-without biotypes (\code{unknown}, \code{novel}) and the SQANTI3 structural
+without biotypes (\code{unknown}, \code{novel}), the SQANTI3 structural
 categories assigned by \code{\link[=add_sqanti_classification]{add_sqanti_classification()}} to long-read
-transcript catalogs.
+transcript catalogs and the FANTOM CAT gene classes (\code{coding_mRNA},
+\code{lncRNA_intergenic}, ...).
 }
 \examples{
 head(tx_type_palette())

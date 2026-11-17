@@ -8,22 +8,39 @@
 #'
 #' ```
 #' <path>/
-#'   experiment.parquet        key/value: experiment_name, annot_path, ...
+#'   experiment.parquet        key/value: experiment_name, annot_path,
+#'                             isoformic_version, written_at
 #'   col_data.parquet          sample metadata
 #'   metadata.parquet          key/value: scalar entries of `metadata`
 #'   tx_type_palette.parquet   transcript_type, color
 #'   assays/<name>.parquet     transcript_id + one column per sample
 #'   gene_assays/<name>.parquet  only explicitly set gene assays
 #'   dea/det.parquet, dea/deg.parquet, dea/cutoffs.parquet
-#'   gsea/<name>.parquet
+#'   dea/uncertainty.parquet, dea/ambiguity.parquet, dea/confidence.parquet
+#'   gsea/<name>.parquet       list columns joined with ";"
 #'   annotation/               copy of the annotation directory (optional)
 #' ```
 #'
+#' Each file is written only when the object holds that part. Entries of
+#' `metadata` that are not single values are dropped with a warning. The
+#' inferential replicates (`self@metadata$inf_reps`) are not written: they
+#' are large and are read again from the quantification output; the
+#' uncertainty tables derived from them (see [add_uncertainty()]) are.
+#'
 #' With `copy_annotation = TRUE` the annotation directory is copied inside
 #' the experiment directory so that the result is self-contained and
-#' portable. Otherwise `annot_path` is stored as an absolute path and must
-#' still exist when the object is read back (it can be overridden with the
-#' `annot_path` argument of `read_isoformic()`).
+#' portable. The cached ORF table (`annot_data_orfs.parquet`) is left out
+#' of the copy and computed again when needed. An annotation that lies
+#' inside the directory being replaced is always copied. Otherwise
+#' `annot_path` is stored as an absolute path and must still exist when the
+#' object is read back (it can be overridden with the `annot_path` argument
+#' of `read_isoformic()`). Without that argument, `read_isoformic()` uses
+#' an `annotation/` directory inside `path` whenever there is one.
+#'
+#' The new directory is built next to `path` and moved in place at the end,
+#' so a failed write leaves an existing experiment as it was. With
+#' `overwrite = TRUE`, a non-empty `path` is replaced only when it holds an
+#' `experiment.parquet` file.
 #'
 #' @param self An [IsoformicExperiment].
 #' @param path Directory to write to or read from. For `write_isoformic()`
@@ -108,25 +125,12 @@ S7::method(write_isoformic, IsoformicExperiment) <- function(
   )
   fs::dir_create(path)
 
-  annot_path <- self@annot_path
-  # An annotation stored inside the directory being replaced would be lost
-  annot_inside <- !is.null(annot_path) &&
-    startsWith(
-      as.character(fs::path_abs(annot_path)),
-      paste0(final_path, .Platform$file.sep)
-    )
-  if ((isTRUE(copy_annotation) || annot_inside) && !is.null(annot_path)) {
-    fs::dir_copy(annot_path, fs::path(path, "annotation"))
-    # The stored ORF table is not valid for the copy (it is keyed by the file
-    # times of the annotation): it is computed again when it is needed
-    copied_orfs <- fs::path(path, "annotation", "annot_data_orfs.parquet")
-    if (fs::file_exists(copied_orfs)) {
-      fs::file_delete(copied_orfs)
-    }
-    annot_path_stored <- "annotation"
-  } else {
-    annot_path_stored <- annot_path %||% ""
-  }
+  annot_path_stored <- store_annotation(
+    self@annot_path,
+    final_path,
+    path,
+    copy_annotation
+  )
   write_parquet(
     list_to_kv(list(
       experiment_name = self@experiment_name,
@@ -182,6 +186,34 @@ S7::method(write_isoformic, IsoformicExperiment) <- function(
   fs::file_move(path, final_path)
   self@data_path <- final_path
   invisible(self)
+}
+
+#' Copy the annotation into an experiment directory when it must be
+#'
+#' The annotation is copied with `copy_annotation = TRUE`, and always when it
+#' lies inside the directory being replaced (it would be lost). Returns the
+#' annotation path to record: `"annotation"` for a copy, the path otherwise.
+#' @keywords internal
+#' @noRd
+store_annotation <- function(annot_path, final_path, path, copy_annotation) {
+  if (is.null(annot_path)) {
+    return("")
+  }
+  annot_inside <- startsWith(
+    as.character(fs::path_abs(annot_path)),
+    paste0(final_path, .Platform$file.sep)
+  )
+  if (!isTRUE(copy_annotation) && !annot_inside) {
+    return(annot_path)
+  }
+  fs::dir_copy(annot_path, fs::path(path, "annotation"))
+  # The stored ORF table is not valid for the copy (it is keyed by the file
+  # times of the annotation): it is computed again when it is needed
+  copied_orfs <- fs::path(path, "annotation", "annot_data_orfs.parquet")
+  if (fs::file_exists(copied_orfs)) {
+    fs::file_delete(copied_orfs)
+  }
+  "annotation"
 }
 
 write_assay_dir <- function(assays, dir, id_col) {
@@ -346,10 +378,12 @@ read_isoformic <- function(path, annot_path = NULL) {
 #' matrices. `as_summarized_experiment()` does the reverse at the transcript
 #' or gene level, which is convenient for running Bioconductor tools such as
 #' `DESeq2` or `fishpond` on the stored assays (a `counts` assay is placed
-#' first, as those tools expect).
+#' first, as those tools expect). The `metadata` of the result holds
+#' `experiment_name`, `annot_path` and the object's `metadata` without the
+#' inferential replicates.
 #'
 #' @param x A `SummarizedExperiment`, a `tximport` list or a named list of
-#'   matrices.
+#'   matrices. An [IsoformicExperiment] is returned as it is.
 #' @param annot_path Annotation directory or GFF3/GTF file.
 #' @param col_data Sample metadata; taken from `colData(x)` when `x` is a
 #'   `SummarizedExperiment`.
@@ -517,11 +551,12 @@ S7::method(as_summarized_experiment, IsoformicExperiment) <- function(
 #' Example IsoformicExperiment
 #'
 #' Loads a small [IsoformicExperiment] bundled with the package: transcript
-#' abundances (TPM) for the isoforms of a handful of genes from a
-#' preeclampsia placenta RNA-seq study (25 samples), GENCODE v33
-#' annotation for those genes, and transcript- and gene-level differential
-#' expression results. It is used throughout the documentation and is
-#' suitable for trying every method of the class in well under a second.
+#' abundances (TPM) and demonstration counts (TPM x 20, rounded) for the
+#' isoforms of 69 genes from a preeclampsia placenta RNA-seq study (25
+#' samples), GENCODE v33 annotation and transcript sequences for those
+#' genes, and transcript- and gene-level differential expression results.
+#' It is used throughout the documentation and is suitable for trying every
+#' method of the class in well under a second.
 #'
 #' @returns An [IsoformicExperiment].
 #'

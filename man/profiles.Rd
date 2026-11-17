@@ -25,10 +25,11 @@ plot_tx_expr(
 \item{self}{An \link{IsoformicExperiment}, or (for \code{plot_tx_expr()}) a
 profile table produced by \code{profile_data()}/\code{\link[=prepare_profile_data]{prepare_profile_data()}}.}
 
-\item{gene_name}{Character vector of gene names or IDs to profile.}
+\item{gene_name}{Character vector of gene names or IDs to profile. For a
+profile table, optional genes to keep.}
 
 \item{group}{Name of the \code{col_data} column defining the groups
-(x axis).}
+(x axis). Not needed for a profile table, which has its groups.}
 
 \item{levels}{Levels of \code{group} to show, in this order. Samples of other
 groups are ignored, as if the object had been subset to these samples.
@@ -36,7 +37,7 @@ groups are ignored, as if the object had been subset to these samples.
 appearance). For a profile table, the groups of the table to draw.}
 
 \item{assay}{Name of the transcript assay to summarise (default
-\code{"abundance"}).}
+\code{"abundance"}); not used for a profile table.}
 
 \item{...}{Passed on to methods.}
 
@@ -52,7 +53,8 @@ to the object's palette or \code{\link[=tx_type_palette]{tx_type_palette()}}.}
 \value{
 \code{profile_data()} returns a tibble with columns \code{feature_id},
 \code{feature_name}, \code{feature_type}, \code{gene_id}, \code{gene_name}, \code{group},
-\code{mean_expr}, \code{sd_expr}, \code{n_samples} and \code{is_de}; the grouping variable
+\code{mean_expr}, \code{sd_expr}, \code{n_samples} and \code{is_de} (\code{"yes"}/\code{"no"}, from
+the stored results and \code{\link[=de_cutoffs]{de_cutoffs()}}); the grouping variable
 name is stored in the \code{"group_var"} attribute. \code{plot_tx_expr()} returns
 a \code{ggplot} object.
 }

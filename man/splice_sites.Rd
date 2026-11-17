@@ -40,7 +40,9 @@ experiment reports its own transcripts.}
 \itemize{
 \item \code{extract_splice_sites()}: the path of the written Parquet file,
 invisibly. The table has \code{seqid}, \code{strand}, \code{intron_start}, \code{intron_end}
-(1-based, inclusive), \code{donor_seq} and \code{acceptor_seq}.
+(1-based, inclusive), \code{donor_seq} and \code{acceptor_seq}. An existing table
+is kept, with a message, unless \code{overwrite = TRUE}.
+\item \code{has_splice_sites()}: \code{TRUE} when the table is present.
 \item \code{splice_site_strength()}: a tibble. By transcript: \code{transcript_id},
 \code{gene_id}, \code{gene_name}, \code{n_introns}, \code{n_scored}, \code{weakest_donor},
 \code{weakest_acceptor}, \code{mean_donor}, \code{mean_acceptor} and \code{n_noncanonical};

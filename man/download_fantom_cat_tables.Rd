@@ -16,7 +16,8 @@ download_fantom_cat_tables(
 \item{level}{FANTOM CAT level: \code{"lv3_robust"} (default), \code{"lv1_raw"},
 \code{"lv2_permissive"} or \code{"lv4_stringent"}.}
 
-\item{tables}{Which tables to download.}
+\item{tables}{Which tables to download: any of \code{"id_mapping"},
+\code{"gene_info"} and \code{"cage_clusters"} (default all three).}
 
 \item{output_path}{Directory where the file is saved. Defaults to
 \code{":cache:"}, the package cache (see \code{\link[=get_isoformic_cache]{get_isoformic_cache()}}).}

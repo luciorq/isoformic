@@ -39,9 +39,9 @@ accuracy, invisibly.
 Builds the hexamer log-odds table and the logistic regression used by
 \code{\link[=coding_potential]{coding_potential()}} from a set of coding ORF sequences and non-coding
 transcript sequences, and writes both as Parquet files. The shipped model
-was trained on GENCODE human protein-coding CDS versus lncRNA transcripts
-by \code{data-raw/build_coding_model.R}; rerun that script to refresh it for a
-new GENCODE release or another organism.
+was trained on GENCODE 50 human protein-coding CDS versus lncRNA
+transcripts by \code{data-raw/build_coding_model.R}; rerun that script to
+refresh it for a new GENCODE release or another organism.
 }
 \examples{
 \dontrun{

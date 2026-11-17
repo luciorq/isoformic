@@ -21,7 +21,8 @@
 #'   `"tandem_utr"` (different 3' end, same stop codon: 3' UTR shortening or
 #'   lengthening), `"alternative_last_exon"` (different last exon),
 #'   `"intronic"` (3' end inside an intron of the canonical isoform, typically
-#'   a composite terminal exon) or `"other"`.
+#'   a composite terminal exon) or `"other"`; `NA` for a gene without a
+#'   canonical isoform.
 #' * `utr3_length` (from [transcript_orfs()] when sequences are available,
 #'   else from the annotated CDS).
 #' * `polya_signal` and `polya_signal_distance`: the poly(A) signal hexamer
@@ -35,7 +36,8 @@
 #'   (`polya_atlas = "polyasite"`, see [frozen_data]), a data frame with
 #'   `seqid`, `cleavage_pos`, `strand` (and optionally `site_id`,
 #'   `site_class`, `tpm`), or a GENCODE `polyAs.gff3.gz` file
-#'   (`download_reference(file_type = "polya")`).
+#'   (`download_reference(file_type = "polya")`), which `read_polya_gff()`
+#'   reads into such a table.
 #'
 #' `apa_usage()` quantifies per gene, for genes with at least two 3' end
 #' groups: the share of expression ending at the distal-most 3' end
@@ -43,7 +45,9 @@
 #' (`weighted_utr3_length`), per sample or per group with the change
 #' between the last and the first group level. `test_apa()` tests the change
 #' in distal usage between two groups with the quasi-binomial test used by
-#' [test_productive_fraction()], on counts.
+#' [test_productive_fraction()], on counts. A gene with fewer than 5 reads
+#' at its distal or at its other ends, pooled over both groups, is not
+#' tested (no statistic or p-value).
 #'
 #' `run_apa_enrichment()` runs a gene set enrichment analysis
 #' (`fgsea::fgseaMultilevel()`) on the genes ranked by their change in
@@ -52,7 +56,10 @@
 #' `delta_weighted_utr3_length`): a positive score is a gene set whose genes
 #' move to distal 3' ends, or to longer 3' UTRs, in the last group level. It
 #' also takes the table of `apa_usage()` for two or more groups, so that one
-#' table serves several calls.
+#' table serves several calls. As in [run_enrichment()], `genesets_list` can
+#' hold several collections, each tested on its own. A gene symbol that
+#' occurs more than once keeps its largest absolute change, and all the
+#' gene sets are returned (there is no p-value cutoff).
 #'
 #' @param self An [IsoformicExperiment]; for `run_apa_enrichment()` also the
 #'   table of `apa_usage()` for two or more groups.
@@ -64,16 +71,18 @@
 #' @param signal_window Length of the 3' terminal sequence searched for a
 #'   poly(A) signal (default 50 nt).
 #' @param group Name of a `col_data` column defining groups; `NULL` for
-#'   per-sample values. The tests and `run_apa_enrichment()` on an object need
-#'   it; with a table it is not used.
+#'   per-sample values. `test_apa()` and `run_apa_enrichment()` on an object
+#'   need it. With an `apa_usage()` table, `run_apa_enrichment()` ignores
+#'   `group`, `levels`, `assay` and `min_expr`.
 #' @param levels Levels of `group` to use, in this order; the change is
 #'   `last - first`. Samples of other groups are ignored, as if the object
 #'   had been subset to these samples, so every returned value comes from
-#'   the samples kept. `NULL` takes all the levels of `group`. The tests
-#'   (`test_productive_fraction()`, `test_apa()`) need exactly two levels.
-#' @param assay Transcript assay to use (`"abundance"` for usage,
-#'   `"counts"` for the test).
-#' @param min_expr Minimum assay value for an isoform to count (default 0).
+#'   the samples kept. `NULL` takes all the levels of `group`. `test_apa()`
+#'   needs exactly two levels.
+#' @param assay Transcript assay to use (default `"abundance"`; `"counts"`
+#'   for `test_apa()`).
+#' @param min_expr Minimum assay value for an isoform to count (default 0):
+#'   values below it count as zero.
 #' @param as_matrix Logical, return the genes x samples matrix of distal
 #'   fractions instead of the summary table.
 #' @param genesets_list Named list of character vectors (gene symbols), as
@@ -85,14 +94,19 @@
 #' @param rank_by Statistic that ranks the genes in `run_apa_enrichment()`:
 #'   `"delta"` (default), the change in distal fraction, or `"utr3_length"`,
 #'   the change in weighted 3' UTR length.
-#' @param ... Passed on to methods; `run_apa_enrichment()` passes them to
-#'   `fgsea::fgseaMultilevel()`.
+#' @param ... Not used by `polya_sites()`, `apa_usage()` and `test_apa()`;
+#'   reserved for methods. `run_apa_enrichment()` passes them to
+#'   `fgsea::fgseaMultilevel()`, which runs in the session unless `nproc` or
+#'   `BPPARAM` is given (see [run_enrichment()]).
 #'
 #' @returns Tibbles with one row per transcript (`polya_sites()`) or per gene
 #'   (`apa_usage()`, `test_apa()`); a matrix for `as_matrix = TRUE`.
 #'   `run_apa_enrichment()` returns the `fgsea` table with the columns
 #'   `experiment` (`"distal_fraction"` or `"weighted_utr3_length"`),
 #'   `rank_by` and, for several collections, `collection`.
+#'   `read_polya_gff()` returns a tibble with one row per poly(A) feature
+#'   (`site_id`, `seqid`, `start_pos`, `end_pos`, `cleavage_pos`, `strand`,
+#'   `tpm`, `site_class`, `signals`).
 #'
 #' @examples
 #' iso <- example_isoformic()

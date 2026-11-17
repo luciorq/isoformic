@@ -47,9 +47,12 @@
 #' @param assay Name of the transcript assay to use (default `"abundance"`,
 #'   falling back to the first assay).
 #' @param min_expr Minimum assay value for a transcript to count as
-#'   expressed in a sample.
+#'   expressed in a sample (default `1` in `tx_diversity()`). In
+#'   `dominant_isoform()` (default `0`, no floor), values below it are set
+#'   to zero, so these isoforms neither dominate nor count towards the gene
+#'   total.
 #' @param min_samples Minimum number of samples in which a transcript must
-#'   be expressed to count as expressed.
+#'   be expressed to count as expressed in `tx_diversity()`.
 #' @param group Name of a `col_data` column defining sample groups, or
 #'   `NULL` for all samples together.
 #' @param levels Levels of `group` to use, in this order. Samples of other

@@ -32,11 +32,12 @@ column) holds the sample IDs and that contains the \code{var} column.}
 \code{\link[=make_tx_to_gene]{make_tx_to_gene()}}).}
 
 \item{de_result_gene}{Gene-level results with \code{gene_id} or \code{gene_name},
-\code{log2FC} and \code{qvalue}/\code{pvalue} columns. May be \code{NULL}.}
+\code{log2FC} (or \code{log2FoldChange}) and \code{qvalue}/\code{padj}/\code{pvalue} columns.
+May be \code{NULL}.}
 
 \item{de_result_transcript}{Transcript-level results with
-\code{transcript_id} or \code{transcript_name}, \code{log2FC} and \code{qvalue}/\code{pvalue}
-columns. May be \code{NULL}.}
+\code{transcript_id} or \code{transcript_name}, \code{log2FC} (or \code{log2FoldChange})
+and \code{qvalue}/\code{padj}/\code{pvalue} columns. May be \code{NULL}.}
 
 \item{var}{Name of the grouping column in \code{sample_metadata}.}
 
@@ -49,7 +50,11 @@ appearance.}
 
 \item{gene_name}{Optional genes to keep (names or IDs); \code{NULL} keeps all.}
 
-\item{pvalue_cutoff, lfc_cutoff, use_fdr}{Significance cutoffs.}
+\item{pvalue_cutoff, lfc_cutoff, use_fdr}{Significance cutoffs (defaults
+0.05, 1 and \code{TRUE}): a feature is significant when
+\code{abs(log2FC) >= lfc_cutoff} and its p-value is \verb{<= pvalue_cutoff}.
+With \code{use_fdr = TRUE} the \code{qvalue} (or \code{padj}) column is tested when
+present, \code{pvalue} otherwise.}
 }
 \value{
 A tibble in the format described in \code{\link[=profile_data]{profile_data()}}.

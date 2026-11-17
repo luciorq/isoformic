@@ -41,7 +41,8 @@ returned by \code{\link[=read_gmt]{read_gmt()}}, or a named list of such lists (
 \emph{Collections of gene sets}).}
 
 \item{tx_to_gene}{Data frame with \code{transcript_name} and \code{gene_name}
-columns; required by the data frame method, ignored otherwise.}
+columns (and optionally \code{transcript_type}, used to choose the default
+\code{tx_types}); required by the data frame method, ignored otherwise.}
 
 \item{pval_cutoff}{Keep pathways with \code{pval} at or below this value;
 \code{NULL} keeps all.}
@@ -86,21 +87,32 @@ plotting (default drops MSigDB collection prefixes such as \code{REACTOME_}).}
 \value{
 \code{run_enrichment()} returns a tibble with the \code{fgsea} columns
 plus \code{experiment} (the transcript category), \code{rank_by} and, for several
-collections, \code{collection}. \code{read_gmt()} returns a
-named list. \code{plot_enrichment()} returns a \code{ggplot} object.
+collections, \code{collection}. \code{read_gmt()} returns a named list of
+character vectors (the unique gene symbols of each set).
+\code{plot_enrichment()} returns a \code{ggplot} object, with one panel per
+collection when there is a \code{collection} column.
+\code{default_enrichment_types()} returns a named list of transcript types
+per category.
 }
 \description{
 Runs gene set enrichment analysis (\code{fgsea::fgseaMultilevel()}) separately
-for transcripts of each type, ranking transcripts by log2 fold-change.
-Gene sets defined on gene symbols are expanded to all transcripts of
-their genes, so each transcript category (protein coding, retained
-intron, nonsense-mediated decay, ...) is tested on its own and in the
-combined \code{"unproductive"} category.
+for transcripts of each type, ranking transcripts by the statistic chosen
+with \code{rank_by} (log2 fold-change by default, see \emph{Ranking}). Gene sets
+defined on gene symbols are expanded to all transcripts of their genes,
+so each transcript category (protein coding, retained intron,
+nonsense-mediated decay, ...) is tested on its own and in the combined
+\code{"unproductive"} category. A category with fewer than two ranked
+transcripts is skipped.
 
 The \link{IsoformicExperiment} method uses the stored transcript-level
 results and the annotation; the data frame method takes a transcript
-table with \code{transcript_name}, \code{transcript_type} and \code{log2FC} columns plus
-a \code{tx_to_gene} table.
+table with \code{transcript_name} and \code{transcript_type} columns and the
+columns \code{rank_by} needs (\code{log2FC}; \code{log2FC} and \code{pvalue}; or
+\code{lfc_median} and \code{lfc_sd}), plus a \code{tx_to_gene} table.
+
+\code{\link[=run_productivity_enrichment]{run_productivity_enrichment()}} and \code{\link[=run_apa_enrichment]{run_apa_enrichment()}} run the same
+analysis on genes ranked by their change in productive fraction or in
+3' end usage, and take gene set collections in the same way.
 
 \code{read_gmt()} reads gene sets in GMT format into a named list, and
 \code{plot_enrichment()} draws a dot plot of enrichment results.

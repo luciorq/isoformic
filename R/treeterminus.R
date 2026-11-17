@@ -3,9 +3,10 @@
 #' @description
 #' TreeTerminus builds, from Salmon replicates, a forest of transcript trees:
 #' the leaves are transcripts and every internal node is the sum of the
-#' transcripts below it, built so that the inferential uncertainty falls as
-#' the tree is ascended. Unlike the flat groups of Terminus, a tree lets the
-#' resolution change from one isoform to the next: an isoform the reads
+#' transcripts below it, built so that the inferential uncertainty falls, on
+#' average, as the tree is ascended. Unlike the flat groups of Terminus, a
+#' tree lets the resolution change from one isoform to the next: an isoform
+#' the reads
 #' determine stays a leaf, one they do not is replaced by the smallest node
 #' that they do determine.
 #'
@@ -30,8 +31,9 @@
 #' "transcript"`), where the confidence classes still flag them as uncertain;
 #' `unresolved = "root"` merges every tree that has one into a single group.
 #'
-#' @param path A Newick file of TreeTerminus, or a folder holding
-#'   `cluster_nwk.txt` (or a single `group_nwk.txt`).
+#' @param path A Newick file of TreeTerminus, or a folder holding, directly
+#'   or one folder down, a single `cluster_nwk.txt` (or a single
+#'   `group_nwk.txt`).
 #' @param salmon_dir A Salmon output directory quantified against the same
 #'   index, whose `quant.sf` gives the order of the transcripts.
 #' @param transcripts Alternatively, the transcript names in `quant.sf` order.
@@ -49,7 +51,9 @@
 #'   (leaves; `NA` for nodes) and `parent_id` (`NA` for the roots).
 #'   `cut_transcript_trees()`: a tibble with `transcript_id`, `group_id`,
 #'   `group_size`, `group_inf_rv` and `tree_id` for the transcripts that are
-#'   grouped, with the cutoff in the `cutoff` attribute.
+#'   grouped (groups of at least two transcripts with replicates in `x`;
+#'   transcripts of the trees without replicates are ignored), with the
+#'   cutoff in the `cutoff` attribute.
 #'
 #' @references
 #' Singh NP, Love MI, Patro R (2023). TreeTerminus: creating transcript trees
@@ -172,7 +176,6 @@ cut_transcript_trees <- function(
   # Node sums: leaves into their parents, then the nodes of every depth into
   # their parents, from the deepest up.
   node_ids <- sort(unique(nodes$node_id))
-  node_index <- match(node_ids, node_ids)
   parent_of <- nodes$parent_id[match(node_ids, nodes$node_id)]
   parent_index <- match(parent_of, node_ids)
   n_node <- length(node_ids)
@@ -239,33 +242,11 @@ cut_transcript_trees <- function(
 
   # Lowest well-determined node on the way up from every node (top-down)
   good <- !is.na(node_rv) & node_rv < cutoff
-  lowest_good <- rep(NA_integer_, length(node_ids))
-  for (i in node_index) {
-    p <- parent_of[[i]]
-    lowest_good[[i]] <- if (good[[i]]) {
-      node_ids[[i]]
-    } else if (!is.na(p)) {
-      lowest_good[[match(p, node_ids)]]
-    } else {
-      NA_integer_
-    }
-  }
+  lowest_good <- lowest_good_nodes(node_ids, parent_of, good)
   parent_idx <- match(leaves$parent_id, node_ids)
   chosen <- ifelse(leaf_rv < cutoff, NA_integer_, lowest_good[parent_idx])
   # Keep the largest of nested chosen nodes: the topmost chosen node on the path
-  selected <- node_ids %in% chosen
-  top <- rep(NA_integer_, length(node_ids))
-  for (i in node_index) {
-    p <- parent_of[[i]]
-    up <- if (!is.na(p)) top[[match(p, node_ids)]] else NA_integer_
-    top[[i]] <- if (!is.na(up)) {
-      up
-    } else if (selected[[i]]) {
-      node_ids[[i]]
-    } else {
-      NA_integer_
-    }
-  }
+  top <- topmost_selected_nodes(node_ids, parent_of, node_ids %in% chosen)
   group_node <- top[parent_idx]
   root_of <- tapply(
     nodes$node_id[is.na(nodes$parent_id)],
@@ -301,6 +282,48 @@ cut_transcript_trees <- function(
   attr(res, "source") <- "treeterminus"
   attr(res, "cutoff") <- cutoff
   res
+}
+
+#' Lowest well-determined node on the way up from every node
+#'
+#' The nodes are visited in the order of `node_ids`: sorted pre-order IDs of
+#' `parse_newick_forest()`, so every parent comes before its children.
+#' @keywords internal
+#' @noRd
+lowest_good_nodes <- function(node_ids, parent_of, good) {
+  out <- rep(NA_integer_, length(node_ids))
+  for (i in seq_along(node_ids)) {
+    p <- parent_of[[i]]
+    out[[i]] <- if (good[[i]]) {
+      node_ids[[i]]
+    } else if (!is.na(p)) {
+      out[[match(p, node_ids)]]
+    } else {
+      NA_integer_
+    }
+  }
+  out
+}
+
+#' Topmost selected node on the path from every node to its root
+#'
+#' Same order of the nodes as `lowest_good_nodes()`.
+#' @keywords internal
+#' @noRd
+topmost_selected_nodes <- function(node_ids, parent_of, selected) {
+  out <- rep(NA_integer_, length(node_ids))
+  for (i in seq_along(node_ids)) {
+    p <- parent_of[[i]]
+    up <- if (!is.na(p)) out[[match(p, node_ids)]] else NA_integer_
+    out[[i]] <- if (!is.na(up)) {
+      up
+    } else if (selected[[i]]) {
+      node_ids[[i]]
+    } else {
+      NA_integer_
+    }
+  }
+  out
 }
 
 #' Locate the Newick file of a TreeTerminus run

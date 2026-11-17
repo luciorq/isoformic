@@ -22,8 +22,9 @@ prepare_exon_annotation(
 }
 \value{
 A tibble with columns \code{gene_id}, \code{gene_name}, \code{transcript_id},
-\code{transcript_name}, \code{transcript_type}, \code{exon_id}, \code{exon_number}, \code{seqid},
-\code{start_pos}, \code{end_pos}, \code{strand}.
+\code{transcript_name}, \code{transcript_type}, \code{haplotype}, \code{exon_id},
+\code{exon_number}, \code{seqid}, \code{start_pos}, \code{end_pos}, \code{strand}. Genes not
+found in the annotation give a warning.
 }
 \description{
 Table-based helper returning one row per exon for the transcripts of the

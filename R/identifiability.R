@@ -47,25 +47,30 @@
 #' * Human samples have one block of tens of thousands of transcripts
 #'   linked by multi-mapping fragments; expect minutes per sample.
 #'
-#' In the six GSE129540 samples of the quantification stability article,
-#' the estimates of non-identifiable transcripts differed more between two
-#' halves of the reads of a sample than those of identifiable transcripts of
-#' the same expression: a median absolute log2 ratio of 2.4 against 0.7 at 20
-#' to 100 reads. The posterior draws call three quarters of both kinds
-#' uncertain, so the two measures are close to independent.
+#' In the six GSE129540 samples of the uncertainty article, the estimates of
+#' non-identifiable transcripts differed more between two halves of the reads
+#' of a sample than those of identifiable transcripts of the same
+#' expression: a median absolute log2 ratio of 2.4 against 0.7 at 20 to 100
+#' reads. The posterior draws call three quarters of both kinds uncertain, so
+#' the two measures are close to independent.
+#'
+#' Oarfish output has no equivalence classes and gives an error.
 #'
 #' @inheritParams inferential-io
+#' @param transcripts Optional transcript IDs to keep in the result; the
+#'   classes of all transcripts are used for the computation.
 #' @param max_dense Largest block (number of transcripts) solved with a
 #'   dense decomposition. Larger blocks use the iterative solver.
 #' @param max_iterations Maximum number of iterations of the iterative
-#'   solver per block. The transcripts of a block that does not converge get
-#'   `NA`.
+#'   solver per block. The transcripts of a block that does not converge are
+#'   not counted in that sample, with a message.
 #'
-#' @returns A tibble with one row per transcript that has fragments in at
-#'   least one sample: `transcript_id`, `n_samples` (samples in which it has
-#'   fragments and was resolved), `n_identifiable` (in how many of them it is
-#'   identifiable), `identifiable_fraction` and `identifiable` (`TRUE` when
-#'   identifiable in all of them, `NA` when it was resolved in none).
+#' @returns A tibble with one row per transcript that has fragments and was
+#'   resolved in at least one sample (transcripts of a block that did not
+#'   converge in any sample are left out): `transcript_id`, `n_samples`
+#'   (samples in which it has fragments and was resolved), `n_identifiable`
+#'   (in how many of them it is identifiable), `identifiable_fraction` and
+#'   `identifiable` (`TRUE` when identifiable in all of them).
 #'
 #' @references
 #' Zheng H, Ma C, Kingsford C (2022). Deriving ranges of optimal estimated
@@ -212,7 +217,8 @@ reduce_class_system <- function(tid, cls, n_tx, n_cls) {
   merged <- logical(n_tx)
   rep_of <- seq_len(n_tx)
   repeat {
-    changed <- FALSE
+    # A pass that resolves or merges nothing ends the reduction
+    n_known <- sum(known)
     repeat {
       open <- !known[col]
       n_open <- sum_by_index(as.numeric(open), cls, n_cls)
@@ -221,7 +227,6 @@ reduce_class_system <- function(tid, cls, n_tx, n_cls) {
         break
       }
       known[resolved] <- TRUE
-      changed <- TRUE
     }
     open <- !known[col]
     h1 <- sum_by_index(hash[[1L]][cls[open]], col[open], n_tx)
@@ -231,7 +236,6 @@ reduce_class_system <- function(tid, cls, n_tx, n_cls) {
     first <- ids[match(key, key)]
     dup <- first != ids
     if (any(dup)) {
-      changed <- TRUE
       merged[rep_of %in% c(ids[dup], first[dup])] <- TRUE
       map <- seq_len(n_tx)
       map[ids] <- first
@@ -240,7 +244,7 @@ reduce_class_system <- function(tid, cls, n_tx, n_cls) {
       col <- col[keep]
       cls <- cls[keep]
     }
-    if (!changed) {
+    if (!any(dup) && sum(known) == n_known) {
       break
     }
   }

@@ -26,15 +26,17 @@ as_inferential_replicates(table, samp_type = "gibbs")
 }
 \arguments{
 \item{paths}{Character vector of Salmon output directories (containing
-\code{quant.sf}) or paths to \code{quant.sf} files. Names, when present, are the
-sample IDs; otherwise the directory name is used.}
+\code{quant.sf}) or paths to \code{quant.sf} files, or Oarfish output prefixes.
+Names, when present, are the sample IDs; otherwise the directory name (or
+the prefix) is used.}
 
 \item{transcripts}{Optional transcript IDs to keep. Reading every
 transcript of a human annotation for many samples takes gigabytes of
 memory, so \code{\link[=add_uncertainty]{add_uncertainty()}} only reads the expressed ones.}
 
 \item{n_draws}{Number of replicates to keep (the first ones). \code{NULL} keeps
-all of them.}
+all of them; a number above the replicates available keeps all of them,
+with a message.}
 
 \item{ignore_after_bar}{Logical. Keep only the part of transcript names
 before the first \code{|} (GENCODE FASTA headers used as Salmon references).}
@@ -59,11 +61,22 @@ in the \code{samp_type} attribute.
 \code{sample_id}, \code{draw} and \code{count}. \code{as_inferential_replicates()} is its
 inverse.
 \item \code{equivalence_support()}: a tibble with one row per transcript:
-\code{transcript_id}, \code{n_classes} (mean number of equivalence classes per
-sample), \code{n_fragments} and \code{n_unique_fragments} (summed over samples),
-\code{unique_fraction} (share of the fragments of the transcript that map to
-it alone) and \code{n_samples}.
-\item \code{salmon_run_qc()}: a tibble with one row per sample.
+\code{transcript_id}, \code{n_classes} (mean number of equivalence classes that
+contain the transcript, per sample), \code{n_fragments} and
+\code{n_unique_fragments} (summed over samples), \code{unique_fraction} (share of
+the fragments of the transcript that map to it alone) and \code{n_samples}
+(samples with equivalence classes).
+\item \code{salmon_run_qc()}: a tibble with one row per sample: \code{sample_id},
+\code{salmon_version}, \code{library_type}, \code{detected_library_type},
+\code{num_processed}, \code{num_mapped}, \code{percent_mapped}, \code{replicate_type},
+\code{num_replicates}, \code{optimiser}, \code{em_converged}, \code{seq_bias_correct},
+\code{gc_bias_correct}, \code{pos_bias_correct}, \code{frag_length_mean},
+\code{frag_length_sd} and \code{qc_flag} (\code{low_mapping_rate}, \code{no_replicates}
+and \code{em_not_converged}, separated by \verb{;}, or \code{NA}). For Oarfish output
+the columns are \code{sample_id}, \code{num_processed}, \code{num_mapped},
+\code{percent_mapped}, \code{replicate_type}, \code{num_replicates}, \code{optimiser},
+\code{alignment_source}, \code{prob_model} and \code{qc_flag}, and the \code{tool}
+attribute is \code{"oarfish"}.
 }
 }
 \description{
@@ -75,7 +88,9 @@ bootstrap (\code{--numBootstraps}) replicates from \verb{aux_info/bootstrap/}
 (the format is identical in Salmon 1.x and in the Rust rewrite, Salmon
 2). It returns a list with one transcript x sample matrix of counts per
 replicate, the layout used by \code{\link[=productive_fraction]{productive_fraction()}} and
-\code{\link[=add_uncertainty]{add_uncertainty()}}.
+\code{\link[=add_uncertainty]{add_uncertainty()}}. The samples are read one at a time, so memory holds
+the result and the replicates of a single sample. When the samples have
+different numbers of replicates, the smallest number is kept.
 \item \code{equivalence_support()} reads the equivalence classes
 (\code{--dumpEq}, \code{aux_info/eq_classes.txt.gz}) and reports, for every
 transcript, how many of its fragments are compatible with no other
@@ -85,8 +100,16 @@ mapping rate, the library type, whether the optimiser converged and how
 many replicates were drawn.
 \item \code{inferential_replicates_table()} and \code{as_inferential_replicates()}
 convert the list of replicates to and from a long table (one row per
-transcript, sample and replicate), which can be stored as Parquet.
+transcript, sample and replicate), which can be stored as Parquet with
+\code{\link[=write_parquet]{write_parquet()}} and read back with \code{\link[=read_parquet]{read_parquet()}}. This is the way to
+keep the replicates of an object, which \code{\link[=write_isoformic]{write_isoformic()}} does not
+write.
 }
+
+The functions also read Oarfish output (see \code{\link[=read_oarfish]{read_oarfish()}}): its
+bootstrap replicates (\code{.infreps.pq}), its unique and ambiguous read counts
+(\code{.ambig_info.tsv}, \code{n_classes} is then \code{NA}) and its run metadata
+(\code{.meta_info.json}). One call reads the output of one tool.
 }
 \examples{
 quant_dirs <- list.files(

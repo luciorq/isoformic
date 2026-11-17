@@ -2,9 +2,10 @@
 #'
 #' Default colour palette for transcript types: the GENCODE/Ensembl biotypes
 #' used by the workflow, the `gene` level, generic labels for annotations
-#' without biotypes (`unknown`, `novel`) and the SQANTI3 structural
+#' without biotypes (`unknown`, `novel`), the SQANTI3 structural
 #' categories assigned by [add_sqanti_classification()] to long-read
-#' transcript catalogs.
+#' transcript catalogs and the FANTOM CAT gene classes (`coding_mRNA`,
+#' `lncRNA_intergenic`, ...).
 #'
 #' @returns A named character vector of hexadecimal colours.
 #'

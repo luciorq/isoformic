@@ -70,24 +70,27 @@ file path (Parquet table or GENCODE poly(A) GFF3).}
 poly(A) signal (default 50 nt).}
 
 \item{...}{Passed on to methods; \code{run_apa_enrichment()} passes them to
-\code{fgsea::fgseaMultilevel()}.}
+\code{fgsea::fgseaMultilevel()}, which runs in the session unless \code{nproc} or
+\code{BPPARAM} is given (see \code{\link[=run_enrichment]{run_enrichment()}}).}
 
 \item{path}{Path to a GENCODE \code{polyAs.gff3.gz} file.}
 
 \item{group}{Name of a \code{col_data} column defining groups; \code{NULL} for
-per-sample values. The tests and \code{run_apa_enrichment()} on an object need
-it; with a table it is not used.}
+per-sample values. \code{test_apa()} and \code{run_apa_enrichment()} on an object
+need it. With an \code{apa_usage()} table, \code{run_apa_enrichment()} ignores
+\code{group}, \code{levels}, \code{assay} and \code{min_expr}.}
 
 \item{levels}{Levels of \code{group} to use, in this order; the change is
 \code{last - first}. Samples of other groups are ignored, as if the object
 had been subset to these samples, so every returned value comes from
-the samples kept. \code{NULL} takes all the levels of \code{group}. The tests
-(\code{test_productive_fraction()}, \code{test_apa()}) need exactly two levels.}
+the samples kept. \code{NULL} takes all the levels of \code{group}. \code{test_apa()}
+needs exactly two levels.}
 
-\item{assay}{Transcript assay to use (\code{"abundance"} for usage,
-\code{"counts"} for the test).}
+\item{assay}{Transcript assay to use (default \code{"abundance"}; \code{"counts"}
+for \code{test_apa()}).}
 
-\item{min_expr}{Minimum assay value for an isoform to count (default 0).}
+\item{min_expr}{Minimum assay value for an isoform to count (default 0):
+values below it count as zero.}
 
 \item{as_matrix}{Logical, return the genes x samples matrix of distal
 fractions instead of the summary table.}
@@ -110,6 +113,9 @@ Tibbles with one row per transcript (\code{polya_sites()}) or per gene
 \code{run_apa_enrichment()} returns the \code{fgsea} table with the columns
 \code{experiment} (\code{"distal_fraction"} or \code{"weighted_utr3_length"}),
 \code{rank_by} and, for several collections, \code{collection}.
+\code{read_polya_gff()} returns a tibble with one row per poly(A) feature
+(\code{site_id}, \code{seqid}, \code{start_pos}, \code{end_pos}, \code{cleavage_pos}, \code{strand},
+\code{tpm}, \code{site_class}, \code{signals}).
 }
 \description{
 \code{polya_sites()} describes the 3' end of every assayed transcript:
@@ -122,7 +128,8 @@ the direction of transcription), \code{n_tes_groups}, \code{is_proximal},
 \code{"tandem_utr"} (different 3' end, same stop codon: 3' UTR shortening or
 lengthening), \code{"alternative_last_exon"} (different last exon),
 \code{"intronic"} (3' end inside an intron of the canonical isoform, typically
-a composite terminal exon) or \code{"other"}.
+a composite terminal exon) or \code{"other"}; \code{NA} for a gene without a
+canonical isoform.
 \item \code{utr3_length} (from \code{\link[=transcript_orfs]{transcript_orfs()}} when sequences are available,
 else from the annotated CDS).
 \item \code{polya_signal} and \code{polya_signal_distance}: the poly(A) signal hexamer
@@ -136,7 +143,8 @@ sequences.
 (\code{polya_atlas = "polyasite"}, see \link{frozen_data}), a data frame with
 \code{seqid}, \code{cleavage_pos}, \code{strand} (and optionally \code{site_id},
 \code{site_class}, \code{tpm}), or a GENCODE \code{polyAs.gff3.gz} file
-(\code{download_reference(file_type = "polya")}).
+(\code{download_reference(file_type = "polya")}), which \code{read_polya_gff()}
+reads into such a table.
 }
 
 \code{apa_usage()} quantifies per gene, for genes with at least two 3' end
@@ -154,7 +162,10 @@ distal usage (\code{rank_by = "delta"}, the \code{delta_distal_fraction} of
 \code{delta_weighted_utr3_length}): a positive score is a gene set whose genes
 move to distal 3' ends, or to longer 3' UTRs, in the last group level. It
 also takes the table of \code{apa_usage()} for two or more groups, so that one
-table serves several calls.
+table serves several calls. As in \code{\link[=run_enrichment]{run_enrichment()}}, \code{genesets_list} can
+hold several collections, each tested on its own. A gene symbol that
+occurs more than once keeps its largest absolute change, and all the
+gene sets are returned (there is no p-value cutoff).
 }
 \examples{
 iso <- example_isoformic()

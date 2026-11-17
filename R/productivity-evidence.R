@@ -34,7 +34,9 @@
 #'
 #' Each function returns the annotation directory path invisibly and
 #' invalidates the object caches of `x` (the next call to a method rereads
-#' the annotation).
+#' the annotation). When no transcript of the annotation matches the
+#' dataset, the function raises an error of class
+#' `isoformic_invalid_evidence` and the annotation is left unchanged.
 #'
 #' @param x An annotation directory path or an [IsoformicExperiment].
 #' @param table A data frame with the dataset, or a path to its Parquet
@@ -329,8 +331,8 @@ add_evidence <- function(x, annot_dir, res, what) {
 #'
 #' An `altered_productive` isoform that keeps all domains of the canonical
 #' protein is a milder event than one that loses a domain; the
-#' `domain_retention_fraction` column grades this and is included in
-#' [transcript_productivity()] output when the dataset is available.
+#' `domain_retention_fraction` column grades this. It is not part of the
+#' [transcript_productivity()] table; join the two by `transcript_id`.
 #'
 #' @param self An [IsoformicExperiment].
 #' @param gene_name Optional genes (names or IDs) to restrict the result to.
@@ -338,10 +340,12 @@ add_evidence <- function(x, annot_dir, res, what) {
 #'   fetches the frozen `appris_domains` dataset.
 #' @param ... Passed on to methods.
 #'
-#' @returns A tibble with one row per transcript: `n_domains_canonical`,
-#'   `n_retained`, `n_partial`, `n_lost`, `domains_lost` (Pfam names) and
-#'   `domain_retention_fraction` (`NA` when the canonical isoform has no
-#'   domain).
+#' @returns A tibble with one row per transcript: `transcript_id`,
+#'   `transcript_name`, `gene_id`, `gene_name`, `canonical_transcript_id`,
+#'   `in_domain_table` (`TRUE` when the isoform itself is in the domain
+#'   table), `n_domains_canonical`, `n_retained`, `n_partial`, `n_lost`,
+#'   `domains_lost` (Pfam names) and `domain_retention_fraction` (`NA` when
+#'   the canonical isoform has no domain).
 #'
 #' @examples
 #' \dontrun{
@@ -569,10 +573,14 @@ domain_coverage <- function(feats, canonical_key, can_dom, exons) {
 #'   productive (default `TRUE`).
 #' @param ... Passed on to methods.
 #'
-#' @returns A tibble with one row per gene of `x`: `reference_tissue`,
-#'   `reference_gene_tpm`, `reference_productive_fraction`,
-#'   `reference_dominant_transcript_id`, `reference_dominant_productivity`,
-#'   `n_reference_transcripts`.
+#' @returns `gtex_reference()` returns a tibble with one row per gene of `x`
+#'   that has a transcript in the GTEx table: `gene_id`, `gene_name`,
+#'   `reference_tissue`, `reference_gene_tpm`,
+#'   `reference_productive_fraction` (`NA` for genes without a coding
+#'   isoform or with a total TPM of 0), `reference_dominant_transcript_id`,
+#'   `reference_dominant_productivity`, `n_reference_transcripts`.
+#'   `gtex_tissues()` returns a tibble with the `tissue` names and their
+#'   `n_samples`.
 #'
 #' @examples
 #' \dontrun{

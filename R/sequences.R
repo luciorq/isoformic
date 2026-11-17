@@ -35,8 +35,13 @@
 #' @param overwrite Logical, replace existing sequences (default `FALSE`).
 #' @param chunk_bytes Number of bytes read per chunk while streaming (default 64 MB).
 #'
-#' @returns The path of the written Parquet file, invisibly. The table has
-#'   columns `transcript_id`, `sequence` and `seq_length`.
+#' @returns `extract_transcript_sequences()` returns the path of the
+#'   Parquet file, invisibly (an existing file is kept, with a message,
+#'   unless `overwrite = TRUE`). The table has columns `transcript_id`,
+#'   `sequence` and `seq_length`; the source and the number of sequences are
+#'   recorded in the annotation metadata (`sequences_source`,
+#'   `sequences_n`). `has_sequences()` returns `TRUE` or `FALSE`, and
+#'   `transcript_sequences()` the table as a tibble.
 #'
 #' @details
 #' The sequences table is optional: annotation directories without it keep

@@ -269,3 +269,23 @@ testthat::test_that("run_apa_enrichment ranks the genes by their change in 3' en
     class = "isoformic_invalid_genesets"
   )
 })
+
+testthat::test_that("test_apa does not test a gene with a trace of distal reads", {
+  iso <- apa_experiment(with_sequences = FALSE)
+  counts <- assay(iso, "counts")
+  # GENEB: tB1 is distal, tB2 proximal; 8-fold more reads in group b and
+  # a fraction of a distal read in one sample
+  counts["tB1", ] <- c(0, 0, 0, 0.02)
+  counts["tB2", ] <- c(100, 110, 800, 900)
+  traced <- IsoformicExperiment(
+    experiment_name = "traced",
+    annot_path = iso@annot_path,
+    assays = list(abundance = assay(iso, "abundance"), counts = counts),
+    col_data = col_data(iso)
+  )
+  res <- test_apa(traced, group = "condition", assay = "counts")
+  gene_b <- res[res$gene_name == "GENEB", ]
+  testthat::expect_identical(nrow(gene_b), 1L)
+  testthat::expect_true(is.na(gene_b$pvalue))
+  testthat::expect_equal(gene_b$log_odds_ratio, 0)
+})

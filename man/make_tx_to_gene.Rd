@@ -11,8 +11,8 @@ make_tx_to_gene(
 )
 }
 \arguments{
-\item{file_path}{Path to a FASTA (\code{.fa}, \code{.fasta}, optionally \code{.gz}),
-GFF3 or GTF file, or to an annotation directory.}
+\item{file_path}{Path to a FASTA (\code{.fa}, \code{.fasta}, \code{.fna}, optionally
+\code{.gz}), GFF3 or GTF file, or to an annotation directory.}
 
 \item{file_type}{\code{"auto"} (default) detects the format from the file
 extension; otherwise one of \code{"fasta"}, \code{"gff"}, \code{"gtf"}.}
@@ -24,7 +24,7 @@ GFF3/GTF inputs.}
 A tibble with columns \code{transcript_id}, \code{gene_id},
 \code{havana_gene_id}, \code{havana_transcript_id}, \code{transcript_name},
 \code{gene_name}, \code{tx_length} and \code{transcript_type}. The Havana columns are
-\code{NA} for GFF3/GTF inputs.
+\code{NA} for GFF3/GTF inputs and annotation directories.
 }
 \description{
 Builds a transcript-to-gene table from a GENCODE transcriptome FASTA

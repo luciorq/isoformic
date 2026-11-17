@@ -57,8 +57,10 @@ published with the package, \code{NA} when there is none.}
 \code{"always"}.}
 
 \item{verify}{Logical, check the MD5 of the file against the registry
-(default \code{TRUE}; a mismatch is a warning, since a rebuilt file from a
-newer source is still usable).}
+(default \code{TRUE}). A downloaded file that does not match is discarded
+and the next mirror is tried; for a cached or rebuilt file a mismatch
+is a warning, since a file rebuilt from a newer source is still
+usable.}
 
 \item{mirrors}{Character vector of base URLs tried in order for the
 frozen file; default \code{\link[=frozen_mirrors]{frozen_mirrors()}}.}

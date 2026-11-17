@@ -31,10 +31,12 @@
 #' per-haplotype annotations with [download_hprc_annotation()].
 #'
 #' @param version Release version. GENCODE: the release number (`"50"`,
-#'   `50`, or `"M39"` / `"39"` for mouse; default `"50"`). Ensembl: the
-#'   release number (`"116"`); `NULL` (default) uses the current release.
-#'   MANE: `"1.5"`; `NULL` uses the current release. NCBI/T2T: ignored (the
-#'   accession identifies the assembly version).
+#'   `50`, or `"M39"` / `"39"` for mouse); `NULL` (default) uses `"50"` for
+#'   human and `"M39"` for mouse. Ensembl: the release number (`"116"`);
+#'   `NULL` uses the current release. MANE: `"1.5"`; `NULL` uses the current
+#'   release. FANTOM: the level (`NULL` uses `"lv3_robust"`). NCBI: ignored
+#'   (the accession identifies the assembly version); T2T: `NULL` or
+#'   `"2.0"`.
 #' @param reference One of `"gencode"`, `"ensembl"`, `"ncbi"`, `"t2t"`,
 #'   `"mane"`, `"fantom"`.
 #' @param organism `"human"` (default) or `"mouse"`. For Ensembl it sets the
@@ -48,7 +50,8 @@
 #'   patches, haplotypes and scaffolds), `"chr"` (reference chromosomes only)
 #'   or `"primary"` (primary assembly). For `file_type = "genome_fasta"`,
 #'   `"primary"` selects the primary assembly genome and the other values the
-#'   full patched / toplevel genome. Ignored for NCBI and MANE.
+#'   full patched / toplevel genome. Ignored for NCBI, T2T, MANE and
+#'   FANTOM.
 #' @param species Ensembl species name in lower snake case
 #'   (`"homo_sapiens"`, `"arabidopsis_thaliana"`). Defaults from `organism`.
 #' @param division Ensembl division: `"vertebrates"` (default, the main
@@ -195,7 +198,8 @@ download_reference <- function(
 #'
 #' @param level FANTOM CAT level: `"lv3_robust"` (default), `"lv1_raw"`,
 #'   `"lv2_permissive"` or `"lv4_stringent"`.
-#' @param tables Which tables to download.
+#' @param tables Which tables to download: any of `"id_mapping"`,
+#'   `"gene_info"` and `"cage_clusters"` (default all three).
 #' @inheritParams download_reference
 #'
 #' @returns A named character vector of file paths (`id_mapping`,

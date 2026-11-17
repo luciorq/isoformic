@@ -55,7 +55,9 @@
 #' @returns
 #' * `extract_splice_sites()`: the path of the written Parquet file,
 #'   invisibly. The table has `seqid`, `strand`, `intron_start`, `intron_end`
-#'   (1-based, inclusive), `donor_seq` and `acceptor_seq`.
+#'   (1-based, inclusive), `donor_seq` and `acceptor_seq`. An existing table
+#'   is kept, with a message, unless `overwrite = TRUE`.
+#' * `has_splice_sites()`: `TRUE` when the table is present.
 #' * `splice_site_strength()`: a tibble. By transcript: `transcript_id`,
 #'   `gene_id`, `gene_name`, `n_introns`, `n_scored`, `weakest_donor`,
 #'   `weakest_acceptor`, `mean_donor`, `mean_acceptor` and `n_noncanonical`;

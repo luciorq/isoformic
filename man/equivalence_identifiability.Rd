@@ -14,12 +14,12 @@ equivalence_identifiability(
 }
 \arguments{
 \item{paths}{Character vector of Salmon output directories (containing
-\code{quant.sf}) or paths to \code{quant.sf} files. Names, when present, are the
-sample IDs; otherwise the directory name is used.}
+\code{quant.sf}) or paths to \code{quant.sf} files, or Oarfish output prefixes.
+Names, when present, are the sample IDs; otherwise the directory name (or
+the prefix) is used.}
 
-\item{transcripts}{Optional transcript IDs to keep. Reading every
-transcript of a human annotation for many samples takes gigabytes of
-memory, so \code{\link[=add_uncertainty]{add_uncertainty()}} only reads the expressed ones.}
+\item{transcripts}{Optional transcript IDs to keep in the result; the
+classes of all transcripts are used for the computation.}
 
 \item{ignore_after_bar}{Logical. Keep only the part of transcript names
 before the first \code{|} (GENCODE FASTA headers used as Salmon references).}
@@ -28,15 +28,16 @@ before the first \code{|} (GENCODE FASTA headers used as Salmon references).}
 dense decomposition. Larger blocks use the iterative solver.}
 
 \item{max_iterations}{Maximum number of iterations of the iterative
-solver per block. The transcripts of a block that does not converge get
-\code{NA}.}
+solver per block. The transcripts of a block that does not converge are
+not counted in that sample, with a message.}
 }
 \value{
-A tibble with one row per transcript that has fragments in at
-least one sample: \code{transcript_id}, \code{n_samples} (samples in which it has
-fragments and was resolved), \code{n_identifiable} (in how many of them it is
-identifiable), \code{identifiable_fraction} and \code{identifiable} (\code{TRUE} when
-identifiable in all of them, \code{NA} when it was resolved in none).
+A tibble with one row per transcript that has fragments and was
+resolved in at least one sample (transcripts of a block that did not
+converge in any sample are left out): \code{transcript_id}, \code{n_samples}
+(samples in which it has fragments and was resolved), \code{n_identifiable}
+(in how many of them it is identifiable), \code{identifiable_fraction} and
+\code{identifiable} (\code{TRUE} when identifiable in all of them).
 }
 \description{
 Salmon summarises the reads as equivalence classes: sets of transcripts
@@ -86,12 +87,14 @@ their sufficient statistics and a linear program per transcript.
 linked by multi-mapping fragments; expect minutes per sample.
 }
 
-In the six GSE129540 samples of the quantification stability article,
-the estimates of non-identifiable transcripts differed more between two
-halves of the reads of a sample than those of identifiable transcripts of
-the same expression: a median absolute log2 ratio of 2.4 against 0.7 at 20
-to 100 reads. The posterior draws call three quarters of both kinds
-uncertain, so the two measures are close to independent.
+In the six GSE129540 samples of the uncertainty article, the estimates of
+non-identifiable transcripts differed more between two halves of the reads
+of a sample than those of identifiable transcripts of the same
+expression: a median absolute log2 ratio of 2.4 against 0.7 at 20 to 100
+reads. The posterior draws call three quarters of both kinds uncertain, so
+the two measures are close to independent.
+
+Oarfish output has no equivalence classes and gives an error.
 }
 \examples{
 # Two transcripts that always share their classes, and one with its own

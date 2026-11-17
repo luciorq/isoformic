@@ -318,10 +318,10 @@ testthat::test_that("delta_z ranks the genes with a certain change at the extrem
   changed <- !pf$delta_productive_fraction %in% c(0, NA)
   testthat::expect_true(any(changed))
   testthat::expect_true(all(is.na(pf$delta_z[changed])))
-  ranked <- NULL
+  seen <- new.env(parent = emptyenv())
   testthat::local_mocked_bindings(
     fgsea_multilevel = function(pathways, stats, ...) {
-      ranked <<- stats
+      seen$ranked <- stats
       data.frame(pathway = character(), NES = numeric(), padj = numeric())
     }
   )
@@ -334,12 +334,12 @@ testthat::test_that("delta_z ranks the genes with a certain change at the extrem
     inf_reps = draws
   )
   genes <- pf$gene_name[changed & !is.na(pf$gene_name)]
-  testthat::expect_true(all(genes %in% names(ranked)))
+  testthat::expect_true(all(genes %in% names(seen$ranked)))
   testthat::expect_identical(
-    unname(sign(ranked[genes[[1L]]])),
+    unname(sign(seen$ranked[genes[[1L]]])),
     sign(pf$delta_productive_fraction[match(genes[[1L]], pf$gene_name)])
   )
-  testthat::expect_true(all(abs(ranked[genes]) == max(abs(ranked))))
+  testthat::expect_true(all(abs(seen$ranked[genes]) == max(abs(seen$ranked))))
 })
 
 testthat::test_that("a single level, numeric levels and profile tables are handled", {
@@ -658,10 +658,11 @@ testthat::test_that("inf_reps = FALSE skips the stored replicates", {
     productive_fraction(broken, group = "g3", levels = lv),
     class = "isoformic_invalid_inf_reps"
   )
-  ranked <- list()
+  seen <- new.env(parent = emptyenv())
+  seen$ranked <- list()
   testthat::local_mocked_bindings(
     fgsea_multilevel = function(pathways, stats, ...) {
-      ranked[[length(ranked) + 1L]] <<- stats
+      seen$ranked[[length(seen$ranked) + 1L]] <- stats
       data.frame(pathway = character(), NES = numeric(), padj = numeric())
     }
   )
@@ -673,7 +674,7 @@ testthat::test_that("inf_reps = FALSE skips the stored replicates", {
     levels = lv
   )
   run_productivity_enrichment(iso, list(set = "A"), group = "g3", levels = lv)
-  testthat::expect_identical(ranked[[1L]], ranked[[2L]])
+  testthat::expect_identical(seen$ranked[[1L]], seen$ranked[[2L]])
   testthat::expect_error(
     run_productivity_enrichment(
       with_draws,
@@ -697,10 +698,11 @@ testthat::test_that("run_productivity_enrichment takes a productive_fraction tab
   lv <- c("a", "b")
   draws <- example_draws(iso)
   pf <- productive_fraction(iso, group = "g3", levels = lv, inf_reps = draws)
-  ranked <- list()
+  seen <- new.env(parent = emptyenv())
+  seen$ranked <- list()
   testthat::local_mocked_bindings(
     fgsea_multilevel = function(pathways, stats, ...) {
-      ranked[[length(ranked) + 1L]] <<- stats
+      seen$ranked[[length(seen$ranked) + 1L]] <- stats
       data.frame(pathway = names(pathways), NES = 1, padj = 1)
     }
   )
@@ -722,9 +724,9 @@ testthat::test_that("run_productivity_enrichment takes a productive_fraction tab
     testthat::expect_identical(from_table$rank_by, rank_by)
     testthat::expect_identical(from_table$experiment, "productive_fraction")
   }
-  testthat::expect_identical(ranked[[1L]], ranked[[2L]])
-  testthat::expect_identical(ranked[[3L]], ranked[[4L]])
-  testthat::expect_false(identical(ranked[[1L]], ranked[[3L]]))
+  testthat::expect_identical(seen$ranked[[1L]], seen$ranked[[2L]])
+  testthat::expect_identical(seen$ranked[[3L]], seen$ranked[[4L]])
+  testthat::expect_false(identical(seen$ranked[[1L]], seen$ranked[[3L]]))
   err <- testthat::expect_error(
     run_productivity_enrichment(
       productive_fraction(iso, group = "g3", levels = lv),
@@ -787,7 +789,7 @@ testthat::test_that("draws without rows, integer draws and infinite values are h
   draws <- example_draws(iso, n = 3L)
   draws[[1L]] <- draws[[1L]][0, , drop = FALSE]
   pf <- productive_fraction(iso, group = "g3", inf_reps = draws)
-  testthat::expect_true(any(!is.na(pf$delta_productive_fraction_sd)))
+  testthat::expect_false(all(is.na(pf$delta_productive_fraction_sd)))
 })
 
 testthat::test_that("the view of the draws gives the values of the dense array", {
@@ -942,7 +944,7 @@ testthat::test_that("the view of the draws gives the values of the dense array",
     testthat::expect_setequal(strsplit(row$transcript_ids, ";")[[1L]], in_group)
     testthat::expect_equal(
       row$mean_count,
-      sum(apply(dense[in_group, kept, ], 1L, mean))
+      sum(rowMeans(dense[in_group, kept, , drop = FALSE]))
     )
   }
   others <- collapsed[collapsed$feature_type == "transcript", ]
@@ -1022,5 +1024,45 @@ testthat::test_that("run_productivity_enrichment tests several collections one b
       group = "condition"
     ),
     nested
+  )
+})
+
+testthat::test_that("run_productivity_enrichment ranks by the statistic of the first and last level", {
+  testthat::skip_if_not_installed("fgsea")
+  iso <- three_group_example()
+  sets <- read_gmt(system.file(
+    "extdata",
+    "reactome_subset.gmt",
+    package = "isoformic"
+  ))
+  lv <- c("a", "b", "c")
+  set.seed(1)
+  res <- suppressWarnings(run_productivity_enrichment(
+    iso,
+    sets,
+    group = "g3",
+    levels = lv,
+    min_size = 3,
+    rank_by = "statistic"
+  ))
+  tested <- test_productive_fraction(iso, group = "g3", levels = c("a", "c"))
+  set.seed(1)
+  from_table <- suppressWarnings(run_productivity_enrichment(
+    tested,
+    sets,
+    min_size = 3,
+    rank_by = "statistic"
+  ))
+  testthat::expect_identical(unique(res$rank_by), "statistic")
+  testthat::expect_equal(res, from_table)
+  testthat::expect_error(
+    run_productivity_enrichment(
+      iso,
+      sets,
+      group = "g3",
+      levels = "a",
+      rank_by = "statistic"
+    ),
+    class = "isoformic_group_levels"
   )
 })

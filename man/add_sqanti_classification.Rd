@@ -27,9 +27,10 @@ biotype for novel transcripts. SQANTI3 classifies every isoform against a
 reference (\verb{*_classification.txt}: \code{isoform}, \code{structural_category},
 \code{associated_gene}, \code{associated_transcript}, \code{subcategory}, ...).
 \code{add_sqanti_classification()} writes those categories into the
-\code{transcript_type} column of an annotation directory (and the associated
-reference transcript / gene into \code{source_transcript_id}, \code{source_gene_id}
-and \code{gene_name} when they are missing), so the SQANTI categories behave
+\code{transcript_type} column of an annotation directory (and, when the
+columns are present, the associated reference transcript into
+\code{source_transcript_id} and the associated gene into the \code{gene_name} of
+genes without a name), so the SQANTI categories behave
 like transcript types everywhere in the package (plots, enrichment by
 category, \code{\link[=tx_diversity]{tx_diversity()}}). The categories are part of
 \code{\link[=tx_type_palette]{tx_type_palette()}}.

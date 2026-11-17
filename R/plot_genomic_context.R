@@ -23,16 +23,19 @@
 #' @param highlight_de Logical, outline isoforms flagged as significant in
 #'   the stored transcript-level results.
 #' @param highlight_poison_exons Logical, outline exons found only in
-#'   unproductive isoforms of the gene (see [poison_exons()]).
+#'   unproductive isoforms of the gene (see [poison_exons()]); used by the
+#'   [IsoformicExperiment] method only.
 #' @param color_palette Named colour vector per transcript type; defaults
 #'   to the object's palette or [tx_type_palette()].
 #' @param upstream_offset,downstream_offset Extra genomic span (bp) shown
 #'   before and after the gene.
 #' @param exon_height Height of exon boxes (0-1).
 #' @param highlight Optional character vector of transcript IDs or names to
-#'   outline (data frame method).
+#'   outline. For an [IsoformicExperiment] it replaces the isoforms chosen
+#'   by `highlight_de`.
 #' @param expression Optional named numeric vector (by transcript ID) used
-#'   to label transcripts (data frame method).
+#'   to label transcripts. For an [IsoformicExperiment] it replaces the
+#'   labels computed from `assay`.
 #' @param ncol Number of facet columns when several genes are plotted.
 #' @param exon_table Legacy argument of `plot_tx_context()`.
 #' @param ... Passed on to methods.

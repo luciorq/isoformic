@@ -156,9 +156,10 @@ annotation_haplotypes <- function(transcripts) {
 #' reference (`*_classification.txt`: `isoform`, `structural_category`,
 #' `associated_gene`, `associated_transcript`, `subcategory`, ...).
 #' `add_sqanti_classification()` writes those categories into the
-#' `transcript_type` column of an annotation directory (and the associated
-#' reference transcript / gene into `source_transcript_id`, `source_gene_id`
-#' and `gene_name` when they are missing), so the SQANTI categories behave
+#' `transcript_type` column of an annotation directory (and, when the
+#' columns are present, the associated reference transcript into
+#' `source_transcript_id` and the associated gene into the `gene_name` of
+#' genes without a name), so the SQANTI categories behave
 #' like transcript types everywhere in the package (plots, enrichment by
 #' category, [tx_diversity()]). The categories are part of
 #' [tx_type_palette()].

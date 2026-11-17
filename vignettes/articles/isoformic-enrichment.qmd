@@ -1,7 +1,7 @@
 ---
 title: "Functional enrichment by transcript type"
 date: 2026-10-17
-date-modified: 2026-10-17
+date-modified: 2026-11-12
 date-format: long
 author:
   - name: Lucio Rezende Queiroz
@@ -107,9 +107,43 @@ plot_enrichment(enrichment, n = 30, experiments = c("protein_coding", "unproduct
 plot_enrichment(enrichment, n = 20, experiments = c("retained_intron", "nonsense_mediated_decay", "processed_transcript"), nes_cutoff = 1.5)
 ```
 
-## Enrichment on the productive fraction
+## Ranking statistic
+
+By default the transcripts are ranked by their log2 fold-change, a point estimate that ignores how well it is determined.
+`rank_by = "signed_p"` ranks them by `-log10(pvalue)` with the sign of the fold-change, so that the test of the differential expression weighs the ranking.
+`rank_by = "lfc_z"` ranks them by the median fold-change over the inferential replicates divided by its standard deviation, so that a fold-change the quantification cannot determine ranks low; it needs the confidence table that `add_uncertainty(x, group = )` stores (see the [uncertainty article](isoformic-uncertainty.html)), which this object does not have.
+The `rank_by` column of the result records the choice.
+
+```{r}
+#| warning: false
+set.seed(42)
+enrichment_p <- run_enrichment(iso, genesets, pval_cutoff = 0.05, rank_by = "signed_p")
+table(enrichment_p$experiment)
+```
+
+## Several collections
+
+`genesets_list` can also be a named list of collections, for example `list(hallmark = read_gmt(h), reactome = read_gmt(r))`.
+Each collection is tested on its own, so that the adjusted p-values are those of the collection; the result has a `collection` column and `plot_enrichment()` draws one panel per collection.
+Every gene set and every collection needs a name.
+Here the Reactome sets are split into signalling and other pathways:
+
+```{r}
+#| warning: false
+collections <- list(
+  signaling = genesets[grepl("SIGNALING", names(genesets), fixed = TRUE)],
+  other = genesets[!grepl("SIGNALING", names(genesets), fixed = TRUE)]
+)
+set.seed(42)
+enrichment_collections <- run_enrichment(iso, collections, pval_cutoff = 0.05)
+count(enrichment_collections, collection, experiment)
+```
+
+## Enrichment on the productive fraction and on 3' end usage
 
 Ranking genes by the change in their productive fraction rather than by fold-change targets regulated unproductive splicing; `run_productivity_enrichment()` is described in the [productivity article](isoformic-productivity.html).
+Ranking them by the change in the usage of their distal 3' end, or in their 3' UTR length, is `run_apa_enrichment()`, described in the [alternative polyadenylation article](isoformic-polyadenylation.html).
+Both take the same gene set collections.
 
 ## Session information
 

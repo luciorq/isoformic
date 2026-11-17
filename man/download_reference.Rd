@@ -21,10 +21,12 @@ download_reference(
 }
 \arguments{
 \item{version}{Release version. GENCODE: the release number (\code{"50"},
-\code{50}, or \code{"M39"} / \code{"39"} for mouse; default \code{"50"}). Ensembl: the
-release number (\code{"116"}); \code{NULL} (default) uses the current release.
-MANE: \code{"1.5"}; \code{NULL} uses the current release. NCBI/T2T: ignored (the
-accession identifies the assembly version).}
+\code{50}, or \code{"M39"} / \code{"39"} for mouse); \code{NULL} (default) uses \code{"50"} for
+human and \code{"M39"} for mouse. Ensembl: the release number (\code{"116"});
+\code{NULL} uses the current release. MANE: \code{"1.5"}; \code{NULL} uses the current
+release. FANTOM: the level (\code{NULL} uses \code{"lv3_robust"}). NCBI: ignored
+(the accession identifies the assembly version); T2T: \code{NULL} or
+\code{"2.0"}.}
 
 \item{reference}{One of \code{"gencode"}, \code{"ensembl"}, \code{"ncbi"}, \code{"t2t"},
 \code{"mane"}, \code{"fantom"}.}
@@ -42,7 +44,8 @@ sites and signals, \code{polyAs.gff3.gz}; see \code{\link[=polya_sites]{polya_si
 patches, haplotypes and scaffolds), \code{"chr"} (reference chromosomes only)
 or \code{"primary"} (primary assembly). For \code{file_type = "genome_fasta"},
 \code{"primary"} selects the primary assembly genome and the other values the
-full patched / toplevel genome. Ignored for NCBI and MANE.}
+full patched / toplevel genome. Ignored for NCBI, T2T, MANE and
+FANTOM.}
 
 \item{species}{Ensembl species name in lower snake case
 (\code{"homo_sapiens"}, \code{"arabidopsis_thaliana"}). Defaults from \code{organism}.}

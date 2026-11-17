@@ -33,7 +33,7 @@ salmon_index(
 first \code{|} so that they match the annotation.}
 
 \item{decoy_fasta}{Optional path to a FASTA file containing decoy sequences
-(default is \code{NULL}).}
+(default is \code{NULL}). Not used yet: the index is built without decoys.}
 
 \item{clip_poly_a}{Logical indicating whether to clip poly-A tails
 (default is \code{TRUE}).}
@@ -49,4 +49,7 @@ The index must be built with the same Salmon major version used for
 \code{salmon_quant()}: Salmon 2 (the Rust rewrite) cannot read indices built by
 Salmon 1.x and rejects them with an error. Rebuild the index after
 upgrading.
+
+Transcripts with identical sequences are all kept (\code{--keepDuplicates}),
+so that every annotated transcript is quantified.
 }

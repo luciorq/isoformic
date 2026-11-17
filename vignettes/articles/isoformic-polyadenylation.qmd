@@ -1,7 +1,7 @@
 ---
 title: "Alternative polyadenylation"
 date: 2026-10-17
-date-modified: 2026-10-17
+date-modified: 2026-11-12
 date-format: long
 author:
   - name: Lucio Rezende Queiroz
@@ -48,7 +48,7 @@ if (!full_run) {
 ```
 
 A change of 3' end does not change the protein but changes the 3' UTR, its miRNA and RNA-binding protein sites, and sometimes the last exon.
-This article ranks the 3' ends of every gene, classifies each isoform by the kind of alternative polyadenylation (APA) it represents, quantifies the usage of the distal site and tests its shift between conditions.
+This article ranks the 3' ends of every gene, classifies each isoform by the kind of alternative polyadenylation (APA) it represents, quantifies the usage of the distal site, tests its shift between conditions and tests gene sets for a shift of their genes.
 
 It starts from the object built in the [introduction](isoformic-introduction.html), with the transcript sequences added in the [productivity article](isoformic-productivity.html) (they are optional here; without them the poly(A) signal columns are `NA`):
 
@@ -101,6 +101,26 @@ The test runs on `counts` when the object has them; this object only carries TPM
 ```{r}
 head(apa_usage(iso, group = "condition"))
 head(test_apa(iso, group = "condition", assay = "abundance"))
+```
+
+`levels` chooses the groups and their order, as in the productivity functions: the change is the last level minus the first, and the samples of other groups are left out.
+
+## Enrichment on 3' end usage
+
+`run_apa_enrichment()` ranks the genes by their change in distal usage (`rank_by = "delta"`, the `delta_distal_fraction` of `apa_usage()`) or in weighted 3' UTR length (`rank_by = "utr3_length"`) and runs gene set enrichment (`fgsea`) on gene symbols.
+A positive score is a gene set whose genes move to distal 3' ends, or to longer 3' UTRs, in the last group level.
+It also takes the table of `apa_usage()` for two or more groups, so that one table serves several calls, and one collection of gene sets or a named list of collections (see the [enrichment article](isoformic-enrichment.html)).
+
+```{r}
+#| warning: false
+genesets <- read_gmt(fs::path(extdata, "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"))
+usage <- apa_usage(iso, group = "condition")
+set.seed(42)
+apa_enrichment <- run_apa_enrichment(usage, genesets)
+head(apa_enrichment[order(apa_enrichment$padj), c("pathway", "NES", "padj")])
+set.seed(42)
+utr_enrichment <- run_apa_enrichment(usage, genesets, rank_by = "utr3_length")
+head(utr_enrichment[order(utr_enrichment$padj), c("pathway", "NES", "padj")])
 ```
 
 ## Session information

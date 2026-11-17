@@ -24,11 +24,21 @@
 #'   of [plot_log2fc()].
 #'
 #' @details
-#' Recognised column synonyms: `log2FoldChange`/`logFC` for `log2FC`;
-#' `padj`/`FDR`/`adj.P.Val`/`svalue` for `qvalue`; `PValue`/`P.Value` for
-#' `pvalue`. Row names are used as IDs when no ID column is present, and
-#' GENCODE-style `|`-suffixed transcript IDs are truncated. When `qvalue`
-#' is absent it is computed with Benjamini-Hochberg adjustment of `pvalue`.
+#' Recognised column synonyms: `log2FoldChange`/`logFC`/`log2fc`/`log2_fc`
+#' for `log2FC`; `padj`/`FDR`/`adj.P.Val`/`svalue`/`fdr`/`q_value` for
+#' `qvalue`; `PValue`/`P.Value`/`pval`/`p_value` for `pvalue`. The ID
+#' column (`transcript_id` or `gene_id`) is also found as `feature_id`,
+#' `id` or `ID` (and `tx_id`/`transcript` or `gene`). Row names are used as
+#' IDs when no ID column is present, and GENCODE-style `|`-suffixed
+#' transcript IDs are truncated. When `qvalue` is absent it is computed with
+#' Benjamini-Hochberg adjustment of `pvalue`.
+#'
+#' `de_cutoffs<-` takes a named list with any of `log2fc`, `pvalue` and
+#' `use_fdr` (also as `log2FC`/`lfc`, `padj` and `fdr`); missing entries
+#' take the defaults and other names are an error.
+#'
+#' The `dea` property also holds the uncertainty tables of
+#' [add_uncertainty()] (`uncertainty`, `ambiguity`, `confidence`).
 #'
 #' @param self An [IsoformicExperiment].
 #' @param value A data frame of results (`de_tx<-`, `de_gene<-`) or a list
@@ -502,10 +512,15 @@ select_deg_det_cols <- function(data) {
 #'   the p-value is `<= pval_cut`.
 #' @param use_fdr Logical, test the `qvalue` column instead of `pvalue` (when
 #'   present), as the stored cutoffs of an [IsoformicExperiment] do.
-#' @param transcript_types Transcript types to keep. `NULL` keeps all.
+#' @param transcript_types Transcript types to keep. The default keeps
+#'   protein coding, `lncRNA`, `retained_intron`,
+#'   `nonsense_mediated_decay`, `non_stop_decay`,
+#'   `processed_transcript`, `protein_coding_CDS_not_defined` and the
+#'   pseudogene types. `NULL` keeps all.
 #'
 #' @returns A tibble with `feature_id`, `feature_name`, `feature_type`,
-#'   `gene_name`, `log2FC`, `pvalue` (and `qvalue` when present) and `is_de`.
+#'   `gene_id` (when present), `gene_name`, `log2FC`, `pvalue` (and `qvalue`
+#'   when present) and `is_de` (`"yes"`/`"no"`).
 #'
 #' @examples
 #' deg_table <- data.frame(

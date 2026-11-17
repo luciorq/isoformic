@@ -72,8 +72,9 @@ analysis and plot is now first a method on the object.
   NMD class (`ptc`, `ptc_start_proximal`, `non_stop`, `long_3utr`, `none`).
   `coding_potential()` scores the longest ORF with the Fickett statistic,
   an in-frame hexamer score and a frozen logistic model trained on GENCODE
-  49 (`build_coding_model()`, `data-raw/build_coding_model.R`; held-out
-  sensitivity 0.96, specificity 0.93).
+  50 (`build_coding_model()`, `data-raw/build_coding_model.R`; 9,938 coding
+  and 10,000 non-coding transcripts, held-out sensitivity 0.941 and
+  specificity 0.919 at the 0.364 cutoff, AUC 0.978).
 * `transcript_productivity()` uses the sequence-derived ORFs when present
   (`use_sequence`), reports `source` (`sequence`, `annotation`, `evidence`),
   distinguishes alternative starts, in-frame changes, frameshifts and stops
@@ -83,22 +84,23 @@ analysis and plot is now first a method on the object.
   APPRIS principal).
 * Frozen evidence datasets (`frozen_datasets()`, `fetch_frozen_data()`,
   `read_frozen_data()`, `build_frozen_*()`): APPRIS principal isoforms and
-  method scores plus SPADE Pfam domain coordinates (e116v50, Ensembl 116 / GENCODE 50), GENCODE
-  Ribo-seq ORFs phase 1 and 2, NMD-inducing exons validated by NMD
-  inhibition (Karousis et al. 2021), the PolyASite 2.0 atlas and GTEx v8
-  median transcript TPM per tissue. Files are pinned by version and MD5,
-  downloaded from the first mirror that has them (`frozen_mirrors()`: user
-  option, the `frozen-data` GitHub release, the Zenodo snapshot of the
-  processed files) or rebuilt from the sources; `bundle_frozen_data()`
-  assembles the Zenodo deposit and `data-raw/README.md` documents the
-  update and deposit procedure.
+  method scores plus SPADE Pfam domain coordinates (e116v50, Ensembl 116 /
+  GENCODE 50), GENCODE Ribo-seq ORFs phase 1 and 2, NMD-inducing exons
+  validated by NMD inhibition (Karousis et al. 2021), the PolyASite 2.0
+  atlas and GTEx v8 median transcript TPM per tissue. Files are pinned by
+  version and MD5, downloaded from the first mirror that has them
+  (`frozen_mirrors()`: user option, the `frozen-data` GitHub release, the
+  Zenodo snapshot of the processed files) or rebuilt from the sources;
+  `bundle_frozen_data()` assembles the Zenodo deposit and
+  `data-raw/README.md` documents the update and deposit procedure.
 * New article "What makes an isoform hard to quantify?": three samples
-  quantified with 30 and 100 Gibbs draws, and how transcript type, reads, length,
-  exons, isoforms in the gene, GC content, MANE and support tags, NAGNAG and
-  nearby alternative splice sites, unique exonic bases, the closest sibling and
-  unique fragments relate to the inferential uncertainty, to how reliably 30
-  draws measure it, and to the stability of TreeTerminus trees. The tables come
-  from `data-raw/knockdown/isoform_features.R` and ship in
+  quantified with 30 and 100 Gibbs draws, and how transcript type, reads,
+  length, exons, isoforms in the gene, GC content, MANE and support tags,
+  NAGNAG and nearby alternative splice sites, unique exonic bases, the
+  closest sibling and unique fragments relate to the inferential
+  uncertainty, to how reliably 30 draws measure it, and to the stability of
+  TreeTerminus trees. The tables come from
+  `data-raw/knockdown/isoform_features.R` and ship in
   `inst/extdata/knockdown/stability/`.
 * `read_treeterminus()` reads the transcript trees of TreeTerminus (Newick;
   leaves are positions in `quant.sf`, named from a Salmon directory) and
@@ -146,8 +148,14 @@ analysis and plot is now first a method on the object.
   Oarfish and Salmon in one call is an error (`isoformic_mixed_quantifiers`).
 * `inferential_overdispersion()` and `scale_counts()` put the quantification
   uncertainty into the counts as `edgeR::catchSalmon()` does (Baldoni et al.
-  2024), from the replicates stored in the object; the estimates match
-  `catchSalmon()` on a full 517,038-transcript quantification. A read-split
+  2024). `add_uncertainty()` keeps only the replicates of the transcripts
+  with a mean count of at least `min_count`, but
+  `read_inferential_replicates()` records the mean and variance of the
+  replicates of every transcript (`moments` attribute), and the prior and
+  the estimates come from them: on six GSE129540 samples with 68,245 of
+  517,038 transcripts kept (`min_count = 5`), every estimate matches
+  `catchSalmon()` (largest relative difference 4e-12), and the prior is 1.61,
+  where the kept transcripts alone would give 5.23. A read-split
   experiment on GSE129540 (data-raw/knockdown/validate_uncertainty.R) backs
   the confidence classes: of the isoforms that are large and stable over the
   draws in null contrasts, almost none are classed high, and the isoforms
@@ -182,9 +190,9 @@ analysis and plot is now first a method on the object.
   independent of them. On the six GSE129540 samples 13,790 of 116,389
   expressed isoforms are non-identifiable in every sample, and their
   estimates differ more between two halves of the reads (median absolute
-  log2 ratio 2.4 against 0.7 at 20 to 100 reads). Takes one to three minutes
-  per human sample and needs `Matrix` (new in `Suggests`) for the largest
-  block of transcripts.
+  log2 ratio 2.4 against 0.7 at 20 to 100 reads). Takes half a minute to
+  three minutes per human sample and needs `Matrix` (new in `Suggests`) for
+  the largest block of transcripts.
 * `add_uncertainty(identifiability = TRUE)` runs it and adds `identifiable`
   and `identifiable_fraction` to `tx_uncertainty()`; the table of
   `equivalence_identifiability()` can be passed in its place.
@@ -192,31 +200,15 @@ analysis and plot is now first a method on the object.
   condition against the call (reason `not identifiable from the equivalence
   classes`) and returns an `identifiable` column. Off by default, so
   existing results do not change.
-* The coding potential model of `coding_potential()` and
-  `transcript_orfs()` is retrained on GENCODE 50 (9,938 coding and 10,000
-  non-coding transcripts): held-out sensitivity 0.941 and specificity 0.919
-  at the 0.364 cutoff, AUC 0.978. On the same transcripts the previous
-  model (GENCODE 49) has 0.928, 0.936 and 0.977, so `coding_probability`
-  values change slightly and the accuracy does not.
 * `transcript_productivity()` treats the GENCODE biotype
   `protein_coding_LoF` (148 transcripts in release 50) as unproductive when
   `use_biotype = TRUE`: a variant of the reference genome stops its
   translation.
-* Fixes from a code review: `write_isoformic(overwrite = TRUE)` writes to a
-  sibling directory and swaps it in, so overwriting the directory an object
-  was read from no longer deletes it (and refuses directories that are not
-  experiments, `isoformic_not_experiment_dir`); `de_table()` and
-  `plot_log2fc()` accept results that already have `gene_name`, `gene_id` or
-  `transcript_name` columns; `test_productive_fraction()` and `test_apa()`
-  contrast two of several groups with `levels`; `join_DEG_DET()` uses the same
-  cutoff rule as the stored cutoffs (`>=` and `<=`) and gains `use_fdr`; a
-  frozen dataset that fails its checksum after download is discarded and the
-  next mirror is tried; `plot_log2fc()` no longer drops its title when a
-  requested feature has no data; the assay hash behind the caches is computed
-  once when the assays are set; `tools` is declared in Imports.
 * Inferential replicates convert to and from a long table
   (`inferential_replicates_table()`, `as_inferential_replicates()`), and the
-  bundled draws are Parquet tables instead of `.rds` files.
+  bundled draws are Parquet tables instead of `.rds` files. Their moments
+  convert in the same way (`inferential_moments_table()`, the `moments`
+  argument of `as_inferential_replicates()`).
 * Real ESRP knockdown examples for the uncertainty article: GSE129540
   (prostate cancer, `ESRP2` siRNA) and GSE75489 (H358 cells, `ESRP1/2`
   shRNA), re-quantified with Salmon 2.8.0 and 30 Gibbs draws, reduced to 41
@@ -240,22 +232,14 @@ analysis and plot is now first a method on the object.
   `plot_inf_rv()` draw them. `isoform_switches(confident_only = TRUE)`,
   `dominant_isoform()` and `productive_fraction()` use them. The tables are
   written by `write_isoformic()`; the draws stay in memory.
-* `salmon_quant()` draws 30 Gibbs samples by default (it was 100;
-  `num_gibbs = 0` skips them).
-* `salmon_index()` and `salmon_quant()` target Salmon 2 (the Rust rewrite;
-  the conda environment installs 2.8.0): options that Salmon 2 ignores
-  (`--no-version-check`, `--type puff`, `--disableChainingHeuristic`,
-  `--useVBOpt`) are no longer passed, single-end reads are passed with
-  `--unmatedReads`, and the documentation explains that indices built with
-  Salmon 1.x must be rebuilt.
 * The documentation site is split into an introduction, a preprocessing
   article and one article per analysis (diversity, productivity,
   polyadenylation, enrichment, plots), plus articles on other annotations and
   on the table-based functions.
 * `?isoformic-options` documents every option and environment variable the
-  package reads or is affected by: the `isoformic.frozen_mirrors` option, the
-  base R download options, the cache location variables and the settings of
-  DuckDB and `condathis`.
+  package reads or is affected by: the `isoformic.frozen_mirrors` and
+  `isoformic.orf_cache` options, the base R download options, the cache
+  location variables and the settings of DuckDB and `condathis`.
 * Evidence joins: `add_appris()`, `add_riboseq_orfs()` (listed transcripts
   and exon-block compatibility, `riboseq_main_orf`, `riboseq_uorf`),
   `add_nmd_exons()`, `domain_retention()` (domains retained, partial or
@@ -277,12 +261,16 @@ analysis and plot is now first a method on the object.
   GENCODE poly(A) GFF (`download_reference(file_type = "polya")`,
   `read_polya_gff()`); `apa_usage()` quantifies distal usage and weighted
   3' UTR length per sample or group and `test_apa()` tests the shift.
+* `run_apa_enrichment()` runs a gene set enrichment analysis on the genes
+  ranked by their change in distal 3' end usage (`rank_by = "delta"`) or in
+  weighted 3' UTR length (`"utr3_length"`), from an object or from the table
+  of `apa_usage()`.
 * Long-read and assembled transcript catalogs: StringTie/Bambu/FLAIR style
   GTF attributes (`reference_id`, `ref_gene_id`, `ref_gene_name`) are kept,
   and `add_sqanti_classification()` writes SQANTI3 structural categories
   into `transcript_type`; `tx_type_palette()` includes those categories and
-  the `unknown`/`novel` labels. Tables are read on first use and cached keyed by file
-  signature, so objects sharing an annotation share one copy.
+  the `unknown`/`novel` labels. Tables are read on first use and cached
+  keyed by file signature, so objects sharing an annotation share one copy.
 * Experiments persist as Parquet directories: `write_isoformic()` and
   `read_isoformic()` (optionally self-contained with `copy_annotation = TRUE`).
 * Readers: `read_salmon()` reads `quant.sf` files straight into an
@@ -305,7 +293,7 @@ analysis and plot is now first a method on the object.
 * `as_summarized_experiment()` converts back to `SummarizedExperiment` at the
   transcript or gene level; `as_isoformic()` also accepts `tximport` lists.
 * `example_isoformic()` loads a bundled experiment (preeclampsia placenta
-  subset, GENCODE v33) used by all examples and tests.
+  subset, GENCODE v50) used by all examples and tests.
 * `profile_data()` and `plot_tx_expr()` methods for the object;
   `plot_enrichment()` and `read_gmt()`.
 * `summarize_to_gene()` is exported and sums isoforms (abundance-weighted
@@ -321,8 +309,9 @@ analysis and plot is now first a method on the object.
   carries its DOI.
 * `pixi.toml` and `pixi.lock` define an isolated development environment
   for Linux, macOS (Apple silicon) and Windows: `pixi install`, then
-  `pixi run test`. Linux and macOS take all R packages from conda-forge and
-  bioconda. On Windows, `pixi run r-packages` installs the packages that
+  `pixi run test`. Linux and macOS take the R packages from conda-forge and
+  bioconda, and build `condathis`, which conda-forge lacks, from its GitHub
+  repository. On Windows, `pixi run r-packages` installs the packages that
   conda lacks there (`duckdb`, `condathis` and the Bioconductor packages) as
   binary packages from CRAN, r-universe and Bioconductor 3.22. On Linux and
   macOS the environment also has LaTeX (a pinned TinyTeX release, packaged
@@ -331,6 +320,14 @@ analysis and plot is now first a method on the object.
 
 ### Changed
 
+* `salmon_quant()` draws 30 Gibbs samples by default (it was 100;
+  `num_gibbs = 0` skips them).
+* `salmon_index()` and `salmon_quant()` target Salmon 2 (the Rust rewrite;
+  the conda environment installs 2.8.0): options that Salmon 2 ignores
+  (`--no-version-check`, `--type puff`, `--disableChainingHeuristic`,
+  `--useVBOpt`) are no longer passed, single-end reads are passed with
+  `--unmatedReads`, and the documentation explains that indices built with
+  Salmon 1.x must be rebuilt.
 * `add_uncertainty()` reports when the replicates give fewer than 60
   degrees of freedom over the study (samples x (replicates - 1); Baldoni,
   Chen and Smyth 2024), the number is stored and stated by
@@ -375,11 +372,11 @@ analysis and plot is now first a method on the object.
   mouse). Errors are specific: no internet, release not found (listing the
   latest releases), file not found in the release (listing the candidates),
   and failed or empty transfers (partial files are removed). Defaults:
-  GENCODE release 50 (M39 for mouse), `file_type = "gff"`, `output_path = ":cache:"`.
+  GENCODE release 50 (M39 for mouse), `file_type = "gff"`,
+  `output_path = ":cache:"`.
 * Development tooling: `jarl.toml` (all jarl rules), a `jarl-check` GitHub
   workflow, lint and test-coverage workflows, and justfile recipes aligned
   with `condathis`.
-
 * `group` and `levels` choose the samples in the same way in every function
   that has them (`productive_fraction()`, `productivity_fractions()`,
   `test_productive_fraction()`, `run_productivity_enrichment()`,
@@ -406,20 +403,31 @@ analysis and plot is now first a method on the object.
 * `productive_fraction()` reads the inferential replicates one at a time
   and keeps only running sums, restricted to the transcripts of coding genes
   and the samples of the `levels`, instead of holding the fractions of all
-  the replicates: about 18 times faster with a fraction of the memory on
+  the replicates: about 14 times faster with about half the peak memory on
   295,000 transcripts, 12 samples and 100 replicates, with the same results.
   `inf_reps = FALSE` skips the stored replicates. With the default
   `rank_by = "delta"`, `run_productivity_enrichment()` does not read them.
 * `run_productivity_enrichment()` also takes the table of
   `productive_fraction()`, so that one table serves several gene set
   collections.
+* `run_productivity_enrichment(rank_by = "statistic")` ranks genes by the
+  test of `test_productive_fraction()` on the `"counts"` assay, between the
+  first and the last level, as the signed normal quantile of its p-value
+  (the degrees of freedom differ between genes). It accounts for the reads
+  of each gene and the variation between its samples, which `delta_z`, a
+  measure of the quantification uncertainty only, does not. It also takes
+  the table of `test_productive_fraction()`.
+* `productive_fraction()`, `test_productive_fraction()` and
+  `run_productivity_enrichment()` gain `min_gene_count`: genes whose mean
+  count (the sum of their isoforms in the `"counts"` assay) is below it in
+  any group are dropped before the statistics and the BH adjustment. Off by
+  default (0).
 * `add_uncertainty()`, `de_confidence()`, `inferential_overdispersion()`,
   `scale_counts()`, `uncertainty_report()` and `test_usage()` read the
   inferential replicates one at a time from the stored list instead of
-  copying them into a dense array: on 534,000 transcripts, 12 samples and
-  100 replicates the memory above the object went from 19 GB to under 4 GB
-  for `add_uncertainty(group = )` and `de_confidence()`, with the same
-  results.
+  copying them into a dense array: `add_uncertainty(group = )` and
+  `de_confidence()` held up to five arrays of the stored replicates at once
+  and now hold one replicate at a time, with the same results.
 * `run_enrichment()` gains `rank_by`: besides the fold-change
   (`"log2FC"`, the default) the transcripts can be ranked by
   `-log10(pvalue)` with the sign of the fold-change (`"signed_p"`) or by the
@@ -427,34 +435,28 @@ analysis and plot is now first a method on the object.
   deviation (`"lfc_z"`, from the confidence table of
   `add_uncertainty(x, group = )`), so that a fold-change the quantification
   cannot determine ranks low. The result has a `rank_by` column.
-* `run_apa_enrichment()` runs a gene set enrichment analysis on the genes
-  ranked by their change in distal 3' end usage or in weighted 3' UTR
-  length, from an object or from the table of `apa_usage()`.
 * `run_enrichment()`, `run_productivity_enrichment()` and
   `run_apa_enrichment()` take several collections of gene sets at once (a
   named list of gene set lists, for example
   `list(hallmark = read_gmt(h), reactome = read_gmt(r))`): each collection is
   tested on its own and the result has a `collection` column, by which
-  `plot_enrichment()` splits its panels. Every gene set now needs a name: a
-  list with a missing or empty name is an error
+  `plot_enrichment()` splits its panels. Every gene set and every collection
+  now needs a name: a list with a missing or empty name is an error
   (`isoformic_invalid_genesets`) instead of a set dropped without notice.
   An enrichment without result is a table with the `fgsea` columns and no
   rows.
-* `productive_fraction()` with inferential replicates stops when a level of
-  `group` is named `sd`, whose column `productive_fraction_sd` used to be
-  overwritten by the standard deviation over the replicates.
 * `transcript_orfs()` keeps the ORFs it computes in
   `annot_data_orfs.parquet` in the annotation directory, and later calls,
   sessions and objects with the same annotation read them back: for the
-  534,000 transcripts of GENCODE 49 the ORFs take 5 seconds instead of more
-  than 5 minutes, and `transcript_productivity()` about 35 seconds instead
-  of 7 minutes, once the table is written. The results are the same.
+  534,000 transcripts of GENCODE 49 the ORFs take 15 to 45 seconds instead
+  of about 11 minutes, and `transcript_productivity()` about one minute
+  instead of 10, once the table is written. The results are the same.
   `options(isoformic.orf_cache = FALSE)` turns the table off.
 * `cut_transcript_trees()` reads the inferential replicates one at a time
   and keeps only the mean and variance of the tree nodes, instead of a dense
   array of all the replicates.
 * `x[i, j]` subsets everything stored by transcript or by sample: the
-  inferential replicates in `metadata(x)$inf_reps` and stored gene assays
+  inferential replicates in `x@metadata$inf_reps` and stored gene assays
   follow the assays, and the uncertainty tables are restricted to the kept
   transcripts. Dropping samples leaves the uncertainty tables as computed
   and says so (`add_uncertainty(x)` recomputes them from the subset
@@ -469,12 +471,11 @@ analysis and plot is now first a method on the object.
   3.0.3. The tests also pass with `duckdb` 2.0.0.
 * `jsonlite` and `readr` are in `Suggests`. The test that compares the
   inferential overdispersion with `edgeR::catchSalmon()` needs them.
-
 * Lower memory use and faster subsetting on large objects, with the same
   results. `read_inferential_replicates()` (and `add_uncertainty(paths = )`)
   holds one sample at a time instead of every sample twice: its peak falls
   from about 2.5 to about 1 time the size of all the replicates. `x[i, j]`
-  matches the transcripts once instead of twice per replicate (about 9
+  matches the transcripts once instead of twice per replicate (about 3
   times faster with 295,000 transcripts and 20 replicates), validates the
   object once, and returns the replicates without a copy when the subset
   keeps everything. A subset with other transcripts gets its own cache of
@@ -483,11 +484,40 @@ analysis and plot is now first a method on the object.
   `write_isoformic()` no longer make spare copies of the assays.
 * `as_summarized_experiment()` leaves the inferential replicates out of the
   metadata of the result.
-* `write_isoformic(copy_annotation = TRUE)` does not copy the stored ORF
-  table, which was not valid for the copy.
 
 ### Fixed
 
+* `example_isoformic()` copies the bundled annotation directory to a new
+  temporary directory on every call and points the object there, so the
+  functions that store tables in the annotation (`extract_transcript_sequences()`,
+  `transcript_orfs()`, `add_appris()`, `add_riboseq_orfs()`,
+  `add_nmd_exons()`) no longer write into, or fail on, the installed package.
+  Save with `write_isoformic(copy_annotation = TRUE)` to keep the annotation
+  after the session.
+* `salmon_index(decoy_fasta = )` builds a decoy-aware index (usually with the
+  genome FASTA of the same release, plain or gzipped): it writes the
+  gentrome (transcripts followed by the decoys) and `decoys.txt` to a
+  temporary directory and passes them to `salmon index`. The argument was
+  accepted and ignored before.
+* The `...` argument of the generics whose methods do not use it is
+  documented as not used.
+* Fixes from a code review: `write_isoformic(overwrite = TRUE)` writes to a
+  sibling directory and swaps it in, so overwriting the directory an object
+  was read from no longer deletes it (and refuses directories that are not
+  experiments, `isoformic_not_experiment_dir`); `de_table()` and
+  `plot_log2fc()` accept results that already have `gene_name`, `gene_id` or
+  `transcript_name` columns; `test_productive_fraction()` and `test_apa()`
+  contrast two of several groups with `levels`; `join_DEG_DET()` uses the same
+  cutoff rule as the stored cutoffs (`>=` and `<=`) and gains `use_fdr`; a
+  frozen dataset that fails its checksum after download is discarded and the
+  next mirror is tried; `plot_log2fc()` no longer drops its title when a
+  requested feature has no data; the assay hash behind the caches is computed
+  once when the assays are set; `tools` is declared in Imports.
+* `productive_fraction()` with inferential replicates stops when a level of
+  `group` is named `sd`, whose column `productive_fraction_sd` used to be
+  overwritten by the standard deviation over the replicates.
+* `write_isoformic(copy_annotation = TRUE)` does not copy the stored ORF
+  table, which was not valid for the copy.
 * `prepare_isoformic_annotation()` kept only the first `##sequence-region`
   of a GENCODE GFF3 file (one row, `chr1`), because GENCODE writes one pragma
   before the features of each sequence and only the header was read. The
@@ -520,7 +550,8 @@ analysis and plot is now first a method on the object.
   `BiocParallel::SerialParam()` unless `BPPARAM` or `nproc` is given; the
   default socket cluster failed (`serialize()` errors) or hung on Windows
   (#9).
-* `stream_fasta()` drops the carriage returns of Windows (CRLF) FASTA files.
+* `extract_transcript_sequences()` and `extract_splice_sites()` drop the
+  carriage returns of Windows (CRLF) FASTA files.
 * DuckDB connections set their extension, secret and temporary directories
   under the session temporary directory, which silences the storage warnings
   of DuckDB 2.0.
@@ -529,15 +560,24 @@ analysis and plot is now first a method on the object.
 * The default tests, examples and site build use only the bundled data;
   everything that downloads references or runs external tools runs only with
   `ISOFORMIC_FULL=true`.
+* `test_productive_fraction()` and `test_apa()` no longer test genes with
+  fewer than 5 reads in their smaller class (productive or not, distal or
+  not), pooled over both groups, or without reads in one group. The
+  continuity correction gave such genes, including those with a stray
+  fraction of a read in one class, a log odds ratio of about the log
+  fold-change of the gene: a change in expression, not in usage. They have
+  no statistic or p-value and do not enter the BH adjustment; their log
+  odds ratio is 0, or `NA` without reads in one group.
 
 ### Removed
 
-* `ContextData`, `create_context_data()` and `prepare_annotation_db()`.
-* Dependencies `arrow`, `vroom`, `readr`, `purrr`, `stringr`, `tidyr` and
-  `ggpubr`; suggested packages `plotgardener`, `txdbmaker`,
-  `GenomicFeatures`, `IRanges`, `AnnotationHub`, `org.Hs.eg.db`,
-  `BSgenome.Hsapiens.NCBI.GRCh38`, `TxDb.Hsapiens.UCSC.hg38.knownGene`,
-  `viridis`, `carrier` and `mirai`.
+* `ContextData` and `create_context_data()`.
+* Imported packages `forcats`, `GenomicFeatures`, `ggpubr`, `IRanges`,
+  `plotgardener`, `purrr`, `stringr`, `tidyr`, `txdbmaker` and `vroom`;
+  `fgsea` and `readr` move to `Suggests`. Suggested packages `rmarkdown` and
+  `viridis`.
+* The `isoformic_intro` vignette, replaced by the articles of the
+  documentation site.
 
 ## Isoformic 0.1.2
 

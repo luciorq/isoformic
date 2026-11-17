@@ -48,9 +48,10 @@
 #'   \item{`rlang_interactive`}{Overrides [interactive()] for
 #'     `rlang::is_interactive()`. In a non-interactive session the download
 #'     progress is silenced (`quiet = TRUE` in [utils::download.file()]) and
-#'     missing optional packages (`fgsea`, `condathis`, `readxl`,
-#'     `SummarizedExperiment`) raise an error instead of an installation
-#'     prompt.}
+#'     missing optional packages (for example `fgsea`, `condathis`,
+#'     `readxl`, `Matrix`, `SummarizedExperiment`, or `edgeR`, `limma`,
+#'     `satuRn`, `DEXSeq` and `BiocParallel` for [test_usage()]) raise an
+#'     error instead of an installation prompt.}
 #'   \item{`cli.num_colors`, `cli.unicode`, `cli.default_handler`,
 #'     `cli.width`, `cli.progress_show_after`}{Rendering of every message,
 #'     warning and error, which the package emits through the `cli` package.
@@ -78,7 +79,8 @@
 #'   \item{`http_proxy`, `https_proxy`, `ftp_proxy`, `no_proxy`}{Proxy
 #'     settings honoured by [utils::download.file()] and [url()] (`libcurl`
 #'     and `internal` methods) and therefore by every download in the
-#'     package, including the connectivity check `curl::has_internet()`.}
+#'     package, including the connectivity check `curl::has_internet()`
+#'     that the download functions run first when `curl` is installed.}
 #'   \item{`CURL_CA_BUNDLE`, `SSL_CERT_FILE`}{Certificate bundle used by the
 #'     `libcurl` download method, needed behind TLS-intercepting proxies.}
 #' }
@@ -90,19 +92,26 @@
 #'     short-lived in-memory DuckDB connection with the DuckDB defaults:
 #'     all CPU cores (`threads`) and 80% of the RAM as `memory_limit`. The
 #'     package does not expose these; they are DuckDB session settings and
-#'     the connections are not shared with user code. Extensions, secrets
-#'     and the files of a query that spills to disk go to
-#'     `isoformic-duckdb/` under [tempdir()], unless the `duckdb.home`
+#'     the connections are not shared with user code. Besides the storage
+#'     locations below, the package only turns off the DuckDB progress bar
+#'     (`enable_progress_bar`). Extensions, secrets and the files of a
+#'     query that spills to disk go to `isoformic-duckdb/` under
+#'     [tempdir()], unless the `duckdb.home`
 #'     option or the `DUCKDB_R_HOME` environment variable is set: DuckDB
 #'     then uses its own locations under that directory.}
+#'   \item{BiocParallel}{The `fgsea` calls of the enrichment functions run
+#'     with `BiocParallel::SerialParam()` unless `BPPARAM` or `nproc` is
+#'     passed through `...`, so a backend set with `BiocParallel::register()`
+#'     is not used. [test_usage()] uses its `workers` argument instead.}
 #'   \item{`condathis.micromamba_path`, `CONDATHIS_MICROMAMBA_PATH`,
-#'     `CONDA_PREFIX`, `XDG_DATA_HOME`}{Read by the `condathis` package,
-#'     which [salmon_index()] and [salmon_quant()] use to run `salmon` in a
-#'     micromamba environment: where the `micromamba` binary is found and
-#'     where environments are created. See `?condathis::condathis`.}
+#'     `CONDA_PREFIX`, `R_USER_DATA_DIR`, `XDG_DATA_HOME`}{Read by the
+#'     `condathis` package, which [salmon_index()], [salmon_quant()] and
+#'     [run_terminus()] use to run `salmon` and Terminus in micromamba
+#'     environments: where the `micromamba` binary is found and where
+#'     environments are created. See `?condathis::condathis`.}
 #'   \item{`BIOCONDUCTOR_*`, `R_LIBS*`}{Only relevant for installing the
-#'     optional packages (`fgsea`, `SummarizedExperiment`); the package itself
-#'     does not read them.}
+#'     optional packages (`fgsea`, `SummarizedExperiment`, `edgeR`, ...);
+#'     the package itself does not read them.}
 #' }
 #'
 #' @section Development and test settings:
@@ -116,14 +125,17 @@
 #'   \item{`TESTTHAT_CPUS`}{Number of parallel testthat workers used by
 #'     `just test`.}
 #'   \item{`NOT_CRAN`}{Set to `"true"` by `devtools::test()`; tests that need
-#'     optional packages use `testthat::skip_if_not_installed()` rather than
-#'     network access, so no test downloads data.}
+#'     optional packages use `testthat::skip_if_not_installed()`, and only
+#'     the tests gated by `ISOFORMIC_FULL` download data.}
 #'   \item{`_R_CHECK_SYSTEM_CLOCK_`}{Set to `"0"` by `just check` to skip the
 #'     clock check of `R CMD check --as-cran`.}
-#'   \item{`HOME`, `R_USER_CACHE_DIR`, `XDG_CACHE_HOME`, `R_USER_DATA_DIR`,
-#'     `XDG_DATA_HOME`, `LOCALAPPDATA`, `APPDATA`}{The test setup redirects
-#'     all of them to temporary directories so that tests never touch the
-#'     user cache.}
+#'   \item{`HOME`, `USERPROFILE`, `R_USER_CACHE_DIR`, `XDG_CACHE_HOME`,
+#'     `R_USER_DATA_DIR`, `XDG_DATA_HOME`, `LOCALAPPDATA`, `APPDATA`}{The
+#'     test setup redirects all of them to temporary directories so that
+#'     tests never touch the user cache.}
+#'   \item{`warnPartialMatchArgs`, `warnPartialMatchAttr`,
+#'     `warnPartialMatchDollar`}{Set to `TRUE` by the test setup, so that a
+#'     partial match of an argument, attribute or `$` name is a warning.}
 #' }
 #'
 #' @seealso [get_isoformic_cache()], [frozen_data], [download_reference()]
@@ -142,5 +154,5 @@
 #'   get_isoformic_cache("frozen")
 #' )
 #' @name isoformic-options
-#' @aliases isoformic_options isoformic.frozen_mirrors
+#' @aliases isoformic_options isoformic.frozen_mirrors isoformic.orf_cache
 NULL

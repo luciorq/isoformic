@@ -411,9 +411,17 @@ Acceptance: identical consensus to the shell run.
   applied; baseline of the AlphaGenome pilot evaluation written and run
   (`data-raw/alphagenome/03_evaluate.R`, numbers in
   `ALPHAGENOME-BENCHMARK.md` section 4); first step of U5 applied
-  (`equivalence_identifiability()`). Then: identifiability in `de_confidence()`, `protein_coding_LoF` unproductive. AlphaGenome
+  (`equivalence_identifiability()`). Then: identifiability in
+  `de_confidence()`, `protein_coding_LoF` unproductive. AlphaGenome
   pilot finished (A3): no gain over the baseline, A6 closed. Open: ranges of
   U5, U10, A5 (needs measured intron coverage), rerun of the v50 benchmark
   table with the retrained coding model (A8), A9
   (APPRIS uploaded; licence question and other datasets in
   `ALPHAGENOME-BENCHMARK.md`).
+- 2026-11-12: memory audit, partial. Applied: `read_inferential_replicates()`
+  holds one sample's replicate file at a time and fills matrices allocated
+  once; `x[i, j]` matches the draw positions once per distinct dimnames and
+  does not copy a draw that already is the selection; a subset with other
+  transcripts gets its own object cache; `?IsoformicExperiment` advises
+  `levels =` over subsetting. The coding potential model was retrained on
+  GENCODE 50 (A8). The open items are in the Backlog above.

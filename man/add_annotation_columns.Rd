@@ -35,9 +35,16 @@ using the annotation sees them and caches refresh automatically). This is
 the hook for evidence that the package does not compute itself: FANTOM
 CAGE clusters, GTEx dominant isoforms per tissue, Ribo-seq translation
 calls, NMD-inhibition responses, protein domain retention, long-read
-full-length counts. A column named \code{productivity_evidence} with values
-\code{"productive"} / \code{"unproductive"} overrides the call of
-\code{\link[=transcript_productivity]{transcript_productivity()}}.
+full-length counts. A column named \code{productivity_evidence} holding one of
+the classes of \code{\link[=productivity_palette]{productivity_palette()}} (\code{"productive"},
+\code{"altered_productive"}, \code{"unproductive"}, \code{"noncoding"}, \code{"uncertain"})
+overrides the call of \code{\link[=transcript_productivity]{transcript_productivity()}}; other values are
+ignored.
+}
+\details{
+Only the first row of each key of \code{table} is used. An annotation column
+with the name of a new column is replaced, and rows of the annotation
+without a match get \code{NA}.
 }
 \examples{
 gff <- system.file("extdata", "example.gff3", package = "isoformic")

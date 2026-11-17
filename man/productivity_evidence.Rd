@@ -51,7 +51,9 @@ the listed NMD isoforms. This is unproductive evidence.
 
 Each function returns the annotation directory path invisibly and
 invalidates the object caches of \code{x} (the next call to a method rereads
-the annotation).
+the annotation). When no transcript of the annotation matches the
+dataset, the function raises an error of class
+\code{isoformic_invalid_evidence} and the annotation is left unchanged.
 }
 \examples{
 \dontrun{

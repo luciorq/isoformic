@@ -18,7 +18,8 @@ IsoformicExperiment(
 )
 }
 \arguments{
-\item{experiment_name}{Single string naming the experiment.}
+\item{experiment_name}{Single string naming the experiment; a random name
+is generated when \code{NULL}.}
 
 \item{annot_path}{Annotation directory or GFF3/GTF file.}
 
@@ -26,7 +27,8 @@ IsoformicExperiment(
 with a \code{transcript_id} column).}
 
 \item{col_data}{Data frame of sample metadata with a \code{sample_id} column
-(or sample IDs as row names / first column).}
+(or sample IDs as row names / first column). \code{NULL} builds it from the
+column names of the assays.}
 
 \item{gene_assays}{Optional named list of gene-level matrices.}
 
@@ -68,9 +70,10 @@ cached in memory keyed by file path, size and modification time, so a
 re-created annotation is picked up automatically and several objects
 sharing one annotation share one copy of the tables.
 
-Derived results (gene assays, row data, isoform fractions) are cached per
-object in the \code{.cache} environment, keyed by a hash of their inputs, and
-therefore survive copies but never go stale. See \code{\link[=clear_cache]{clear_cache()}}.
+Derived results (gene assays, row data, isoform fractions, ORFs,
+transcript features and productivity classes) are cached per object in
+the \code{.cache} environment, keyed by a hash of their inputs, and therefore
+survive copies but never go stale. See \code{\link[=clear_cache]{clear_cache()}}.
 
 Objects persist to disk as a directory of Parquet files with
 \code{\link[=write_isoformic]{write_isoformic()}} and are restored with \code{\link[=read_isoformic]{read_isoformic()}}.
@@ -89,8 +92,9 @@ empty object.}
 \item{\code{col_data}}{Tibble of sample metadata; its \code{sample_id} column
 matches the assay column names.}
 \item{\code{dea}}{List with differential expression results: \code{det}
-(transcripts), \code{deg} (genes) and \code{cutoffs}. Use \link{de_tx<-} and
-\link{de_gene<-} to set them.}
+(transcripts), \code{deg} (genes) and \code{cutoffs}, and the uncertainty
+tables of \code{\link[=add_uncertainty]{add_uncertainty()}}. Use \link{de_tx<-} and \link{de_gene<-} to set
+the results.}
 \item{\code{gsea}}{Named list of enrichment result tables.}
 \item{\code{metadata}}{Free-form named list.}
 \item{\code{annot_metadata}}{Named list describing the annotation source,
@@ -105,20 +109,22 @@ transcript type, used by all plots. Defaults to \code{\link[=tx_type_palette]{tx
 \section{Subsetting}{
 
 \code{x[i, j]} keeps the transcripts \code{i} and the samples \code{j}, given as IDs,
-positions or logical vectors, and at least one of each. Everything stored by transcript or by sample
-follows: the assays, the sample table, stored gene assays (the genes of
-the kept transcripts) and the inferential replicates in
-\code{metadata(x)$inf_reps}. The uncertainty tables of \code{\link[=add_uncertainty]{add_uncertainty()}} are
-restricted to the kept transcripts (a collapsed ambiguity group stays only
-with all its members); when samples are dropped they are not recomputed,
-and a message says so. Differential expression and enrichment
-results are kept as they are.
+positions or logical vectors; a missing \code{i} or \code{j} keeps all of them, and
+the subset must hold at least one transcript and one sample. Everything
+stored by transcript or by sample follows: the assays, the sample table,
+stored gene assays (the genes of the kept transcripts) and the
+inferential replicates in \code{x@metadata$inf_reps}. The uncertainty tables
+of \code{\link[=add_uncertainty]{add_uncertainty()}} are restricted to the kept transcripts (a
+collapsed ambiguity group stays only with all its members); when samples
+are dropped they are not recomputed, and a message says so. Differential
+expression and enrichment results are kept as they are.
 
 A subset holds its own copy of the inferential replicates of the kept
 transcripts and samples. To compare two groups of a larger object, pass
 \code{levels} to the function instead of subsetting: the samples of the other
 groups are ignored and nothing is copied. A subset with other transcripts
-starts with an empty cache of derived tables.
+starts with an empty cache of derived tables (the transcript annotation
+join is shared).
 }
 
 \examples{

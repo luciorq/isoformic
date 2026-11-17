@@ -18,7 +18,9 @@
 #' is the share of reads mapped to the transcript alone, while `n_classes` is
 #' not available. The functions [read_inferential_replicates()],
 #' [equivalence_support()], [salmon_run_qc()] and [add_uncertainty()] accept
-#' Oarfish prefixes as `paths`, but not together with Salmon directories.
+#' Oarfish prefixes as `paths`, but not together with Salmon directories;
+#' [equivalence_identifiability()] and [run_terminus()] need the equivalence
+#' classes of Salmon and do not.
 #'
 #' @param paths Output prefixes of Oarfish (the value of `-o`), paths to
 #'   the `.quant` files, or directories holding a single `.quant` file. Names,

@@ -8,8 +8,9 @@ read_terminus_groups(path, ignore_after_bar = TRUE)
 }
 \arguments{
 \item{path}{The \code{clusters.txt} file, or a folder that holds it (the output
-folder of one sample, or the folder given to \code{-o} when it holds one sample
-folder).}
+folder of one sample), or the folder given to \code{-o}: the first
+\code{clusters.txt} one folder down is read, as the consensus groups are the
+same in every sample folder.}
 
 \item{ignore_after_bar}{Logical. Keep only the part of transcript names
 before the first \code{|}.}

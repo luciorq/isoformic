@@ -35,8 +35,13 @@ transcript_sequences(x, transcript_id = NULL)
 all sequences.}
 }
 \value{
-The path of the written Parquet file, invisibly. The table has
-columns \code{transcript_id}, \code{sequence} and \code{seq_length}.
+\code{extract_transcript_sequences()} returns the path of the
+Parquet file, invisibly (an existing file is kept, with a message,
+unless \code{overwrite = TRUE}). The table has columns \code{transcript_id},
+\code{sequence} and \code{seq_length}; the source and the number of sequences are
+recorded in the annotation metadata (\code{sequences_source},
+\code{sequences_n}). \code{has_sequences()} returns \code{TRUE} or \code{FALSE}, and
+\code{transcript_sequences()} the table as a tibble.
 }
 \description{
 Adds the spliced sequence of every transcript of an annotation directory

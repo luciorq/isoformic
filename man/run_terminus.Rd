@@ -17,7 +17,8 @@ run_terminus(
 )
 }
 \arguments{
-\item{paths}{Salmon output directories (or paths to their \code{quant.sf}).}
+\item{paths}{Salmon output directories (or paths to their \code{quant.sf});
+Oarfish output is not accepted.}
 
 \item{output_dir}{Folder for the Terminus output; one subfolder per sample
 holds \code{groups.txt} and, after the consensus, \code{clusters.txt} and the

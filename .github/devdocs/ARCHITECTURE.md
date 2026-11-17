@@ -1,6 +1,7 @@
 # isoformic architecture notes
 
-Last updated: 2026-10-15 (rewrite around `IsoformicExperiment`).
+Last updated: 2026-11-12 (first written 2026-10-15 around
+`IsoformicExperiment`).
 
 ## Layers
 
@@ -8,13 +9,14 @@ Last updated: 2026-10-15 (rewrite around `IsoformicExperiment`).
 |-------|-------|-------|
 | DuckDB / Parquet IO | `R/utils-duckdb.R` | `duckdb_connect()` (self-closing), `duckdb_run()`, exported `read_parquet()`, `write_parquet()`, `read_tabular()`. The only parquet engine; `arrow` is not used. |
 | Annotation directory | `R/annotation.R` | `prepare_isoformic_annotation()` parses GFF3/GTF in one DuckDB pass into `annot_data_{genes,transcripts,exons}.parquet`, `annot_metadata.parquet`, `annot_seq_regions.parquet`. The parser is structural (genes = parents of transcripts, transcripts = parents of exons, plus type lists) so GENCODE, Ensembl, NCBI RefSeq and T2T Liftoff/CAT files all work; `source_gene_id`/`source_transcript_id` keep lifted identifiers. `resolve_annot_path()` accepts a directory or a file. |
-| Readers | `R/read_salmon.R`, `R/make_tx_to_gene.R`, `R/download_reference.R` | `read_salmon()` pivots `quant.sf` files in DuckDB; `make_tx_to_gene()` parses FASTA headers in DuckDB. |
+| Readers | `R/read_salmon.R`, `R/make_tx_to_gene.R`, `R/download_reference.R`, `R/salmon_utils.R` | `read_salmon()` pivots `quant.sf` files in DuckDB; `make_tx_to_gene()` parses FASTA headers in DuckDB; `download_reference()` defaults to GENCODE 50 (mouse M39); `salmon_index()` / `salmon_quant()` run Salmon through `condathis`. |
+| Cache and options | `R/get_isoformic_cache.R`, `R/isoformic-options.R` | `get_isoformic_cache()` is the user cache of downloads and frozen data; `?"isoformic-options"` lists every option and environment variable (see `CLAUDE.md`). |
 | Class | `R/IsoformicExperiment-class.R` | S7 class, custom constructor, validator (works on stored attributes, never on computed properties), `print`, `dim`, `dimnames`, `[`. Two caches: package-level `annotation_cache` keyed by file signature (path, size, mtime) and a per-object `.cache` environment keyed by hashes of the inputs. |
 | Accessors | `R/IsoformicExperiment-methods.R` | SummarizedExperiment-style generics. File name sorts after `-class.R` on purpose (collation). |
 | DE results | `R/dea.R` | `standardize_de_table()` harmonises tool-specific column names; cutoffs live in `dea$cutoffs`. Table helpers `join_DEG_DET()`, `is_deg_sig()`. |
 | Diversity | `R/IsoformicExperiment-diversity.R` | `rowsum()` / `order()` + `!duplicated()` tricks instead of per-group closures; `exon_diversity()` aggregates in DuckDB. |
-| Persistence | `R/IsoformicExperiment-io.R` | `write_isoformic()` / `read_isoformic()`, `as_isoformic()`, `as_summarized_experiment()`, `example_isoformic()`. |
-| Plots | `R/plot_log2fc.R`, `R/profile.R`, `R/plot_genomic_context.R`, `R/enrichment.R` | Pure ggplot2; shared `isoformic_theme()` and `complete_palette()`. |
+| Persistence | `R/IsoformicExperiment-io.R` | `write_isoformic()` / `read_isoformic()`, `as_isoformic()`, `as_summarized_experiment()`, `example_isoformic()`. `store_annotation()` copies the annotation into the directory with `copy_annotation = TRUE` or when it lies inside the directory being replaced, and drops the copied `annot_data_orfs.parquet`. The draws in `metadata$inf_reps` are not written. |
+| Plots | `R/plot_log2fc.R`, `R/profile.R`, `R/plot_genomic_context.R`, `R/enrichment.R`, `R/uncertainty-plots.R`, `R/tx_type_palette.R` | Pure ggplot2; shared `isoformic_theme()` and `complete_palette()`. |
 | Transcript features | `R/transcript-features.R` | `transcript_features()` (ORF/UTR/NMD rule/TSS-TES groups/canonical comparison), `splicing_events()` (DuckDB overlap joins against the canonical isoform), `add_annotation_columns()` evidence hook, `add_fantom_cat_tables()`. Pass the per-gene canonical vector (not its per-transcript expansion) to the SQL, or the gene join explodes. |
 | Productivity | `R/productivity.R` | `transcript_productivity()`, `productive_fraction()`, `run_productivity_enrichment()`, `poison_exons()`, `productivity_palette()`. |
 | Annotation tools | `R/annotation-tools.R` | `merge_annotations()`, `add_sqanti_classification()`. |
@@ -37,7 +39,13 @@ Last updated: 2026-10-15 (rewrite around `IsoformicExperiment`).
 - `[` subsets by ID everything stored by transcript or sample (assays,
   `col_data`, stored gene assays, `metadata$inf_reps`, the rows of the
   uncertainty tables). It does not recompute the uncertainty tables when
-  samples are dropped; it signals `isoformic_stale_uncertainty`.
+  samples are dropped; it informs with class `isoformic_stale_uncertainty`.
+  The subset holds its own copy of the kept draws (`subset_inf_reps()`:
+  positions are matched once per distinct dimnames, and a draw that already
+  is the selection is not copied); to compare two groups of a larger object,
+  pass `levels =` instead of subsetting. A subset with other transcripts gets a new
+  `.cache` (only `tx_gene_annotation` is carried over), so it neither
+  replaces the entries of the parent nor keeps them alive.
 
 ## Performance reference (72k transcripts x 25 samples, GENCODE v33)
 
@@ -104,8 +112,10 @@ Measured on 2026-10-15 with `Rscript` on a laptop.
   variant to use when the same transcript appears several times, e.g. the
   canonical of every isoform; `genomic_to_transcript_coord()` assumes unique
   IDs and silently drops repeats).
-- Enrichment (`R/enrichment.R`): the three functions (`run_enrichment()`,
-  `run_productivity_enrichment()`, `run_apa_enrichment()`) share
+- Enrichment: the three functions (`run_enrichment()` in
+  `R/enrichment.R`, `run_productivity_enrichment()` in `R/productivity.R`,
+  `run_apa_enrichment()` in `R/polyadenylation.R`) share the helpers of
+  `R/enrichment.R`:
   `geneset_collections()` (one collection or a named list of them),
   `enrich_collections()` (one fgsea run per collection, `collection` column
   only for several), `gene_rank_enrichment()` (gene tables ranked by one
@@ -113,7 +123,11 @@ Measured on 2026-10-15 with `Rscript` on a laptop.
   replicates; no deviation is the most certain value, not a missing one).
   A new enrichment function must use them, return `experiment` and `rank_by`
   (the columns of `empty_fgsea()` when nothing is tested) and take a table
-  method next to the object method. `rank_by = "lfc_z"` has the contrast of
+  method next to the object method (`run_productivity_enrichment()` takes a
+  `productive_fraction()` table). `rank_by` choices: `log2FC`, `signed_p`,
+  `lfc_z` (`run_enrichment()`); `delta`, `delta_z`
+  (`run_productivity_enrichment()`); `delta`, `utr3_length`
+  (`run_apa_enrichment()`). `rank_by = "lfc_z"` has the contrast of
   the stored confidence table; `run_enrichment()` warns
   (`isoformic_contrast_mismatch`) when it is the reverse of the stored
   results.
@@ -139,7 +153,9 @@ Measured on 2026-10-15 with `Rscript` on a laptop.
   a read-only directory or with `options(isoformic.orf_cache = FALSE)`.
 - Coding potential: Fickett tables as in CPAT, hexamer log-odds and the
   logistic coefficients live in `inst/extdata/coding_model/` and are
-  retrained by `data-raw/build_coding_model.R`.
+  retrained by `data-raw/build_coding_model.R` (`just coding-model`). The
+  shipped model is trained on GENCODE 50; release and held-out accuracy are
+  in `data-raw/README.md`.
 - `R/frozen-data.R`: the registry pins versions, URLs and MD5s; builders are
   exported functions so the processing is testable with tiny synthetic source
   files (`tests/testthat/test-frozen.R`). `read_tabular_lines()` is the
@@ -158,6 +174,7 @@ Measured on 2026-10-15 with `Rscript` on a laptop.
 - `R/polyadenylation.R`: 3' end groups come from `transcript_features()`
   (`tes_group`); ranks follow the direction of transcription; the atlas join
   is a DuckDB window query taking the nearest site within `window` bp.
+  `test_apa()` and `run_apa_enrichment()` live in the same file.
 
 ## Quantification uncertainty
 
@@ -220,10 +237,15 @@ Definitions in the literature, how the code compares and the backlog
 - `add_uncertainty()` keeps draws for transcripts with a mean count of at
   least `min_count` (1); `draw_productive_fraction()` matches each draw to the
   transcripts by row name, one draw at a time, so the others count as zero.
-- The replicates are never copied into a dense array: `draws_view()`
+- The replicates are stored as a list with one transcript x sample matrix
+  per draw and never copied into a dense array: `draws_view()`
   (`R/uncertainty.R`) indexes the stored list, and its consumers read one
   draw (`draw_slice()`) or one sample (`draws_sample()`) at a time. The same
   accessors take an array, which `draws_array()` still builds for the tests.
+  `read_inferential_replicates()` (`R/uncertainty-io.R`) holds one sample's
+  replicate file in memory at a time: it allocates the matrices of the kept
+  draws once (shared dimnames) and fills one column per sample.
+  `x[i, j]` copies the kept draws (see Conventions).
   `cut_transcript_trees()` keeps the mean and variance of the tree leaves
   and of the node sums only.
 
@@ -255,8 +277,10 @@ Definitions in the literature, how the code compares and the backlog
 
 `benchmark_productivity()` with `use_biotype = FALSE`, `use_evidence = FALSE`
 on the full annotation (primary assembly genome; the 24,093 scaffold
-transcripts have no sequence). Recomputed 2026-11-11; the last two columns
-are the earlier run on GENCODE v33 (227,979 transcripts).
+transcripts have no sequence). Recomputed 2026-11-11, with the coding
+potential model of GENCODE 49 (not rerun with the GENCODE 50 model, see
+`ALPHAGENOME-BENCHMARK.md` A8); the last two columns are the earlier run
+on GENCODE v33 (227,979 transcripts).
 
 | metric | n | value | n (v33) | value (v33) |
 |---|---|---|---|---|
@@ -303,24 +327,26 @@ all 227,751 shared transcripts.
   Splice-site strength is implemented with first-order matrices
   (`R/splice-sites.R`); a model with dependencies between positions
   (MaxEntScan) is not.
-- Non-identifiability of abundances (ranges of optima), coverage anomalies
-  and junction coverage compatibility: `UNCERTAINTY-LITERATURE.md` sections
-  5.2 (U5) and 5.4.
+- Ranges of optima (only the structural identifiability of U5 is
+  implemented): `UNCERTAINTY-LITERATURE.md` sections 5.2 and 5.4. Coverage
+  anomalies and junction coverage compatibility: section 5.5 there.
 - Proteomics evidence (PeptideAtlas / OpenProt peptide-to-isoform mapping):
   join through `add_annotation_columns()` once a table exists; no fetcher.
 - Transcript-level NMD-inhibition fold changes (UPF1/SMG6/SMG7 knockdown):
   only the validated exon catalog is frozen; per-transcript responses need
   reprocessing of the raw data.
-- Frozen files are not yet uploaded to the `frozen-data` GitHub release nor
-  deposited on Zenodo (`frozen_zenodo_record()` is `NA`); until then
-  `fetch_frozen_data()` rebuilds them from the sources
-  (`data-raw/README.md`, `data-raw/zenodo_deposit.R`).
+- Of the frozen files only `appris_e116v50.parquet` and
+  `appris_domains_e116v50.parquet` are in the `frozen-data` GitHub release
+  (2026-11-12, `ALPHAGENOME-BENCHMARK.md` A9), and nothing is deposited on
+  Zenodo (`frozen_zenodo_record()` is `NA`); `fetch_frozen_data()` rebuilds
+  the others from the sources (`data-raw/README.md`,
+  `data-raw/zenodo_deposit.R`).
 
 ## Open items
 
-- The draws are not persisted by `write_isoformic()`; a lean Parquet copy of
-  per-sample quantiles would allow recomputing the contrast without Salmon
-  output.
+- The draws are not persisted by `write_isoformic()`; the proposal (one wide
+  Parquet file per draw) is in the backlog of `PLAN.md`, with the other
+  memory items of 2026-11-12 (draws as a view in subsets, DuckDB limits).
 - The per-draw contrast is a screening statistic, not a calibrated test; a
   permutation-based version (as `swish`) would allow a calibrated score.
 - `plot_genomic_context()` has no ideogram; sequence lengths are available in

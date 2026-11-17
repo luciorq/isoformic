@@ -26,9 +26,10 @@
 #' re-created annotation is picked up automatically and several objects
 #' sharing one annotation share one copy of the tables.
 #'
-#' Derived results (gene assays, row data, isoform fractions) are cached per
-#' object in the `.cache` environment, keyed by a hash of their inputs, and
-#' therefore survive copies but never go stale. See [clear_cache()].
+#' Derived results (gene assays, row data, isoform fractions, ORFs,
+#' transcript features and productivity classes) are cached per object in
+#' the `.cache` environment, keyed by a hash of their inputs, and therefore
+#' survive copies but never go stale. See [clear_cache()].
 #'
 #' Objects persist to disk as a directory of Parquet files with
 #' [write_isoformic()] and are restored with [read_isoformic()].
@@ -46,8 +47,9 @@
 #'   \item{`col_data`}{Tibble of sample metadata; its `sample_id` column
 #'     matches the assay column names.}
 #'   \item{`dea`}{List with differential expression results: `det`
-#'     (transcripts), `deg` (genes) and `cutoffs`. Use [de_tx<-] and
-#'     [de_gene<-] to set them.}
+#'     (transcripts), `deg` (genes) and `cutoffs`, and the uncertainty
+#'     tables of [add_uncertainty()]. Use [de_tx<-] and [de_gene<-] to set
+#'     the results.}
 #'   \item{`gsea`}{Named list of enrichment result tables.}
 #'   \item{`metadata`}{Free-form named list.}
 #'   \item{`annot_metadata`}{Named list describing the annotation source,
@@ -60,27 +62,31 @@
 #'
 #' @section Subsetting:
 #' `x[i, j]` keeps the transcripts `i` and the samples `j`, given as IDs,
-#' positions or logical vectors, and at least one of each. Everything stored by transcript or by sample
-#' follows: the assays, the sample table, stored gene assays (the genes of
-#' the kept transcripts) and the inferential replicates in
-#' `metadata(x)$inf_reps`. The uncertainty tables of [add_uncertainty()] are
-#' restricted to the kept transcripts (a collapsed ambiguity group stays only
-#' with all its members); when samples are dropped they are not recomputed,
-#' and a message says so. Differential expression and enrichment
-#' results are kept as they are.
+#' positions or logical vectors; a missing `i` or `j` keeps all of them, and
+#' the subset must hold at least one transcript and one sample. Everything
+#' stored by transcript or by sample follows: the assays, the sample table,
+#' stored gene assays (the genes of the kept transcripts) and the
+#' inferential replicates in `x@metadata$inf_reps`. The uncertainty tables
+#' of [add_uncertainty()] are restricted to the kept transcripts (a
+#' collapsed ambiguity group stays only with all its members); when samples
+#' are dropped they are not recomputed, and a message says so. Differential
+#' expression and enrichment results are kept as they are.
 #'
 #' A subset holds its own copy of the inferential replicates of the kept
 #' transcripts and samples. To compare two groups of a larger object, pass
 #' `levels` to the function instead of subsetting: the samples of the other
 #' groups are ignored and nothing is copied. A subset with other transcripts
-#' starts with an empty cache of derived tables.
+#' starts with an empty cache of derived tables (the transcript annotation
+#' join is shared).
 #'
-#' @param experiment_name Single string naming the experiment.
+#' @param experiment_name Single string naming the experiment; a random name
+#'   is generated when `NULL`.
 #' @param annot_path Annotation directory or GFF3/GTF file.
 #' @param assays Named list of transcript-level matrices (or data frames
 #'   with a `transcript_id` column).
 #' @param col_data Data frame of sample metadata with a `sample_id` column
-#'   (or sample IDs as row names / first column).
+#'   (or sample IDs as row names / first column). `NULL` builds it from the
+#'   column names of the assays.
 #' @param gene_assays Optional named list of gene-level matrices.
 #' @param dea Optional list of differential expression results.
 #' @param gsea Optional named list of enrichment results.
@@ -1026,10 +1032,7 @@ subset_inf_reps <- function(reps, tx_ids, sample_ids) {
   extra <- attributes(reps)
   out <- vector("list", length(reps))
   last_dn <- NULL
-  rows <- NULL
-  cols <- NULL
-  new_dn <- NULL
-  unchanged <- FALSE
+  index <- NULL
   for (k in seq_along(reps)) {
     m <- reps[[k]]
     dn <- dimnames(m)
@@ -1043,25 +1046,10 @@ subset_inf_reps <- function(reps, tx_ids, sample_ids) {
       next
     }
     if (is.null(last_dn) || !identical(dn, last_dn)) {
-      rows <- match(tx_ids, dn[[1L]])
-      rows <- rows[!is.na(rows)]
-      cols <- match(sample_ids, dn[[2L]])
-      unchanged <- identical(rows, seq_along(dn[[1L]])) &&
-        identical(cols, seq_along(dn[[2L]]))
-      new_dn <- dn
-      new_dn[[1L]] <- dn[[1L]][rows]
-      new_dn[[2L]] <- dn[[2L]][cols]
+      index <- inf_reps_index(dn, tx_ids, sample_ids)
       last_dn <- dn
     }
-    if (unchanged && is.matrix(m) && length(attributes(m)) == 2L) {
-      out[k] <- list(m)
-      next
-    }
-    res <- m[rows, cols, drop = FALSE]
-    if (is.matrix(res)) {
-      dimnames(res) <- new_dn
-    }
-    out[k] <- list(res)
+    out[k] <- list(subset_one_draw(m, index))
   }
   is_empty <- vapply(
     out,
@@ -1074,6 +1062,41 @@ subset_inf_reps <- function(reps, tx_ids, sample_ids) {
   }
   attributes(out) <- extra
   out
+}
+
+#' Positions and new dimnames of the kept transcripts and samples of a draw
+#' @keywords internal
+#' @noRd
+inf_reps_index <- function(dn, tx_ids, sample_ids) {
+  rows <- match(tx_ids, dn[[1L]])
+  rows <- rows[!is.na(rows)]
+  cols <- match(sample_ids, dn[[2L]])
+  new_dn <- dn
+  new_dn[[1L]] <- dn[[1L]][rows]
+  new_dn[[2L]] <- dn[[2L]][cols]
+  list(
+    rows = rows,
+    cols = cols,
+    dimnames = new_dn,
+    unchanged = identical(rows, seq_along(dn[[1L]])) &&
+      identical(cols, seq_along(dn[[2L]]))
+  )
+}
+
+#' One draw restricted to an index of `inf_reps_index()`
+#'
+#' A plain matrix that already is the selection is returned without a copy.
+#' @keywords internal
+#' @noRd
+subset_one_draw <- function(m, index) {
+  if (index$unchanged && is.matrix(m) && length(attributes(m)) == 2L) {
+    return(m)
+  }
+  res <- m[index$rows, index$cols, drop = FALSE]
+  if (is.matrix(res)) {
+    dimnames(res) <- index$dimnames
+  }
+  res
 }
 
 #' Uncertainty tables of the given transcripts

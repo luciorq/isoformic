@@ -44,26 +44,35 @@
 #' fold-change is not stable.
 #'
 #' * `add_uncertainty(x, paths)` reads the replicates, equivalence classes and
-#'   run metadata from the Salmon output directories `paths` (named by sample
-#'   ID, in any order), computes the tables below and stores them in the
-#'   object, so that they are written by [write_isoformic()]. When `group` is
-#'   given it also stores the fold-change stability of that contrast.
+#'   run metadata from the Salmon output directories (or Oarfish output
+#'   prefixes, see [read_oarfish()]) `paths` (named by sample ID, in any
+#'   order), computes the tables below and stores them in the object, so that
+#'   they are written by [write_isoformic()]. When `group` is given it also
+#'   stores the fold-change stability of that contrast.
 #' * `tx_uncertainty(x)`: per-transcript table, for the transcripts whose
 #'   draws are in the object (the expressed ones).
 #' * `isoform_ambiguity(x)`: per-pair table of replicate correlations.
 #' * `de_confidence(x, group)`: per-feature table of fold-change stability
-#'   and confidence class; with `collapse_groups = TRUE`, ambiguous isoforms
-#'   are summed into one feature before testing.
+#'   and confidence class, recomputed from the replicates; with
+#'   `collapse_groups = TRUE`, ambiguous isoforms are summed into one feature
+#'   before testing. Without `group` it returns the table that
+#'   `add_uncertainty(group = )` stored.
 #' * `uncertainty_report(x)`: a list of summary tables for a methods or
 #'   results section.
 #' * `uncertainty_methods(x)`: a ready-to-edit paragraph that states the
 #'   settings used.
 #'
 #' The replicates themselves are kept in memory only (in
-#' `metadata(x)$inf_reps`) and are not written by [write_isoformic()]; the
-#' tables derived from them are. Draws are kept for the transcripts with an
-#' estimated mean count of at least `min_count`; the others are treated as
-#' unexpressed.
+#' `x@metadata$inf_reps`, a list with one transcript x sample matrix per
+#' replicate) and are not written by [write_isoformic()]; the tables derived
+#' from them are. To keep the replicates, write
+#' `inferential_replicates_table(x@metadata$inf_reps)` with [write_parquet()]
+#' and restore them with [as_inferential_replicates()] (see
+#' [read_inferential_replicates()]). `x[i, j]` keeps the replicates of the
+#' kept transcripts and samples; to contrast two groups of a larger object,
+#' pass `levels` instead of subsetting. With a `counts` assay, draws are read
+#' only for the transcripts with a mean count of at least `min_count`; the
+#' others are treated as unexpressed.
 #'
 #' @details
 #' The thresholds are heuristics, not universal constants: `inf_rv_cutoff`
@@ -107,19 +116,21 @@
 #' subset does not change the scaling.
 #'
 #' @param self An [IsoformicExperiment].
-#' @param paths Salmon output directories (see [read_inferential_replicates()]),
-#'   named by sample ID. `NULL` uses the replicates already stored in the
-#'   object.
-#' @param group Name of a `col_data()` column with the sample groups.
+#' @param paths Salmon output directories or Oarfish output prefixes (see
+#'   [read_inferential_replicates()]), named by sample ID. `NULL` uses the
+#'   replicates already stored in the object.
+#' @param group Name of a `col_data()` column with the sample groups. In
+#'   `de_confidence()`, `NULL` returns the stored table.
 #' @param levels The two group levels to contrast, reference first. Samples
 #'   of other groups are left out of the contrast. `NULL` uses the levels of
 #'   `group`, which must then be exactly two.
 #' @param gene_name Optional gene names or IDs to keep.
 #' @param n_draws Number of replicates to read; `NULL` reads all of them.
 #' @param min_count Minimum mean estimated count for a transcript to be
-#'   assessed.
+#'   assessed (and, with a `counts` assay, for its replicates to be read).
 #' @param inf_rv_cutoff Inferential relative variance from which an isoform is
-#'   called uncertain. `NULL` uses the value the tables were computed with.
+#'   called uncertain. In `de_confidence()`, `NULL` uses the value the tables
+#'   were computed with.
 #' @param cor_cutoff Mean replicate correlation at or below which two isoforms
 #'   of a gene are called ambiguous: a number, or `"adaptive"` to derive it
 #'   from the data as `mmcollapse` does (minus the 97.5th percentile of the
@@ -139,10 +150,13 @@
 #'   package), or the table that function returned. `de_confidence()` then
 #'   counts a non-identifiable transcript as one more reason against the
 #'   call.
-#' @param run_qc Logical, add the Salmon run metadata (see
-#'   [salmon_run_qc()]) to `col_data()`.
+#' @param run_qc Logical, add the run metadata of Salmon or Oarfish (see
+#'   [salmon_run_qc()]) to `col_data()`, with the column names prefixed by
+#'   `salmon_` or `oarfish_`.
 #' @param keep_draws Logical, keep the replicates in the object (needed to
-#'   recompute the tables and for [productive_fraction()] uncertainty).
+#'   recompute the tables, for `de_confidence(group = )`,
+#'   [inferential_overdispersion()] and the uncertainty of
+#'   [productive_fraction()]).
 #' @param groups External groups of transcripts that the reads cannot tell
 #'   apart, replacing the groups built from the correlation of the replicates:
 #'   a table with `transcript_id` and `group_id`, or the path to Terminus output
@@ -159,34 +173,45 @@
 #' @returns
 #' * `add_uncertainty()`: the object with `dea$uncertainty`, `dea$ambiguity`
 #'   and, when `group` is given, `dea$confidence` filled in.
-#' * `tx_uncertainty()`: a tibble with `transcript_id`, `gene_id`, names and
-#'   type, `mean_count`, `mean_inf_rv`, `max_inf_rv`, `mean_inf_cv`,
-#'   `uncertain`, `min_sibling_cor`, `n_ambiguous_partners`,
-#'   `ambiguity_group` and, when equivalence classes were read, `n_classes`,
+#' * `tx_uncertainty()`: a tibble with `transcript_id`, `gene_id`,
+#'   `gene_name`, `transcript_name`, `transcript_type`, `mean_count`,
+#'   `assessed` (`mean_count >= min_count`; the statistics are `NA` for the
+#'   others), `mean_inf_rv`, `max_inf_rv`, `mean_inf_cv`, `uncertain`,
+#'   `min_sibling_cor`, `n_ambiguous_partners`, `ambiguity_group` and, when
+#'   equivalence classes were read, `n_classes`, `n_fragments`,
 #'   `n_unique_fragments`, `unique_fraction` and `low_information` (`TRUE`
 #'   for an uncertain isoform without a single fragment of its own, the
 #'   isoforms `mmcollapse` selects for collapsing). With `identifiability`,
 #'   also `identifiable_fraction` and `identifiable`.
-#' * `isoform_ambiguity()`: a tibble of isoform pairs of the same gene with
-#'   `mean_cor`, `min_cor`, `n_samples`, `collapse_gain` and `ambiguous`.
+#' * `isoform_ambiguity()`: a tibble of isoform pairs of the same gene,
+#'   sorted by `mean_cor`, with `gene_id`, `gene_name`, `transcript_id_1`,
+#'   `transcript_id_2`, `mean_cor`, `min_cor`, `n_samples`, `collapse_gain`,
+#'   `ambiguous`, `transcript_name_1` and `transcript_name_2`.
 #'   `collapse_gain` is the score Terminus groups on (Sarkar et al. 2020):
 #'   the inferential relative variance of the sum of the two isoforms minus
 #'   the mean of their own, averaged over samples. The more negative, the
 #'   more is gained by testing the pair as one feature.
-#' * `de_confidence()`: a tibble with one row per feature: `feature_id`,
-#'   `feature_type` (`"transcript"` or `"group"`), gene and transcript names,
-#'   the interval and stability of the fold-change, `mean_inf_rv`,
-#'   `ambiguous`, `identifiable` (only when the identifiability was
-#'   computed; `NA` for groups), `confidence` (an ordered factor), `reason`,
-#'   the existing
-#'   differential expression result (`det_log2FC`, `det_qvalue`,
-#'   `n_det_sig`) and `confident_de`, which is `TRUE` when a significant
-#'   isoform has `high` confidence.
-#' * `uncertainty_report()`: a list with `settings`, `replicates` (replicate
-#'   type, number of draws, degrees of freedom over the study and, when the
-#'   draws are in the object, the median overdispersion, which is close to 1
-#'   for long reads), `run`, `transcripts` (by transcript type), `genes`,
-#'   `de` and `switches` tibbles.
+#' * `de_confidence()`: a tibble with one row per feature, sorted by the
+#'   absolute median fold-change: `feature_id`, `feature_type`
+#'   (`"transcript"` or `"group"`), `gene_id`, `gene_name`, `transcript_ids`
+#'   (the members, separated by `;`), `transcript_name`, `transcript_type`,
+#'   `mean_count`, the fold-change over the replicates (`lfc_median`,
+#'   `lfc_lo`, `lfc_hi`, `lfc_sd`), `sign_agreement`, `frac_draws_effect`
+#'   (share of replicates that agree on the direction with an absolute
+#'   fold-change of at least the cutoff of [de_cutoffs()]), `frac_draws_sig`,
+#'   `mean_inf_rv`, `ambiguous`, `identifiable` (only when the
+#'   identifiability was computed; `NA` for groups), `confidence` (an ordered
+#'   factor), `reason`, the existing differential expression result
+#'   (`det_log2FC`, `det_qvalue`, `n_det_sig`) and `confident_de`, which is
+#'   `TRUE` when a significant isoform has `high` confidence.
+#' * `uncertainty_report()`: a list with `settings` (a list of the cutoffs),
+#'   and the tibbles `replicates` (`replicate_type`, `n_draws`,
+#'   `resampling_df`, the degrees of freedom over the study, and
+#'   `median_overdispersion`, `NA` unless the draws are in the object and
+#'   close to 1 for long reads), `run` (the run metadata in `col_data()`), `transcripts` (by
+#'   transcript type), `genes`, `de` (significant isoforms by confidence
+#'   class) and `switches` (isoform switches, all and confident only). `run`,
+#'   `de` and `switches` are `NULL` when their input is missing.
 #' * `uncertainty_methods()`: a character string.
 #'
 #' @references
@@ -1803,21 +1828,26 @@ S7::method(uncertainty_methods, IsoformicExperiment) <- function(self, ...) {
 #' variable than a Poisson count, by an amount that differs between
 #' transcripts. Baldoni et al. (2024) estimate this overdispersion for every
 #' transcript from the Salmon replicates and divide it out of the counts, so
-#' that tests built for counts (`edgeR`, `limma`, `DESeq2`) keep their error
-#' rate without a model of their own for the read ambiguity.
+#' that tests built for counts (`edgeR`, `limma`) keep their error rate
+#' without a model of their own for the read ambiguity. The scaled counts are
+#' not integers.
 #'
 #' * `inferential_overdispersion()` computes the overdispersion of every
-#'   transcript from the replicates stored in the object, as
-#'   `edgeR::catchSalmon()` does: the Pearson statistic of a quasi-Poisson fit
-#'   to the replicates of each sample, pooled over the samples, moderated
-#'   towards the median with a prior of `prior_df` degrees of freedom and
-#'   floored at one. The estimates use the transcripts whose replicates are
-#'   in the object (those with a mean count of at least `min_count` in
-#'   [add_uncertainty()]), so the prior differs from the one `catchSalmon()`
-#'   computes over every transcript of the index; transcripts without
-#'   replicates get the prior.
+#'   transcript from the replicates stored in the object, with the estimator
+#'   of `edgeR::catchSalmon()` (checked against edgeR 4.8): the Pearson
+#'   statistic of a quasi-Poisson fit to the replicates of each sample, pooled over the
+#'   samples where the transcript has a non-zero mean, moderated towards the
+#'   median with a prior of `prior_df` degrees of freedom and floored at one.
+#'   The estimates use the transcripts whose replicates are in the object
+#'   (those with a mean count of at least `min_count` in [add_uncertainty()]),
+#'   so the prior differs from the one `catchSalmon()` computes over every
+#'   expressed transcript of the index; transcripts without replicates get
+#'   the prior.
 #' * `scale_counts()` divides an assay by the overdispersion and stores the
-#'   result as a new assay, ready for a count-based test.
+#'   result as a new assay, ready for a count-based test (the counts divided
+#'   by the `Overdispersion` column of `catchSalmon()` in Baldoni et al.
+#'   2024). [test_usage()] divides the counts in the same way when the object
+#'   holds replicates.
 #'
 #' The overdispersion complements the confidence classes of
 #' [de_confidence()]: it changes the test, while the classes describe how far
@@ -1831,9 +1861,10 @@ S7::method(uncertainty_methods, IsoformicExperiment) <- function(self, ...) {
 #' @param ... Unused.
 #'
 #' @returns `inferential_overdispersion()`: a tibble with `transcript_id`,
-#'   `overdispersion` and `df` (degrees of freedom of the estimate), with the
-#'   prior in the `prior` attribute. `scale_counts()`: the object with the
-#'   scaled assay added.
+#'   `overdispersion` and `df` (degrees of freedom of the estimate, the number
+#'   of samples where the transcript has a non-zero mean times the number of
+#'   replicates minus one), with the prior in the `prior` attribute.
+#'   `scale_counts()`: the object with the scaled assay added.
 #'
 #' @references
 #' Baldoni PL, Chen Y, Hediyeh-Zadeh S, Liao Y, Dong X, Ritchie ME, Shi W,
@@ -1841,7 +1872,7 @@ S7::method(uncertainty_methods, IsoformicExperiment) <- function(self, ...) {
 #' assessment of differential transcript expression with edgeR. *Nucleic Acids
 #' Research* 52(3):e13.
 #'
-#' @seealso [add_uncertainty()], [de_confidence()]
+#' @seealso [add_uncertainty()], [de_confidence()], [test_usage()]
 #'
 #' @examples
 #' extdata <- system.file("extdata", package = "isoformic")

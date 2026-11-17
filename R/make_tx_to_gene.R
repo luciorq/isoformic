@@ -9,8 +9,8 @@
 #' With an [IsoformicExperiment] object, use [tx_to_gene()] or [tx_annot()],
 #' which read the same information from the annotation directory.
 #'
-#' @param file_path Path to a FASTA (`.fa`, `.fasta`, optionally `.gz`),
-#'   GFF3 or GTF file, or to an annotation directory.
+#' @param file_path Path to a FASTA (`.fa`, `.fasta`, `.fna`, optionally
+#'   `.gz`), GFF3 or GTF file, or to an annotation directory.
 #' @param file_type `"auto"` (default) detects the format from the file
 #'   extension; otherwise one of `"fasta"`, `"gff"`, `"gtf"`.
 #' @param output_path Passed to [prepare_isoformic_annotation()] for
@@ -19,7 +19,7 @@
 #' @returns A tibble with columns `transcript_id`, `gene_id`,
 #'   `havana_gene_id`, `havana_transcript_id`, `transcript_name`,
 #'   `gene_name`, `tx_length` and `transcript_type`. The Havana columns are
-#'   `NA` for GFF3/GTF inputs.
+#'   `NA` for GFF3/GTF inputs and annotation directories.
 #'
 #' @examples
 #' gff <- system.file("extdata", "example.gff3", package = "isoformic")

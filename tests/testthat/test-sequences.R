@@ -341,7 +341,9 @@ testthat::test_that("transcript_orfs keeps its rows in the annotation directory"
   # answers, and the file is not written again
   written <- fs::file_info(file)$modification_time
   testthat::local_mocked_bindings(
-    compute_transcript_orfs = function(...) stop("computed again")
+    compute_transcript_orfs = function(...) {
+      stop("computed again", call. = FALSE)
+    }
   )
   testthat::expect_identical(transcript_orfs(experiment(ids)), expected)
   testthat::expect_identical(transcript_orfs(experiment(rev(ids))), {
@@ -460,20 +462,21 @@ testthat::test_that("stored and computed ORF rows are mixed in the order of the 
     )
   }
   # Gene B first: its rows are stored, those of gene A are not
-  only_b <- subset_orfs(gene_b)
+  subset_orfs(gene_b)
   testthat::expect_setequal(read_parquet(file)$transcript_id, gene_b)
   # Gene A is computed, gene B read, and the rows come back as asked
-  computed <- character()
+  seen <- new.env(parent = emptyenv())
+  seen$computed <- character()
   compute <- compute_transcript_orfs
   testthat::local_mocked_bindings(
     compute_transcript_orfs = function(transcripts, ...) {
-      computed <<- c(computed, transcripts$transcript_id)
+      seen$computed <- c(seen$computed, transcripts$transcript_id)
       compute(transcripts, ...)
     }
   )
   ids <- rev(all_rows$transcript_id)
   mixed <- subset_orfs(ids)
-  testthat::expect_setequal(computed, gene_a)
+  testthat::expect_setequal(seen$computed, gene_a)
   testthat::expect_identical(
     as.data.frame(mixed),
     as.data.frame(all_rows[match(ids, all_rows$transcript_id), ])
@@ -482,10 +485,10 @@ testthat::test_that("stored and computed ORF rows are mixed in the order of the 
   testthat::expect_setequal(read_parquet(file)$transcript_id, ids)
   # A gene without its canonical isoform is computed although its rows are
   # stored, and the stored rows stay
-  computed <- character()
+  seen$computed <- character()
   others <- c(setdiff(gene_a, canonical_a), gene_b)
-  partial <- subset_orfs(others)
-  testthat::expect_setequal(computed, setdiff(gene_a, canonical_a))
+  subset_orfs(others)
+  testthat::expect_setequal(seen$computed, setdiff(gene_a, canonical_a))
   testthat::expect_identical(
     unique(read_parquet(file)$canonical_transcript_id[
       read_parquet(file)$transcript_id %in% gene_a

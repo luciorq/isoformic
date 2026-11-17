@@ -13,15 +13,16 @@
 #'
 #' @param self An [IsoformicExperiment], or (for `plot_tx_expr()`) a
 #'   profile table produced by `profile_data()`/[prepare_profile_data()].
-#' @param gene_name Character vector of gene names or IDs to profile.
+#' @param gene_name Character vector of gene names or IDs to profile. For a
+#'   profile table, optional genes to keep.
 #' @param group Name of the `col_data` column defining the groups
-#'   (x axis).
+#'   (x axis). Not needed for a profile table, which has its groups.
 #' @param levels Levels of `group` to show, in this order. Samples of other
 #'   groups are ignored, as if the object had been subset to these samples.
 #'   `NULL` takes all the levels of `group` (factor levels, else order of
 #'   appearance). For a profile table, the groups of the table to draw.
 #' @param assay Name of the transcript assay to summarise (default
-#'   `"abundance"`).
+#'   `"abundance"`); not used for a profile table.
 #' @param log_scale Logical, show `log2(mean + 1)` on the y axis.
 #' @param label Logical, label features at the last group level.
 #' @param ncol Number of facet columns, `NULL` for automatic.
@@ -31,7 +32,8 @@
 #'
 #' @returns `profile_data()` returns a tibble with columns `feature_id`,
 #'   `feature_name`, `feature_type`, `gene_id`, `gene_name`, `group`,
-#'   `mean_expr`, `sd_expr`, `n_samples` and `is_de`; the grouping variable
+#'   `mean_expr`, `sd_expr`, `n_samples` and `is_de` (`"yes"`/`"no"`, from
+#'   the stored results and [de_cutoffs()]); the grouping variable
 #'   name is stored in the `"group_var"` attribute. `plot_tx_expr()` returns
 #'   a `ggplot` object.
 #'
@@ -434,10 +436,11 @@ isoformic_theme <- function(base_size = 11) {
 #'   `transcript_name`, `gene_name` and `transcript_type` columns (see
 #'   [make_tx_to_gene()]).
 #' @param de_result_gene Gene-level results with `gene_id` or `gene_name`,
-#'   `log2FC` and `qvalue`/`pvalue` columns. May be `NULL`.
+#'   `log2FC` (or `log2FoldChange`) and `qvalue`/`padj`/`pvalue` columns.
+#'   May be `NULL`.
 #' @param de_result_transcript Transcript-level results with
-#'   `transcript_id` or `transcript_name`, `log2FC` and `qvalue`/`pvalue`
-#'   columns. May be `NULL`.
+#'   `transcript_id` or `transcript_name`, `log2FC` (or `log2FoldChange`)
+#'   and `qvalue`/`padj`/`pvalue` columns. May be `NULL`.
 #' @param var Name of the grouping column in `sample_metadata`.
 #' @param var_levels Levels of `var` to show, in this order; samples of
 #'   other groups are ignored. `NULL` uses the factor levels or the order of
@@ -445,7 +448,11 @@ isoformic_theme <- function(base_size = 11) {
 #' @param txi_gene Optional gene expression table (same formats as
 #'   `txi_transcript`, with gene IDs).
 #' @param gene_name Optional genes to keep (names or IDs); `NULL` keeps all.
-#' @param pvalue_cutoff,lfc_cutoff,use_fdr Significance cutoffs.
+#' @param pvalue_cutoff,lfc_cutoff,use_fdr Significance cutoffs (defaults
+#'   0.05, 1 and `TRUE`): a feature is significant when
+#'   `abs(log2FC) >= lfc_cutoff` and its p-value is `<= pvalue_cutoff`.
+#'   With `use_fdr = TRUE` the `qvalue` (or `padj`) column is tested when
+#'   present, `pvalue` otherwise.
 #'
 #' @returns A tibble in the format described in [profile_data()].
 #'

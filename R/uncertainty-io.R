@@ -9,7 +9,9 @@
 #'   (the format is identical in Salmon 1.x and in the Rust rewrite, Salmon
 #'   2). It returns a list with one transcript x sample matrix of counts per
 #'   replicate, the layout used by [productive_fraction()] and
-#'   [add_uncertainty()].
+#'   [add_uncertainty()]. The samples are read one at a time, so memory holds
+#'   the result and the replicates of a single sample. When the samples have
+#'   different numbers of replicates, the smallest number is kept.
 #' * `equivalence_support()` reads the equivalence classes
 #'   (`--dumpEq`, `aux_info/eq_classes.txt.gz`) and reports, for every
 #'   transcript, how many of its fragments are compatible with no other
@@ -19,16 +21,26 @@
 #'   many replicates were drawn.
 #' * `inferential_replicates_table()` and `as_inferential_replicates()`
 #'   convert the list of replicates to and from a long table (one row per
-#'   transcript, sample and replicate), which can be stored as Parquet.
+#'   transcript, sample and replicate), which can be stored as Parquet with
+#'   [write_parquet()] and read back with [read_parquet()]. This is the way to
+#'   keep the replicates of an object, which [write_isoformic()] does not
+#'   write.
+#'
+#' The functions also read Oarfish output (see [read_oarfish()]): its
+#' bootstrap replicates (`.infreps.pq`), its unique and ambiguous read counts
+#' (`.ambig_info.tsv`, `n_classes` is then `NA`) and its run metadata
+#' (`.meta_info.json`). One call reads the output of one tool.
 #'
 #' @param paths Character vector of Salmon output directories (containing
-#'   `quant.sf`) or paths to `quant.sf` files. Names, when present, are the
-#'   sample IDs; otherwise the directory name is used.
+#'   `quant.sf`) or paths to `quant.sf` files, or Oarfish output prefixes.
+#'   Names, when present, are the sample IDs; otherwise the directory name (or
+#'   the prefix) is used.
 #' @param transcripts Optional transcript IDs to keep. Reading every
 #'   transcript of a human annotation for many samples takes gigabytes of
 #'   memory, so [add_uncertainty()] only reads the expressed ones.
 #' @param n_draws Number of replicates to keep (the first ones). `NULL` keeps
-#'   all of them.
+#'   all of them; a number above the replicates available keeps all of them,
+#'   with a message.
 #' @param ignore_after_bar Logical. Keep only the part of transcript names
 #'   before the first `|` (GENCODE FASTA headers used as Salmon references).
 #' @param reps A list of transcript x sample count matrices, one per replicate.
@@ -47,11 +59,22 @@
 #'   `sample_id`, `draw` and `count`. `as_inferential_replicates()` is its
 #'   inverse.
 #' * `equivalence_support()`: a tibble with one row per transcript:
-#'   `transcript_id`, `n_classes` (mean number of equivalence classes per
-#'   sample), `n_fragments` and `n_unique_fragments` (summed over samples),
-#'   `unique_fraction` (share of the fragments of the transcript that map to
-#'   it alone) and `n_samples`.
-#' * `salmon_run_qc()`: a tibble with one row per sample.
+#'   `transcript_id`, `n_classes` (mean number of equivalence classes that
+#'   contain the transcript, per sample), `n_fragments` and
+#'   `n_unique_fragments` (summed over samples), `unique_fraction` (share of
+#'   the fragments of the transcript that map to it alone) and `n_samples`
+#'   (samples with equivalence classes).
+#' * `salmon_run_qc()`: a tibble with one row per sample: `sample_id`,
+#'   `salmon_version`, `library_type`, `detected_library_type`,
+#'   `num_processed`, `num_mapped`, `percent_mapped`, `replicate_type`,
+#'   `num_replicates`, `optimiser`, `em_converged`, `seq_bias_correct`,
+#'   `gc_bias_correct`, `pos_bias_correct`, `frag_length_mean`,
+#'   `frag_length_sd` and `qc_flag` (`low_mapping_rate`, `no_replicates`
+#'   and `em_not_converged`, separated by `;`, or `NA`). For Oarfish output
+#'   the columns are `sample_id`, `num_processed`, `num_mapped`,
+#'   `percent_mapped`, `replicate_type`, `num_replicates`, `optimiser`,
+#'   `alignment_source`, `prob_model` and `qc_flag`, and the `tool`
+#'   attribute is `"oarfish"`.
 #'
 #' @examples
 #' quant_dirs <- list.files(

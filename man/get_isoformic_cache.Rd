@@ -23,6 +23,12 @@ On macOS, it avoids using paths with spaces and follows the XDG base
 directory specification.
 }
 \details{
-This function uses the \verb{[tools::R_user_dir()]} function to determine the
-user cache directory.
+This function uses \code{\link[tools:R_user_dir]{tools::R_user_dir()}} to determine the user cache
+directory, so \code{R_USER_CACHE_DIR} and \code{XDG_CACHE_HOME} move it (see
+\link{isoformic_options}). The directory is not created.
+}
+\examples{
+get_isoformic_cache()
+get_isoformic_cache("frozen")
+
 }

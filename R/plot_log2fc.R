@@ -7,10 +7,13 @@
 #' is drawn. The [IsoformicExperiment] method uses the stored differential
 #' expression results (see [de_table()]); the data frame method accepts the
 #' long table produced by [de_table()] or [join_DEG_DET()].
+#' `plot_log2FC()` is kept as an alias of the data frame method. Features
+#' without a fold-change are not drawn.
 #'
 #' @param self An [IsoformicExperiment] or a long DE table.
-#' @param feature Character vector of gene names (or IDs, or transcript
-#'   names, matched against `feature_column`).
+#' @param feature Character vector of values matched against
+#'   `feature_column`: gene names by default, or gene IDs, transcript names
+#'   and so on with another column.
 #' @param feature_column Column of the DE table used to select features
 #'   (default `"gene_name"`).
 #' @param color_palette Named colour vector per transcript type; defaults

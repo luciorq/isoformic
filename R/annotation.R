@@ -317,8 +317,8 @@ list_to_kv <- function(x) {
 #'   `seqid`, `start_pos`, `end_pos`, `strand`, `n_exons`, `tx_length`.
 #' * exons: `exon_id`, `transcript_id`, `exon_number`, `haplotype`, `seqid`,
 #'   `start_pos`, `end_pos`, `strand`.
-#' * metadata: `key`, `value` (source file, format, header pragmas,
-#'   creation time).
+#' * metadata: `key`, `value` (annotation name, source path and file,
+#'   format, creation time, isoformic version and the header pragmas).
 #' * seq_regions: `seqid`, `start_pos`, `end_pos`.
 #'
 #' @examples
@@ -933,8 +933,9 @@ prepare_annotation <- function(
 #' @param output_path Passed to [prepare_isoformic_annotation()].
 #'
 #' @returns A tibble with columns `gene_id`, `gene_name`, `transcript_id`,
-#'   `transcript_name`, `transcript_type`, `exon_id`, `exon_number`, `seqid`,
-#'   `start_pos`, `end_pos`, `strand`.
+#'   `transcript_name`, `transcript_type`, `haplotype`, `exon_id`,
+#'   `exon_number`, `seqid`, `start_pos`, `end_pos`, `strand`. Genes not
+#'   found in the annotation give a warning.
 #'
 #' @examples
 #' gff <- system.file("extdata", "example.gff3", package = "isoformic")

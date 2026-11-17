@@ -325,3 +325,171 @@ testthat::test_that("test_productive_fraction contrasts two of three groups", {
   testthat::expect_equal(res$productive_fraction_a, (150 + 140) / (180 + 190))
   testthat::expect_equal(res$productive_fraction_b, 30 / 170)
 })
+
+testthat::test_that("min_gene_count drops genes with few reads in any group", {
+  iso <- seq_experiment()
+  # Mean count of gA: 185 in group a, 180 in group b
+  kept <- productive_fraction(iso, group = "condition", min_gene_count = 180)
+  testthat::expect_identical(kept$gene_id, "gA")
+  dropped <- productive_fraction(
+    iso,
+    group = "condition",
+    min_gene_count = 181
+  )
+  testthat::expect_identical(nrow(dropped), 0L)
+  # Without group, the mean over all the samples (182.5)
+  testthat::expect_identical(
+    nrow(productive_fraction(iso, min_gene_count = 182)),
+    1L
+  )
+  testthat::expect_identical(
+    nrow(productive_fraction(iso, as_matrix = TRUE, min_gene_count = 183)),
+    0L
+  )
+  testthat::expect_identical(
+    nrow(test_productive_fraction(
+      iso,
+      group = "condition",
+      min_gene_count = 181
+    )),
+    0L
+  )
+  empty <- test_productive_fraction(
+    iso,
+    group = "condition",
+    min_gene_count = 181
+  )
+  testthat::expect_type(empty$pvalue, "double")
+  testthat::expect_type(empty$productive_fraction_a, "double")
+  testthat::expect_error(
+    productive_fraction(iso, min_gene_count = -1),
+    class = "isoformic_invalid_argument"
+  )
+  testthat::expect_error(
+    productive_fraction(iso, min_gene_count = NA),
+    class = "isoformic_invalid_argument"
+  )
+  # Off by default; without a counts assay a filter is an error
+  no_counts <- IsoformicExperiment(
+    experiment_name = "no_counts",
+    annot_path = iso@annot_path,
+    assays = list(abundance = assay(iso, "abundance")),
+    col_data = col_data(iso)
+  )
+  testthat::expect_identical(
+    productive_fraction(no_counts, group = "condition")$gene_id,
+    "gA"
+  )
+  testthat::expect_identical(
+    nrow(test_productive_fraction(iso, group = "condition")),
+    1L
+  )
+  testthat::expect_error(
+    productive_fraction(no_counts, min_gene_count = 10),
+    class = "isoformic_assay_not_found"
+  )
+})
+
+testthat::test_that("two_group_proportion_test does not test genes without usage information", {
+  groups <- factor(c("a", "a", "b", "b"))
+  den <- matrix(
+    c(10, 10, 10, 10, 10, 10, 40, 40, 10, 10, 40, 40, 10, 10, 0, 0),
+    nrow = 4,
+    byrow = TRUE
+  )
+  # Row 1: never productive; row 2: always productive with a change in the
+  # total; row 3: a real change; row 4: no reads in group b
+  num <- rbind(c(0, 0, 0, 0), c(10, 10, 40, 40), c(9, 8, 4, 6), c(5, 5, 0, 0))
+  res <- two_group_proportion_test(num, den, groups, min_class_count = 1)
+  testthat::expect_equal(res$log_odds_ratio[1:2], c(0, 0))
+  testthat::expect_true(all(is.na(res$pvalue[c(1, 2, 4)])))
+  testthat::expect_true(all(is.na(res$statistic[c(1, 2, 4)])))
+  testthat::expect_true(is.na(res$log_odds_ratio[4]))
+  testthat::expect_false(is.na(res$pvalue[3]))
+  # Only the testable row enters the BH adjustment
+  testthat::expect_equal(res$padj[3], res$pvalue[3])
+})
+
+testthat::test_that("run_productivity_enrichment ranks by the test statistic", {
+  testthat::skip_if_not_installed("fgsea")
+  sets <- list(
+    up = paste0("G", 1:10),
+    down = paste0("G", 31:40)
+  )
+  tested <- tibble::tibble(
+    gene_id = paste0("g", 1:40),
+    gene_name = paste0("G", 1:40),
+    delta_productive_fraction = seq(0.4, -0.38, by = -0.02),
+    statistic = seq(8, -7.6, by = -0.4),
+    pvalue = 2 * stats::pt(-abs(seq(8, -7.6, by = -0.4)), df = 4)
+  )
+  set.seed(1)
+  # fgsea warns that some p-values are overestimated on so few genes
+  res <- suppressWarnings(run_productivity_enrichment(
+    tested,
+    sets,
+    rank_by = "statistic",
+    min_size = 5
+  ))
+  testthat::expect_identical(unique(res$rank_by), "statistic")
+  testthat::expect_true(res$NES[res$pathway == "up"] > 0)
+  testthat::expect_true(res$NES[res$pathway == "down"] < 0)
+  testthat::expect_error(
+    run_productivity_enrichment(
+      tested[, c("gene_id", "gene_name", "delta_productive_fraction")],
+      sets,
+      rank_by = "statistic"
+    ),
+    class = "isoformic_invalid_productive_fraction"
+  )
+})
+
+testthat::test_that("a trace of reads in one class does not make a usage change", {
+  groups <- factor(rep(c("a", "b"), each = 3))
+  # 8-fold more reads in group b, all productive but for a trace
+  den <- matrix(
+    c(100, 110, 120, 800, 850, 900),
+    nrow = 3,
+    ncol = 6,
+    byrow = TRUE
+  )
+  trace <- c(0.02, 2, 6)
+  num <- den
+  num[, 6] <- num[, 6] - trace
+  res <- two_group_proportion_test(num, den, groups)
+  # 0.02 and 2 reads (below 5) are not tested; 6 reads are
+  testthat::expect_true(all(is.na(res$statistic[1:2])))
+  testthat::expect_equal(res$log_odds_ratio[1:2], c(0, 0))
+  testthat::expect_false(is.na(res$pvalue[3]))
+  # Through test_productive_fraction(): the unproductive isoforms of gA hold
+  # 0.02 reads in one sample only, while the gene grows 8-fold
+  iso <- seq_experiment()
+  counts <- assay(iso, "counts")
+  counts[] <- 0
+  counts[c("tA1", "tA2"), ] <- cbind(
+    c(60, 40),
+    c(60, 50),
+    c(480, 400),
+    c(500, 400)
+  )
+  counts["tA3", "s4"] <- 0.02
+  counts["tB1", ] <- 30
+  traced <- IsoformicExperiment(
+    experiment_name = "traced",
+    annot_path = iso@annot_path,
+    assays = list(abundance = assay(iso, "abundance"), counts = counts),
+    col_data = col_data(iso)
+  )
+  res_iso <- test_productive_fraction(traced, group = "condition")
+  testthat::expect_true(is.na(res_iso$pvalue[res_iso$gene_id == "gA"]))
+})
+
+testthat::test_that("the statistic ranking compares genes with different degrees of freedom", {
+  z <- signed_normal_quantile(c(-4.32, 3.47, 0, 2), c(0.012, 0.074, 1, 0))
+  testthat::expect_equal(z[1], -stats::qnorm(0.006, lower.tail = FALSE))
+  testthat::expect_equal(z[2], stats::qnorm(0.037, lower.tail = FALSE))
+  testthat::expect_equal(z[3], 0)
+  # A p-value of zero takes the largest finite score
+  testthat::expect_equal(z[4], abs(z[1]))
+  testthat::expect_true(abs(z[1]) > abs(z[2]))
+})

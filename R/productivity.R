@@ -45,11 +45,21 @@
 #' * `test_productive_fraction()` tests the change in productive fraction
 #'   between two groups on counts, with a quasi-binomial model per gene
 #'   (pooled proportions per group, Pearson over-dispersion, t test on the
-#'   log odds ratio, BH adjustment).
+#'   log odds ratio, BH adjustment). A gene with fewer than 5 reads in its
+#'   smaller class (productive or not), pooled over both groups, carries
+#'   too little information on usage: it gets a `log_odds_ratio` of 0 and no
+#'   statistic or p-value, and does not count in the BH adjustment. A gene
+#'   without reads in one group gets `NA` there too.
 #' * `run_productivity_enrichment()` ranks genes by the change in
-#'   productive fraction between two groups and runs gene set enrichment
-#'   (`fgsea`) on gene symbols, which captures regulated unproductive
-#'   splicing (AS-NMD) directly.
+#'   productive fraction between the last and the first group level
+#'   (`rank_by = "delta"`), by that change over its standard deviation
+#'   (`rank_by = "delta_z"`) or by the statistic of
+#'   `test_productive_fraction()` (`rank_by = "statistic"`), and runs gene
+#'   set enrichment (`fgsea`) on gene symbols, which captures regulated
+#'   unproductive splicing (AS-NMD) directly. It takes an
+#'   [IsoformicExperiment], a `productive_fraction()` table or a
+#'   `test_productive_fraction()` table, and one or several gene set
+#'   collections.
 #' * `poison_exons()` lists exons that occur only in unproductive isoforms
 #'   of genes that also have productive isoforms and that do not overlap
 #'   any exon of a productive isoform (cassette poison / NMD exons, as
@@ -61,11 +71,40 @@
 #'   `protein_coding` and canonical transcripts called productive.
 #' * `productivity_palette()` gives colours for the classes.
 #'
+#' @details
+#' **Low-count genes.** A productive fraction computed from a few reads is
+#' mostly sampling noise: a gene with 4 reads moves by 0.25 when one read
+#' changes isoform. `delta_z` does not catch this, because the inferential
+#' replicates measure how the reads are split between isoforms, not how many
+#' reads were sampled. `min_gene_count` removes genes whose mean count (the
+#' sum of the counts of their isoforms in the `"counts"` assay) is below it in
+#' any group, before the statistics and the BH adjustment; with
+#' `rank_by = "statistic"`, before the ranking. The filter is off by default
+#' (0); 10 reads is a reasonable start. The rule asks for enough reads in
+#' every group, because a fraction is compared between groups: it is
+#' stricter than the transcript filter of [test_usage()] (`min_count` reads
+#' in as many samples as the smallest group), and `min_expr` sets single
+#' isoform values to zero rather than removing genes.
+#' `rank_by = "statistic"` accounts for the reads of every gene and for the
+#' variation between its samples. Its dispersion is estimated for each gene
+#' alone, on `n - 2` degrees of freedom and not moderated, so with three
+#' samples per group the ranking is still noisy. The t statistic is put on
+#' the normal scale through its p-value
+#' (`sign(statistic) * qnorm(pvalue / 2, lower.tail = FALSE)`), because the
+#' degrees of freedom differ between genes when samples without reads drop
+#' out. Its sign is that of the pooled change (`delta_productive_fraction`
+#' of `test_productive_fraction()`), which can differ from the mean of the
+#' per-sample fractions in `productive_fraction()` when the samples differ
+#' much in depth. Genes with fewer than 5 reads in one class get no
+#' statistic and are left out of the ranking, so that a change in the
+#' expression of the whole gene does not rank it.
+#'
 #' @param self An [IsoformicExperiment]. `run_productivity_enrichment()` also
-#'   takes the table of `productive_fraction()` for two or more groups, so
-#'   that one table serves several gene set collections; the arguments that
-#'   build the table (`group`, `levels`, `assay`, `include_altered`,
-#'   `min_expr`, `inf_reps`) are then ignored.
+#'   takes the table of `productive_fraction()` for two or more groups, or of
+#'   `test_productive_fraction()` for `rank_by = "statistic"`, so that one
+#'   table serves several gene set collections; the arguments that build the
+#'   table (`group`, `levels`, `assay`, `include_altered`, `min_expr`,
+#'   `min_gene_count`, `inf_reps`) are then ignored.
 #' @param gene_name Optional genes (names or IDs) to restrict the result to.
 #' @param nmd_rule Distance (nt) from the stop codon to the last junction
 #'   above which NMD is predicted; default 50.
@@ -91,20 +130,31 @@
 #'   (`test_productive_fraction()`, `test_apa()`) need exactly two levels.
 #' @param min_expr Minimum assay value for an isoform to contribute
 #'   (default 0): isoforms below it count as zero.
+#' @param min_gene_count Minimum mean count of a gene, the sum of its
+#'   isoforms in the `"counts"` assay, in every group (over all the samples
+#'   kept without `group`); genes below it are dropped. Needs a `"counts"`
+#'   assay whatever `assay` is. The default 0 keeps every gene. See Details.
 #' @param inf_reps Optional list of transcript matrices (inferential
 #'   replicates with the same dimnames as the assay); `NULL` uses
-#'   `metadata(x)$inf_reps` when present and `FALSE` skips the replicates,
+#'   `x@metadata$inf_reps` when present and `FALSE` skips the replicates,
 #'   which leaves out the standard deviations and `delta_z` and is much
 #'   faster. `run_productivity_enrichment()` reads the replicates only for
 #'   `rank_by = "delta_z"`.
 #' @param rank_by Statistic that ranks the genes in
 #'   `run_productivity_enrichment()`: `"delta"` (default), the change in
-#'   productive fraction, or `"delta_z"`, that change divided by its
+#'   productive fraction, `"delta_z"`, that change divided by its
 #'   standard deviation over the inferential replicates, which moves the
-#'   genes with an uncertain change towards the middle of the ranking.
+#'   genes with an uncertain change towards the middle of the ranking, or
+#'   `"statistic"`, the test of `test_productive_fraction()` on the
+#'   `"counts"` assay between the first and the last level of `levels`, as
+#'   a signed normal quantile of its p-value (see Details); `assay` and
+#'   `inf_reps` are then not used.
 #'   `"delta_z"` needs inferential replicates; a change that is the same in
-#'   every replicate gets the largest `delta_z` of the table. It reflects the
-#'   quantification uncertainty only, not the variation between samples.
+#'   every replicate (`delta_z` is `NA` in the `productive_fraction()`
+#'   table) is ranked with the largest absolute `delta_z` of the table (at
+#'   least 1), with the sign of the change. It reflects the
+#'   quantification uncertainty only, not the variation between samples or
+#'   the number of reads; `"statistic"` reflects both (see Details).
 #' @param reference Optional tibble from [gtex_reference()], or a GTEx
 #'   tissue name, giving the healthy-tissue productive fraction per gene.
 #' @param as_matrix Logical, return the genes x samples matrix of
@@ -113,11 +163,49 @@
 #'   or a named list of such lists: each collection is then tested on its own
 #'   and the result has a `collection` column (see [run_enrichment()]).
 #' @param min_size,max_size Gene set size limits passed to `fgsea`.
-#' @param ... Passed on to methods or to `fgsea::fgseaMultilevel()`.
+#' @param ... Used only by `run_productivity_enrichment()`, which passes them
+#'   to `fgsea::fgseaMultilevel()`; the other functions do not use them
+#'   (reserved for methods). fgsea runs in the session unless `nproc` or
+#'   `BPPARAM` is given. On Unix-like systems these fork the session: the
+#'   workers share its memory, but tools that add up the resident memory of
+#'   the processes count it once per worker. Give the number of workers
+#'   (`nproc = 4`); the default of `BiocParallel` is all the cores of the
+#'   machine but two, whatever a job scheduler allocated.
 #'
-#' @returns Tibbles, a matrix for `productive_fraction(as_matrix = TRUE)`,
-#'   a named character vector for `productivity_palette()`, a list with
-#'   `summary` and `confusion` tibbles for `benchmark_productivity()`.
+#' @returns
+#' * `transcript_productivity()`: one row per transcript with
+#'   `transcript_id`, `transcript_name`, `transcript_type`, `gene_id`,
+#'   `gene_name`, `productivity` (a factor with the levels of
+#'   `productivity_palette()`), `reason`, `source`, `has_cds`,
+#'   `cds_complete`, `orf_length`, `nmd_predicted`, `stop_to_last_junction`,
+#'   `orf_fraction_of_canonical`, `is_canonical` and, with sequences, the
+#'   ORF columns behind the call (`orf_source`, `nmd_class`,
+#'   `frame_vs_canonical`, `coding_probability`, `n_uorf`).
+#' * `productive_fraction()`: one row per coding gene with
+#'   `gene_id`, `gene_name`, `mean_gene_expr`, `productive_fraction` (mean
+#'   over the samples kept), with `group` one `productive_fraction_<level>`
+#'   column per level and `delta_productive_fraction`, with inferential
+#'   replicates `productive_fraction_sd` and, with `group`,
+#'   `delta_productive_fraction_sd` and `delta_z`, and with `reference` the
+#'   `reference_*` columns and `delta_vs_reference`. A genes x samples
+#'   matrix with `as_matrix = TRUE`.
+#' * `productivity_fractions()`: one row per gene and class present
+#'   (`productivity`, a factor), with `fraction` and, with `group`, the
+#'   `fraction_<level>` and `delta_fraction` columns.
+#' * `test_productive_fraction()`: one row per coding gene with
+#'   `mean_gene_expr`, the two `productive_fraction_<level>` columns,
+#'   `delta_productive_fraction`, `log_odds_ratio`, `se`, `statistic`,
+#'   `dispersion`, `df`, `pvalue` and `padj`, ordered by `pvalue`.
+#' * `run_productivity_enrichment()`: the `fgsea` result with the columns
+#'   `experiment` (`"productive_fraction"`), `rank_by` and, for a list of
+#'   collections, `collection`.
+#' * `poison_exons()`: one row per exon with `gene_id`, `gene_name`,
+#'   `seqid`, `start_pos`, `end_pos`, `strand`, `n_unproductive`,
+#'   `transcript_ids` and `exon_length`.
+#' * `benchmark_productivity()`: a list with the `summary` (`metric`, `n`,
+#'   `value`, `source`) and `confusion` (`transcript_type`, `productivity`,
+#'   `n`) tibbles.
+#' * `productivity_palette()`: a named character vector of colours.
 #'
 #' @examples
 #' iso <- example_isoformic()
@@ -577,6 +665,64 @@ productivity_matrix <- function(self, assay, min_expr, include_altered) {
   )
 }
 
+#' Genes that pass `min_gene_count`, `NULL` when no filter applies
+#'
+#' The gene count is the sum of the counts of its transcripts in the
+#' `"counts"` assay over `sample_ids`; its mean must reach `min_gene_count`
+#' in every level of `groups` (over all the samples when `groups` is `NULL`).
+#' @keywords internal
+#' @noRd
+count_filtered_genes <- function(
+  self,
+  prod,
+  sample_ids,
+  groups,
+  min_gene_count
+) {
+  if (
+    !is.numeric(min_gene_count) ||
+      length(min_gene_count) != 1L ||
+      is.na(min_gene_count) ||
+      min_gene_count < 0
+  ) {
+    cli::cli_abort(
+      message = c(
+        x = "{.arg min_gene_count} must be a single number of at least 0."
+      ),
+      class = "isoformic_invalid_argument"
+    )
+  }
+  if (min_gene_count == 0) {
+    return(NULL)
+  }
+  if (!"counts" %in% assay_names(self)) {
+    cli::cli_abort(
+      message = c(
+        x = "{.arg min_gene_count} needs a {.val counts} assay.",
+        i = "Available assays: {.val {assay_names(self)}}. Use {.code min_gene_count = 0} to skip the filter."
+      ),
+      class = "isoformic_assay_not_found"
+    )
+  }
+  counts <- assay(self, "counts")[, sample_ids, drop = FALSE]
+  if (!is.double(counts)) {
+    # Integer sums overflow to NA
+    storage.mode(counts) <- "double"
+  }
+  gene_ids <- prod$gene_id[match(rownames(counts), prod$transcript_id)]
+  known <- !is.na(gene_ids)
+  total <- rowsum(counts[known, , drop = FALSE], gene_ids[known])
+  if (is.null(groups)) {
+    groups <- factor(rep("all", ncol(total)))
+  }
+  pass <- rep(TRUE, nrow(total))
+  for (lv in levels(groups)) {
+    lv_mean <- rowMeans(total[, groups == lv, drop = FALSE])
+    pass <- pass & !is.na(lv_mean) & lv_mean >= min_gene_count
+  }
+  rownames(total)[pass]
+}
+
 #' @rdname productivity
 #' @export
 productive_fraction <- S7::new_generic(
@@ -591,6 +737,7 @@ productive_fraction <- S7::new_generic(
     as_matrix = FALSE,
     gene_name = NULL,
     min_expr = 0,
+    min_gene_count = 0,
     inf_reps = NULL,
     reference = NULL,
     ...
@@ -608,6 +755,7 @@ S7::method(productive_fraction, IsoformicExperiment) <- function(
   as_matrix = FALSE,
   gene_name = NULL,
   min_expr = 0,
+  min_gene_count = 0,
   inf_reps = NULL,
   reference = NULL,
   ...
@@ -635,7 +783,19 @@ S7::method(productive_fraction, IsoformicExperiment) <- function(
     total
   # A total that is not finite gives no fraction
   frac[!is.finite(frac) | !is.finite(total)] <- NA_real_
+  # Genes with too few reads in some group are dropped from the result; the
+  # replicates below are still summed over all genes, row by row
+  expressed <- count_filtered_genes(
+    self,
+    pm$prod,
+    grp$samples,
+    groups,
+    min_gene_count
+  )
   if (isTRUE(as_matrix)) {
+    if (!is.null(expressed)) {
+      frac <- frac[rownames(frac) %in% expressed, , drop = FALSE]
+    }
     return(frac)
   }
   genes <- self@annot_data_genes[, c("gene_id", "gene_name")]
@@ -718,6 +878,11 @@ S7::method(productive_fraction, IsoformicExperiment) <- function(
         res$delta_productive_fraction_sd %in% 0
       res$delta_z[no_change] <- 0
     }
+  }
+  if (!is.null(expressed)) {
+    res <- res[res$gene_id %in% expressed, ]
+  }
+  if (!is.null(group)) {
     if ("delta_productive_fraction" %in% names(cols)) {
       res <- dplyr::arrange(
         res,
@@ -968,6 +1133,7 @@ test_productive_fraction <- S7::new_generic(
     assay = "counts",
     include_altered = TRUE,
     min_expr = 0,
+    min_gene_count = 0,
     gene_name = NULL,
     ...
   ) {
@@ -982,6 +1148,7 @@ S7::method(test_productive_fraction, IsoformicExperiment) <- function(
   assay = "counts",
   include_altered = TRUE,
   min_expr = 0,
+  min_gene_count = 0,
   gene_name = NULL,
   ...
 ) {
@@ -995,6 +1162,20 @@ S7::method(test_productive_fraction, IsoformicExperiment) <- function(
   setup <- two_group_setup(self, group, colnames(total), levels)
   total <- total[, setup$keep, drop = FALSE]
   productive <- productive[, setup$keep, drop = FALSE]
+  # Genes with too few reads are left out before the test, so that they do
+  # not enter the BH adjustment
+  expressed <- count_filtered_genes(
+    self,
+    pm$prod,
+    setup$samples,
+    setup$groups,
+    min_gene_count
+  )
+  if (!is.null(expressed)) {
+    keep_genes <- rownames(total) %in% expressed
+    total <- total[keep_genes, , drop = FALSE]
+    productive <- productive[keep_genes, , drop = FALSE]
+  }
   test <- two_group_proportion_test(productive, total, setup$groups)
   genes <- self@annot_data_genes[, c("gene_id", "gene_name")]
   res <- dplyr::bind_cols(
@@ -1024,9 +1205,10 @@ run_productivity_enrichment <- S7::new_generic(
     assay = "abundance",
     min_size = 15,
     max_size = 500,
-    rank_by = c("delta", "delta_z"),
+    rank_by = c("delta", "delta_z", "statistic"),
     include_altered = TRUE,
     min_expr = 0,
+    min_gene_count = 0,
     inf_reps = NULL,
     ...
   ) {
@@ -1042,9 +1224,10 @@ S7::method(run_productivity_enrichment, IsoformicExperiment) <- function(
   assay = "abundance",
   min_size = 15,
   max_size = 500,
-  rank_by = c("delta", "delta_z"),
+  rank_by = c("delta", "delta_z", "statistic"),
   include_altered = TRUE,
   min_expr = 0,
+  min_gene_count = 0,
   inf_reps = NULL,
   ...
 ) {
@@ -1060,6 +1243,47 @@ S7::method(run_productivity_enrichment, IsoformicExperiment) <- function(
   }
   rank_by <- rlang::arg_match(rank_by)
   check_genesets(genesets_list)
+  if (identical(rank_by, "statistic")) {
+    if (!identical(assay, "abundance") || !is.null(inf_reps)) {
+      cli::cli_warn(
+        message = c(
+          "!" = paste(
+            "{.code rank_by = \"statistic\"} tests the {.val counts} assay",
+            "and does not use {.arg assay} or {.arg inf_reps}."
+          )
+        ),
+        class = "isoformic_ignored_argument"
+      )
+    }
+    # The test needs counts and two levels: the first and the last, the two
+    # that the change in productive fraction compares
+    lv <- levels(
+      group_samples(
+        self,
+        group,
+        col_names(self),
+        levels = levels,
+        min_levels = 2L
+      )$groups
+    )
+    tested <- test_productive_fraction(
+      self,
+      group = group,
+      levels = lv[c(1L, length(lv))],
+      include_altered = include_altered,
+      min_expr = min_expr,
+      min_gene_count = min_gene_count
+    )
+    res <- productivity_enrichment(
+      tested,
+      genesets_list,
+      rank_by = rank_by,
+      min_size = min_size,
+      max_size = max_size,
+      ...
+    )
+    return(res)
+  }
   pf <- productive_fraction(
     self,
     group = group,
@@ -1067,6 +1291,7 @@ S7::method(run_productivity_enrichment, IsoformicExperiment) <- function(
     assay = assay,
     include_altered = include_altered,
     min_expr = min_expr,
+    min_gene_count = min_gene_count,
     # The change itself does not need the replicates: they are not read
     inf_reps = if (identical(rank_by, "delta")) FALSE else inf_reps
   )
@@ -1097,9 +1322,10 @@ S7::method(run_productivity_enrichment, S7::class_data.frame) <- function(
   assay = "abundance",
   min_size = 15,
   max_size = 500,
-  rank_by = c("delta", "delta_z"),
+  rank_by = c("delta", "delta_z", "statistic"),
   include_altered = TRUE,
   min_expr = 0,
+  min_gene_count = 0,
   inf_reps = NULL,
   ...
 ) {
@@ -1116,7 +1342,7 @@ S7::method(run_productivity_enrichment, S7::class_data.frame) <- function(
     cli::cli_abort(
       message = c(
         x = "{.arg self} is missing column{?s}: {.field {missing_cols}}.",
-        i = "Pass the result of {.fn productive_fraction} for two or more groups."
+        i = "Pass the result of {.fn productive_fraction} for two or more groups, or of {.fn test_productive_fraction}."
       ),
       class = "isoformic_invalid_productive_fraction"
     )
@@ -1157,8 +1383,24 @@ productivity_enrichment <- function(
   rank_col <- switch(
     rank_by,
     delta = "delta_productive_fraction",
-    delta_z = "delta_z"
+    delta_z = "delta_z",
+    statistic = "signed_z"
   )
+  if (identical(rank_by, "statistic")) {
+    missing_cols <- setdiff(c("statistic", "pvalue"), colnames(pf))
+    if (length(missing_cols)) {
+      cli::cli_abort(
+        message = c(
+          x = "{.code rank_by = \"statistic\"} needs the column{?s} {.field {missing_cols}}.",
+          i = "Pass the result of {.fn test_productive_fraction}, or the object itself."
+        ),
+        class = "isoformic_invalid_productive_fraction"
+      )
+    }
+    # The degrees of freedom differ between genes: compare them through the
+    # p-value, on the normal scale
+    pf$signed_z <- signed_normal_quantile(pf$statistic, pf$pvalue)
+  }
   if (
     identical(rank_by, "delta_z") &&
       !all(c("delta_z", "delta_productive_fraction_sd") %in% colnames(pf))
@@ -1198,6 +1440,18 @@ productivity_enrichment <- function(
     max_size = max_size,
     ...
   )
+}
+
+#' Signed normal quantile of a two-sided p-value
+#'
+#' A p-value of zero is the smallest of the vector, not an infinite score.
+#' @keywords internal
+#' @noRd
+signed_normal_quantile <- function(statistic, pvalue) {
+  z <- stats::qnorm(pvalue / 2, lower.tail = FALSE)
+  finite <- z[is.finite(z)]
+  z[z %in% Inf] <- if (length(finite)) max(finite) else 1
+  sign(statistic) * z
 }
 
 #' @rdname productivity

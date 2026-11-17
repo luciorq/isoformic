@@ -17,8 +17,9 @@
 #' Terminus replace the groups built from the correlation of the replicates.
 #'
 #' @param path The `clusters.txt` file, or a folder that holds it (the output
-#'   folder of one sample, or the folder given to `-o` when it holds one sample
-#'   folder).
+#'   folder of one sample), or the folder given to `-o`: the first
+#'   `clusters.txt` one folder down is read, as the consensus groups are the
+#'   same in every sample folder.
 #' @param ignore_after_bar Logical. Keep only the part of transcript names
 #'   before the first `|`.
 #'
@@ -160,7 +161,8 @@ resolve_groups <- function(groups) {
 #' sample is grouped, and the other logs after the consensus, unless
 #' `keep_logs = TRUE`.
 #'
-#' @param paths Salmon output directories (or paths to their `quant.sf`).
+#' @param paths Salmon output directories (or paths to their `quant.sf`);
+#'   Oarfish output is not accepted.
 #' @param output_dir Folder for the Terminus output; one subfolder per sample
 #'   holds `groups.txt` and, after the consensus, `clusters.txt` and the
 #'   collapsed quantification.

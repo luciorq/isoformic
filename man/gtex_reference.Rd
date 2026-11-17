@@ -24,10 +24,14 @@ productive (default \code{TRUE}).}
 \item{...}{Passed on to methods.}
 }
 \value{
-A tibble with one row per gene of \code{x}: \code{reference_tissue},
-\code{reference_gene_tpm}, \code{reference_productive_fraction},
-\code{reference_dominant_transcript_id}, \code{reference_dominant_productivity},
-\code{n_reference_transcripts}.
+\code{gtex_reference()} returns a tibble with one row per gene of \code{x}
+that has a transcript in the GTEx table: \code{gene_id}, \code{gene_name},
+\code{reference_tissue}, \code{reference_gene_tpm},
+\code{reference_productive_fraction} (\code{NA} for genes without a coding
+isoform or with a total TPM of 0), \code{reference_dominant_transcript_id},
+\code{reference_dominant_productivity}, \code{n_reference_transcripts}.
+\code{gtex_tissues()} returns a tibble with the \code{tissue} names and their
+\code{n_samples}.
 }
 \description{
 Computes, from the GTEx v8 median transcript TPM of one tissue (frozen

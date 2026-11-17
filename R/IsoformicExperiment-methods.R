@@ -37,11 +37,14 @@
 #'
 #' **Housekeeping**
 #' * `clear_cache()`: drop cached derived data for the object (and, with
-#'   `annotation = TRUE`, the shared annotation tables).
+#'   `annotation = TRUE`, the shared annotation tables); returns the object
+#'   invisibly.
 #'
 #' @param self An [IsoformicExperiment].
 #' @param value Replacement value.
-#' @param name Name of the assay. `NULL` selects the first assay.
+#' @param name Name of the assay (a position also works for `assay()` and
+#'   `gene_assay()`). `NULL` selects the first assay. Required, as a single
+#'   string, for `assay<-`.
 #' @param gene_name Character vector of gene names or gene IDs.
 #' @param with_exons Logical, also join the exon table (one row per exon).
 #' @param annotation Logical, also clear the shared annotation cache.

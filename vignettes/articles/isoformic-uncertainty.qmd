@@ -1,7 +1,7 @@
 ---
 title: "How confident are we in an isoform-level result?"
 date: 2026-10-17
-date-modified: 2026-10-17
+date-modified: 2026-11-12
 date-format: long
 author:
   - name: Lucio Rezende Queiroz
@@ -67,7 +67,7 @@ iso <- add_uncertainty(iso, paths = quant_dirs, group = "condition")
 ```
 
 The replicates are read for the transcripts with an estimated mean count of at least one, and the run metadata of every sample is added to `col_data()`.
-The replicates stay in memory (`metadata(iso)$inf_reps`); the tables derived from them are stored in the object and written by `write_isoformic()`.
+The replicates stay in memory (`iso@metadata$inf_reps`; `keep_draws = FALSE` drops them); the tables derived from them are stored in the object and written by `write_isoformic()`.
 
 ## The example
 
@@ -184,7 +184,7 @@ It is the most direct measure of read support. With `paths`, `add_uncertainty()`
 
 When two isoforms share their reads, every fragment given to one is taken from the other, and their draws are negatively correlated.
 `isoform_ambiguity()` reports the mean correlation of every pair of isoforms of the same gene; pairs at or below `cor_cutoff` (-0.5) are ambiguous and connected into `ambiguity_group`s.
-This is the idea of `mmcollapse` [@turro2014], which merges the most anti-correlated transcripts until a threshold taken from the data is passed; here the cutoff is fixed.
+This is the idea of `mmcollapse` [@turro2014], which merges the most anti-correlated transcripts until a threshold taken from the data is passed; here the cutoff is fixed by default, and `add_uncertainty(cor_cutoff = "adaptive")` derives it from the data as `mmcollapse` does.
 
 ```{r}
 isoform_ambiguity(iso, ambiguous_only = TRUE) |>
@@ -501,7 +501,17 @@ The cutoffs (`inf_rv_cutoff`, `cor_cutoff`, `min_agreement`) are heuristics: rer
 The classes are calibrated against nothing but the data at hand.
 Two kinds of error are outside what the draws can show.
 An abundance can be non-identifiable, with several solutions that explain the reads equally well: only about half of the transcripts flagged by the variance of the draws were also non-identifiable in that sense in one comparison [@zheng2022], so an ambiguous pair is a statement about the draws, not a proof.
-And an estimate can be wrong because the transcript the reads came from is missing from the annotation, which shows as read coverage that contradicts the model and not as variance [@ma2019].
+`equivalence_identifiability()` checks the first kind from the equivalence classes of each sample: a transcript is identifiable when its abundance is fixed once the total of every class is fixed.
+`add_uncertainty(identifiability = TRUE)` computes it from the Salmon directories (minutes per human sample) and adds `identifiable` to `tx_uncertainty()`, and `de_confidence()` then counts a non-identifiable transcript as one more reason against the call.
+It uses class membership only, not the range of optimal estimates of @zheng2022.
+
+```{r}
+#| eval: false
+identifiability <- equivalence_identifiability(quant_dirs)
+iso <- add_uncertainty(iso, paths = quant_dirs, group = "condition", identifiability = identifiability)
+```
+
+The second kind: an estimate can be wrong because the transcript the reads came from is missing from the annotation, which shows as read coverage that contradicts the model and not as variance [@ma2019].
 With long reads the overdispersion is expected close to 1 [@baldoni2024]; `uncertainty_report()$replicates` gives its median.
 Finally, the contrast repeated on each draw is a screening statistic (a Welch test on the log scale, with a pseudocount of 5) and does not replace `swish` or `DESeq2`.
 

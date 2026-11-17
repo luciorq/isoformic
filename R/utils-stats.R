@@ -6,14 +6,28 @@
 #' covariate: the fitted proportions are the pooled proportions of each
 #' group, the dispersion is the Pearson statistic of the per-sample counts
 #' around them (floored at 1, the binomial value) and the log odds ratio
-#' between the groups is tested with a t statistic on
-#' `n_samples - 2` degrees of freedom. Proportions use a 0.5 continuity
-#' correction so that genes at 0 or 1 remain testable.
+#' between the groups is tested with a t statistic on `n - 2` degrees of
+#' freedom, `n` being the number of samples with a nonzero total. The log
+#' odds ratio uses a 0.5 continuity
+#' correction so that genes at 0 or 1 in one group remain testable.
+#'
+#' A row with fewer than `min_class_count` reads (default 5) in its smaller
+#' class, pooled over both groups (`min(y_a + y_b, n_a + n_b - y_a - y_b)`),
+#' has too little information on the difference: with the correction, its
+#' log odds ratio tends to `log(n_b / n_a)`, a change in the expression of
+#' the gene, not in the proportion. A fraction of a read is common in
+#' Salmon counts, so an exact 0 or 1 is not enough. Such rows get a log odds
+#' ratio of 0 and no standard error, statistic or p-value, and do not enter
+#' the BH adjustment. A row without any total in one group has no
+#' proportion there: its log odds ratio, standard error, statistic and
+#' p-value are `NA`.
 #'
 #' @param num Matrix genes x samples of numerator counts.
 #' @param den Matrix genes x samples of totals.
 #' @param groups Factor of length `ncol(num)` with exactly two levels; the
 #'   effect is level 2 versus level 1.
+#' @param min_class_count Minimum pooled count of the smaller class for a
+#'   row to be tested.
 #'
 #' @returns A tibble with `proportion_<level1>`, `proportion_<level2>`,
 #'   `delta`, `log_odds_ratio`, `se`, `statistic`, `dispersion`, `df`,
@@ -21,7 +35,7 @@
 #'
 #' @keywords internal
 #' @noRd
-two_group_proportion_test <- function(num, den, groups) {
+two_group_proportion_test <- function(num, den, groups, min_class_count = 5) {
   lv <- levels(groups)
   if (length(lv) != 2L) {
     cli::cli_abort(
@@ -61,22 +75,34 @@ two_group_proportion_test <- function(num, den, groups) {
         1 / ((n_b + 1) * pc_b * (1 - pc_b)))
   )
   statistic <- lor / se
+  # (Almost) one class only over both groups: nothing to compare
+  pooled_y <- y_a + y_b
+  minority <- pmin(pooled_y, n_a + n_b - pooled_y)
+  degenerate <- (n_a + n_b) > 0 & minority < min_class_count
+  lor[degenerate] <- 0
+  # No reads in one group: no proportion to compare with
+  one_group <- (n_a > 0) != (n_b > 0)
+  lor[one_group] <- NA_real_
+  untestable <- degenerate | one_group
+  se[untestable] <- NA_real_
+  statistic[untestable] <- NA_real_
   pvalue <- ifelse(
     df > 0 & is.finite(statistic),
     2 * stats::pt(-abs(statistic), df = df),
     NA_real_
   )
   res <- tibble::tibble(
-    p1 = unname(p_a),
-    p2 = unname(p_b),
-    delta = unname(p_b - p_a),
-    log_odds_ratio = unname(lor),
-    se = unname(se),
-    statistic = unname(statistic),
-    dispersion = unname(dispersion),
-    df = unname(df),
-    pvalue = unname(pvalue),
-    padj = stats::p.adjust(unname(pvalue), method = "BH")
+    # as.numeric(): with no rows, ifelse() gives logical vectors
+    p1 = as.numeric(p_a),
+    p2 = as.numeric(p_b),
+    delta = as.numeric(p_b - p_a),
+    log_odds_ratio = as.numeric(lor),
+    se = as.numeric(se),
+    statistic = as.numeric(statistic),
+    dispersion = as.numeric(dispersion),
+    df = as.numeric(df),
+    pvalue = as.numeric(pvalue),
+    padj = stats::p.adjust(as.numeric(pvalue), method = "BH")
   )
   names(res)[1:2] <- paste0("proportion_", lv)
   res

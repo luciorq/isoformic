@@ -27,8 +27,8 @@
 #'   `alt_last_exon`.
 #'
 #' `splicing_events()` returns the event counts alone; both are cached per
-#' object. The data-frame methods accept the exon table of an annotation
-#' (see [exon_table()]) joined with the transcript columns.
+#' object. With an annotation directory path every transcript of the
+#' annotation is described.
 #'
 #' @param self An [IsoformicExperiment] or an annotation directory path.
 #' @param gene_name Optional genes (names or IDs) to restrict the result to.
@@ -38,7 +38,12 @@
 #'   ends) are grouped as the same promoter (or 3' end); default 50.
 #' @param ... Passed on to methods.
 #'
-#' @returns A tibble with one row per transcript.
+#' @returns A tibble with one row per transcript. `transcript_features()`:
+#'   `transcript_id`, `transcript_name`, `transcript_type`, `gene_id`,
+#'   `gene_name`, `strand`, `n_exons`, `tx_length`, `is_canonical` and the
+#'   feature columns listed above. `splicing_events()`: `transcript_id`,
+#'   `transcript_name`, `gene_id`, `gene_name`, `canonical_transcript_id`
+#'   and the event columns.
 #'
 #' @examples
 #' iso <- example_isoformic()
@@ -590,9 +595,11 @@ compute_splicing_events <- function(tx, exons, canonical_id) {
 #' the hook for evidence that the package does not compute itself: FANTOM
 #' CAGE clusters, GTEx dominant isoforms per tissue, Ribo-seq translation
 #' calls, NMD-inhibition responses, protein domain retention, long-read
-#' full-length counts. A column named `productivity_evidence` with values
-#' `"productive"` / `"unproductive"` overrides the call of
-#' [transcript_productivity()].
+#' full-length counts. A column named `productivity_evidence` holding one of
+#' the classes of [productivity_palette()] (`"productive"`,
+#' `"altered_productive"`, `"unproductive"`, `"noncoding"`, `"uncertain"`)
+#' overrides the call of [transcript_productivity()]; other values are
+#' ignored.
 #'
 #' @param x An annotation directory path or an [IsoformicExperiment].
 #' @param table A data frame, or a path to a tabular file readable by
@@ -601,6 +608,11 @@ compute_splicing_events <- function(tx, exons, canonical_id) {
 #' @param by Name of the key column in `table`; defaults to
 #'   `transcript_id`/`gene_id`, or the first column.
 #' @param prefix Optional prefix added to the new column names.
+#'
+#' @details
+#' Only the first row of each key of `table` is used. An annotation column
+#' with the name of a new column is replaced, and rows of the annotation
+#' without a match get `NA`.
 #'
 #' @returns The annotation directory path, invisibly.
 #'
@@ -688,7 +700,9 @@ add_annotation_columns <- function(
 #' CAGE-defined promoter of each transcript) becomes `cage_cluster_id`, with
 #' its coordinates parsed into `cage_cluster_seqid`, `cage_cluster_start`,
 #' `cage_cluster_end`, and the gene information columns are added to the
-#' gene table in snake case. See [download_fantom_cat_tables()].
+#' gene table in snake case (except the location, strand and the attributes
+#' the GTF already provides, such as `gene_class` and `gene_category`). See
+#' [download_fantom_cat_tables()].
 #'
 #' @param x An annotation directory path or an [IsoformicExperiment].
 #' @param id_mapping Path (or data frame) of the ID mapping table.
@@ -698,7 +712,11 @@ add_annotation_columns <- function(
 #'
 #' @examples
 #' \dontrun{
-#' gtf <- download_reference(reference = "fantom", version = "lv3_robust")
+#' gtf <- download_reference(
+#'   reference = "fantom",
+#'   version = "lv3_robust",
+#'   file_type = "gtf"
+#' )
 #' tables <- download_fantom_cat_tables("lv3_robust")
 #' annot <- prepare_isoformic_annotation(gtf)
 #' add_fantom_cat_tables(annot, tables[["id_mapping"]], tables[["gene_info"]])

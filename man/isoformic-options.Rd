@@ -4,6 +4,7 @@
 \alias{isoformic-options}
 \alias{isoformic_options}
 \alias{isoformic.frozen_mirrors}
+\alias{isoformic.orf_cache}
 \title{Options and environment variables used by isoformic}
 \description{
 isoformic has two package options, \code{isoformic.frozen_mirrors} and
@@ -54,9 +55,10 @@ Pass \code{method} explicitly to override them for one call.}
 \item{\code{rlang_interactive}}{Overrides \code{\link[=interactive]{interactive()}} for
 \code{rlang::is_interactive()}. In a non-interactive session the download
 progress is silenced (\code{quiet = TRUE} in \code{\link[utils:download.file]{utils::download.file()}}) and
-missing optional packages (\code{fgsea}, \code{condathis}, \code{readxl},
-\code{SummarizedExperiment}) raise an error instead of an installation
-prompt.}
+missing optional packages (for example \code{fgsea}, \code{condathis},
+\code{readxl}, \code{Matrix}, \code{SummarizedExperiment}, or \code{edgeR}, \code{limma},
+\code{satuRn}, \code{DEXSeq} and \code{BiocParallel} for \code{\link[=test_usage]{test_usage()}}) raise an
+error instead of an installation prompt.}
 \item{\code{cli.num_colors}, \code{cli.unicode}, \code{cli.default_handler},
 \code{cli.width}, \code{cli.progress_show_after}}{Rendering of every message,
 warning and error, which the package emits through the \code{cli} package.
@@ -85,7 +87,8 @@ uses when \code{R_USER_CACHE_DIR} is unset.}
 \item{\code{http_proxy}, \code{https_proxy}, \code{ftp_proxy}, \code{no_proxy}}{Proxy
 settings honoured by \code{\link[utils:download.file]{utils::download.file()}} and \code{\link[=url]{url()}} (\code{libcurl}
 and \code{internal} methods) and therefore by every download in the
-package, including the connectivity check \code{curl::has_internet()}.}
+package, including the connectivity check \code{curl::has_internet()}
+that the download functions run first when \code{curl} is installed.}
 \item{\code{CURL_CA_BUNDLE}, \code{SSL_CERT_FILE}}{Certificate bundle used by the
 \code{libcurl} download method, needed behind TLS-intercepting proxies.}
 }
@@ -99,19 +102,26 @@ package, including the connectivity check \code{curl::has_internet()}.}
 short-lived in-memory DuckDB connection with the DuckDB defaults:
 all CPU cores (\code{threads}) and 80\% of the RAM as \code{memory_limit}. The
 package does not expose these; they are DuckDB session settings and
-the connections are not shared with user code. Extensions, secrets
-and the files of a query that spills to disk go to
-\verb{isoformic-duckdb/} under \code{\link[=tempdir]{tempdir()}}, unless the \code{duckdb.home}
+the connections are not shared with user code. Besides the storage
+locations below, the package only turns off the DuckDB progress bar
+(\code{enable_progress_bar}). Extensions, secrets and the files of a
+query that spills to disk go to \verb{isoformic-duckdb/} under
+\code{\link[=tempdir]{tempdir()}}, unless the \code{duckdb.home}
 option or the \code{DUCKDB_R_HOME} environment variable is set: DuckDB
 then uses its own locations under that directory.}
+\item{BiocParallel}{The \code{fgsea} calls of the enrichment functions run
+with \code{BiocParallel::SerialParam()} unless \code{BPPARAM} or \code{nproc} is
+passed through \code{...}, so a backend set with \code{BiocParallel::register()}
+is not used. \code{\link[=test_usage]{test_usage()}} uses its \code{workers} argument instead.}
 \item{\code{condathis.micromamba_path}, \code{CONDATHIS_MICROMAMBA_PATH},
-\code{CONDA_PREFIX}, \code{XDG_DATA_HOME}}{Read by the \code{condathis} package,
-which \code{\link[=salmon_index]{salmon_index()}} and \code{\link[=salmon_quant]{salmon_quant()}} use to run \code{salmon} in a
-micromamba environment: where the \code{micromamba} binary is found and
-where environments are created. See \code{?condathis::condathis}.}
+\code{CONDA_PREFIX}, \code{R_USER_DATA_DIR}, \code{XDG_DATA_HOME}}{Read by the
+\code{condathis} package, which \code{\link[=salmon_index]{salmon_index()}}, \code{\link[=salmon_quant]{salmon_quant()}} and
+\code{\link[=run_terminus]{run_terminus()}} use to run \code{salmon} and Terminus in micromamba
+environments: where the \code{micromamba} binary is found and where
+environments are created. See \code{?condathis::condathis}.}
 \item{\verb{BIOCONDUCTOR_*}, \verb{R_LIBS*}}{Only relevant for installing the
-optional packages (\code{fgsea}, \code{SummarizedExperiment}); the package itself
-does not read them.}
+optional packages (\code{fgsea}, \code{SummarizedExperiment}, \code{edgeR}, ...);
+the package itself does not read them.}
 }
 }
 
@@ -127,14 +137,17 @@ and site then use only the data bundled with the package.}
 \item{\code{TESTTHAT_CPUS}}{Number of parallel testthat workers used by
 \verb{just test}.}
 \item{\code{NOT_CRAN}}{Set to \code{"true"} by \code{devtools::test()}; tests that need
-optional packages use \code{testthat::skip_if_not_installed()} rather than
-network access, so no test downloads data.}
+optional packages use \code{testthat::skip_if_not_installed()}, and only
+the tests gated by \code{ISOFORMIC_FULL} download data.}
 \item{\verb{_R_CHECK_SYSTEM_CLOCK_}}{Set to \code{"0"} by \verb{just check} to skip the
 clock check of \verb{R CMD check --as-cran}.}
-\item{\code{HOME}, \code{R_USER_CACHE_DIR}, \code{XDG_CACHE_HOME}, \code{R_USER_DATA_DIR},
-\code{XDG_DATA_HOME}, \code{LOCALAPPDATA}, \code{APPDATA}}{The test setup redirects
-all of them to temporary directories so that tests never touch the
-user cache.}
+\item{\code{HOME}, \code{USERPROFILE}, \code{R_USER_CACHE_DIR}, \code{XDG_CACHE_HOME},
+\code{R_USER_DATA_DIR}, \code{XDG_DATA_HOME}, \code{LOCALAPPDATA}, \code{APPDATA}}{The
+test setup redirects all of them to temporary directories so that
+tests never touch the user cache.}
+\item{\code{warnPartialMatchArgs}, \code{warnPartialMatchAttr},
+\code{warnPartialMatchDollar}}{Set to \code{TRUE} by the test setup, so that a
+partial match of an argument, attribute or \code{$} name is a warning.}
 }
 }
 

@@ -38,13 +38,16 @@ the stored transcript-level results.}
 to the object's palette or \code{\link[=tx_type_palette]{tx_type_palette()}}.}
 
 \item{expression}{Optional named numeric vector (by transcript ID) used
-to label transcripts (data frame method).}
+to label transcripts. For an \link{IsoformicExperiment} it replaces the
+labels computed from \code{assay}.}
 
 \item{highlight}{Optional character vector of transcript IDs or names to
-outline (data frame method).}
+outline. For an \link{IsoformicExperiment} it replaces the isoforms chosen
+by \code{highlight_de}.}
 
 \item{highlight_poison_exons}{Logical, outline exons found only in
-unproductive isoforms of the gene (see \code{\link[=poison_exons]{poison_exons()}}).}
+unproductive isoforms of the gene (see \code{\link[=poison_exons]{poison_exons()}}); used by the
+\link{IsoformicExperiment} method only.}
 
 \item{upstream_offset, downstream_offset}{Extra genomic span (bp) shown
 before and after the gene.}

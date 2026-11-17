@@ -21,8 +21,9 @@ cut_transcript_trees(
 )
 }
 \arguments{
-\item{path}{A Newick file of TreeTerminus, or a folder holding
-\code{cluster_nwk.txt} (or a single \code{group_nwk.txt}).}
+\item{path}{A Newick file of TreeTerminus, or a folder holding, directly
+or one folder down, a single \code{cluster_nwk.txt} (or a single
+\code{group_nwk.txt}).}
 
 \item{salmon_dir}{A Salmon output directory quantified against the same
 index, whose \code{quant.sf} gives the order of the transcripts.}
@@ -48,14 +49,17 @@ determined (the \code{inf_rv_cutoff} of \code{\link[=add_uncertainty]{add_uncert
 (leaves; \code{NA} for nodes) and \code{parent_id} (\code{NA} for the roots).
 \code{cut_transcript_trees()}: a tibble with \code{transcript_id}, \code{group_id},
 \code{group_size}, \code{group_inf_rv} and \code{tree_id} for the transcripts that are
-grouped, with the cutoff in the \code{cutoff} attribute.
+grouped (groups of at least two transcripts with replicates in \code{x};
+transcripts of the trees without replicates are ignored), with the
+cutoff in the \code{cutoff} attribute.
 }
 \description{
 TreeTerminus builds, from Salmon replicates, a forest of transcript trees:
 the leaves are transcripts and every internal node is the sum of the
-transcripts below it, built so that the inferential uncertainty falls as
-the tree is ascended. Unlike the flat groups of Terminus, a tree lets the
-resolution change from one isoform to the next: an isoform the reads
+transcripts below it, built so that the inferential uncertainty falls, on
+average, as the tree is ascended. Unlike the flat groups of Terminus, a
+tree lets the resolution change from one isoform to the next: an isoform
+the reads
 determine stays a leaf, one they do not is replaced by the smallest node
 that they do determine.
 \itemize{

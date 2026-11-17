@@ -212,7 +212,7 @@ testthat::test_that("several collections of gene sets are tested one by one", {
   for (bad in list(
     list(first = first, second = "g1"),
     list(first, second),
-    list(first = first, first = second),
+    stats::setNames(list(first, second), c("first", "first")),
     list(first = list(a = list(c("g1", "g2")))),
     stats::setNames(list(first, second), c("first", NA)),
     stats::setNames(first, c("a", NA)),
@@ -237,7 +237,7 @@ testthat::test_that("gene sets may be empty or lists of symbols, and no result k
     gene_name = paste0("g", 1:4)
   )
   types <- list(protein_coding = "protein_coding")
-  calls <- record_fgsea()
+  record_fgsea()
   plain <- run_enrichment(
     det,
     list(a = c("g1", "g2"), b = c("g3", "g4")),
@@ -366,13 +366,13 @@ testthat::test_that("plot_enrichment draws one panel per collection", {
   )
   p <- plot_enrichment(res)
   built <- ggplot2::ggplot_build(p)
-  testthat::expect_identical(length(unique(built$data[[1L]]$PANEL)), 2L)
+  testthat::expect_length(unique(built$data[[1L]]$PANEL), 2L)
   single <- plot_enrichment(res[
     res$collection == "first",
     colnames(res) != "collection"
   ])
-  testthat::expect_identical(
-    length(unique(ggplot2::ggplot_build(single)$data[[1L]]$PANEL)),
+  testthat::expect_length(
+    unique(ggplot2::ggplot_build(single)$data[[1L]]$PANEL),
     1L
   )
 })

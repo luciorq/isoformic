@@ -29,11 +29,16 @@ the p-value is \verb{<= pval_cut}.}
 \item{use_fdr}{Logical, test the \code{qvalue} column instead of \code{pvalue} (when
 present), as the stored cutoffs of an \link{IsoformicExperiment} do.}
 
-\item{transcript_types}{Transcript types to keep. \code{NULL} keeps all.}
+\item{transcript_types}{Transcript types to keep. The default keeps
+protein coding, \code{lncRNA}, \code{retained_intron},
+\code{nonsense_mediated_decay}, \code{non_stop_decay},
+\code{processed_transcript}, \code{protein_coding_CDS_not_defined} and the
+pseudogene types. \code{NULL} keeps all.}
 }
 \value{
 A tibble with \code{feature_id}, \code{feature_name}, \code{feature_type},
-\code{gene_name}, \code{log2FC}, \code{pvalue} (and \code{qvalue} when present) and \code{is_de}.
+\code{gene_id} (when present), \code{gene_name}, \code{log2FC}, \code{pvalue} (and \code{qvalue}
+when present) and \code{is_de} (\code{"yes"}/\code{"no"}).
 }
 \description{
 Table-based helper combining gene-level and transcript-level results into

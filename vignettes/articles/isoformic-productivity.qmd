@@ -1,7 +1,7 @@
 ---
 title: "Isoform structure and productivity"
 date: 2026-10-17
-date-modified: 2026-10-17
+date-modified: 2026-11-12
 date-format: long
 author:
   - name: Lucio Rezende Queiroz
@@ -117,12 +117,24 @@ prod[, c("transcript_name", "productivity", "reason", "source")]
 ```
 
 `orf_source` records where the ORF came from: `annotation` (the annotated CDS, re-read from the sequence), `projected` (the canonical start codon projected onto the isoform), `annotation_partial` (a CDS flagged incomplete), `longest` (the longest ORF, when nothing could be projected) or `none`.
-`coding_probability` comes from a Fickett + hexamer logistic model trained on GENCODE coding and lncRNA transcripts; it decides whether a longest ORF is believable.
+`coding_probability` comes from a logistic model of the Fickett score, the hexamer usage, the ORF length and the share of the transcript the ORF covers, trained on GENCODE 50 human coding and lncRNA transcripts; it decides whether a longest ORF is believable.
+The ORFs of a whole annotation take minutes, so `transcript_orfs()` stores the rows it computes in the annotation directory (`annot_data_orfs.parquet`) and later calls read them back; `options(isoformic.orf_cache = FALSE)` turns the table off (see `?isoformic-options`).
 
 `benchmark_productivity()` measures the rules against the annotation biotypes: how many `nonsense_mediated_decay` and `retained_intron` transcripts the sequence rules alone call unproductive, and how many coding and canonical transcripts they call productive:
 
 ```{r}
 benchmark_productivity(iso)$summary
+```
+
+`splice_site_strength()` scores the donor and acceptor site of every intron with position weight matrices built from the introns of the canonical transcripts of the same annotation, and reports the weakest site of every transcript (`by = "intron"` gives one row per intron).
+A weak site is evidence to read next to the productivity call, not a classifier.
+The scores need the sequences around the splice sites, which come from the genome: `extract_splice_sites()` cuts them out of a genome FASTA, and `extract_transcript_sequences()` stores them as well when it is given one.
+
+```{r}
+#| eval: false
+genome <- download_reference(version = "33", file_type = "genome_fasta", region = "primary")
+extract_splice_sites(annot_dir, genome_fasta = genome)
+splice_site_strength(iso, gene_name = "RBPJ")
 ```
 
 ## Fractions, tests and uncertainty
@@ -137,13 +149,15 @@ head(productivity_fractions(iso, group = "condition"))
 head(test_productive_fraction(iso, group = "condition", assay = "abundance"))
 ```
 
-`productive_fraction()` also accepts an expression floor (`min_expr`), Salmon inferential replicates (`inf_reps`, or `metadata(iso)$inf_reps`) for the uncertainty of each fraction, and a healthy-tissue `reference` from GTEx (below).
+`productive_fraction()` also accepts an expression floor (`min_expr`), Salmon inferential replicates (`inf_reps`, or the draws stored in `iso@metadata$inf_reps`) for the uncertainty of each fraction, and a healthy-tissue `reference` from GTEx (below).
+`levels` chooses the groups and their order (the change is the last level minus the first); the samples of other groups are left out, as if the object had been subset to the samples kept.
 
 ## Poison exons and enrichment
 
 Genes ranked by the change in productive fraction can be tested for enrichment directly, which targets regulated unproductive splicing such as AS-NMD.
 With inferential replicates, `rank_by = "delta_z"` ranks by the change divided by its standard deviation over the replicates, and `levels` chooses the two groups when the object has more.
-The function also takes the table of `productive_fraction()`, which avoids computing it again for each gene set collection; `inf_reps = FALSE` skips stored replicates when only the fractions are needed.
+Like `run_enrichment()`, it takes one collection of gene sets or a named list of collections, each tested on its own (see the [enrichment article](isoformic-enrichment.html)).
+The function also takes the table of `productive_fraction()`, which avoids computing it again for each call; `inf_reps = FALSE` skips stored replicates when only the fractions are needed, and the replicates are read only for `rank_by = "delta_z"`.
 Exons found only in unproductive isoforms (poison exons) are listed by `poison_exons()` and outlined in the genomic context plot:
 
 ```{r}

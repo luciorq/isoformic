@@ -52,11 +52,12 @@ uncertainty_methods(self, ...)
 \arguments{
 \item{self}{An \link{IsoformicExperiment}.}
 
-\item{paths}{Salmon output directories (see \code{\link[=read_inferential_replicates]{read_inferential_replicates()}}),
-named by sample ID. \code{NULL} uses the replicates already stored in the
-object.}
+\item{paths}{Salmon output directories or Oarfish output prefixes (see
+\code{\link[=read_inferential_replicates]{read_inferential_replicates()}}), named by sample ID. \code{NULL} uses the
+replicates already stored in the object.}
 
-\item{group}{Name of a \code{col_data()} column with the sample groups.}
+\item{group}{Name of a \code{col_data()} column with the sample groups. In
+\code{de_confidence()}, \code{NULL} returns the stored table.}
 
 \item{levels}{The two group levels to contrast, reference first. Samples
 of other groups are left out of the contrast. \code{NULL} uses the levels of
@@ -65,10 +66,11 @@ of other groups are left out of the contrast. \code{NULL} uses the levels of
 \item{n_draws}{Number of replicates to read; \code{NULL} reads all of them.}
 
 \item{min_count}{Minimum mean estimated count for a transcript to be
-assessed.}
+assessed (and, with a \code{counts} assay, for its replicates to be read).}
 
 \item{inf_rv_cutoff}{Inferential relative variance from which an isoform is
-called uncertain. \code{NULL} uses the value the tables were computed with.}
+called uncertain. In \code{de_confidence()}, \code{NULL} uses the value the tables
+were computed with.}
 
 \item{cor_cutoff}{Mean replicate correlation at or below which two isoforms
 of a gene are called ambiguous: a number, or \code{"adaptive"} to derive it
@@ -92,11 +94,14 @@ package), or the table that function returned. \code{de_confidence()} then
 counts a non-identifiable transcript as one more reason against the
 call.}
 
-\item{run_qc}{Logical, add the Salmon run metadata (see
-\code{\link[=salmon_run_qc]{salmon_run_qc()}}) to \code{col_data()}.}
+\item{run_qc}{Logical, add the run metadata of Salmon or Oarfish (see
+\code{\link[=salmon_run_qc]{salmon_run_qc()}}) to \code{col_data()}, with the column names prefixed by
+\code{salmon_} or \code{oarfish_}.}
 
 \item{keep_draws}{Logical, keep the replicates in the object (needed to
-recompute the tables and for \code{\link[=productive_fraction]{productive_fraction()}} uncertainty).}
+recompute the tables, for \code{de_confidence(group = )},
+\code{\link[=inferential_overdispersion]{inferential_overdispersion()}} and the uncertainty of
+\code{\link[=productive_fraction]{productive_fraction()}}).}
 
 \item{collapse_groups}{Logical, sum ambiguous isoforms into one feature
 before testing the contrast.}
@@ -122,34 +127,45 @@ ambiguous pairs.}
 \itemize{
 \item \code{add_uncertainty()}: the object with \code{dea$uncertainty}, \code{dea$ambiguity}
 and, when \code{group} is given, \code{dea$confidence} filled in.
-\item \code{tx_uncertainty()}: a tibble with \code{transcript_id}, \code{gene_id}, names and
-type, \code{mean_count}, \code{mean_inf_rv}, \code{max_inf_rv}, \code{mean_inf_cv},
-\code{uncertain}, \code{min_sibling_cor}, \code{n_ambiguous_partners},
-\code{ambiguity_group} and, when equivalence classes were read, \code{n_classes},
+\item \code{tx_uncertainty()}: a tibble with \code{transcript_id}, \code{gene_id},
+\code{gene_name}, \code{transcript_name}, \code{transcript_type}, \code{mean_count},
+\code{assessed} (\code{mean_count >= min_count}; the statistics are \code{NA} for the
+others), \code{mean_inf_rv}, \code{max_inf_rv}, \code{mean_inf_cv}, \code{uncertain},
+\code{min_sibling_cor}, \code{n_ambiguous_partners}, \code{ambiguity_group} and, when
+equivalence classes were read, \code{n_classes}, \code{n_fragments},
 \code{n_unique_fragments}, \code{unique_fraction} and \code{low_information} (\code{TRUE}
 for an uncertain isoform without a single fragment of its own, the
 isoforms \code{mmcollapse} selects for collapsing). With \code{identifiability},
 also \code{identifiable_fraction} and \code{identifiable}.
-\item \code{isoform_ambiguity()}: a tibble of isoform pairs of the same gene with
-\code{mean_cor}, \code{min_cor}, \code{n_samples}, \code{collapse_gain} and \code{ambiguous}.
+\item \code{isoform_ambiguity()}: a tibble of isoform pairs of the same gene,
+sorted by \code{mean_cor}, with \code{gene_id}, \code{gene_name}, \code{transcript_id_1},
+\code{transcript_id_2}, \code{mean_cor}, \code{min_cor}, \code{n_samples}, \code{collapse_gain},
+\code{ambiguous}, \code{transcript_name_1} and \code{transcript_name_2}.
 \code{collapse_gain} is the score Terminus groups on (Sarkar et al. 2020):
 the inferential relative variance of the sum of the two isoforms minus
 the mean of their own, averaged over samples. The more negative, the
 more is gained by testing the pair as one feature.
-\item \code{de_confidence()}: a tibble with one row per feature: \code{feature_id},
-\code{feature_type} (\code{"transcript"} or \code{"group"}), gene and transcript names,
-the interval and stability of the fold-change, \code{mean_inf_rv},
-\code{ambiguous}, \code{identifiable} (only when the identifiability was
-computed; \code{NA} for groups), \code{confidence} (an ordered factor), \code{reason},
-the existing
-differential expression result (\code{det_log2FC}, \code{det_qvalue},
-\code{n_det_sig}) and \code{confident_de}, which is \code{TRUE} when a significant
-isoform has \code{high} confidence.
-\item \code{uncertainty_report()}: a list with \code{settings}, \code{replicates} (replicate
-type, number of draws, degrees of freedom over the study and, when the
-draws are in the object, the median overdispersion, which is close to 1
-for long reads), \code{run}, \code{transcripts} (by transcript type), \code{genes},
-\code{de} and \code{switches} tibbles.
+\item \code{de_confidence()}: a tibble with one row per feature, sorted by the
+absolute median fold-change: \code{feature_id}, \code{feature_type}
+(\code{"transcript"} or \code{"group"}), \code{gene_id}, \code{gene_name}, \code{transcript_ids}
+(the members, separated by \verb{;}), \code{transcript_name}, \code{transcript_type},
+\code{mean_count}, the fold-change over the replicates (\code{lfc_median},
+\code{lfc_lo}, \code{lfc_hi}, \code{lfc_sd}), \code{sign_agreement}, \code{frac_draws_effect}
+(share of replicates that agree on the direction with an absolute
+fold-change of at least the cutoff of \code{\link[=de_cutoffs]{de_cutoffs()}}), \code{frac_draws_sig},
+\code{mean_inf_rv}, \code{ambiguous}, \code{identifiable} (only when the
+identifiability was computed; \code{NA} for groups), \code{confidence} (an ordered
+factor), \code{reason}, the existing differential expression result
+(\code{det_log2FC}, \code{det_qvalue}, \code{n_det_sig}) and \code{confident_de}, which is
+\code{TRUE} when a significant isoform has \code{high} confidence.
+\item \code{uncertainty_report()}: a list with \code{settings} (a list of the cutoffs),
+and the tibbles \code{replicates} (\code{replicate_type}, \code{n_draws},
+\code{resampling_df}, the degrees of freedom over the study, and
+\code{median_overdispersion}, \code{NA} unless the draws are in the object and
+close to 1 for long reads), \code{run} (the run metadata in \code{col_data()}), \code{transcripts} (by
+transcript type), \code{genes}, \code{de} (significant isoforms by confidence
+class) and \code{switches} (isoform switches, all and confident only). \code{run},
+\code{de} and \code{switches} are \code{NULL} when their input is missing.
 \item \code{uncertainty_methods()}: a character string.
 }
 }
@@ -198,16 +214,19 @@ isoform without a real change is \code{moderate} or \code{low} simply because it
 fold-change is not stable.
 \itemize{
 \item \code{add_uncertainty(x, paths)} reads the replicates, equivalence classes and
-run metadata from the Salmon output directories \code{paths} (named by sample
-ID, in any order), computes the tables below and stores them in the
-object, so that they are written by \code{\link[=write_isoformic]{write_isoformic()}}. When \code{group} is
-given it also stores the fold-change stability of that contrast.
+run metadata from the Salmon output directories (or Oarfish output
+prefixes, see \code{\link[=read_oarfish]{read_oarfish()}}) \code{paths} (named by sample ID, in any
+order), computes the tables below and stores them in the object, so that
+they are written by \code{\link[=write_isoformic]{write_isoformic()}}. When \code{group} is given it also
+stores the fold-change stability of that contrast.
 \item \code{tx_uncertainty(x)}: per-transcript table, for the transcripts whose
 draws are in the object (the expressed ones).
 \item \code{isoform_ambiguity(x)}: per-pair table of replicate correlations.
 \item \code{de_confidence(x, group)}: per-feature table of fold-change stability
-and confidence class; with \code{collapse_groups = TRUE}, ambiguous isoforms
-are summed into one feature before testing.
+and confidence class, recomputed from the replicates; with
+\code{collapse_groups = TRUE}, ambiguous isoforms are summed into one feature
+before testing. Without \code{group} it returns the table that
+\code{add_uncertainty(group = )} stored.
 \item \code{uncertainty_report(x)}: a list of summary tables for a methods or
 results section.
 \item \code{uncertainty_methods(x)}: a ready-to-edit paragraph that states the
@@ -215,10 +234,16 @@ settings used.
 }
 
 The replicates themselves are kept in memory only (in
-\code{metadata(x)$inf_reps}) and are not written by \code{\link[=write_isoformic]{write_isoformic()}}; the
-tables derived from them are. Draws are kept for the transcripts with an
-estimated mean count of at least \code{min_count}; the others are treated as
-unexpressed.
+\code{x@metadata$inf_reps}, a list with one transcript x sample matrix per
+replicate) and are not written by \code{\link[=write_isoformic]{write_isoformic()}}; the tables derived
+from them are. To keep the replicates, write
+\code{inferential_replicates_table(x@metadata$inf_reps)} with \code{\link[=write_parquet]{write_parquet()}}
+and restore them with \code{\link[=as_inferential_replicates]{as_inferential_replicates()}} (see
+\code{\link[=read_inferential_replicates]{read_inferential_replicates()}}). \code{x[i, j]} keeps the replicates of the
+kept transcripts and samples; to contrast two groups of a larger object,
+pass \code{levels} instead of subsetting. With a \code{counts} assay, draws are read
+only for the transcripts with a mean count of at least \code{min_count}; the
+others are treated as unexpressed.
 }
 \details{
 The thresholds are heuristics, not universal constants: \code{inf_rv_cutoff}

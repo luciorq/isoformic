@@ -34,6 +34,7 @@ productive_fraction(
   as_matrix = FALSE,
   gene_name = NULL,
   min_expr = 0,
+  min_gene_count = 0,
   inf_reps = NULL,
   reference = NULL,
   ...
@@ -56,6 +57,7 @@ test_productive_fraction(
   assay = "counts",
   include_altered = TRUE,
   min_expr = 0,
+  min_gene_count = 0,
   gene_name = NULL,
   ...
 )
@@ -68,9 +70,10 @@ run_productivity_enrichment(
   assay = "abundance",
   min_size = 15,
   max_size = 500,
-  rank_by = c("delta", "delta_z"),
+  rank_by = c("delta", "delta_z", "statistic"),
   include_altered = TRUE,
   min_expr = 0,
+  min_gene_count = 0,
   inf_reps = NULL,
   ...
 )
@@ -81,10 +84,11 @@ benchmark_productivity(self, nmd_rule = 50, use_sequence = TRUE, ...)
 }
 \arguments{
 \item{self}{An \link{IsoformicExperiment}. \code{run_productivity_enrichment()} also
-takes the table of \code{productive_fraction()} for two or more groups, so
-that one table serves several gene set collections; the arguments that
-build the table (\code{group}, \code{levels}, \code{assay}, \code{include_altered},
-\code{min_expr}, \code{inf_reps}) are then ignored.}
+takes the table of \code{productive_fraction()} for two or more groups, or of
+\code{test_productive_fraction()} for \code{rank_by = "statistic"}, so that one
+table serves several gene set collections; the arguments that build the
+table (\code{group}, \code{levels}, \code{assay}, \code{include_altered}, \code{min_expr},
+\code{min_gene_count}, \code{inf_reps}) are then ignored.}
 
 \item{gene_name}{Optional genes (names or IDs) to restrict the result to.}
 
@@ -103,7 +107,14 @@ coding status (default \code{TRUE}).}
 that could not be projected from the canonical start) is not believed
 (default 0.364).}
 
-\item{...}{Passed on to methods or to \code{fgsea::fgseaMultilevel()}.}
+\item{...}{Used only by \code{run_productivity_enrichment()}, which passes them
+to \code{fgsea::fgseaMultilevel()}; the other functions do not use them
+(reserved for methods). fgsea runs in the session unless \code{nproc} or
+\code{BPPARAM} is given. On Unix-like systems these fork the session: the
+workers share its memory, but tools that add up the resident memory of
+the processes count it once per worker. Give the number of workers
+(\code{nproc = 4}); the default of \code{BiocParallel} is all the cores of the
+machine but two, whatever a job scheduler allocated.}
 
 \item{group}{Name of a \code{col_data} column defining groups; \code{NULL} for
 per-sample values. \code{run_productivity_enrichment()} requires it for an
@@ -127,9 +138,14 @@ productive fractions instead of the summary table.}
 \item{min_expr}{Minimum assay value for an isoform to contribute
 (default 0): isoforms below it count as zero.}
 
+\item{min_gene_count}{Minimum mean count of a gene, the sum of its
+isoforms in the \code{"counts"} assay, in every group (over all the samples
+kept without \code{group}); genes below it are dropped. Needs a \code{"counts"}
+assay whatever \code{assay} is. The default 0 keeps every gene. See Details.}
+
 \item{inf_reps}{Optional list of transcript matrices (inferential
 replicates with the same dimnames as the assay); \code{NULL} uses
-\code{metadata(x)$inf_reps} when present and \code{FALSE} skips the replicates,
+\code{x@metadata$inf_reps} when present and \code{FALSE} skips the replicates,
 which leaves out the standard deviations and \code{delta_z} and is much
 faster. \code{run_productivity_enrichment()} reads the replicates only for
 \code{rank_by = "delta_z"}.}
@@ -145,17 +161,56 @@ and the result has a \code{collection} column (see \code{\link[=run_enrichment]{
 
 \item{rank_by}{Statistic that ranks the genes in
 \code{run_productivity_enrichment()}: \code{"delta"} (default), the change in
-productive fraction, or \code{"delta_z"}, that change divided by its
+productive fraction, \code{"delta_z"}, that change divided by its
 standard deviation over the inferential replicates, which moves the
-genes with an uncertain change towards the middle of the ranking.
+genes with an uncertain change towards the middle of the ranking, or
+\code{"statistic"}, the test of \code{test_productive_fraction()} on the
+\code{"counts"} assay between the first and the last level of \code{levels}, as
+a signed normal quantile of its p-value (see Details); \code{assay} and
+\code{inf_reps} are then not used.
 \code{"delta_z"} needs inferential replicates; a change that is the same in
-every replicate gets the largest \code{delta_z} of the table. It reflects the
-quantification uncertainty only, not the variation between samples.}
+every replicate (\code{delta_z} is \code{NA} in the \code{productive_fraction()}
+table) is ranked with the largest absolute \code{delta_z} of the table (at
+least 1), with the sign of the change. It reflects the
+quantification uncertainty only, not the variation between samples or
+the number of reads; \code{"statistic"} reflects both (see Details).}
 }
 \value{
-Tibbles, a matrix for \code{productive_fraction(as_matrix = TRUE)},
-a named character vector for \code{productivity_palette()}, a list with
-\code{summary} and \code{confusion} tibbles for \code{benchmark_productivity()}.
+\itemize{
+\item \code{transcript_productivity()}: one row per transcript with
+\code{transcript_id}, \code{transcript_name}, \code{transcript_type}, \code{gene_id},
+\code{gene_name}, \code{productivity} (a factor with the levels of
+\code{productivity_palette()}), \code{reason}, \code{source}, \code{has_cds},
+\code{cds_complete}, \code{orf_length}, \code{nmd_predicted}, \code{stop_to_last_junction},
+\code{orf_fraction_of_canonical}, \code{is_canonical} and, with sequences, the
+ORF columns behind the call (\code{orf_source}, \code{nmd_class},
+\code{frame_vs_canonical}, \code{coding_probability}, \code{n_uorf}).
+\item \code{productive_fraction()}: one row per coding gene with
+\code{gene_id}, \code{gene_name}, \code{mean_gene_expr}, \code{productive_fraction} (mean
+over the samples kept), with \code{group} one \verb{productive_fraction_<level>}
+column per level and \code{delta_productive_fraction}, with inferential
+replicates \code{productive_fraction_sd} and, with \code{group},
+\code{delta_productive_fraction_sd} and \code{delta_z}, and with \code{reference} the
+\verb{reference_*} columns and \code{delta_vs_reference}. A genes x samples
+matrix with \code{as_matrix = TRUE}.
+\item \code{productivity_fractions()}: one row per gene and class present
+(\code{productivity}, a factor), with \code{fraction} and, with \code{group}, the
+\verb{fraction_<level>} and \code{delta_fraction} columns.
+\item \code{test_productive_fraction()}: one row per coding gene with
+\code{mean_gene_expr}, the two \verb{productive_fraction_<level>} columns,
+\code{delta_productive_fraction}, \code{log_odds_ratio}, \code{se}, \code{statistic},
+\code{dispersion}, \code{df}, \code{pvalue} and \code{padj}, ordered by \code{pvalue}.
+\item \code{run_productivity_enrichment()}: the \code{fgsea} result with the columns
+\code{experiment} (\code{"productive_fraction"}), \code{rank_by} and, for a list of
+collections, \code{collection}.
+\item \code{poison_exons()}: one row per exon with \code{gene_id}, \code{gene_name},
+\code{seqid}, \code{start_pos}, \code{end_pos}, \code{strand}, \code{n_unproductive},
+\code{transcript_ids} and \code{exon_length}.
+\item \code{benchmark_productivity()}: a list with the \code{summary} (\code{metric}, \code{n},
+\code{value}, \code{source}) and \code{confusion} (\code{transcript_type}, \code{productivity},
+\code{n}) tibbles.
+\item \code{productivity_palette()}: a named character vector of colours.
+}
 }
 \description{
 The biotype split used by the workflow (protein coding versus retained
@@ -200,11 +255,21 @@ mechanism (\code{nmd}, \code{retained_intron}, \code{no_orf}, \code{non_stop}, \
 \item \code{test_productive_fraction()} tests the change in productive fraction
 between two groups on counts, with a quasi-binomial model per gene
 (pooled proportions per group, Pearson over-dispersion, t test on the
-log odds ratio, BH adjustment).
+log odds ratio, BH adjustment). A gene with fewer than 5 reads in its
+smaller class (productive or not), pooled over both groups, carries
+too little information on usage: it gets a \code{log_odds_ratio} of 0 and no
+statistic or p-value, and does not count in the BH adjustment. A gene
+without reads in one group gets \code{NA} there too.
 \item \code{run_productivity_enrichment()} ranks genes by the change in
-productive fraction between two groups and runs gene set enrichment
-(\code{fgsea}) on gene symbols, which captures regulated unproductive
-splicing (AS-NMD) directly.
+productive fraction between the last and the first group level
+(\code{rank_by = "delta"}), by that change over its standard deviation
+(\code{rank_by = "delta_z"}) or by the statistic of
+\code{test_productive_fraction()} (\code{rank_by = "statistic"}), and runs gene
+set enrichment (\code{fgsea}) on gene symbols, which captures regulated
+unproductive splicing (AS-NMD) directly. It takes an
+\link{IsoformicExperiment}, a \code{productive_fraction()} table or a
+\code{test_productive_fraction()} table, and one or several gene set
+collections.
 \item \code{poison_exons()} lists exons that occur only in unproductive isoforms
 of genes that also have productive isoforms and that do not overlap
 any exon of a productive isoform (cassette poison / NMD exons, as
@@ -216,6 +281,34 @@ transcripts by the sequence/structure rules alone, and the share of
 \code{protein_coding} and canonical transcripts called productive.
 \item \code{productivity_palette()} gives colours for the classes.
 }
+}
+\details{
+\strong{Low-count genes.} A productive fraction computed from a few reads is
+mostly sampling noise: a gene with 4 reads moves by 0.25 when one read
+changes isoform. \code{delta_z} does not catch this, because the inferential
+replicates measure how the reads are split between isoforms, not how many
+reads were sampled. \code{min_gene_count} removes genes whose mean count (the
+sum of the counts of their isoforms in the \code{"counts"} assay) is below it in
+any group, before the statistics and the BH adjustment; with
+\code{rank_by = "statistic"}, before the ranking. The filter is off by default
+(0); 10 reads is a reasonable start. The rule asks for enough reads in
+every group, because a fraction is compared between groups: it is
+stricter than the transcript filter of \code{\link[=test_usage]{test_usage()}} (\code{min_count} reads
+in as many samples as the smallest group), and \code{min_expr} sets single
+isoform values to zero rather than removing genes.
+\code{rank_by = "statistic"} accounts for the reads of every gene and for the
+variation between its samples. Its dispersion is estimated for each gene
+alone, on \code{n - 2} degrees of freedom and not moderated, so with three
+samples per group the ranking is still noisy. The t statistic is put on
+the normal scale through its p-value
+(\code{sign(statistic) * qnorm(pvalue / 2, lower.tail = FALSE)}), because the
+degrees of freedom differ between genes when samples without reads drop
+out. Its sign is that of the pooled change (\code{delta_productive_fraction}
+of \code{test_productive_fraction()}), which can differ from the mean of the
+per-sample fractions in \code{productive_fraction()} when the samples differ
+much in depth. Genes with fewer than 5 reads in one class get no
+statistic and are left out of the ranking, so that a change in the
+expression of the whole gene does not rank it.
 }
 \examples{
 iso <- example_isoformic()

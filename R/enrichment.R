@@ -4,16 +4,23 @@
 #'
 #' @description
 #' Runs gene set enrichment analysis (`fgsea::fgseaMultilevel()`) separately
-#' for transcripts of each type, ranking transcripts by log2 fold-change.
-#' Gene sets defined on gene symbols are expanded to all transcripts of
-#' their genes, so each transcript category (protein coding, retained
-#' intron, nonsense-mediated decay, ...) is tested on its own and in the
-#' combined `"unproductive"` category.
+#' for transcripts of each type, ranking transcripts by the statistic chosen
+#' with `rank_by` (log2 fold-change by default, see *Ranking*). Gene sets
+#' defined on gene symbols are expanded to all transcripts of their genes,
+#' so each transcript category (protein coding, retained intron,
+#' nonsense-mediated decay, ...) is tested on its own and in the combined
+#' `"unproductive"` category. A category with fewer than two ranked
+#' transcripts is skipped.
 #'
 #' The [IsoformicExperiment] method uses the stored transcript-level
 #' results and the annotation; the data frame method takes a transcript
-#' table with `transcript_name`, `transcript_type` and `log2FC` columns plus
-#' a `tx_to_gene` table.
+#' table with `transcript_name` and `transcript_type` columns and the
+#' columns `rank_by` needs (`log2FC`; `log2FC` and `pvalue`; or
+#' `lfc_median` and `lfc_sd`), plus a `tx_to_gene` table.
+#'
+#' [run_productivity_enrichment()] and [run_apa_enrichment()] run the same
+#' analysis on genes ranked by their change in productive fraction or in
+#' 3' end usage, and take gene set collections in the same way.
 #'
 #' `read_gmt()` reads gene sets in GMT format into a named list, and
 #' `plot_enrichment()` draws a dot plot of enrichment results.
@@ -56,7 +63,8 @@
 #' @param rank_by Statistic that ranks the transcripts: `"log2FC"`
 #'   (default), `"signed_p"` or `"lfc_z"` (see *Ranking*).
 #' @param tx_to_gene Data frame with `transcript_name` and `gene_name`
-#'   columns; required by the data frame method, ignored otherwise.
+#'   columns (and optionally `transcript_type`, used to choose the default
+#'   `tx_types`); required by the data frame method, ignored otherwise.
 #' @param pval_cutoff Keep pathways with `pval` at or below this value;
 #'   `NULL` keeps all.
 #' @param tx_types Named list defining the transcript categories to test.
@@ -85,8 +93,12 @@
 #'
 #' @returns `run_enrichment()` returns a tibble with the `fgsea` columns
 #'   plus `experiment` (the transcript category), `rank_by` and, for several
-#'   collections, `collection`. `read_gmt()` returns a
-#'   named list. `plot_enrichment()` returns a `ggplot` object.
+#'   collections, `collection`. `read_gmt()` returns a named list of
+#'   character vectors (the unique gene symbols of each set).
+#'   `plot_enrichment()` returns a `ggplot` object, with one panel per
+#'   collection when there is a `collection` column.
+#'   `default_enrichment_types()` returns a named list of transcript types
+#'   per category.
 #'
 #' @examples
 #' iso <- example_isoformic()
@@ -514,7 +526,7 @@ run_fgsea_by_type <- function(
       res
     })
     results <- dplyr::bind_rows(results)
-    if (!ncol(results)) empty_fgsea() else results
+    if (ncol(results)) results else empty_fgsea()
   })
   res$rank_by <- rep(rank_by, nrow(res))
   dplyr::relocate(res, dplyr::any_of("collection"), .after = "rank_by")

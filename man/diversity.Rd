@@ -53,10 +53,13 @@ falling back to the first assay).}
 \item{...}{Passed on to methods.}
 
 \item{min_expr}{Minimum assay value for a transcript to count as
-expressed in a sample.}
+expressed in a sample (default \code{1} in \code{tx_diversity()}). In
+\code{dominant_isoform()} (default \code{0}, no floor), values below it are set
+to zero, so these isoforms neither dominate nor count towards the gene
+total.}
 
 \item{min_samples}{Minimum number of samples in which a transcript must
-be expressed to count as expressed.}
+be expressed to count as expressed in \code{tx_diversity()}.}
 
 \item{gene_name}{Optional character vector of gene names or IDs to
 restrict the result to.}

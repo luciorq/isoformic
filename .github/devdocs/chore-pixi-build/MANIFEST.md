@@ -265,8 +265,9 @@ with "lock file not up-to-date with the workspace" `[run]`. So
 - The tests with `devtools::test(stop_on_failure=TRUE)`, not `just test`
   (`CAVEATS.md`, C13).
 - On Linux and macOS, `R CMD Rd2pdf`, to test the LaTeX package.
-- It runs when `pixi.toml`, `pixi.lock`, `DESCRIPTION`, `.github/pixi/**`
-  or the workflow change, and on manual dispatch.
+- It runs on pushes to `main` and pull requests that change `pixi.toml`,
+  `pixi.lock`, `DESCRIPTION`, `.github/pixi/**` or the workflow, and on
+  manual dispatch.
 
-The other workflows of the repository (`R-CMD-check`, `pkgdown`,
-`full-check`) do not use pixi.
+The other workflows of the repository (`r-cmd-check`, `pkgdown`,
+`full-check`, `test-coverage`, `lint`, `jarl-check`) do not use pixi.

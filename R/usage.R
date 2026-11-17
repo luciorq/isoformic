@@ -52,20 +52,20 @@
 #' @param contrasts The comparisons to test: `NULL` (default) compares every
 #'   level with the first one; `"pairwise"` tests every pair of levels (the
 #'   later level against the earlier one); `"omnibus"` tests whether usage
-#'   differs among any of the groups (see Details); otherwise a list of
+#'   differs among any of the groups (see Description); otherwise a list of
 #'   `c(numerator, denominator)` pairs of levels, or one such pair. With two
 #'   levels the default is the single contrast second against first.
 #' @param method `"diffsplice"`, `"satuRn"` or `"DEXSeq"`. The backend must be
 #'   installed.
-#' @param assay Counts assay to test.
+#' @param assay Counts assay to test (default `"counts"`).
 #' @param scale Logical, divide the counts by the overdispersion of the
 #'   replicates. `NULL` (default) does it when the object has replicates. In
 #'   a read-split experiment (technical replicates of the same libraries, see
 #'   the uncertainty article) this removed most false positives of `"diffsplice"`
 #'   and `"DEXSeq"` and made their calls reproducible, so keep it on.
 #' @param min_count,min_prop Filters described above.
-#' @param workers Number of workers for `satuRn` and `DEXSeq` (parallel on
-#'   Unix-like systems).
+#' @param workers Number of workers for `satuRn` and `DEXSeq` (default 1;
+#'   parallel on Unix-like systems).
 #' @param gene_name Gene names or IDs to keep in the result. The filter is
 #'   applied after the test.
 #' @param ... Unused.

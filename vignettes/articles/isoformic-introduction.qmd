@@ -1,7 +1,7 @@
 ---
 title: "Introduction to isoformic"
 date: 2023-04-07
-date-modified: 2026-10-17
+date-modified: 2026-11-12
 date-format: long
 author:
   - name: Izabela Mamede Conceição
@@ -62,13 +62,14 @@ The analyses have one article each:
 - [Quantification uncertainty](isoformic-uncertainty.html): how well the reads determine each isoform, which isoforms cannot be told apart and how confident each differential expression call is.
 - [What makes an isoform hard to quantify?](isoformic-quantification-stability.html): which isoforms the reads leave uncertain, why, and how many Gibbs draws are enough.
 - [Isoform structure and productivity](isoformic-productivity.html): open reading frames, nonsense-mediated decay, productive fractions, poison exons and external evidence.
-- [Alternative polyadenylation](isoformic-polyadenylation.html): 3' end usage and 3' UTR length.
-- [Functional enrichment by transcript type](isoformic-enrichment.html): gene set enrichment run separately for coding and unproductive transcripts.
+- [Alternative polyadenylation](isoformic-polyadenylation.html): 3' end usage, 3' UTR length and gene set enrichment on their change.
+- [Functional enrichment by transcript type](isoformic-enrichment.html): gene set enrichment run separately for coding and unproductive transcripts, with a choice of ranking statistic and of gene set collections.
 - [Plots](isoformic-plots.html): fold-change, expression profile and genomic context plots.
 - [Other annotations](isoformic-references.html): T2T-CHM13, Ensembl, RefSeq, haplotype-resolved assemblies, FANTOM CAT and long-read catalogs.
 - [Working with plain tables](isoformic-tables.html): the table-based counterparts of every step.
 
 To start from Salmon output instead of ready-made tables, see [From Salmon quantifications to an IsoformicExperiment](isoformic-preprocess.html).
+Two case studies apply the workflow to complete public datasets: [chronic stress in the mouse brain](isoformic-case-mouse-stress.html) (short reads, Salmon) and [a splicing kinase inhibitor in nanopore long reads](isoformic-case-long-reads.html) (Oarfish).
 
 ## The data
 

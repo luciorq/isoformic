@@ -10,7 +10,8 @@
 #' Open Reading Frames of Transcripts from Their Sequences
 #'
 #' @description
-#' Computes, for every assayed transcript, an open reading frame (ORF) and the
+#' Computes, for every assayed transcript (every transcript of the
+#' annotation when `self` is a path), an open reading frame (ORF) and the
 #' sequence-level features that decide whether it is productive. Requires
 #' transcript sequences in the annotation directory (see
 #' [extract_transcript_sequences()]). The ORF of each transcript comes from
@@ -59,9 +60,11 @@
 #'
 #' `coding_potential()` scores every transcript's longest ORF with the
 #' Fickett TESTCODE statistic and an in-frame hexamer usage score, combined
-#' by a logistic model trained on GENCODE coding versus lncRNA transcripts
-#' (see `data-raw/build_coding_model.R`); `coding_probability` above
-#' `coding_cutoff` (0.364, the CPAT human cutoff) is called coding.
+#' with the ORF length and the fraction of the transcript the ORF covers by
+#' a logistic model trained on GENCODE 50 human coding versus lncRNA
+#' transcripts (see `data-raw/build_coding_model.R` and
+#' [build_coding_model()]); `coding_probability` above `coding_cutoff`
+#' (0.364, the CPAT human cutoff) is called coding.
 #'
 #' @section Stored ORF table:
 #' The analysis takes minutes for a whole GENCODE release, so the rows
@@ -92,7 +95,22 @@
 #'   default `Inf`.
 #' @param ... Passed on to methods.
 #'
-#' @returns A tibble with one row per transcript.
+#' @returns `transcript_orfs()` returns a tibble with one row per
+#'   transcript: `transcript_id`, `transcript_name`, `gene_id`, `gene_name`,
+#'   `has_sequence`, `orf_source`, `annotation_cds_agrees`, `orf_tx_start`
+#'   and `orf_tx_end` (ORF span in transcript coordinates, stop codon
+#'   included), `orf_length`, `protein_length`, `start_codon`, `stop_codon`,
+#'   `orf_genomic_start`, `orf_genomic_end`, `utr5_length`, `utr3_length`,
+#'   `stop_to_last_junction`, `nmd_class`, `end_incomplete`, `n_uorf`,
+#'   `n_overlapping_uorf`, `canonical_transcript_id`,
+#'   `start_same_as_canonical`, `stop_same_as_canonical`,
+#'   `frame_vs_canonical` (`"in_frame"`, `"frameshift"` or
+#'   `"novel_sequence"` when the stop lies outside the canonical isoform),
+#'   and the coding potential columns `longest_orf_length`, `orf_coverage`,
+#'   `fickett_score`, `hexamer_score` and `coding_probability`.
+#'   `coding_potential()` returns `transcript_id`, `transcript_name`,
+#'   `gene_id`, `gene_name`, the five coding potential columns and
+#'   `is_coding`.
 #'
 #' @examples
 #' iso <- example_isoformic()
@@ -376,9 +394,7 @@ stored_transcript_orfs <- function(
     valid <- (stored$canonical_transcript_id[hit] == canonical) %in% TRUE
     todo <- !valid | transcripts$gene_id %in% transcripts$gene_id[!valid]
   }
-  if (!any(todo)) {
-    res <- stored[hit, ]
-  } else {
+  if (any(todo)) {
     fresh <- compute(transcripts[todo, ])
     if (!is.null(stored) && !identical(colnames(stored), colnames(fresh))) {
       stored <- NULL
@@ -414,6 +430,8 @@ stored_transcript_orfs <- function(
       }
       write_orf_table(annot_dir, keep, signature)
     }
+  } else {
+    res <- stored[hit, ]
   }
   finish(res)
 }
@@ -1050,9 +1068,9 @@ coding_model <- function() {
 #' Builds the hexamer log-odds table and the logistic regression used by
 #' [coding_potential()] from a set of coding ORF sequences and non-coding
 #' transcript sequences, and writes both as Parquet files. The shipped model
-#' was trained on GENCODE human protein-coding CDS versus lncRNA transcripts
-#' by `data-raw/build_coding_model.R`; rerun that script to refresh it for a
-#' new GENCODE release or another organism.
+#' was trained on GENCODE 50 human protein-coding CDS versus lncRNA
+#' transcripts by `data-raw/build_coding_model.R`; rerun that script to
+#' refresh it for a new GENCODE release or another organism.
 #'
 #' @param coding_cds Character vector of CDS sequences (start to stop codon),
 #'   used to build the hexamer table.

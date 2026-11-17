@@ -46,10 +46,26 @@ default \code{Inf}.}
 coding (default 0.364).}
 }
 \value{
-A tibble with one row per transcript.
+\code{transcript_orfs()} returns a tibble with one row per
+transcript: \code{transcript_id}, \code{transcript_name}, \code{gene_id}, \code{gene_name},
+\code{has_sequence}, \code{orf_source}, \code{annotation_cds_agrees}, \code{orf_tx_start}
+and \code{orf_tx_end} (ORF span in transcript coordinates, stop codon
+included), \code{orf_length}, \code{protein_length}, \code{start_codon}, \code{stop_codon},
+\code{orf_genomic_start}, \code{orf_genomic_end}, \code{utr5_length}, \code{utr3_length},
+\code{stop_to_last_junction}, \code{nmd_class}, \code{end_incomplete}, \code{n_uorf},
+\code{n_overlapping_uorf}, \code{canonical_transcript_id},
+\code{start_same_as_canonical}, \code{stop_same_as_canonical},
+\code{frame_vs_canonical} (\code{"in_frame"}, \code{"frameshift"} or
+\code{"novel_sequence"} when the stop lies outside the canonical isoform),
+and the coding potential columns \code{longest_orf_length}, \code{orf_coverage},
+\code{fickett_score}, \code{hexamer_score} and \code{coding_probability}.
+\code{coding_potential()} returns \code{transcript_id}, \code{transcript_name},
+\code{gene_id}, \code{gene_name}, the five coding potential columns and
+\code{is_coding}.
 }
 \description{
-Computes, for every assayed transcript, an open reading frame (ORF) and the
+Computes, for every assayed transcript (every transcript of the
+annotation when \code{self} is a path), an open reading frame (ORF) and the
 sequence-level features that decide whether it is productive. Requires
 transcript sequences in the annotation directory (see
 \code{\link[=extract_transcript_sequences]{extract_transcript_sequences()}}). The ORF of each transcript comes from
@@ -100,9 +116,11 @@ nothing can be said.
 
 \code{coding_potential()} scores every transcript's longest ORF with the
 Fickett TESTCODE statistic and an in-frame hexamer usage score, combined
-by a logistic model trained on GENCODE coding versus lncRNA transcripts
-(see \code{data-raw/build_coding_model.R}); \code{coding_probability} above
-\code{coding_cutoff} (0.364, the CPAT human cutoff) is called coding.
+with the ORF length and the fraction of the transcript the ORF covers by
+a logistic model trained on GENCODE 50 human coding versus lncRNA
+transcripts (see \code{data-raw/build_coding_model.R} and
+\code{\link[=build_coding_model]{build_coding_model()}}); \code{coding_probability} above \code{coding_cutoff}
+(0.364, the CPAT human cutoff) is called coding.
 }
 \section{Stored ORF table}{
 

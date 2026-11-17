@@ -49,7 +49,8 @@ Perform transcript quantification using Salmon's
 selective-alignment-based mode from raw RNA-seq reads.
 }
 \details{
-The command enables the sequence, GC and positional bias corrections,
+The command detects the library type (\verb{--libType A}), enables the
+sequence, GC and positional bias corrections,
 allows dovetailing mates and soft-clipped overhangs, writes the
 equivalence classes with their weights (\code{--dumpEq --dumpEqWeights}) and
 draws \code{num_gibbs} Gibbs samples (\verb{aux_info/bootstrap/}) so that

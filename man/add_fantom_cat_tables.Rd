@@ -25,11 +25,17 @@ joins them into the annotation directory: the CAGE cluster (the
 CAGE-defined promoter of each transcript) becomes \code{cage_cluster_id}, with
 its coordinates parsed into \code{cage_cluster_seqid}, \code{cage_cluster_start},
 \code{cage_cluster_end}, and the gene information columns are added to the
-gene table in snake case. See \code{\link[=download_fantom_cat_tables]{download_fantom_cat_tables()}}.
+gene table in snake case (except the location, strand and the attributes
+the GTF already provides, such as \code{gene_class} and \code{gene_category}). See
+\code{\link[=download_fantom_cat_tables]{download_fantom_cat_tables()}}.
 }
 \examples{
 \dontrun{
-gtf <- download_reference(reference = "fantom", version = "lv3_robust")
+gtf <- download_reference(
+  reference = "fantom",
+  version = "lv3_robust",
+  file_type = "gtf"
+)
 tables <- download_fantom_cat_tables("lv3_robust")
 annot <- prepare_isoformic_annotation(gtf)
 add_fantom_cat_tables(annot, tables[["id_mapping"]], tables[["gene_info"]])

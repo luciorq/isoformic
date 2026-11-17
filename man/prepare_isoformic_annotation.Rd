@@ -98,8 +98,8 @@ TIEScore), \code{cds_start}, \code{cds_end}, \code{cds_length} (aggregated from 
 \code{seqid}, \code{start_pos}, \code{end_pos}, \code{strand}, \code{n_exons}, \code{tx_length}.
 \item exons: \code{exon_id}, \code{transcript_id}, \code{exon_number}, \code{haplotype}, \code{seqid},
 \code{start_pos}, \code{end_pos}, \code{strand}.
-\item metadata: \code{key}, \code{value} (source file, format, header pragmas,
-creation time).
+\item metadata: \code{key}, \code{value} (annotation name, source path and file,
+format, creation time, isoformic version and the header pragmas).
 \item seq_regions: \code{seqid}, \code{start_pos}, \code{end_pos}.
 }
 }

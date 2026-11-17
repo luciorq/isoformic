@@ -60,6 +60,9 @@ check_env_installed <- function(env_name = "salmon-env") {
 #' Salmon 1.x and rejects them with an error. Rebuild the index after
 #' upgrading.
 #'
+#' Transcripts with identical sequences are all kept (`--keepDuplicates`),
+#' so that every annotated transcript is quantified.
+#'
 #' @param fasta_path Path to the reference transcriptome FASTA file.
 #' @param index_path Directory path to save the Salmon index (default is
 #' "salmon_index").
@@ -71,7 +74,7 @@ check_env_installed <- function(env_name = "salmon-env") {
 #' (default is `FALSE`); the transcript names are then truncated at the
 #' first `|` so that they match the annotation.
 #' @param decoy_fasta Optional path to a FASTA file containing decoy sequences
-#' (default is `NULL`).
+#' (default is `NULL`). Not used yet: the index is built without decoys.
 #' @param clip_poly_a Logical indicating whether to clip poly-A tails
 #' (default is `TRUE`).
 #'
@@ -132,7 +135,8 @@ salmon_index <- function(
 #' selective-alignment-based mode from raw RNA-seq reads.
 #'
 #' @details
-#' The command enables the sequence, GC and positional bias corrections,
+#' The command detects the library type (`--libType A`), enables the
+#' sequence, GC and positional bias corrections,
 #' allows dovetailing mates and soft-clipped overhangs, writes the
 #' equivalence classes with their weights (`--dumpEq --dumpEqWeights`) and
 #' draws `num_gibbs` Gibbs samples (`aux_info/bootstrap/`) so that

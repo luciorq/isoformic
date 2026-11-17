@@ -24,30 +24,36 @@ scale_counts(self, assay = "counts", name = paste0(assay, "_scaled"), ...)
 }
 \value{
 \code{inferential_overdispersion()}: a tibble with \code{transcript_id},
-\code{overdispersion} and \code{df} (degrees of freedom of the estimate), with the
-prior in the \code{prior} attribute. \code{scale_counts()}: the object with the
-scaled assay added.
+\code{overdispersion} and \code{df} (degrees of freedom of the estimate, the number
+of samples where the transcript has a non-zero mean times the number of
+replicates minus one), with the prior in the \code{prior} attribute.
+\code{scale_counts()}: the object with the scaled assay added.
 }
 \description{
 Reads that map to several isoforms make the counts of an isoform more
 variable than a Poisson count, by an amount that differs between
 transcripts. Baldoni et al. (2024) estimate this overdispersion for every
 transcript from the Salmon replicates and divide it out of the counts, so
-that tests built for counts (\code{edgeR}, \code{limma}, \code{DESeq2}) keep their error
-rate without a model of their own for the read ambiguity.
+that tests built for counts (\code{edgeR}, \code{limma}) keep their error rate
+without a model of their own for the read ambiguity. The scaled counts are
+not integers.
 \itemize{
 \item \code{inferential_overdispersion()} computes the overdispersion of every
-transcript from the replicates stored in the object, as
-\code{edgeR::catchSalmon()} does: the Pearson statistic of a quasi-Poisson fit
-to the replicates of each sample, pooled over the samples, moderated
-towards the median with a prior of \code{prior_df} degrees of freedom and
-floored at one. The estimates use the transcripts whose replicates are
-in the object (those with a mean count of at least \code{min_count} in
-\code{\link[=add_uncertainty]{add_uncertainty()}}), so the prior differs from the one \code{catchSalmon()}
-computes over every transcript of the index; transcripts without
-replicates get the prior.
+transcript from the replicates stored in the object, with the estimator
+of \code{edgeR::catchSalmon()} (checked against edgeR 4.8): the Pearson
+statistic of a quasi-Poisson fit to the replicates of each sample, pooled over the
+samples where the transcript has a non-zero mean, moderated towards the
+median with a prior of \code{prior_df} degrees of freedom and floored at one.
+The estimates use the transcripts whose replicates are in the object
+(those with a mean count of at least \code{min_count} in \code{\link[=add_uncertainty]{add_uncertainty()}}),
+so the prior differs from the one \code{catchSalmon()} computes over every
+expressed transcript of the index; transcripts without replicates get
+the prior.
 \item \code{scale_counts()} divides an assay by the overdispersion and stores the
-result as a new assay, ready for a count-based test.
+result as a new assay, ready for a count-based test (the counts divided
+by the \code{Overdispersion} column of \code{catchSalmon()} in Baldoni et al.
+2024). \code{\link[=test_usage]{test_usage()}} divides the counts in the same way when the object
+holds replicates.
 }
 
 The overdispersion complements the confidence classes of
@@ -81,5 +87,5 @@ assessment of differential transcript expression with edgeR. \emph{Nucleic Acids
 Research} 52(3):e13.
 }
 \seealso{
-\code{\link[=add_uncertainty]{add_uncertainty()}}, \code{\link[=de_confidence]{de_confidence()}}
+\code{\link[=add_uncertainty]{add_uncertainty()}}, \code{\link[=de_confidence]{de_confidence()}}, \code{\link[=test_usage]{test_usage()}}
 }
