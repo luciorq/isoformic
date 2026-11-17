@@ -7,7 +7,7 @@ testthat::test_that("isoform_fraction divides by the gene total", {
   testthat::expect_equal(unname(colSums(frac[c("tx1", "tx2"), ])), rep(1, 4))
   zero <- mini_assay()
   zero["tx3", ] <- 0
-  assay(iso, "abundance") <- zero
+  tx_assay(iso, "abundance") <- zero
   testthat::expect_true(all(is.na(isoform_fraction(iso)["tx3", ])))
   testthat::expect_error(
     isoform_fraction(iso, assay = "nope"),
@@ -73,7 +73,7 @@ testthat::test_that("dominant_isoform works overall and per group", {
 
   m <- mini_assay()
   m["tx1", c("s3", "s4")] <- c(100, 100) # tx1 dominates in condition b
-  assay(iso, "abundance") <- m
+  tx_assay(iso, "abundance") <- m
   by_group <- dominant_isoform(iso, group = "condition")
   testthat::expect_equal(nrow(by_group), 4L)
   testthat::expect_true("condition" %in% colnames(by_group))
@@ -139,7 +139,7 @@ testthat::test_that("dominant_isoform reports whether the dominant isoform is ca
   testthat::expect_true(res$dominant_is_canonical)
   m2 <- m[c("tx2", "tx1"), ]
   rownames(m2) <- c("tx1", "tx2")
-  assay(iso, "abundance") <- m2
+  tx_assay(iso, "abundance") <- m2
   testthat::expect_false(dominant_isoform(iso)$dominant_is_canonical)
 })
 

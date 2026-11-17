@@ -66,7 +66,7 @@ testthat::test_that("assays and col_data are standardised", {
     assays = list(abundance = df),
     col_data = cd
   )
-  testthat::expect_true(is.matrix(assay(iso)))
+  testthat::expect_true(is.matrix(tx_assay(iso)))
   testthat::expect_equal(rownames(iso), c("tx1", "tx2", "tx3"))
   testthat::expect_equal(colnames(col_data(iso))[1], "sample_id")
   testthat::expect_equal(col_data(iso)$sample_id, c("s1", "s2", "s3", "s4"))
@@ -81,10 +81,10 @@ testthat::test_that("assays and col_data are standardised", {
 testthat::test_that("accessors return the expected tables and matrices", {
   iso <- mini_experiment(with_dea = FALSE)
   testthat::expect_equal(assay_names(iso), c("abundance", "counts"))
-  testthat::expect_equal(assay(iso, "counts"), mini_assay() * 2)
-  testthat::expect_equal(assay(iso, 2), mini_assay() * 2)
+  testthat::expect_equal(tx_assay(iso, "counts"), mini_assay() * 2)
+  testthat::expect_equal(tx_assay(iso, 2), mini_assay() * 2)
   testthat::expect_error(
-    assay(iso, "nope"),
+    tx_assay(iso, "nope"),
     class = "isoformic_assay_not_found"
   )
   testthat::expect_equal(row_names(iso), c("tx1", "tx2", "tx3"))
@@ -115,6 +115,23 @@ testthat::test_that("accessors return the expected tables and matrices", {
   testthat::expect_equal(nrow(exon_table(iso, "GENEA")), 3L)
 })
 
+testthat::test_that("tx_assay() replaces the clashing assay generics", {
+  exports <- getNamespaceExports("isoformic")
+  testthat::expect_false("assay" %in% exports)
+  testthat::expect_false("assays" %in% exports)
+  testthat::expect_false("assay<-" %in% exports)
+  testthat::expect_true(all(
+    c("tx_assay", "tx_assays", "tx_assay<-") %in% exports
+  ))
+
+  iso <- example_isoformic()
+  testthat::expect_identical(tx_assays(iso), iso@assays)
+  for (nm in assay_names(iso)) {
+    testthat::expect_identical(tx_assay(iso, nm), iso@assays[[nm]])
+  }
+  testthat::expect_identical(tx_assay(iso), iso@assays[[1L]])
+})
+
 testthat::test_that("gene assays are derived by summing isoforms, cached and overridable", {
   iso <- mini_experiment(with_dea = FALSE)
   ga <- gene_assays(iso)
@@ -129,7 +146,7 @@ testthat::test_that("gene assays are derived by summing isoforms, cached and ove
   testthat::expect_true("gene_assays" %in% ls(attr(iso, ".cache")))
 
   # modifying the transcript assays invalidates the derived gene assays
-  assay(iso, "abundance") <- mini_assay() * 10
+  tx_assay(iso, "abundance") <- mini_assay() * 10
   testthat::expect_equal(
     gene_assay(iso, "abundance")["gene2", ],
     mini_assay()["tx3", ] * 10
@@ -194,7 +211,7 @@ testthat::test_that("subsetting behaves like SummarizedExperiment", {
   testthat::expect_equal(rownames(sub), c("tx1", "tx3"))
   testthat::expect_equal(col_data(sub)$sample_id, c("s1", "s4"))
   testthat::expect_equal(
-    assay(sub, "counts"),
+    tx_assay(sub, "counts"),
     (mini_assay() * 2)[c("tx1", "tx3"), c("s1", "s4")]
   )
   testthat::expect_equal(dim(iso[, 1:2]), c(3L, 2L))
@@ -241,7 +258,7 @@ testthat::test_that("per-object cache is keyed by inputs so copies never go stal
   iso <- mini_experiment(with_dea = FALSE)
   frac1 <- isoform_fraction(iso)
   iso2 <- iso
-  assay(iso2, "abundance") <- mini_assay() * 2
+  tx_assay(iso2, "abundance") <- mini_assay() * 2
   frac2 <- isoform_fraction(iso2)
   testthat::expect_equal(frac1, frac2) # fractions are scale invariant
   testthat::expect_equal(
@@ -295,8 +312,11 @@ testthat::test_that("write_isoformic and read_isoformic round-trip the object", 
 
   iso2 <- read_isoformic(dir)
   testthat::expect_equal(iso2@experiment_name, "mini")
-  testthat::expect_equal(assay(iso2, "abundance"), assay(iso, "abundance"))
-  testthat::expect_equal(assay(iso2, "counts"), assay(iso, "counts"))
+  testthat::expect_equal(
+    tx_assay(iso2, "abundance"),
+    tx_assay(iso, "abundance")
+  )
+  testthat::expect_equal(tx_assay(iso2, "counts"), tx_assay(iso, "counts"))
   testthat::expect_equal(col_data(iso2), col_data(iso))
   testthat::expect_equal(iso2@metadata$source, "test")
   testthat::expect_equal(de_tx(iso2), de_tx(iso))
@@ -372,7 +392,10 @@ testthat::test_that("as_isoformic and as_summarized_experiment round-trip throug
   )
   testthat::expect_s4_class(se_gene[1, ], "SummarizedExperiment")
   back <- as_isoformic(se, annot_path = iso@annot_path)
-  testthat::expect_equal(assay(back, "abundance"), assay(iso, "abundance"))
+  testthat::expect_equal(
+    tx_assay(back, "abundance"),
+    tx_assay(iso, "abundance")
+  )
   testthat::expect_equal(col_data(back)$condition, col_data(iso)$condition)
 })
 
@@ -497,7 +520,7 @@ testthat::test_that("read_salmon reads quant.sf files into an experiment", {
   testthat::expect_equal(assay_names(iso), c("abundance", "counts", "length"))
   testthat::expect_equal(col_names(iso), names(quant_dirs))
   testthat::expect_equal(
-    unname(assay(iso, "abundance")[ids[1], names(quant_dirs)[1]]),
+    unname(tx_assay(iso, "abundance")[ids[1], names(quant_dirs)[1]]),
     quant$TPM[1]
   )
   testthat::expect_error(

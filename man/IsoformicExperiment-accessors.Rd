@@ -5,10 +5,10 @@
 \alias{col_data}
 \alias{col_data<-}
 \alias{col_names}
-\alias{assays}
+\alias{tx_assays}
 \alias{assay_names}
-\alias{assay}
-\alias{assay<-}
+\alias{tx_assay}
+\alias{tx_assay<-}
 \alias{row_names}
 \alias{row_data}
 \alias{tx_annot}
@@ -33,13 +33,13 @@ col_data(self) <- value
 
 col_names(self, ...)
 
-assays(self, ...)
+tx_assays(self, ...)
 
 assay_names(self, ...)
 
-assay(self, name = NULL, ...)
+tx_assay(self, name = NULL, ...)
 
-assay(self, name) <- value
+tx_assay(self, name) <- value
 
 row_names(self, ...)
 
@@ -80,9 +80,9 @@ clear_cache(self, annotation = FALSE, ...)
 
 \item{value}{Replacement value.}
 
-\item{name}{Name of the assay (a position also works for \code{assay()} and
+\item{name}{Name of the assay (a position also works for \code{tx_assay()} and
 \code{gene_assay()}). \code{NULL} selects the first assay. Required, as a single
-string, for \verb{assay<-}.}
+string, for \verb{tx_assay<-}.}
 
 \item{with_exons}{Logical, also join the exon table (one row per exon).}
 
@@ -107,8 +107,9 @@ and cached (see the class documentation).
 
 \strong{Transcript level}
 \itemize{
-\item \code{assays()}, \code{assay(x, name)}, \code{assay_names()}, \verb{assay<-}: transcript
-matrices. \code{assay()} without a name returns the first assay.
+\item \code{tx_assays()}, \code{tx_assay(x, name)}, \code{assay_names()}, \verb{tx_assay<-}:
+transcript matrices. \code{tx_assay()} without a name returns the first
+assay.
 \item \code{row_names()}: transcript IDs of the assays.
 \item \code{row_data()}: transcript annotation (with gene columns) for the assayed
 transcripts, in assay row order.
@@ -145,7 +146,7 @@ invisibly.
 iso <- example_isoformic()
 col_data(iso)
 assay_names(iso)
-assay(iso, "abundance")[1:3, 1:3]
+tx_assay(iso, "abundance")[1:3, 1:3]
 gene_assay(iso, "abundance")[1:3, 1:3]
 head(row_data(iso))
 head(gene_data(iso))

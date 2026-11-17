@@ -617,8 +617,8 @@ testthat::test_that("the overdispersion does not depend on the transcripts whose
     od_kept$overdispersion
   )
   scaled <- scale_counts(fewer)
-  counts <- assay(fewer, "counts")
-  ratio <- counts / assay(scaled, "counts_scaled")
+  counts <- tx_assay(fewer, "counts")
+  ratio <- counts / tx_assay(scaled, "counts_scaled")
   ratio <- ratio[counts[, 1L] > 0, 1L]
   by_id <- stats::setNames(od_full$overdispersion, od_full$transcript_id)
   testthat::expect_true("tA5" %in% names(ratio))
@@ -660,8 +660,8 @@ testthat::test_that("scale_counts divides the counts by the overdispersion", {
   scaled <- scale_counts(iso)
   testthat::expect_true("counts_scaled" %in% assay_names(scaled))
   od <- inferential_overdispersion(iso)
-  counts <- assay(iso, "counts")
-  ratio <- counts / assay(scaled, "counts_scaled")
+  counts <- tx_assay(iso, "counts")
+  ratio <- counts / tx_assay(scaled, "counts_scaled")
   testthat::expect_equal(
     unname(ratio[od$transcript_id, 1L]),
     od$overdispersion

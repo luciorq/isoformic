@@ -103,7 +103,7 @@ S7::method(plot_genomic_context, IsoformicExperiment) <- function(
   exons <- exon_table(self, gene_name)
   if ((is.null(expression)) && (!is.null(assay) && length(assay_names(self)))) {
     assay <- resolve_assay_name(self, assay)
-    mat <- assay(self, assay)
+    mat <- tx_assay(self, assay)
     ids <- intersect(unique(exons$transcript_id), rownames(mat))
     if (length(ids)) {
       expression <- rowMeans(mat[ids, , drop = FALSE])

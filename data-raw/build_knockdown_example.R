@@ -133,7 +133,7 @@ for (s in names(series)) {
     se = se,
     dirs = dirs,
     det = det[, c("transcript_id", "log2FC", "pvalue", "qvalue")],
-    library_size = colSums(assay(se, "counts"))
+    library_size = colSums(SummarizedExperiment::assay(se, "counts"))
   )
   message(
     s,
@@ -160,7 +160,13 @@ top_genes <- function(det, counts) {
 }
 panel <- known_targets
 for (s in names(full)) {
-  panel <- union(panel, top_genes(full[[s]]$det, assay(full[[s]]$se, "counts")))
+  panel <- union(
+    panel,
+    top_genes(
+      full[[s]]$det,
+      SummarizedExperiment::assay(full[[s]]$se, "counts")
+    )
+  )
 }
 panel_genes <- genes_all$gene_id[genes_all$gene_name %in% panel]
 panel_tx <- tx_all$transcript_id[tx_all$gene_id %in% panel_genes]
@@ -208,7 +214,7 @@ for (s in names(full)) {
     fs::dir_delete(out)
   }
   fs::dir_create(out)
-  counts <- assay(f$se, "counts")
+  counts <- SummarizedExperiment::assay(f$se, "counts")
   use <- intersect(panel_tx, rownames(counts)[rowMeans(counts) >= 1])
   as_table <- function(m) {
     tibble::as_tibble(
@@ -217,7 +223,7 @@ for (s in names(full)) {
     )
   }
   write_parquet(
-    as_table(assay(f$se, "abundance")),
+    as_table(SummarizedExperiment::assay(f$se, "abundance")),
     fs::path(out, "abundance.parquet")
   )
   write_parquet(as_table(counts), fs::path(out, "counts.parquet"))

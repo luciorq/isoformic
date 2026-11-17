@@ -277,10 +277,11 @@ analysis and plot is now first a method on the object.
   `IsoformicExperiment` with DuckDB; `read_parquet()`, `write_parquet()` and
   `read_tabular()` are exported; `make_tx_to_gene()` parses FASTA headers with
   DuckDB and also accepts GFF3/GTF files and annotation directories.
-* `SummarizedExperiment`-style accessors: `assays()`, `assay()`, `assay<-`,
-  `assay_names()`, `gene_assays()`, `gene_assay()`, `gene_data()`,
-  `gene_names()`, `row_names()`, `col_names()`, `col_data<-`, `exon_table()`,
-  `annot_metadata()`, `clear_cache()`, plus `dim()`, `dimnames()` and `[`.
+* `SummarizedExperiment`-style accessors: `tx_assays()`, `tx_assay()`,
+  `tx_assay<-`, `assay_names()`, `gene_assays()`, `gene_assay()`,
+  `gene_data()`, `gene_names()`, `row_names()`, `col_names()`, `col_data<-`,
+  `exon_table()`, `annot_metadata()`, `clear_cache()`, plus `dim()`,
+  `dimnames()` and `[`.
 * Differential expression results are standardised on assignment
   (`de_tx<-`, `de_gene<-` accept DESeq2, edgeR, limma and fishpond column
   names) and flagged with stored cutoffs (`de_cutoffs()`, `de_cutoffs<-`,
@@ -320,6 +321,11 @@ analysis and plot is now first a method on the object.
 
 ### Changed
 
+* The transcript-level accessors are renamed to `tx_assay()`, `tx_assays()`
+  and `tx_assay<-` (matching `gene_assay()`), so that they no longer mask
+  `SummarizedExperiment::assay()` and related generics when both packages
+  are attached. The old names `assay()`, `assays()` and `assay<-` are
+  removed.
 * `salmon_quant()` draws 30 Gibbs samples by default (it was 100;
   `num_gibbs = 0` skips them).
 * `salmon_index()` and `salmon_quant()` target Salmon 2 (the Rust rewrite;

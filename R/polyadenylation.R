@@ -490,7 +490,7 @@ S7::method(apa_usage, IsoformicExperiment) <- function(
 ) {
   assay <- resolve_assay_name(self, assay)
   pa <- polya_sites(self)
-  tx_mat <- assay(self, assay)
+  tx_mat <- tx_assay(self, assay)
   grp <- group_samples(self, group, colnames(tx_mat), levels = levels)
   groups <- grp$groups
   tx_mat <- tx_mat[, grp$samples, drop = FALSE]
@@ -580,7 +580,7 @@ S7::method(test_apa, IsoformicExperiment) <- function(
   rlang::check_required(group)
   assay <- resolve_assay_name(self, assay)
   pa <- polya_sites(self)
-  tx_mat <- assay(self, assay)
+  tx_mat <- tx_assay(self, assay)
   tx_mat[tx_mat < min_expr] <- 0
   idx <- match(rownames(tx_mat), pa$transcript_id)
   gene_ids <- pa$gene_id[idx]

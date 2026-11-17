@@ -82,6 +82,6 @@ dir <- file.path(tempdir(), "iso_example")
 iso <- write_isoformic(iso, dir, overwrite = TRUE, copy_annotation = TRUE)
 list.files(dir, recursive = TRUE)
 iso2 <- read_isoformic(dir)
-identical(assay(iso), assay(iso2))
+identical(tx_assay(iso), tx_assay(iso2))
 
 }

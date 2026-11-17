@@ -69,7 +69,7 @@ differential expression results into the long profile table consumed by
 \examples{
 iso <- example_isoformic()
 prof <- prepare_profile_data(
-  txi_transcript = assay(iso, "abundance"),
+  txi_transcript = tx_assay(iso, "abundance"),
   sample_metadata = col_data(iso),
   tx_to_gene = tx_annot(iso),
   de_result_gene = de_gene(iso),

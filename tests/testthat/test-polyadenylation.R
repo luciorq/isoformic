@@ -272,7 +272,7 @@ testthat::test_that("run_apa_enrichment ranks the genes by their change in 3' en
 
 testthat::test_that("test_apa does not test a gene with a trace of distal reads", {
   iso <- apa_experiment(with_sequences = FALSE)
-  counts <- assay(iso, "counts")
+  counts <- tx_assay(iso, "counts")
   # GENEB: tB1 is distal, tB2 proximal; 8-fold more reads in group b and
   # a fraction of a distal read in one sample
   counts["tB1", ] <- c(0, 0, 0, 0.02)
@@ -280,7 +280,7 @@ testthat::test_that("test_apa does not test a gene with a trace of distal reads"
   traced <- IsoformicExperiment(
     experiment_name = "traced",
     annot_path = iso@annot_path,
-    assays = list(abundance = assay(iso, "abundance"), counts = counts),
+    assays = list(abundance = tx_assay(iso, "abundance"), counts = counts),
     col_data = col_data(iso)
   )
   res <- test_apa(traced, group = "condition", assay = "counts")

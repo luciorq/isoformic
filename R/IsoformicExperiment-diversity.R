@@ -101,7 +101,7 @@ S7::method(isoform_fraction, IsoformicExperiment) <- function(
     annot_full_signature(self)
   )
   object_cache_fetch(self, "isoform_fraction", signature, function() {
-    tx_mat <- assay(self, assay)
+    tx_mat <- tx_assay(self, assay)
     gene_mat <- gene_assay(self, assay)
     gene_ids <- gene_ids_of(self, rownames(tx_mat))
     gene_tot <- gene_mat[gene_ids, colnames(tx_mat), drop = FALSE]
@@ -161,7 +161,7 @@ S7::method(tx_diversity, IsoformicExperiment) <- function(
   ...
 ) {
   assay <- resolve_assay_name(self, assay)
-  tx_mat <- assay(self, assay)
+  tx_mat <- tx_assay(self, assay)
   frac <- isoform_fraction(self, assay = assay)
   annot <- row_data(self)
   gene_id <- annot$gene_id
@@ -313,7 +313,7 @@ S7::method(dominant_isoform, IsoformicExperiment) <- function(
   ...
 ) {
   assay <- resolve_assay_name(self, assay)
-  tx_mat <- assay(self, assay)
+  tx_mat <- tx_assay(self, assay)
   grp <- group_samples(self, group, colnames(tx_mat), levels = levels)
   tx_mat <- tx_mat[, grp$samples, drop = FALSE]
   annot <- row_data(self)
@@ -780,7 +780,7 @@ S7::method(haplotype_summary, IsoformicExperiment) <- function(
       class = "isoformic_not_haplotype_resolved"
     )
   }
-  tx_mat <- assay(self, assay)
+  tx_mat <- tx_assay(self, assay)
   grp <- group_samples(self, group, colnames(tx_mat), levels = levels)
   group_means <- group_row_means(
     tx_mat[, grp$samples, drop = FALSE],

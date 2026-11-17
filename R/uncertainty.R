@@ -354,7 +354,7 @@ S7::method(add_uncertainty, IsoformicExperiment) <- function(
     named <- stats::setNames(dirs$dir, dirs$sample_id)
     keep_tx <- NULL
     if ("counts" %in% assay_names(self)) {
-      counts <- assay(self, "counts")
+      counts <- tx_assay(self, "counts")
       keep_tx <- rownames(counts)[rowMeans(counts) >= min_count]
     }
     reps <- read_inferential_replicates(
@@ -1367,7 +1367,7 @@ compute_de_confidence <- function(
   if ("library_size" %in% colnames(sample_table)) {
     libsize <- sample_table$library_size[match(samples, sample_table$sample_id)]
   } else if ("counts" %in% assay_names(self)) {
-    libsize <- colSums(assay(self, "counts"))[samples]
+    libsize <- colSums(tx_assay(self, "counts"))[samples]
   }
   if (is.null(libsize) || anyNA(libsize) || any(libsize <= 0)) {
     libsize <- colSums(mom$mean)

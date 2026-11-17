@@ -86,7 +86,7 @@ testthat::test_that("protein_coding_LoF is an unproductive biotype", {
   iso <- IsoformicExperiment(
     experiment_name = "lof",
     annot_path = iso@annot_path,
-    assays = list(abundance = assay(iso, "abundance")),
+    assays = list(abundance = tx_assay(iso, "abundance")),
     col_data = as.data.frame(col_data(iso))
   )
   p <- transcript_productivity(iso)
@@ -134,7 +134,7 @@ testthat::test_that("test_productive_fraction fits the two-group quasi-binomial 
     class = "isoformic_group_levels"
   )
   # The closed form matches glm(quasibinomial) on the pooled counts
-  counts <- assay(iso, "counts")
+  counts <- tx_assay(iso, "counts")
   prod <- c(TRUE, TRUE, FALSE, FALSE)
   y <- colSums(counts[1:4, ][prod, ])
   n <- colSums(counts[1:4, ])
@@ -186,7 +186,7 @@ testthat::test_that("productive_fraction honours min_expr, inferential replicate
   )
   set.seed(1)
   reps <- lapply(1:20, function(i) {
-    m <- assay(iso, "abundance")
+    m <- tx_assay(iso, "abundance")
     m * matrix(stats::runif(length(m), 0.8, 1.2), nrow = nrow(m))
   })
   with_reps <- productive_fraction(iso, group = "condition", inf_reps = reps)
@@ -373,7 +373,7 @@ testthat::test_that("min_gene_count drops genes with few reads in any group", {
   no_counts <- IsoformicExperiment(
     experiment_name = "no_counts",
     annot_path = iso@annot_path,
-    assays = list(abundance = assay(iso, "abundance")),
+    assays = list(abundance = tx_assay(iso, "abundance")),
     col_data = col_data(iso)
   )
   testthat::expect_identical(
@@ -464,7 +464,7 @@ testthat::test_that("a trace of reads in one class does not make a usage change"
   # Through test_productive_fraction(): the unproductive isoforms of gA hold
   # 0.02 reads in one sample only, while the gene grows 8-fold
   iso <- seq_experiment()
-  counts <- assay(iso, "counts")
+  counts <- tx_assay(iso, "counts")
   counts[] <- 0
   counts[c("tA1", "tA2"), ] <- cbind(
     c(60, 40),
@@ -477,7 +477,7 @@ testthat::test_that("a trace of reads in one class does not make a usage change"
   traced <- IsoformicExperiment(
     experiment_name = "traced",
     annot_path = iso@annot_path,
-    assays = list(abundance = assay(iso, "abundance"), counts = counts),
+    assays = list(abundance = tx_assay(iso, "abundance"), counts = counts),
     col_data = col_data(iso)
   )
   res_iso <- test_productive_fraction(traced, group = "condition")

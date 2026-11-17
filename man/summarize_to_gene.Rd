@@ -23,7 +23,7 @@ the same list (the \code{tximport} convention). This is the function used by
 }
 \examples{
 iso <- example_isoformic()
-g <- summarize_to_gene(assay(iso, "abundance"), tx_to_gene(iso))
+g <- summarize_to_gene(tx_assay(iso, "abundance"), tx_to_gene(iso))
 head(g)
 
 }

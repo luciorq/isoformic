@@ -79,7 +79,7 @@ S7::method(profile_data, IsoformicExperiment) <- function(
     )
   }
   tx_keep <- which(annot$gene_id %in% gene_ids)
-  tx_mat <- assay(self, assay)
+  tx_mat <- tx_assay(self, assay)
   grp <- group_samples(self, group, colnames(tx_mat), levels = levels)
   groups <- grp$groups
   tx_mat <- tx_mat[tx_keep, grp$samples, drop = FALSE]
@@ -459,7 +459,7 @@ isoformic_theme <- function(base_size = 11) {
 #' @examples
 #' iso <- example_isoformic()
 #' prof <- prepare_profile_data(
-#'   txi_transcript = assay(iso, "abundance"),
+#'   txi_transcript = tx_assay(iso, "abundance"),
 #'   sample_metadata = col_data(iso),
 #'   tx_to_gene = tx_annot(iso),
 #'   de_result_gene = de_gene(iso),

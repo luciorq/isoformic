@@ -76,7 +76,7 @@ testthat::test_that("test_usage handles groups, filters, scaling and missing bac
   )
   # With replicates in the object the counts are divided by the overdispersion
   draws <- lapply(1:10, function(k) {
-    m <- assay(x$iso, "counts")
+    m <- tx_assay(x$iso, "counts")
     m[] <- stats::rpois(length(m), as.vector(m) + 1)
     m
   })

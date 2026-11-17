@@ -72,7 +72,7 @@ testthat::test_that("profile_data and plot_tx_expr summarise expression per grou
 testthat::test_that("prepare_profile_data matches profile_data on loose tables", {
   iso <- mini_experiment()
   prof <- prepare_profile_data(
-    txi_transcript = assay(iso, "abundance"),
+    txi_transcript = tx_assay(iso, "abundance"),
     sample_metadata = col_data(iso),
     tx_to_gene = tx_annot(iso),
     de_result_gene = de_gene(iso),
@@ -86,10 +86,10 @@ testthat::test_that("prepare_profile_data matches profile_data on loose tables",
   testthat::expect_equal(prof$feature_name, ref$feature_name)
 
   # tximport-style list and data frame input, no DE tables
-  df <- as.data.frame(assay(iso, "abundance"))
+  df <- as.data.frame(tx_assay(iso, "abundance"))
   df$transcript_id <- rownames(df)
   prof2 <- prepare_profile_data(
-    txi_transcript = list(abundance = assay(iso), counts = assay(iso)),
+    txi_transcript = list(abundance = tx_assay(iso), counts = tx_assay(iso)),
     sample_metadata = col_data(iso),
     tx_to_gene = tx_annot(iso),
     var = "condition"

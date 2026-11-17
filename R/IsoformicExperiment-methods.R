@@ -13,8 +13,9 @@
 #' * `col_names()`: sample IDs of the assays.
 #'
 #' **Transcript level**
-#' * `assays()`, `assay(x, name)`, `assay_names()`, `assay<-`: transcript
-#'   matrices. `assay()` without a name returns the first assay.
+#' * `tx_assays()`, `tx_assay(x, name)`, `assay_names()`, `tx_assay<-`:
+#'   transcript matrices. `tx_assay()` without a name returns the first
+#'   assay.
 #' * `row_names()`: transcript IDs of the assays.
 #' * `row_data()`: transcript annotation (with gene columns) for the assayed
 #'   transcripts, in assay row order.
@@ -42,9 +43,9 @@
 #'
 #' @param self An [IsoformicExperiment].
 #' @param value Replacement value.
-#' @param name Name of the assay (a position also works for `assay()` and
+#' @param name Name of the assay (a position also works for `tx_assay()` and
 #'   `gene_assay()`). `NULL` selects the first assay. Required, as a single
-#'   string, for `assay<-`.
+#'   string, for `tx_assay<-`.
 #' @param gene_name Character vector of gene names or gene IDs.
 #' @param with_exons Logical, also join the exon table (one row per exon).
 #' @param annotation Logical, also clear the shared annotation cache.
@@ -56,7 +57,7 @@
 #' iso <- example_isoformic()
 #' col_data(iso)
 #' assay_names(iso)
-#' assay(iso, "abundance")[1:3, 1:3]
+#' tx_assay(iso, "abundance")[1:3, 1:3]
 #' gene_assay(iso, "abundance")[1:3, 1:3]
 #' head(row_data(iso))
 #' head(gene_data(iso))
@@ -99,9 +100,9 @@ S7::method(col_names, IsoformicExperiment) <- function(self) {
 
 #' @rdname IsoformicExperiment-accessors
 #' @export
-assays <- S7::new_generic("assays", "self")
+tx_assays <- S7::new_generic("tx_assays", "self")
 
-S7::method(assays, IsoformicExperiment) <- function(self) {
+S7::method(tx_assays, IsoformicExperiment) <- function(self) {
   self@assays
 }
 
@@ -115,21 +116,29 @@ S7::method(assay_names, IsoformicExperiment) <- function(self) {
 
 #' @rdname IsoformicExperiment-accessors
 #' @export
-assay <- S7::new_generic("assay", "self", function(self, name = NULL, ...) {
-  S7::S7_dispatch()
-})
+tx_assay <- S7::new_generic(
+  "tx_assay",
+  "self",
+  function(self, name = NULL, ...) {
+    S7::S7_dispatch()
+  }
+)
 
-S7::method(assay, IsoformicExperiment) <- function(self, name = NULL, ...) {
+S7::method(tx_assay, IsoformicExperiment) <- function(self, name = NULL, ...) {
   pick_assay(self@assays, name, level = "transcript")
 }
 
 #' @rdname IsoformicExperiment-accessors
 #' @export
-`assay<-` <- S7::new_generic("assay<-", "self", function(self, name, value) {
-  S7::S7_dispatch()
-})
+`tx_assay<-` <- S7::new_generic(
+  "tx_assay<-",
+  "self",
+  function(self, name, value) {
+    S7::S7_dispatch()
+  }
+)
 
-S7::method(`assay<-`, IsoformicExperiment) <- function(self, name, value) {
+S7::method(`tx_assay<-`, IsoformicExperiment) <- function(self, name, value) {
   check_string(name)
   assays <- self@assays
   assays[[name]] <- value

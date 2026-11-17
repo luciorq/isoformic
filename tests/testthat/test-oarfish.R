@@ -22,14 +22,20 @@ testthat::test_that("read_oarfish builds the assays from the real Oarfish output
   quant <- read.delim(paste0(x$prefixes[["control_1"]], ".quant"))
   n_tx <- nrow(quant)
   testthat::expect_identical(dim(iso), c(n_tx, 3L))
-  counts <- assay(iso, "counts")
+  counts <- tx_assay(iso, "counts")
   testthat::expect_equal(
     unname(counts[, "control_1"]),
     quant$num_reads
   )
-  testthat::expect_equal(unname(assay(iso, "length")[, "control_1"]), quant$len)
+  testthat::expect_equal(
+    unname(tx_assay(iso, "length")[, "control_1"]),
+    quant$len
+  )
   # TPM is computed from reads per base and sums to a million per sample
-  testthat::expect_equal(unname(colSums(assay(iso, "abundance"))), rep(1e6, 3L))
+  testthat::expect_equal(
+    unname(colSums(tx_assay(iso, "abundance"))),
+    rep(1e6, 3L)
+  )
   testthat::expect_identical(
     rownames(counts)[1L],
     sub("\\|.*$", "", quant$tname[1L])
@@ -203,7 +209,7 @@ testthat::test_that("read_oarfish_sc sums the cells of each sample", {
   )
   # A transcript seen in no cell of a sample sums to zero in that sample
   by_hand[is.na(by_hand)] <- 0
-  pseudo <- assay(iso, "counts")
+  pseudo <- tx_assay(iso, "counts")
   ids <- rownames(by_hand)
   testthat::expect_lt(length(ids), n_tx)
   testthat::expect_equal(
@@ -212,7 +218,10 @@ testthat::test_that("read_oarfish_sc sums the cells of each sample", {
   )
   # Transcripts seen in no cell at all are kept with zero counts
   testthat::expect_true(all(pseudo[setdiff(rownames(pseudo), ids), ] == 0))
-  testthat::expect_equal(unname(colSums(assay(iso, "abundance"))), rep(1e6, 3L))
+  testthat::expect_equal(
+    unname(colSums(tx_assay(iso, "abundance"))),
+    rep(1e6, 3L)
+  )
   # The simulation raises three isoforms four-fold in the treated cells; the
   # one with enough reads to tell (RBPJ-213, about 56 in the controls) shows it
   fasta <- readLines(gzfile(fs::path_package(
@@ -326,7 +335,7 @@ testthat::test_that("read_oarfish_sc handles transcripts missing from the annota
     drop_unannotated = TRUE
   ))
   testthat::expect_identical(nrow(iso), length(features) - 1L)
-  testthat::expect_true(all(is.finite(assay(iso, "abundance"))))
+  testthat::expect_true(all(is.finite(tx_assay(iso, "abundance"))))
 })
 
 testthat::test_that("the shared readers accept every form of Oarfish path", {

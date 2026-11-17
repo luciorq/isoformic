@@ -114,7 +114,7 @@
 #'
 #' # Build one from matrices
 #' annot <- system.file("extdata", "example_experiment", "annotation", package = "isoformic")
-#' tpm <- assay(iso, "abundance")[1:5, 1:3]
+#' tpm <- tx_assay(iso, "abundance")[1:5, 1:3]
 #' small <- IsoformicExperiment(
 #'   experiment_name = "tiny",
 #'   annot_path = annot,
@@ -742,7 +742,7 @@ summarize_assays_to_gene <- function(assays, gene_ids) {
 #'
 #' @examples
 #' iso <- example_isoformic()
-#' g <- summarize_to_gene(assay(iso, "abundance"), tx_to_gene(iso))
+#' g <- summarize_to_gene(tx_assay(iso, "abundance"), tx_to_gene(iso))
 #' head(g)
 #'
 #' @export

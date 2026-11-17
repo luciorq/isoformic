@@ -14,7 +14,7 @@ three_group_example <- function() {
 example_draws <- function(iso, n = 8L) {
   set.seed(42)
   draws <- lapply(seq_len(n), function(k) {
-    m <- assay(iso, "abundance")
+    m <- tx_assay(iso, "abundance")
     m * matrix(stats::runif(length(m), 0.7, 1.3), nrow = nrow(m))
   })
   attr(draws, "samp_type") <- "gibbs"
@@ -205,7 +205,7 @@ testthat::test_that("test_usage scales counts with the samples of the test", {
   x <- usage_experiment(n_groups = 3L)
   set.seed(7)
   draws <- lapply(1:10, function(k) {
-    m <- assay(x$iso, "counts")
+    m <- tx_assay(x$iso, "counts")
     m[] <- stats::rpois(length(m), as.vector(m) + 1)
     m
   })
@@ -313,7 +313,7 @@ testthat::test_that("delta_z ranks the genes with a certain change at the extrem
   iso <- three_group_example()
   lv <- c("a", "b")
   # The same draw twice: every change has a standard deviation of zero
-  draws <- rep(list(assay(iso, "abundance")), 2L)
+  draws <- rep(list(tx_assay(iso, "abundance")), 2L)
   pf <- productive_fraction(iso, group = "g3", levels = lv, inf_reps = draws)
   changed <- !pf$delta_productive_fraction %in% c(0, NA)
   testthat::expect_true(any(changed))
@@ -373,7 +373,7 @@ testthat::test_that("a single level, numeric levels and profile tables are handl
   )
   testthat::expect_error(
     prepare_profile_data(
-      txi_transcript = assay(iso, "abundance"),
+      txi_transcript = tx_assay(iso, "abundance"),
       tx_to_gene = tables$tx_to_gene,
       sample_metadata = col_data(iso),
       de_result_gene = NULL,
@@ -554,7 +554,7 @@ testthat::test_that("subsetting keeps stored gene assays in step", {
   frac <- isoform_fraction(iso)
   testthat::expect_equal(
     frac["tx1", "s1"],
-    assay(iso, "abundance")["tx1", "s1"] / stored["gene1", "s1"]
+    tx_assay(iso, "abundance")["tx1", "s1"] / stored["gene1", "s1"]
   )
 })
 
@@ -595,7 +595,7 @@ testthat::test_that("productive_fraction reads the draws one at a time with the 
   prod <- transcript_productivity(iso)
   samples <- col_data(iso)$sample_id[col_data(iso)$g3 %in% lv]
   groups <- col_data(iso)$g3[match(samples, col_data(iso)$sample_id)]
-  tx_ids <- rownames(assay(iso, "abundance"))
+  tx_ids <- rownames(tx_assay(iso, "abundance"))
   gene_ids <- prod$gene_id[match(tx_ids, prod$transcript_id)]
   is_prod <- prod$productivity[match(tx_ids, prod$transcript_id)] %in%
     c("productive", "altered_productive")
@@ -614,7 +614,7 @@ testthat::test_that("productive_fraction reads the draws one at a time with the 
     first <- rowMeans(frac[, groups == "c", drop = FALSE], na.rm = TRUE)
     unname(last - first)
   }
-  point <- fraction_of(assay(iso, "abundance"))
+  point <- fraction_of(tx_assay(iso, "abundance"))
   testthat::expect_equal(pf$delta_productive_fraction, delta_of(point))
   draw_fracs <- lapply(draws, fraction_of)
   draw_delta <- vapply(draw_fracs, delta_of, numeric(nrow(pf)))
@@ -954,7 +954,7 @@ testthat::test_that("the view of the draws gives the values of the dense array",
   testthat::expect_equal(others$mean_count, same$mean_count)
   # The fold-change of one transcript from the draws themselves
   one <- others$feature_id[which(!is.na(others$lfc_median))[[1L]]]
-  libsize <- colSums(assay(iso, "counts"))[kept]
+  libsize <- colSums(tx_assay(iso, "counts"))[kept]
   group_of <- col_data(iso)$g3[match(kept, col_data(iso)$sample_id)]
   lfc <- apply(dense[one, kept, ], 2L, function(v) {
     v <- log2(v * mean(libsize) / libsize + settings$pseudocount)

@@ -157,7 +157,10 @@ mini_draws <- as_inferential_replicates(
   read_parquet(fs::path_package("isoformic", "extdata", "mini_draws.parquet"))
 )
 names(mini_draws) <- paste0("infRep", seq_along(mini_draws))
-assays(se_tx) <- c(as.list(assays(se_tx)), mini_draws)
+SummarizedExperiment::assays(se_tx) <- c(
+  as.list(SummarizedExperiment::assays(se_tx)),
+  mini_draws
+)
 
 y <- fishpond::scaleInfReps(se_tx)
 y <- fishpond::labelKeep(y, minCount = 10, minN = 3)
@@ -185,7 +188,9 @@ head(de_tx(iso))
 #| message: false
 #| warning: false
 se_gene <- as_summarized_experiment(iso, level = "gene")
-assay(se_gene, "counts") <- round(assay(se_gene, "counts"))
+SummarizedExperiment::assay(se_gene, "counts") <- round(
+  SummarizedExperiment::assay(se_gene, "counts")
+)
 se_gene$condition <- factor(se_gene$condition, levels = c("control", "preeclampsia"))
 
 dds <- DESeq2::DESeqDataSet(se_gene, design = ~condition)

@@ -30,7 +30,7 @@ testthat::test_that("the bundled knockdown examples carry draws for every sample
     testthat::expect_length(draws, 30L)
     testthat::expect_identical(
       colnames(draws[[1L]]),
-      colnames(assay(x$iso, "counts"))
+      colnames(tx_assay(x$iso, "counts"))
     )
     testthat::expect_true(all(rownames(draws[[1L]]) %in% rownames(x$iso)))
     testthat::expect_identical(

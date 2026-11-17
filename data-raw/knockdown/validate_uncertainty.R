@@ -79,7 +79,7 @@ contrast <- function(label, dirs, group, annot) {
     sw_q = sw$qvalue
   )
   naive <- dplyr::rename(
-    edger_test(assay(se, "counts"), samples$condition),
+    edger_test(SummarizedExperiment::assay(se, "counts"), samples$condition),
     ed_lfc = logFC,
     ed_p = p,
     ed_q = q
@@ -99,10 +99,10 @@ contrast <- function(label, dirs, group, annot) {
     dv_p = p,
     dv_q = q
   )
-  keep <- rownames(se)[rowMeans(assay(se, "counts")) >= 1]
+  keep <- rownames(se)[rowMeans(SummarizedExperiment::assay(se, "counts")) >= 1]
   tab <- function(a) {
     tibble::as_tibble(
-      as.data.frame(assay(se, a)),
+      as.data.frame(SummarizedExperiment::assay(se, a)),
       rownames = "transcript_id"
     ) |>
       dplyr::filter(.data$transcript_id %in% keep)

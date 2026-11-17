@@ -141,7 +141,7 @@ iso[1:10, c("SRR11498039", "SRR11498063")]
 
 # Build one from matrices
 annot <- system.file("extdata", "example_experiment", "annotation", package = "isoformic")
-tpm <- assay(iso, "abundance")[1:5, 1:3]
+tpm <- tx_assay(iso, "abundance")[1:5, 1:3]
 small <- IsoformicExperiment(
   experiment_name = "tiny",
   annot_path = annot,

@@ -57,7 +57,10 @@ inferential replicates.
 }
 \examples{
 iso <- example_isoformic()
-txi <- list(abundance = assay(iso, "abundance"), counts = assay(iso, "counts"))
+txi <- list(
+  abundance = tx_assay(iso, "abundance"),
+  counts = tx_assay(iso, "counts")
+)
 annot <- system.file("extdata", "example_experiment", "annotation", package = "isoformic")
 iso2 <- as_isoformic(txi, annot_path = annot, col_data = col_data(iso))
 iso2

@@ -111,5 +111,5 @@ testthat::test_that("Salmon indexes and quantifies the example transcripts", {
     inferential = TRUE
   ))
   testthat::expect_equal(col_names(iso), "sample")
-  testthat::expect_gt(sum(assay(iso, "counts")), 0.9 * length(reads))
+  testthat::expect_gt(sum(tx_assay(iso, "counts")), 0.9 * length(reads))
 })

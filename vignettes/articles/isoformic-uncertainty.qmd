@@ -392,7 +392,7 @@ overdispersion <- inferential_overdispersion(iso)
 summary(overdispersion$overdispersion)
 
 iso <- scale_counts(iso)
-scaled <- edgeR::DGEList(assay(iso, "counts_scaled"), group = col_data(iso)$condition)
+scaled <- edgeR::DGEList(tx_assay(iso, "counts_scaled"), group = col_data(iso)$condition)
 design <- stats::model.matrix(~group, scaled$samples)
 scaled <- edgeR::estimateDisp(scaled, design)
 fit <- edgeR::glmQLFit(scaled, design)

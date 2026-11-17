@@ -647,7 +647,7 @@ productivity_detail <- function(prod) {
 productivity_matrix <- function(self, assay, min_expr, include_altered) {
   assay <- resolve_assay_name(self, assay)
   prod <- transcript_productivity(self)
-  tx_mat <- assay(self, assay)
+  tx_mat <- tx_assay(self, assay)
   if (isTRUE(min_expr > 0)) {
     tx_mat[tx_mat < min_expr] <- 0
   }
@@ -704,7 +704,7 @@ count_filtered_genes <- function(
       class = "isoformic_assay_not_found"
     )
   }
-  counts <- assay(self, "counts")[, sample_ids, drop = FALSE]
+  counts <- tx_assay(self, "counts")[, sample_ids, drop = FALSE]
   if (!is.double(counts)) {
     # Integer sums overflow to NA
     storage.mode(counts) <- "double"

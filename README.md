@@ -51,7 +51,7 @@ iso
 #>   DE results : det (710 transcripts), deg (69 genes)
 
 # Three levels, one object
-assay(iso, "abundance")[1:3, 1:3]   # transcripts x samples
+tx_assay(iso, "abundance")[1:3, 1:3]   # transcripts x samples
 gene_assay(iso, "abundance")[1:3, 1:3] # genes x samples, summed from isoforms
 head(exon_table(iso, "RBPJ"))        # exon structures from the annotation
 

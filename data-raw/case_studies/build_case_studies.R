@@ -298,9 +298,9 @@ build_study <- function(study) {
   annot_tmp <- fs::path(tempdir(), paste0(study, "_annotation"))
   subset_annotation(annot_dir, tested_genes, panel, annot_tmp)
   panel_tx <- tx_map$transcript_id[tx_map$gene_id %in% panel]
-  keep_tx <- intersect(rownames(assay(iso, "counts")), panel_tx)
+  keep_tx <- intersect(rownames(tx_assay(iso, "counts")), panel_tx)
   assays_small <- lapply(
-    isoformic::assays(iso)[c("counts", "abundance")],
+    isoformic::tx_assays(iso)[c("counts", "abundance")],
     function(m) round(m[keep_tx, , drop = FALSE], 2)
   )
   small <- IsoformicExperiment(
