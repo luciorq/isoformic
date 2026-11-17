@@ -828,40 +828,18 @@ S7::method(productive_fraction, IsoformicExperiment) <- function(
     )
   }
   if (!is.null(reps)) {
-    # One draw at a time: only the running sums are kept, never the fractions
-    # of all the draws
-    sq_dev <- matrix(0, nrow(frac), ncol(frac))
-    delta_stats <- running_moments(nrow(frac))
-    for (k in seq_along(reps)) {
-      draw_frac <- draw_productive_fraction(
-        reps[[k]],
-        tx_ids = rownames(tx_mat),
-        sample_ids = colnames(tx_mat),
-        gene_idx = gene_idx,
-        gene_levels = gene_levels,
-        is_prod = is_prod,
-        min_expr = min_expr
-      )
-      sq_dev <- sq_dev + (draw_frac - frac)^2
-      if (has_delta) {
-        delta_stats <- running_moments_add(
-          delta_stats,
-          group_fraction_columns(
-            draw_frac,
-            groups,
-            "productive_fraction"
-          )$delta_productive_fraction
-        )
-      }
-    }
-    res$productive_fraction_sd <- as.vector(rowMeans(
-      sqrt(sq_dev / length(reps)),
-      na.rm = TRUE
-    ))
-    res$productive_fraction_sd[is.nan(res$productive_fraction_sd)] <- NA_real_
-    if (has_delta) {
-      delta_sd <- running_moments_sd(delta_stats)
-    }
+    rep_sd <- replicate_fraction_sd(
+      reps,
+      frac = frac,
+      tx_mat = tx_mat,
+      gene_idx = gene_idx,
+      gene_levels = gene_levels,
+      is_prod = is_prod,
+      min_expr = min_expr,
+      groups = if (has_delta) groups
+    )
+    res$productive_fraction_sd <- rep_sd$sd
+    delta_sd <- rep_sd$delta_sd
   }
   if (!is.null(group)) {
     for (nm in names(cols)) {
@@ -882,13 +860,11 @@ S7::method(productive_fraction, IsoformicExperiment) <- function(
   if (!is.null(expressed)) {
     res <- res[res$gene_id %in% expressed, ]
   }
-  if (!is.null(group)) {
-    if ("delta_productive_fraction" %in% names(cols)) {
-      res <- dplyr::arrange(
-        res,
-        dplyr::desc(abs(.data$delta_productive_fraction))
-      )
-    }
+  if (has_delta) {
+    res <- dplyr::arrange(
+      res,
+      dplyr::desc(abs(.data$delta_productive_fraction))
+    )
   }
   if (!is.null(reference)) {
     if (is.character(reference)) {
@@ -917,6 +893,57 @@ S7::method(productive_fraction, IsoformicExperiment) <- function(
       res$reference_productive_fraction
   }
   filter_genes(res, gene_name)
+}
+
+#' Standard deviations of the productive fractions over the replicates
+#'
+#' One draw at a time: only the running sums are kept, never the fractions
+#' of all the draws. `sd` is the mean over the samples of the standard
+#' deviation of each gene's fraction; `delta_sd` is the standard deviation of
+#' the change between the last and the first level of `groups` (`NULL`
+#' without `groups`).
+#' @keywords internal
+#' @noRd
+replicate_fraction_sd <- function(
+  reps,
+  frac,
+  tx_mat,
+  gene_idx,
+  gene_levels,
+  is_prod,
+  min_expr,
+  groups = NULL
+) {
+  sq_dev <- matrix(0, nrow(frac), ncol(frac))
+  delta_stats <- running_moments(nrow(frac))
+  for (k in seq_along(reps)) {
+    draw_frac <- draw_productive_fraction(
+      reps[[k]],
+      tx_ids = rownames(tx_mat),
+      sample_ids = colnames(tx_mat),
+      gene_idx = gene_idx,
+      gene_levels = gene_levels,
+      is_prod = is_prod,
+      min_expr = min_expr
+    )
+    sq_dev <- sq_dev + (draw_frac - frac)^2
+    if (!is.null(groups)) {
+      delta_stats <- running_moments_add(
+        delta_stats,
+        group_fraction_columns(
+          draw_frac,
+          groups,
+          "productive_fraction"
+        )$delta_productive_fraction
+      )
+    }
+  }
+  sd <- as.vector(rowMeans(sqrt(sq_dev / length(reps)), na.rm = TRUE))
+  sd[is.nan(sd)] <- NA_real_
+  list(
+    sd = sd,
+    delta_sd = if (!is.null(groups)) running_moments_sd(delta_stats)
+  )
 }
 
 #' Inferential replicates to use, `NULL` when there are none
