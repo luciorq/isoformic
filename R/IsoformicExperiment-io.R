@@ -18,20 +18,50 @@
 #'   dea/det.parquet, dea/deg.parquet, dea/cutoffs.parquet
 #'   dea/uncertainty.parquet, dea/ambiguity.parquet, dea/confidence.parquet
 #'   gsea/<name>.parquet       list columns joined with ";"
+#'   inf_reps/draw_0001.parquet, ...  one draw: transcript_id + samples
+#'   inf_reps/moments/mean.parquet, var.parquet  replicate moments
 #'   annotation/               copy of the annotation directory (optional)
 #' ```
 #'
 #' Each file is written only when the object holds that part. Entries of
-#' `metadata` that are not single values are dropped with a warning. The
-#' inferential replicates (`self@metadata$inf_reps`) are not written: they
-#' are large and are read again from the quantification output; the
-#' uncertainty tables derived from them (see [add_uncertainty()]) are.
+#' `metadata` that are not single values are dropped with a warning.
+#'
+#' The inferential replicates (`self@metadata$inf_reps`, see
+#' [read_inferential_replicates()] and [add_uncertainty()]) are written to
+#' `inf_reps/`: one Parquet file per draw (`draw_0001.parquet`, ...) with
+#' `transcript_id` and one column per sample, and, when the replicates have
+#' a `moments` attribute, its `mean` and `var` matrices in
+#' `inf_reps/moments/`. Their number, their type (the `samp_type`
+#' attribute) and the number of draws behind the moments are recorded in
+#' `metadata.parquet` under the keys `inf_reps_n_draws`,
+#' `inf_reps_samp_type` and `inf_reps_moments_n`; when replicates are
+#' written, these keys replace entries of `metadata` with those names, with
+#' a warning. One draw is written, and read, at a time, so memory holds the
+#' replicates and a single draw on top of them. The replicates of a subset
+#' (`x[i, j]` shares the draws of `x` and records a `selection`, see
+#' [IsoformicExperiment]) are written as the selected transcripts and
+#' samples only, and the moments as the selected samples. `read_isoformic()`
+#' restores the list of matrices with its `samp_type` and `moments`
+#' attributes, as they were (including the storage mode of the matrices and
+#' of `n`); for a subset, as plain matrices of the selected draws, without
+#' the `selection`. Only
+#' these are kept: names of the draws, other attributes of the list or of
+#' the matrices and names of their dimnames are dropped, with a warning.
+#' Replicates that are not numeric matrices with transcript and sample
+#' names are not written, with a warning. Directories written by earlier
+#' versions have no `inf_reps/` and are read without replicates. Use
+#' `add_uncertainty(keep_draws = FALSE)`, or remove `metadata$inf_reps`, to
+#' save an object without its replicates.
 #'
 #' With `copy_annotation = TRUE` the annotation directory is copied inside
 #' the experiment directory so that the result is self-contained and
 #' portable. The cached ORF table (`annot_data_orfs.parquet`) is left out
 #' of the copy and computed again when needed. An annotation that lies
-#' inside the directory being replaced is always copied. Otherwise
+#' inside the directory being replaced is always copied, and so is an
+#' annotation directory under [tempdir()] (such as the private copy made by
+#' [example_isoformic()]) when `path` is not under [tempdir()] itself: the
+#' temporary directory is removed when the R session ends. A message says
+#' so. Otherwise
 #' `annot_path` is stored as an absolute path and must still exist when the
 #' object is read back (it can be overridden with the `annot_path` argument
 #' of `read_isoformic()`). Without that argument, `read_isoformic()` uses
@@ -143,10 +173,33 @@ S7::method(write_isoformic, IsoformicExperiment) <- function(
   if (!is.null(self@col_data)) {
     write_parquet(self@col_data, fs::path(path, "col_data.parquet"))
   }
-  # Inferential replicates stay in memory: they are large and are re-read from
-  # the Salmon output; the tables derived from them are written below.
+  # The inferential replicates go to inf_reps/, one file per draw; their
+  # type, number and moments count go to metadata.parquet
   meta <- self@metadata
+  # Read as the draws of the object: the selection of a subset applies
+  # even when list operations dropped its attribute
+  reps <- object_inf_reps(self, meta[["inf_reps"]])
   meta[["inf_reps"]] <- NULL
+  reps_meta <- write_inf_reps(reps, fs::path(path, "inf_reps"))
+  rm(reps)
+  if (length(reps_meta)) {
+    replaced <- intersect(names(meta), inf_reps_keys())
+    if (length(replaced)) {
+      cli::cli_warn(
+        message = c(
+          "!" = paste0(
+            "The {.code metadata} {cli::qty(length(replaced))}entr{?y/ies} ",
+            "{.val {replaced}} {cli::qty(length(replaced))}",
+            "{?is/are} replaced by the description of the inferential ",
+            "replicates."
+          )
+        ),
+        class = "isoformic_metadata_replaced"
+      )
+    }
+    meta[inf_reps_keys()] <- NULL
+    meta <- c(meta, reps_meta)
+  }
   if (length(meta)) {
     write_parquet(list_to_kv(meta), fs::path(path, "metadata.parquet"))
   }
@@ -157,7 +210,7 @@ S7::method(write_isoformic, IsoformicExperiment) <- function(
   )
   write_assay_dir(self@assays, fs::path(path, "assays"), "transcript_id")
   write_assay_dir(
-    attr(self, "gene_assays", exact = TRUE),
+    prop_raw(self, "gene_assays"),
     fs::path(path, "gene_assays"),
     "gene_id"
   )
@@ -203,8 +256,27 @@ store_annotation <- function(annot_path, final_path, path, copy_annotation) {
     as.character(fs::path_abs(annot_path)),
     paste0(final_path, .Platform$file.sep)
   )
-  if (!isTRUE(copy_annotation) && !annot_inside) {
+  # An annotation in the session temporary directory is removed when the
+  # session ends: copy it unless the experiment is written there as well
+  annot_temporary <- !isTRUE(copy_annotation) &&
+    !annot_inside &&
+    fs::dir_exists(annot_path) &&
+    in_session_tempdir(annot_path) &&
+    !in_session_tempdir(final_path)
+  if (!isTRUE(copy_annotation) && !annot_inside && !annot_temporary) {
     return(annot_path)
+  }
+  if (annot_temporary) {
+    cli::cli_inform(
+      message = c(
+        i = paste0(
+          "The annotation directory is in the temporary directory of this ",
+          "R session; it is copied into the experiment directory so that ",
+          "the experiment can be read in a later session."
+        )
+      ),
+      class = "isoformic_annotation_copied"
+    )
   }
   fs::dir_copy(annot_path, fs::path(path, "annotation"))
   # The stored ORF table is not valid for the copy (it is keyed by the file
@@ -216,22 +288,105 @@ store_annotation <- function(annot_path, final_path, path, copy_annotation) {
   "annotation"
 }
 
-write_assay_dir <- function(assays, dir, id_col) {
+#' Is a path under the temporary directory of the R session?
+#'
+#' [tempdir()] is removed when the R session ends, so an annotation stored
+#' there cannot be referenced by an experiment written elsewhere. The path
+#' need not exist: symbolic links are resolved on its deepest existing
+#' parent.
+#' @keywords internal
+#' @noRd
+in_session_tempdir <- function(path) {
+  tmp <- as.character(fs::path_real(session_tempdir()))
+  path <- as.character(fs::path_abs(path))
+  rest <- character()
+  while (!fs::file_exists(path) && !identical(fs::path_dir(path), path)) {
+    rest <- c(fs::path_file(path), rest)
+    path <- as.character(fs::path_dir(path))
+  }
+  resolved <- as.character(fs::path_real(path))
+  if (length(rest) > 0L) {
+    resolved <- as.character(do.call(fs::path, as.list(c(resolved, rest))))
+  }
+  startsWith(resolved, paste0(tmp, .Platform$file.sep))
+}
+
+#' The session temporary directory (a function so tests can replace it)
+#' @keywords internal
+#' @noRd
+session_tempdir <- function() {
+  tempdir()
+}
+
+write_assay_dir <- function(assays, dir, id_col, collect = gc_pacer()) {
   if (!length(assays)) {
     return(invisible(NULL))
   }
   fs::dir_create(dir)
   for (nm in names(assays)) {
+    m <- assays[[nm]]
     write_parquet(
-      matrix_to_table(assays[[nm]], id_col),
+      matrix_to_table(m, id_col),
       fs::path(dir, nm, ext = "parquet")
     )
+    # Free the tables of the matrices written so far once they add up: the
+    # tables of many matrices (assays, or the draws of the inferential
+    # replicates) otherwise pile up before R collects them, about one copy
+    # of the draws at 295,000 transcripts x 12 samples x 25 draws
+    collect(matrix_cells(m))
+    rm(m)
   }
   invisible(NULL)
 }
 
+#' Number of cells of a matrix and of its row names
+#' @keywords internal
+#' @noRd
+matrix_cells <- function(m) {
+  d <- dim(m)
+  if (length(d) != 2L) {
+    return(as.double(length(m)))
+  }
+  as.double(d[[1L]]) * (as.double(d[[2L]]) + 1)
+}
+
+#' Run a full garbage collection once enough data has gone through
+#'
+#' Returns a function that takes the number of cells just written or read
+#' and calls `gc()` when the cells since the last collection reach
+#' `threshold` (2 million cells, about 16 MB of doubles). A large matrix is
+#' followed by a collection, as before, so that the tables of large draws
+#' do not pile up, while small matrices, such as hundreds of small draws,
+#' do not pay for a full collection each (about 0.1 s).
+#' @keywords internal
+#' @noRd
+gc_pacer <- function(threshold = 2e6) {
+  state <- new.env(parent = emptyenv())
+  state$pending <- 0
+  function(cells) {
+    state$pending <- state$pending + cells
+    if (state$pending >= threshold) {
+      state$pending <- 0
+      full_gc()
+    }
+    invisible(NULL)
+  }
+}
+
+#' A full garbage collection (a function so tests can count the calls)
+#' @keywords internal
+#' @noRd
+full_gc <- function() {
+  invisible(gc())
+}
+
 matrix_to_table <- function(m, id_col) {
-  if (!is.matrix(m) || is.null(rownames(m)) || is.null(colnames(m))) {
+  # A matrix without rows has no row names: R drops empty dimnames
+  if (
+    !is.matrix(m) ||
+      (is.null(rownames(m)) && nrow(m) > 0L) ||
+      is.null(colnames(m))
+  ) {
     df <- as.data.frame(m, stringsAsFactors = FALSE, optional = TRUE)
     df <- cbind(
       stats::setNames(
@@ -249,28 +404,291 @@ matrix_to_table <- function(m, id_col) {
   rows <- seq_len(n)
   cols <- lapply(seq_len(ncol(m)), function(j) m[(j - 1) * n + rows])
   names(cols) <- colnames(m)
-  df <- c(stats::setNames(list(rownames(m)), id_col), cols)
+  df <- c(stats::setNames(list(rownames(m) %||% character()), id_col), cols)
   attr(df, "row.names") <- .set_row_names(n)
   class(df) <- "data.frame"
   df
 }
 
-table_to_matrix <- function(df, id_col) {
+table_to_matrix <- function(df, id_col, keep_type = FALSE) {
   ids <- as.character(df[[id_col]])
-  m <- as.matrix(df[, setdiff(colnames(df), id_col), drop = FALSE])
-  storage.mode(m) <- "double"
+  values <- df[, setdiff(colnames(df), id_col), drop = FALSE]
+  # Integer columns stay integer with `keep_type`; a table without rows
+  # would otherwise give a logical matrix
+  integer_cols <- isTRUE(keep_type) &&
+    length(values) > 0L &&
+    all(vapply(values, is.integer, logical(1L)))
+  m <- as.matrix(values)
+  rm(values)
+  storage.mode(m) <- if (integer_cols) "integer" else "double"
   rownames(m) <- ids
   m
 }
 
-read_assay_dir <- function(dir, id_col) {
+read_assay_dir <- function(dir, id_col, keep_type = FALSE) {
   if (!fs::dir_exists(dir)) {
     return(list())
   }
   files <- fs::dir_ls(dir, glob = "*.parquet")
-  out <- lapply(files, function(f) table_to_matrix(read_parquet(f), id_col))
+  out <- lapply(files, function(f) {
+    table_to_matrix(read_parquet(f), id_col, keep_type = keep_type)
+  })
   names(out) <- fs::path_ext_remove(fs::path_file(files))
   out
+}
+
+#' Keys of metadata.parquet that describe the stored inferential replicates
+#' @keywords internal
+#' @noRd
+inf_reps_keys <- function() {
+  c("inf_reps_n_draws", "inf_reps_samp_type", "inf_reps_moments_n")
+}
+
+#' File name of draw `k` of `n` (zero-padded so that the files sort in order)
+#' @keywords internal
+#' @noRd
+inf_reps_file <- function(k, n) {
+  width <- max(4L, nchar(as.character(n)))
+  sprintf(paste0("draw_%0", width, "d.parquet"), k)
+}
+
+#' Can the inferential replicates be written as wide Parquet files?
+#'
+#' Every draw must be a numeric matrix with sample names (and transcript
+#' names when it has rows); the moments, when present, a list with the
+#' `mean` and `var` matrices, named the same way, and a single `n`.
+#' @keywords internal
+#' @noRd
+inf_reps_writable <- function(reps) {
+  named_matrix <- function(m) {
+    is.matrix(m) &&
+      is.numeric(m) &&
+      !is.null(colnames(m)) &&
+      (nrow(m) == 0L || !is.null(rownames(m)))
+  }
+  if (!is.list(reps) || !all(vapply(reps, named_matrix, logical(1L)))) {
+    return(FALSE)
+  }
+  samp_type <- attr(reps, "samp_type", exact = TRUE)
+  if (
+    !is.null(samp_type) && !(is.character(samp_type) && length(samp_type) == 1L)
+  ) {
+    return(FALSE)
+  }
+  mom <- attr(reps, "moments", exact = TRUE)
+  is.null(mom) ||
+    (is.list(mom) &&
+      identical(names(mom), c("mean", "var", "n")) &&
+      named_matrix(mom$mean) &&
+      named_matrix(mom$var) &&
+      is.numeric(mom$n) &&
+      length(mom$n) == 1L)
+}
+
+#' Write the inferential replicates as one wide Parquet file per draw
+#'
+#' `dir/draw_0001.parquet`, ... hold `transcript_id` and one column per
+#' sample; `dir/moments/mean.parquet` and `dir/moments/var.parquet` the
+#' moments, when the replicates have them. One draw is converted at a time,
+#' and the long table of all the draws is never built. Returns the entries
+#' to record in metadata.parquet (none when there is nothing to write).
+#' @keywords internal
+#' @noRd
+write_inf_reps <- function(reps, dir) {
+  if (is.null(reps)) {
+    return(list())
+  }
+  if (!inf_reps_writable(reps)) {
+    cli::cli_warn(
+      message = c(
+        "!" = "The inferential replicates are not written.",
+        i = paste0(
+          "{.code metadata$inf_reps} must be a list of numeric matrices ",
+          "with transcript and sample names, as returned by ",
+          "{.fn read_inferential_replicates}."
+        )
+      ),
+      class = "isoformic_inf_reps_not_written"
+    )
+    return(list())
+  }
+  lost <- inf_reps_lost(reps)
+  if (length(lost)) {
+    cli::cli_warn(
+      message = c(
+        "!" = "Some properties of the inferential replicates are not written.",
+        i = "Not kept: {lost}.",
+        i = paste0(
+          "Only the draws (values and dimnames), the {.field samp_type} ",
+          "attribute and the {.field moments} attribute are written."
+        )
+      ),
+      class = "isoformic_inf_reps_changed"
+    )
+  }
+  fs::dir_create(dir)
+  n <- length(reps)
+  # One draw at a time, with the selection of a subset applied (a copy of
+  # the selected rows and columns of that draw only; none without one)
+  read_draw <- inf_reps_reader(reps)
+  files <- fs::path_ext_remove(inf_reps_file(seq_len(n), n))
+  collect <- gc_pacer()
+  for (k in seq_len(n)) {
+    write_assay_dir(
+      stats::setNames(list(read_draw(k)), files[[k]]),
+      dir,
+      "transcript_id",
+      collect = collect
+    )
+  }
+  out <- list(inf_reps_n_draws = n)
+  samp_type <- attr(reps, "samp_type", exact = TRUE)
+  if (!is.null(samp_type)) {
+    out$inf_reps_samp_type <- samp_type
+  }
+  mom <- inf_reps_moments(reps)
+  if (!is.null(mom)) {
+    write_assay_dir(
+      list(mean = mom$mean, var = mom$var),
+      fs::path(dir, "moments"),
+      "transcript_id"
+    )
+    out$inf_reps_moments_n <- encode_moments_n(mom$n)
+  }
+  out
+}
+
+#' Properties of the inferential replicates that write_inf_reps() drops
+#'
+#' Returns a description of each one present: names of the draws, other
+#' attributes of the list, attributes of the draws or the moments matrices
+#' other than `dim` and `dimnames`, and names of their dimnames.
+#' @keywords internal
+#' @noRd
+inf_reps_lost <- function(reps) {
+  lost <- character()
+  if (!is.null(names(reps))) {
+    lost <- c(lost, "the names of the draws")
+  }
+  # The selection of a subset is applied when the draws are written
+  extra <- setdiff(
+    names(attributes(reps)),
+    c("names", "samp_type", "moments", "selection")
+  )
+  if (length(extra)) {
+    lost <- c(lost, paste0("the list attributes ", toString(extra)))
+  }
+  mom <- attr(reps, "moments", exact = TRUE)
+  mats <- c(as.list(reps), if (!is.null(mom)) list(mom$mean, mom$var))
+  matrix_extra <- function(m) {
+    length(setdiff(names(attributes(m)), c("dim", "dimnames"))) > 0L ||
+      !is.null(names(dimnames(m)))
+  }
+  if (any(vapply(mats, matrix_extra, logical(1L)))) {
+    lost <- c(
+      lost,
+      "attributes of the matrices other than dim and dimnames (or names of their dimnames)"
+    )
+  }
+  if (!is.null(mom) && length(setdiff(names(attributes(mom)), "names"))) {
+    lost <- c(lost, "attributes of the moments list")
+  }
+  lost
+}
+
+#' Encode and decode the number of draws behind the moments
+#'
+#' metadata.parquet stores text; a double `n` gets a decimal point (or is
+#' written in full precision) so that it reads back as a double, an integer
+#' `n` reads back as an integer.
+#' @keywords internal
+#' @noRd
+encode_moments_n <- function(n) {
+  if (is.integer(n)) {
+    return(as.character(n))
+  }
+  out <- sprintf("%.17g", as.double(n))
+  if (grepl("^-?[0-9]+$", out)) {
+    out <- paste0(out, ".0")
+  }
+  out
+}
+
+decode_moments_n <- function(x) {
+  x <- as.character(x)
+  if (is.na(x) || grepl("^-?[0-9]+$", x)) {
+    return(as.integer(x))
+  }
+  suppressWarnings(as.double(x))
+}
+
+#' Read the inferential replicates written by `write_inf_reps()`
+#'
+#' One draw is read at a time. Draws with the same dimnames as the previous
+#' one share its dimnames, as the draws of `read_inferential_replicates()`
+#' do.
+#' @keywords internal
+#' @noRd
+read_inf_reps <- function(dir, metadata) {
+  n <- suppressWarnings(as.integer(metadata[["inf_reps_n_draws"]]))
+  if (length(n) != 1L || is.na(n) || n < 0L) {
+    cli::cli_abort(
+      message = c(
+        x = paste0(
+          "{.path {dir}} holds inferential replicates but ",
+          "{.file metadata.parquet} has no valid {.field inf_reps_n_draws}."
+        )
+      ),
+      class = "isoformic_invalid_experiment_dir"
+    )
+  }
+  reps <- vector("list", n)
+  last_dn <- NULL
+  collect <- gc_pacer()
+  for (k in seq_len(n)) {
+    f <- fs::path(dir, inf_reps_file(k, n))
+    if (!fs::file_exists(f)) {
+      cli::cli_abort(
+        message = c(x = "Inferential replicate file {.path {f}} is missing."),
+        class = "isoformic_invalid_experiment_dir"
+      )
+    }
+    m <- table_to_matrix(read_parquet(f), "transcript_id", keep_type = TRUE)
+    if (identical(dimnames(m), last_dn)) {
+      dimnames(m) <- last_dn
+    } else {
+      last_dn <- dimnames(m)
+    }
+    reps[[k]] <- m
+    collect(matrix_cells(m))
+    rm(m)
+  }
+  samp_type <- metadata[["inf_reps_samp_type"]]
+  if (!is.null(samp_type)) {
+    attr(reps, "samp_type") <- samp_type
+  }
+  mom_n <- metadata[["inf_reps_moments_n"]]
+  if (!is.null(mom_n)) {
+    mom <- read_assay_dir(
+      fs::path(dir, "moments"),
+      "transcript_id",
+      keep_type = TRUE
+    )
+    if (!all(c("mean", "var") %in% names(mom))) {
+      cli::cli_abort(
+        message = c(
+          x = "The moments of the inferential replicates in {.path {dir}} are incomplete."
+        ),
+        class = "isoformic_invalid_experiment_dir"
+      )
+    }
+    attr(reps, "moments") <- list(
+      mean = mom$mean,
+      var = mom$var,
+      n = decode_moments_n(mom_n)
+    )
+  }
+  reps
 }
 
 flatten_list_columns <- function(df) {
@@ -324,6 +742,14 @@ read_isoformic <- function(path, annot_path = NULL) {
   } else {
     list()
   }
+  # Directories written before the replicates were saved have no inf_reps/
+  reps_dir <- fs::path(path, "inf_reps")
+  if (fs::dir_exists(reps_dir)) {
+    reps <- read_inf_reps(reps_dir, metadata)
+    metadata[inf_reps_keys()] <- NULL
+    metadata["inf_reps"] <- list(reps)
+    rm(reps)
+  }
   pal_file <- fs::path(path, "tx_type_palette.parquet")
   palette <- NULL
   if (fs::file_exists(pal_file)) {
@@ -337,6 +763,29 @@ read_isoformic <- function(path, annot_path = NULL) {
       dea[[nm]] <- read_parquet(f)
     }
   }
+  # Fold-change tables written by earlier development versions carry the
+  # removed confidence class: derive the current columns; nothing is written
+  conf <- dea[["confidence"]]
+  if (!is.null(conf) && !"unstable" %in% colnames(conf)) {
+    min_agreement <- suppressWarnings(
+      as.numeric(metadata[["uncertainty_min_agreement"]])
+    )
+    if (length(min_agreement) != 1L || is.na(min_agreement)) {
+      min_agreement <- uncertainty_defaults()$min_agreement
+    }
+    dea[["confidence"]] <- upgrade_confidence_table(conf, min_agreement)
+    cli::cli_inform(
+      message = c(
+        i = paste0(
+          "The stored fold-change table was written by an earlier ",
+          "development version; its confidence class was removed and ",
+          "{.field unstable} derived from {.field sign_agreement}."
+        )
+      ),
+      class = "isoformic_legacy_confidence"
+    )
+  }
+  rm(conf)
   cut_file <- fs::path(path, "dea", "cutoffs.parquet")
   if (fs::file_exists(cut_file)) {
     raw <- kv_to_list(read_parquet(cut_file))
@@ -409,7 +858,8 @@ read_isoformic <- function(path, annot_path = NULL) {
 #' iso2 <- as_isoformic(txi, annot_path = annot, col_data = col_data(iso))
 #' iso2
 #'
-#' if (requireNamespace("SummarizedExperiment", quietly = TRUE)) {
+#' # Loading the SummarizedExperiment namespace takes several seconds
+#' if (interactive() && requireNamespace("SummarizedExperiment", quietly = TRUE)) {
 #'   se <- as_summarized_experiment(iso, level = "gene")
 #'   se
 #' }
@@ -556,7 +1006,7 @@ S7::method(as_summarized_experiment, IsoformicExperiment) <- function(
 #' Loads a small [IsoformicExperiment] bundled with the package: transcript
 #' abundances (TPM) and demonstration counts (TPM x 20, rounded) for the
 #' isoforms of 69 genes from a preeclampsia placenta RNA-seq study (25
-#' samples), GENCODE v33 annotation and transcript sequences for those
+#' samples), GENCODE v50 annotation and transcript sequences for those
 #' genes, and transcript- and gene-level differential expression results.
 #' It is used throughout the documentation and is suitable for trying every
 #' method of the class in well under a second.
@@ -570,9 +1020,9 @@ S7::method(as_summarized_experiment, IsoformicExperiment) <- function(
 #' [add_nmd_exons()], therefore change only that private copy: the installed
 #' package is never modified, two calls never see each other's changes, and
 #' the copy is removed with the temporary directory when the R session ends.
-#' To keep an annotated object beyond the session, save it with
-#' `write_isoformic(iso, path, copy_annotation = TRUE)`, which stores the
-#' annotation inside the experiment directory.
+#' [write_isoformic()] copies such a temporary annotation into an experiment
+#' directory outside [tempdir()], so an object saved there can be read again
+#' in a later session.
 #'
 #' @returns An [IsoformicExperiment] whose annotation directory is a private
 #'   temporary copy of the bundled one.

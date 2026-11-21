@@ -29,7 +29,7 @@ them as a list of tibbles. This is the table-based counterpart of the
 \verb{annot_data_*()} accessors of \link{IsoformicExperiment}.
 }
 \examples{
-gff <- system.file("extdata", "example.gff3", package = "isoformic")
+gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 annot <- prepare_annotation(gff, output_path = tempdir())
 names(annot)
 head(annot$genes)

@@ -22,6 +22,12 @@
 # Usage:
 #   ISOFORMIC_CASE_STUDIES_DIR=/path/to/workdir \
 #     Rscript data-raw/case_studies/build_case_studies.R [mouse_bnst] [prostate_ont]
+#
+# The gene-level DESeq2 and apeglm results (dea/deg.parquet) are not
+# bit-reproducible: they change at about 1e-5 with the number of BLAS/OpenMP
+# threads (OPENBLAS_NUM_THREADS, OMP_NUM_THREADS, read when R starts) and the
+# CPU. The calls and every number the articles state are unaffected, so a
+# rebuild that changes only those digits need not be committed.
 suppressPackageStartupMessages(library(isoformic))
 
 work_dir <- Sys.getenv("ISOFORMIC_CASE_STUDIES_DIR", unset = NA)

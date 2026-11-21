@@ -1,0 +1,477 @@
+# Amendments to prereg.yaml. A1 to A3 were made before any test of the null,
+# replication or prior packages read the placenta store; A4 was made after
+# the pilot, which wrote the null results of its 9 splits (see A16); A10 changes no
+# analysis; the entries marked post_hoc: true were made or recorded after the
+# results were seen; A18 records the two F4 tables recomputed with the
+# repository code instead of the snapshot; A19 records that the mouse null was
+# not in the plan, A20 the rules that picked the story genes, A21 a
+# post hoc comparison of the sign-agreement flag with same-size controls, and
+# A22 three analysis choices of R_A and R_B recorded on review, and A23 the
+# two descriptive WP-B analyses the plan does not define. prereg.yaml
+# itself stays frozen
+# (01_preregister.R refuses to rewrite it once results exist); scripts that
+# depend on an amended item follow this file. Copy to
+# $ISOFORMIC_UE_OUT/prereg_amendments.yaml next to prereg.yaml.
+amendments:
+  - id: A1
+    date: "2026-11-18"
+    item: haplotype_folding.primary
+    was: >-
+      sum counts and every draw of patch/haplotype copies onto the
+      primary-chromosome transcript of the same gene_name and transcript_name
+    now: >-
+      sum counts and every draw of a patch/haplotype copy onto the
+      primary-chromosome transcript of the same gene_name with identical exon
+      widths in transcript order (tier exact_structure), otherwise identical
+      internal exon widths and exon count for transcripts with >= 3 exons
+      (tier internal_exons); copies whose key matches several primary
+      transcripts (ambiguous) or none (unmapped) are kept as their own units
+      and stay off U (U is primary chromosomes only)
+    reason: >-
+      the isoformic GENCODE 50 annotation has source_transcript_id NA for all
+      670,670 transcripts (checked), and GENCODE gives alt-contig copies their
+      own transcript_name (e.g. HLA-A-201..223 on chr6, HLA-A-308..317 on alt
+      contigs), so a name match maps nothing
+    implemented_in: data-raw/uncertainty_evidence/10_placenta_prepare.R
+  - id: A2
+    date: "2026-11-18"
+    item: haplotype_folding (Salmon duplicate clusters)
+    note: >-
+      the rule renaming a retained non-primary duplicate to its primary member
+      is implemented but applies to 0 targets: no Salmon duplicate cluster of
+      the GENCODE 50 index keeps a non-primary member while removing a
+      primary one (15,842 duplicate refs checked)
+  - id: A3
+    date: "2026-11-18"
+    item: productivity classes in the store
+    note: >-
+      computed for units on primary chromosomes with >= 1 read in >= 3
+      samples (the units whose draws are stored), not for all annotated
+      transcripts
+  - id: A4
+    date: "2026-11-18"
+    item: splits and methods of WP-A (placenta null), fixed after the pilot
+    pilot: >-
+      3 splits per size (s0001, s0002, s0029 7v7; s0421-s0423 5v5;
+      s0521-s0523 3v3) through every method, single process: about 50 s per
+      7v7 split with all methods (DESeq2 10-15 s, swish 9-10 s, the other
+      methods 1-2 s each), 35 s per 5v5, 15 s per 3v3; peak RSS 6.1 GB
+      (cache of matrices included); null_placenta/dte/pilot_timing.parquet.
+      Projected total about 4.5 CPU hours, far under the 24 h fallback rule,
+      so no fallback.
+    now: >-
+      7v7 leave-one-unit-out 210 splits (14 per unit) with M1-M4, M6-M9,
+      M11, and M5 (DESeq2) on 20 of them; 7v7 Monte Carlo set 210 more (28
+      per unit) with M1 and M2 only; 5v5 100 splits with M1, M2, M6-M9, M11;
+      3v3 100 splits with M1, M2, M8, M9, M11 (no swish); 30 unrestricted-sex
+      7v7 splits. DTU: diffSplice on all 7v7 and 5v5 splits, satuRn on 30
+      7v7, DEXSeq on 10 7v7 if one split takes < 20 min. Thinning: 30 7v7 and
+      30 5v5 splits. Robustness variants: draws 16-30 on 20 7v7 splits, the
+      other A/B member on all 7v7 leave-one-unit-out splits (M1, M2),
+      unfolded haplotypes on 30 7v7 splits (M1, M2).
+    method_numbering: >-
+      WP-A numbering differs from the prereg `methods` list: prereg M7
+      (de_confidence) is WP-A M9; WP-A M7 is swish with every inferential
+      replicate set to the point counts (30 copies; 2 copies changed swish
+      p-values by up to 0.099 in the pilot, through swish's random tie
+      jitter); WP-A M8 is a Wilcoxon test on TMM log CPM; WP-A M10 is M1
+      after removing as many lowest-expressed transcripts as M9 removes.
+      prereg M8-M10 (usage) are 22_null_dtu.R.
+    validation: >-
+      M9 (matrix form of de_confidence) against the package de_confidence()
+      on split s0001 (29,890 transcripts): 0 differences in uncertain,
+      ambiguous and class high, max |sign agreement difference| 0
+    implemented_in: data-raw/uncertainty_evidence/21_null_dte.R
+  - id: A5
+    date: "2026-11-18"
+    item: R_A inference (WP-A, 29_null_summarise.R); made AFTER the results, on review
+    post_hoc: true
+    was: >-
+      primary CI = MC-corrected delete-one-unit jackknife variance floored at
+      the split-bootstrap variance; criterion 3 FALSE unless the M11 upper CI
+      lies below the M1 top-tertile inflation
+    now: >-
+      primary CI = the pre-registered jackknife: MC-corrected variance when it
+      is positive and not below the split-bootstrap variance, otherwise the
+      raw jackknife variance (the split bootstrap ignores the between-unit
+      variance and is never the primary variance). Criterion 3 is TRUE when
+      the M11 CI lies below the M1 top-tertile inflation, FALSE when it lies
+      at or above it, and NA (not informative) when it contains it; R_A is
+      FALSE as soon as one criterion is FALSE
+    reason: >-
+      the verifier showed the bootstrap floor gave anti-conservative CIs
+      (M2/M1 ratio 0.741-0.807 against a raw jackknife 0.43-1.40) and that
+      the M11 CI (upper bound about 10) could never satisfy criterion 3
+    implemented_in: data-raw/uncertainty_evidence/29_null_summarise.R
+  - id: A6
+    date: "2026-11-18"
+    item: R_A model (WP-A, 29_null_summarise.R); corrected AFTER the results, on review
+    post_hoc: true
+    was: >-
+      the placenta M1 top-tertile adjusted RR, the H2 method-interaction
+      ratios and the R_A verdict used the covariates infrv_tertile +
+      expr_decile + isoform_bin + non_identifiable for every design (7v7,
+      5v5, 3v3); non_identifiable is not in the pre-registered R_A model,
+      and the reports did not say so. The mouse null (41_mouse_null.R) used
+      the covariates of the pre-registered R_A model, so the placenta and mouse values that
+      were set side by side came from different models
+    now: >-
+      the pre-registered model (quasi-Poisson on InfRV tertile + expression
+      decile + isoform class, read as isoform_bin, the reading of
+      41_mouse_null.R) is the primary model ("prereg") for every design, for
+      the H2 ratios and for the R_A verdict; the non_identifiable model
+      ("ident") and the zero_unique model are kept as labelled sensitivity
+      analyses (column role). 49_replication_summarise.R compares the
+      placenta and mouse values on the pre-registered model
+    reason: >-
+      a reviewer refitted the pre-registered model and found the reported
+      placenta RRs 10-15% higher than the pre-registered ones (7v7 1.09
+      against 1.00); the verdict on R_A does not change
+    implemented_in: >-
+      data-raw/uncertainty_evidence/29_null_summarise.R,
+      49_replication_summarise.R, 90_article_tables.R
+  - id: A7
+    date: "2026-11-18"
+    item: R_A criterion 2 reference for M6 (WP-A); changed AFTER the results, on review
+    post_hoc: true
+    was: >-
+      criterion 2 held if M2/M1 or M6/M7 (ratio of the top-tertile adjusted
+      RRs) had a CI below 1; M7 (swish with every draw set to the point
+      counts, amendment A4) was the reference of M6, and the report said
+      criterion 2 held through M6/M7
+    now: >-
+      both reductions are measured against M1, as prereg.yaml reads ("M2 or
+      M6 reduces it", "it" being the M1 top-tertile RR): M2/M1 and M6/M1.
+      M6/M7 is reported only as a diagnostic of swish on tied draws (column
+      role), never as evidence for R_A. Criterion 2 stays moot while
+      criterion 1 fails
+    reason: >-
+      M7 is not a calibrated null reference: it makes about 19 false calls
+      per 7v7 split and about 200 per 5v5 split at q < 0.05 (M1 about 0.1
+      at both sizes), because swish's permutation p-values on 30 tied, jittered copies
+      have an atom; a ratio against it measures swish's tie handling, not the
+      benefit of modelling uncertainty
+    implemented_in: data-raw/uncertainty_evidence/29_null_summarise.R
+  - id: A8
+    date: "2026-11-18"
+    item: deviations of the mouse null (WP-C) from the pre-registered R_A rule and jackknife (the mouse design itself was not pre-registered, see A19); recorded here AFTER the results
+    post_hoc: true
+    note: >-
+      already described in the WP-C run notes, recorded here so that every
+      deviation is in one file: (1) the jackknife refits all 126 5v5 splits
+      for each deleted animal (exact jackknife), not 28 splits per unit
+      with a Monte Carlo correction as the placenta jackknife rule has it, because the corrected
+      28-split intervals were unreliable; (2) 49_replication_summarise.R
+      reads R_A criterion 3 ("M11 shows no comparable excess") as "the M11
+      adjusted RR CI includes 1, or lies below the M1 estimate", an
+      interpretation that prereg.yaml does not spell out; (3) the library
+      batch (fragment-length gap) and the batch-balanced and batch-aligned
+      split subsets are a sensitivity analysis that was not pre-registered.
+      So the mouse R_A result passes under these readings, not "as written"
+    implemented_in: >-
+      data-raw/uncertainty_evidence/41_mouse_null.R, lib_null_methods.R,
+      49_replication_summarise.R
+  - id: A9
+    date: "2026-11-18"
+    item: post hoc descriptive checks (WP-B), added AFTER the results, on review
+    post_hoc: true
+    note: >-
+      33_post_hoc_checks.R adds analyses that were not pre-registered and
+      do not change any rule: (1) how often the point (EM) log2FC of an F1
+      call lies outside the 2.5-97.5% range of its 30 per-draw refits, and
+      by how much, against FLT1-214; (2) sensitivity of the replication and
+      sign-concordance ORs of the flags to a non-linear power adjustment
+      (natural splines on log2 count and |z|, and their interaction), and
+      the dependence of sign concordance on count and |z| among unflagged
+      calls
+    implemented_in: data-raw/uncertainty_evidence/33_post_hoc_checks.R
+  - id: A10
+    date: "2026-11-18"
+    item: committed copy of prereg.yaml (redaction only; changes no analysis)
+    note: >-
+      the copy of prereg.yaml committed in data-raw/uncertainty_evidence/ is
+      the file that 01_preregister.R wrote, with its absolute paths replaced
+      by placeholders and nothing else changed: the output root by
+      ${ISOFORMIC_UE_OUT} (snapshot.tar_path, snapshot.path), the work
+      directory of the Salmon runs by ${ISOFORMIC_V50_DIR}
+      (data.placenta_quants, data.gtf), and the lock file of the heavy jobs
+      by ${ISOFORMIC_UE_LOCK} (compute.lock). The original, unredacted file
+      stays at $ISOFORMIC_UE_OUT/prereg.yaml, which is the copy the scripts
+      read; its sha256 is
+      9e881449540810ef17a2972d6a65eac7bf6a1c85c158302abab368448e23d822.
+      01_preregister.R now takes these paths from environment variables and
+      records the lock as a description, so a new run writes the same keys
+    implemented_in: data-raw/uncertainty_evidence/prereg.yaml
+  - id: A11
+    date: "2026-11-18"
+    item: gene-clustered intervals for the held-out replication (WP-B), added AFTER the results, on review
+    post_hoc: true
+    note: >-
+      the pre-registered two-level bootstrap of 31b resamples the genes of
+      each directed pair independently, although the 60 directed pairs are
+      built from the same 23 samples and a gene recurs in many of them.
+      34_cluster_bootstrap.R recomputes the intervals of the main WP-B
+      statistics with genes resampled once over all pairs, and with split
+      weights crossed with gene weights; it also gives the adjusted ORs with
+      directed-pair fixed effects, the per-pair replication rates, the
+      recurrence of transcripts and genes among the calls, and the read-half
+      fallback. Under both clustered schemes the CI of deficit(primary) -
+      deficit(C4) includes 0, so R_B passes only under the pre-registered
+      bootstrap; the verdict recorded for R_B is unchanged, and the article
+      and report state both intervals. The sign_agreement OR stays far
+      below 1 under every scheme
+    implemented_in: >-
+      data-raw/uncertainty_evidence/34_cluster_bootstrap.R,
+      90_article_tables.R
+  - id: A12
+    date: "2026-11-19"
+    item: count-matched control of R_B (WP-B, 31b_replication_summary.R); departure recorded AFTER the results, on review
+    post_hoc: true
+    was: >-
+      prereg.yaml primary.controls: "count-matched flag (same mean-count
+      distribution)"; R_B: the primary flag must beat the count-matched flag
+    now: >-
+      the control that R_B was judged on (C4) is, in each directed pair, a
+      flag of as many calls as the primary flag made of the calls with the
+      lowest discovery mean counts. That is the extreme of the count
+      distribution, not a flag with the same mean-count distribution as the
+      primary flag, so it is a different control from the one the plan
+      describes. The code was written before the replication was run, but the
+      departure from the plan was not recorded until a review after the
+      results. The closest analyses to the planned control are the matched
+      deficit (within cells of the joint deciles of count x |z|) and the
+      placebo (the primary flag permuted within directed pair x cell), both
+      already reported by 31b; the R_B verdict recorded on C4 is unchanged,
+      and the articles describe C4 as implemented
+    implemented_in: data-raw/uncertainty_evidence/31b_replication_summary.R
+  - id: A13
+    date: "2026-11-19"
+    item: group size at which R_A is judged (WP-A); recorded AFTER the results, on review
+    post_hoc: true
+    note: >-
+      prereg.yaml names no group size in decision_rules.R_A and lists 3, 5
+      and 7 per group as equals in splits.null_sizes. The analysis judges
+      R_A at 7v7, the largest design and the one A4 gave the most splits
+      (210 leave-one-unit-out splits, fixed after the pilot, whose 9 splits
+      had already written null results; see A16); 29_null_summarise.R calls it the primary design. The
+      plan never said so. The 5v5 and 3v3 results, where the M1 excess
+      appears, are reported as secondary; judged at those sizes R_A
+      criterion 1 would hold. The articles say that the size was chosen by
+      the analysis, not by the plan
+    implemented_in: data-raw/uncertainty_evidence/29_null_summarise.R
+  - id: A14
+    date: "2026-11-19"
+    item: discovery rule of the held-out replication (WP-B) and of the read halves (WP-C); recorded AFTER the results, on review
+    post_hoc: true
+    note: >-
+      prereg.yaml gives the q thresholds (0.05, 0.10) and the replication
+      metric but no rule for the discovery calls. The analysis scripts call
+      at q < 0.10, with a fallback to the 500 lowest p-values when fewer
+      than 100 calls pass (31_halfsplit_replication.R, calls_rule(); the
+      same rule in 44_rhalf_replicate.R). The read-half analysis itself is
+      not in prereg.yaml. The rule is in the scripts that produced the
+      results, not in the plan, and is recorded here so that the plan and
+      the analysis can be compared
+    implemented_in: >-
+      data-raw/uncertainty_evidence/31_halfsplit_replication.R,
+      44_rhalf_replicate.R
+  - id: A15
+    date: "2026-11-19"
+    item: resampling unit of the replication bootstrap (WP-B, 31b_replication_summary.R); departure recorded AFTER the results, on review
+    post_hoc: true
+    was: >-
+      prereg.yaml primary.replication_bootstrap: "two-level: half-splits,
+      then transcripts within splits"
+    now: >-
+      31b resamples the 30 half-splits, then the genes of each directed pair
+      with replacement, all the calls of a gene moving together. The code
+      was written before the replication was run, but the change of unit
+      (genes, not transcripts) was not recorded until a review after the
+      results; A11 called this bootstrap "pre-registered" without noting it.
+      Keeping the correlated calls of a gene together should give intervals
+      no narrower than resampling transcripts. The articles call it the
+      planned bootstrap and state the unit; the gene-clustered intervals of
+      A11 remain the conservative ones
+    implemented_in: data-raw/uncertainty_evidence/31b_replication_summary.R
+  - id: A16
+    date: "2026-11-19"
+    item: order of the plan, the pilot and the results; recorded AFTER the results, on review
+    post_hoc: true
+    note: >-
+      (1) prereg.yaml, this file and the results were committed to the
+      package repository together, so the git history does not show that the
+      plan came first; that rests on the time stamp written in prereg.yaml
+      (`written`) and the sha256 of the code snapshot it records. (2) The
+      pilot of A4 (21_null_dte.R with ISOFORMIC_UE_PILOT=1) printed only the
+      timings and two validation checks, but run_split() also wrote the null
+      results of its 9 splits (s0001, s0002, s0029, s0421-s0423,
+      s0521-s0523), and the full run kept them instead of rerunning them.
+      Nothing records whether those results were looked at before A4 fixed
+      the design. They are part of the reported null summaries of their designs, and they are
+      the only DESeq2 (M5) results at 5v5 and 3v3. Earlier text here and in
+      A13 said A4 came "before any null result"; that was not accurate
+    implemented_in: data-raw/uncertainty_evidence/21_null_dte.R
+  - id: A17
+    date: "2026-11-19"
+    item: placebo flag and label-permutation baseline of R_B (WP-B, 31b_replication_summary.R); departures recorded AFTER the results, on review
+    post_hoc: true
+    was: >-
+      prereg.yaml primary.controls: "placebo flag (random flag of the same
+      size per split)" and "permutation baseline of the labels"
+    now: >-
+      (1) The placebo is the primary flag permuted within directed pair x
+      cell (joint deciles of discovery mean count x |z|), 200 times: still a
+      random flag of the same size in each split, but restricted to keep the
+      count and |z| of the flagged calls, which is narrower than the plan.
+      (2) The label-permutation baseline (C1, 100 permutations of the
+      discovery side within fetal-sex blocks) was run, but with 4
+      preeclampsia samples in a discovery half every permutation relabels 2
+      to 8 samples and keeps part of the real contrast or reverses it, so it
+      is not a null; 31b reports it per number of relabelled samples and the
+      R_B verdict does not use it. Its pooled result (primary-flag deficit
+      0.096 under permuted labels against 0.085 observed) is reported in the
+      evidence article with that caveat. Both choices were in the code before
+      the replication was run; neither was recorded as a departure until a
+      review after the results
+    implemented_in: data-raw/uncertainty_evidence/31b_replication_summary.R
+  - id: A18
+    date: "2026-11-20"
+    item: code of the F4 delta_z (WP-B, 30_audit_prevalence.R, stage productivity); a code change after the snapshot, recorded AFTER the results
+    post_hoc: true
+    was: >-
+      every table computed with the frozen snapshot; the F4 class "high"
+      (|delta_z| >= 1.96) used the productive_fraction() of the snapshot,
+      whose productive_fraction_sd was the root mean square distance of the
+      draws from the point estimate and whose delta_productive_fraction_sd
+      also counted the draws of samples without a point estimate
+    now: >-
+      After the snapshot the package changed both standard deviations: the
+      spread is now taken around the mean of the draws, on the scale of the
+      assay, and only where the assay gives the gene a fraction. The stage
+      productivity of 30_audit_prevalence.R (package_productive_fraction,
+      package_test_productive_fraction) was rerun with the repository code
+      (ISOFORMIC_UE_PKG=.; its tables are stamped
+      "<sha>+working-tree"), and 30b and every later step were rerun on it.
+      Every other table still comes from the snapshot. The test of the
+      productive fraction is unchanged (identical p-values); delta_z changed
+      in 207 of 12,345 genes, and |delta_z| >= 1.96 changed in 6, one of
+      them among the 1,392 F4 conclusions: the F4 share of class high went
+      from 94.11% (gene-clustered 92.89-95.26) to 94.18% (92.96-95.33). No
+      number the articles state changed
+    implemented_in: data-raw/uncertainty_evidence/30_audit_prevalence.R
+  - id: A19
+    date: "2026-11-20"
+    item: the mouse null (WP-C, 40_mouse_prepare.R, 41_mouse_null.R) is not in prereg.yaml; recorded AFTER the results, on review
+    post_hoc: true
+    note: >-
+      prereg.yaml names no mouse dataset, sample set or split design: its
+      only links to WP-C are the seed package index (C: 3) and the generic
+      R_A rule and jackknife text written for the placenta null. The mouse
+      null (PRJNA984605, 10 control males, all 126 5v5 splits) applies the
+      pre-registered R_A rule and model to that dataset by analogy with the
+      placenta null. It is an external check, not a pre-registered test; the
+      "deviations" of A8 are departures from the placenta rule as applied to
+      the mouse. Changes no analysis
+    implemented_in: data-raw/uncertainty_evidence/41_mouse_null.R
+  - id: A20
+    date: "2026-11-20"
+    item: rules that pick the fragile and robust story genes (WP-B, 32_story.R); departures recorded AFTER the results, on review
+    post_hoc: true
+    was: >-
+      prereg.yaml story_genes.fragile_rule and robust_rule as written, with
+      replication in < 50% and >= 90% of directed half-splits
+    now: >-
+      (1) A call made on the full PE vs control comparison has no held-out
+      half. 32_story.R reads "replicate in X% of directed half-splits" as
+      cohort_sign_support_in_v_halves: the same sign and one-sided p < 0.05
+      in the validation half of each of the 60 directed pairs. Every half is
+      a subset of the samples that made the call, so this is support, not
+      held-out replication; the held-out figure (replicated_when_called) is
+      reported next to it. This applies to both rules. (2) Under this
+      reading the fragile rule of the plan found no candidate and picked no
+      gene. (3) A substitute fragile rule in the analysis code, labelled
+      "WP-B plan rule" and not in prereg.yaml, takes among genes with a
+      gene-level q < 0.05 call the F2/F4 (switch or productive-fraction)
+      result with the smallest naive p whose per-draw refit is significant in
+      fewer than half of the draws (sig_frac < 0.5); it picked LAS1L out of
+      120 candidate results. The robust rule, read as in (1), picked TBC1D26
+      out of 411 candidates. Changes no number
+    implemented_in: data-raw/uncertainty_evidence/32_story.R
+  - id: A21
+    date: "2026-11-20"
+    item: same-size controls for flag_unstable (WP-B, 33_post_hoc_checks.R, section 3); added AFTER the results, on review
+    post_hoc: true
+    note: >-
+      The C4 and C4b controls of R_B are sized to the primary (class) flag,
+      82.5% of the calls, so they say nothing about the 5.7% flag_unstable.
+      Section 3 of 33_post_hoc_checks.R builds, in each directed pair, flags
+      of the same size as flag_unstable from the lowest-count calls, the
+      lowest-|z| calls and the calls with the lowest replication predicted
+      by a logistic fit on count and |z|, and reports the deficit, the share
+      of failures caught and the number of pairs in which flag_unstable has
+      the larger deficit (post_hoc/unstable_same_size_controls.parquet).
+      Point estimates only; descriptive, changes no rule or earlier number
+    implemented_in: data-raw/uncertainty_evidence/33_post_hoc_checks.R
+  - id: A22
+    date: "2026-11-20"
+    item: event of the R_A rate ratio, covariates of the R_B odds ratio and the reading of "beats the count-matched flag" (WP-A, WP-B); recorded AFTER the results, on review
+    post_hoc: true
+    note: >-
+      Three analysis choices that decide R_A and R_B were made in the scripts
+      and are in neither prereg.yaml nor an earlier amendment. (1) The R_A
+      rate-ratio model counts false calls at nominal p < 0.01 per transcript
+      (29_null_summarise.R). The plan lists q 0.05/0.10 and p 0.01/0.001
+      without choosing one, and decision_rules.R_A names none; no rate-ratio
+      model is fitted at the other thresholds. At q < 0.05 the null has about
+      0.1 to 0.2 false calls per split (0.20 at 3 v 3, 0.11 at 5 v 5), too
+      few for the model, so the small-sample excess is a finding at the
+      nominal level only. (2) The adjusted odds ratio of R_B is a logistic
+      model on log2 discovery mean count, discovery |z|, log2 number of
+      isoforms of the gene and transcript type class (31b cov_terms); the
+      plan names no covariates. (3) "The primary flag beats the
+      count-matched flag" is read as a 95% CI of deficit(primary) -
+      deficit(C4) above 0; the plan names no metric. The adjusted odds
+      ratios (0.684 for the primary flag, 1.32 for C4) are not compared,
+      because C4 is defined by count, itself a covariate, so its
+      count-adjusted odds ratio cannot be read against that of the primary
+      flag; the deficit difference was the workable comparison. Under the
+      gene-clustered intervals of A11 its CI includes 0, so R_B is fragile.
+      Changes no rule or number
+    implemented_in: >-
+      data-raw/uncertainty_evidence/29_null_summarise.R,
+      31b_replication_summary.R, 34_cluster_bootstrap.R
+  - id: A23
+    date: "2026-11-20"
+    item: matched deficit and sign-concordance outcome of WP-B are not in the plan; recorded AFTER the results, on review
+    post_hoc: true
+    note: >-
+      31b_replication_summary.R reports two analyses that prereg.yaml does
+      not define: the replication deficit within cells of the joint deciles
+      of discovery count and |z| (the matched deficit; the plan defines only
+      the replication metric and three controls), and "same sign in the
+      held-out half" as a separate outcome with its adjusted odds ratio
+      (A9 covers only its spline sensitivity). Both are descriptive support;
+      neither enters the R_A or R_B verdicts, which rest on the C4 deficit
+      difference and the adjusted odds ratio (A22). Changes no rule or number
+    implemented_in: >-
+      data-raw/uncertainty_evidence/31b_replication_summary.R,
+      33_post_hoc_checks.R
+  - id: A24
+    date: "2026-11-20"
+    item: check that the unstable flag of the current package code is the evaluated flag; added AFTER the results, on review
+    post_hoc: true
+    note: >-
+      The evaluation scored its own implementation of the per-draw contrast
+      on the frozen snapshot; the package defaults and help text quote its
+      results as properties of the `unstable` flag of de_confidence().
+      92_package_flag_check.R rebuilds the discovery half of each of the 60
+      directed pairs as an IsoformicExperiment, loads the evaluation's edgeR
+      calls, runs add_uncertainty() and de_confidence() of the repository
+      code (ISOFORMIC_UE_PKG=., as in A18) and counts the calls whose
+      package flag differs from sign_agreement < 0.95 of the evaluation and
+      from flag_unstable of the pooled replication table (keys
+      B.pkgcheck.*). A check of the code, not an analysis: it re-estimates
+      nothing. Changes no rule or number
+    implemented_in: >-
+      data-raw/uncertainty_evidence/92_package_flag_check.R,
+      90_article_tables.R

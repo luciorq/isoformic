@@ -92,6 +92,7 @@ testthat::test_that("run_enrichment ranks by fold-change, signed p-value or repl
       sets,
       tx_to_gene = map,
       tx_types = types,
+      min_size = 1,
       pval_cutoff = NULL,
       ...
     )
@@ -136,14 +137,20 @@ testthat::test_that("run_enrichment ranks by fold-change, signed p-value or repl
   )
 })
 
-testthat::test_that("run_enrichment takes the z-score of the object from its confidence table", {
+testthat::test_that("run_enrichment takes the z-score of the object from its fold-change table", {
   x <- uncertainty_experiment()
   iso <- add_uncertainty(x$iso, paths = x$fixture$dirs)
   sets <- list(set = unique(tx_annot(iso)$gene_name))
   types <- list(all = unique(tx_annot(iso)$transcript_type))
   calls <- record_fgsea()
   testthat::expect_error(
-    run_enrichment(iso, sets, tx_types = types, rank_by = "lfc_z"),
+    run_enrichment(
+      iso,
+      sets,
+      tx_types = types,
+      min_size = 1,
+      rank_by = "lfc_z"
+    ),
     class = "isoformic_no_inferential_replicates"
   )
   iso <- add_uncertainty(iso, group = "condition")
@@ -152,6 +159,7 @@ testthat::test_that("run_enrichment takes the z-score of the object from its con
     iso,
     sets,
     tx_types = types,
+    min_size = 1,
     pval_cutoff = NULL,
     rank_by = "lfc_z"
   )
@@ -187,6 +195,7 @@ testthat::test_that("several collections of gene sets are tested one by one", {
     first,
     tx_to_gene = map,
     tx_types = types,
+    min_size = 1,
     pval_cutoff = NULL
   )
   testthat::expect_false("collection" %in% colnames(flat))
@@ -196,6 +205,7 @@ testthat::test_that("several collections of gene sets are tested one by one", {
     list(first = first, second = second),
     tx_to_gene = map,
     tx_types = types,
+    min_size = 1,
     pval_cutoff = NULL
   )
   testthat::expect_identical(nested$collection, c("first", "first", "second"))
@@ -220,7 +230,13 @@ testthat::test_that("several collections of gene sets are tested one by one", {
     "g1"
   )) {
     testthat::expect_error(
-      run_enrichment(det, bad, tx_to_gene = map, tx_types = types),
+      run_enrichment(
+        det,
+        bad,
+        tx_to_gene = map,
+        tx_types = types,
+        min_size = 1
+      ),
       class = "isoformic_invalid_genesets"
     )
   }
@@ -243,6 +259,7 @@ testthat::test_that("gene sets may be empty or lists of symbols, and no result k
     list(a = c("g1", "g2"), b = c("g3", "g4")),
     tx_to_gene = map,
     tx_types = types,
+    min_size = 1,
     pval_cutoff = NULL
   )
   odd <- run_enrichment(
@@ -250,6 +267,7 @@ testthat::test_that("gene sets may be empty or lists of symbols, and no result k
     list(a = list("g1", "g2"), b = factor(c("g3", "g4")), none = NULL),
     tx_to_gene = map,
     tx_types = types,
+    min_size = 1,
     pval_cutoff = NULL
   )
   testthat::expect_identical(odd, plain)
@@ -291,6 +309,7 @@ testthat::test_that("lfc_z takes the de_confidence() table and says when it cann
     iso,
     sets,
     tx_types = types,
+    min_size = 1,
     pval_cutoff = NULL,
     rank_by = "lfc_z"
   )
@@ -299,6 +318,7 @@ testthat::test_that("lfc_z takes the de_confidence() table and says when it cann
     sets,
     tx_to_gene = annot,
     tx_types = types,
+    min_size = 1,
     pval_cutoff = NULL,
     rank_by = "lfc_z"
   )
@@ -320,11 +340,12 @@ testthat::test_that("lfc_z takes the de_confidence() table and says when it cann
       sets,
       tx_to_gene = annot,
       tx_types = types,
+      min_size = 1,
       rank_by = "lfc_z"
     ),
     class = "isoformic_no_inferential_replicates"
   )
-  # The confidence of the opposite contrast is not the one of the results
+  # The opposite contrast is not the one of the stored results
   reversed <- add_uncertainty(
     iso,
     group = "condition",
@@ -338,6 +359,7 @@ testthat::test_that("lfc_z takes the de_confidence() table and says when it cann
       expect_mismatch,
       sets,
       tx_types = types,
+      min_size = 1,
       pval_cutoff = NULL,
       rank_by = "lfc_z"
     ),
@@ -349,9 +371,89 @@ testthat::test_that("lfc_z takes the de_confidence() table and says when it cann
       expect_match,
       sets,
       tx_types = types,
+      min_size = 1,
       pval_cutoff = NULL,
       rank_by = "lfc_z"
     )
+  )
+})
+
+testthat::test_that("annotation columns already in the stored results do not break run_enrichment", {
+  iso <- example_isoformic()
+  sets <- read_gmt(system.file(
+    "extdata",
+    "reactome_subset.gmt",
+    package = "isoformic"
+  ))
+  calls <- record_fgsea()
+  plain <- run_enrichment(iso, sets, pval_cutoff = NULL, min_size = 2)
+  det <- de_tx(iso)
+  det$transcript_type <- "lncRNA"
+  det$transcript_name <- "wrong"
+  det$gene_name <- "wrong"
+  de_tx(iso) <- det
+  annotated <- run_enrichment(iso, sets, pval_cutoff = NULL, min_size = 2)
+  testthat::expect_gt(nrow(plain), 0L)
+  testthat::expect_identical(annotated, plain)
+  n <- length(calls$stats) / 2L
+  testthat::expect_identical(
+    calls$stats[n + seq_len(n)],
+    calls$stats[seq_len(n)]
+  )
+})
+
+testthat::test_that("run_enrichment size limits count genes, per transcript category", {
+  # g1 has four protein-coding transcripts, g2 and g3 one each; g4 has
+  # transcripts of the other category only
+  det <- tibble::tibble(
+    transcript_name = c(paste0("g1-", 1:4), "g2-1", "g3-1", "g4-1", "g4-2"),
+    transcript_type = c(rep("protein_coding", 6L), rep("lncRNA", 2L)),
+    log2FC = c(2, -1, 0.5, -3, 1, -2, 0.3, -0.4)
+  )
+  map <- tibble::tibble(
+    transcript_name = det$transcript_name,
+    gene_name = sub("-.*", "", det$transcript_name)
+  )
+  sets <- list(
+    one_gene = "g1",
+    two_genes = c("g1", "g2"),
+    with_other = c("g2", "g4"),
+    three_genes = c("g1", "g2", "g3")
+  )
+  types <- list(coding = "protein_coding", other = "lncRNA")
+  calls <- record_fgsea()
+  res <- run_enrichment(
+    det,
+    sets,
+    tx_to_gene = map,
+    tx_types = types,
+    pval_cutoff = NULL,
+    min_size = 1,
+    max_size = 2
+  )
+  # one_gene has four transcripts but one gene; with_other has one gene in
+  # each category
+  testthat::expect_identical(
+    lapply(calls$pathways, names),
+    list(c("one_gene", "two_genes", "with_other"), "with_other")
+  )
+  testthat::expect_identical(
+    res$pathway[res$experiment == "coding"],
+    c("one_gene", "two_genes", "with_other")
+  )
+  calls$pathways <- list()
+  run_enrichment(
+    det,
+    sets,
+    tx_to_gene = map,
+    tx_types = types,
+    pval_cutoff = NULL,
+    min_size = 3,
+    max_size = 3
+  )
+  testthat::expect_identical(
+    lapply(calls$pathways, names),
+    list("three_genes", character())
   )
 })
 

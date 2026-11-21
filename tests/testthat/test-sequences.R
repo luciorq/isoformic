@@ -10,7 +10,9 @@ testthat::test_that("sequences are extracted from a genome FASTA", {
     transcript_sequences(annot),
     class = "isoformic_no_sequences"
   )
-  out <- extract_transcript_sequences(annot, genome_fasta = fasta)
+  out <- suppressMessages(
+    extract_transcript_sequences(annot, genome_fasta = fasta)
+  )
   testthat::expect_true(fs::file_exists(out))
   testthat::expect_true(has_sequences(annot))
   seqs <- transcript_sequences(annot)
@@ -47,10 +49,32 @@ testthat::test_that("sequences are extracted from a genome FASTA", {
   )
 })
 
+testthat::test_that("transcript_sequences selects transcripts while reading", {
+  annot <- mini_annotation("mini_cds.gff3")
+  suppressMessages(extract_transcript_sequences(
+    annot,
+    genome_fasta = mini_genome_fasta()
+  ))
+  all_seqs <- transcript_sequences(annot)
+  ids <- c(rev(all_seqs$transcript_id), all_seqs$transcript_id[1L], "nope")
+  testthat::expect_identical(
+    transcript_sequences(annot, transcript_id = ids),
+    all_seqs[all_seqs$transcript_id %in% ids, ]
+  )
+  testthat::expect_identical(
+    transcript_sequences(annot, transcript_id = "tB1"),
+    all_seqs[all_seqs$transcript_id %in% "tB1", ]
+  )
+  testthat::expect_identical(
+    transcript_sequences(annot, transcript_id = character()),
+    all_seqs[0L, ]
+  )
+})
+
 testthat::test_that("genome records match seqids with or without chr prefix, gzip too", {
   annot <- mini_annotation("mini_cds.gff3")
   fasta <- mini_genome_fasta(seq_name = "1", gzip = TRUE)
-  extract_transcript_sequences(annot, genome_fasta = fasta)
+  suppressMessages(extract_transcript_sequences(annot, genome_fasta = fasta))
   seqs <- transcript_sequences(annot, transcript_id = "tA1")
   testthat::expect_identical(substr(seqs$sequence, 101L, 103L), "ATG")
   bad <- mini_genome_fasta(seq_name = "chrZ")
@@ -76,13 +100,36 @@ testthat::test_that("sequences are read from a transcript FASTA by identifier", 
     path
   )
   testthat::expect_warning(
-    extract_transcript_sequences(annot, transcript_fasta = path),
+    suppressMessages(
+      extract_transcript_sequences(annot, transcript_fasta = path)
+    ),
     "No sequence found for 3"
   )
   seqs <- transcript_sequences(annot)
   testthat::expect_identical(seqs$transcript_id, c("tA1", "tB1"))
   testthat::expect_identical(seqs$sequence[[1L]], "ACGTACGTACGT")
   testthat::expect_identical(seqs$seq_length, c(12L, 4L))
+  # Kept sequences from the same source: a message only
+  testthat::expect_no_warning(
+    suppressMessages(
+      extract_transcript_sequences(annot, transcript_fasta = path)
+    )
+  )
+  # From another source: a warning with the transcripts left without one
+  n_tx <- nrow(read_parquet(fs::path(annot, "annot_data_transcripts.parquet")))
+  testthat::expect_warning(
+    suppressMessages(
+      extract_transcript_sequences(annot, genome_fasta = mini_genome_fasta())
+    ),
+    class = "isoformic_sequence_source_mismatch"
+  )
+  testthat::expect_warning(
+    suppressMessages(
+      extract_transcript_sequences(annot, genome_fasta = mini_genome_fasta())
+    ),
+    paste0(n_tx - 2L, " of ", n_tx, " transcripts")
+  )
+  testthat::expect_identical(transcript_sequences(annot), seqs)
 })
 
 testthat::test_that("sequence utilities translate and reverse complement", {
@@ -94,7 +141,10 @@ testthat::test_that("sequence utilities translate and reverse complement", {
 
 testthat::test_that("ORFs are projected from the canonical start codon", {
   annot <- mini_annotation("mini_cds.gff3")
-  extract_transcript_sequences(annot, genome_fasta = mini_genome_fasta())
+  suppressMessages(extract_transcript_sequences(
+    annot,
+    genome_fasta = mini_genome_fasta()
+  ))
   orfs <- transcript_orfs(annot)
   testthat::expect_identical(
     orfs$orf_source,
@@ -148,9 +198,36 @@ testthat::test_that("ORFs are projected from the canonical start codon", {
   testthat::expect_false(cp$is_coding[cp$transcript_id == "tB1"])
 })
 
+testthat::test_that("ORFs of selected genes of a directory match the full table", {
+  annot <- mini_annotation("mini_cds.gff3")
+  suppressMessages(extract_transcript_sequences(
+    annot,
+    genome_fasta = mini_genome_fasta()
+  ))
+  withr::local_options(isoformic.orf_cache = FALSE)
+  full <- transcript_orfs(annot)
+  gene_b <- full$gene_id[full$gene_name == "GENEB"][1L]
+  for (genes in list("GENEA", c(gene_b, "GENEA"), c("GENEB", "NOPE"), "NOPE")) {
+    testthat::expect_identical(
+      transcript_orfs(annot, gene_name = genes),
+      filter_genes(full, genes)
+    )
+  }
+  # Computed for one gene first, the stored table gives the same rows
+  withr::local_options(isoformic.orf_cache = TRUE)
+  testthat::expect_identical(
+    transcript_orfs(annot, gene_name = "GENEB"),
+    filter_genes(full, "GENEB")
+  )
+  testthat::expect_identical(transcript_orfs(annot), full)
+})
+
 testthat::test_that("start-proximal stops and long 3' UTRs are flagged", {
   annot <- mini_annotation("mini_cds.gff3")
-  extract_transcript_sequences(annot, genome_fasta = mini_genome_fasta())
+  suppressMessages(extract_transcript_sequences(
+    annot,
+    genome_fasta = mini_genome_fasta()
+  ))
   orfs <- transcript_orfs(annot, start_proximal = 400, long_utr3 = 500)
   testthat::expect_identical(
     orf_value(orfs, "tA3", "nmd_class"),
@@ -184,11 +261,177 @@ testthat::test_that("ORF helpers handle edge cases", {
   testthat::expect_identical(u$n_overlapping_uorf, c(0L, 1L))
 })
 
+testthat::test_that("the ORF and coding potential helpers match their direct definitions", {
+  withr::local_seed(11)
+  random_seq <- function(n, alphabet = c("A", "C", "G", "T")) {
+    paste(sample(alphabet, n, replace = TRUE), collapse = "")
+  }
+  seqs <- c(
+    vapply(c(3, 7, 60, 301, 1000, 2500), random_seq, character(1L)),
+    random_seq(400, c("A", "C", "G", "T", "N")),
+    "",
+    "AC",
+    "acgtacgtacgtATGAAATAA",
+    "ATGAAATAAATGCCCTGA"
+  )
+  stops <- find_stop_positions(seqs)
+
+  # Fickett TESTCODE (Fickett 1982, the tables of CPAT), base by base
+  fickett_reference <- function(s) {
+    position_prob <- list(
+      A = c(0.94, 0.68, 0.84, 0.93, 0.58, 0.68, 0.45, 0.34, 0.20, 0.22),
+      C = c(0.80, 0.70, 0.70, 0.81, 0.66, 0.48, 0.51, 0.33, 0.30, 0.23),
+      G = c(0.90, 0.88, 0.74, 0.64, 0.53, 0.48, 0.27, 0.16, 0.08, 0.08),
+      T = c(0.97, 0.97, 0.91, 0.68, 0.69, 0.44, 0.54, 0.20, 0.09, 0.09)
+    )
+    position_weight <- c(A = 0.26, C = 0.18, G = 0.31, T = 0.33)
+    position_para <- c(1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.1, 0.0)
+    content_prob <- list(
+      A = c(0.28, 0.49, 0.44, 0.55, 0.62, 0.49, 0.54, 0.52, 0.36, 0.51),
+      C = c(0.82, 0.64, 0.51, 0.64, 0.59, 0.59, 0.56, 0.49, 0.26, 0.36),
+      G = c(0.40, 0.54, 0.47, 0.64, 0.64, 0.73, 0.41, 0.41, 0.33, 0.29),
+      T = c(0.28, 0.24, 0.39, 0.40, 0.55, 0.75, 0.56, 0.69, 0.51, 0.58)
+    )
+    content_weight <- c(A = 0.11, C = 0.12, G = 0.15, T = 0.14)
+    content_para <- c(0.33, 0.31, 0.29, 0.27, 0.25, 0.23, 0.21, 0.17, 0.17, 0)
+    lookup <- function(value, para, prob) {
+      i <- which(value >= para)[1L]
+      if (is.na(i)) prob[[length(prob)]] else prob[[i]]
+    }
+    n <- nchar(s)
+    if (n < 3L) {
+      return(0)
+    }
+    ch <- strsplit(s, "", fixed = TRUE)[[1L]]
+    frame <- (seq_along(ch) - 1L) %% 3L
+    score <- 0
+    for (b in c("A", "C", "G", "T")) {
+      counts <- vapply(0:2, function(f) sum(ch[frame == f] == b), 0)
+      asym <- max(counts) / (min(counts) + 1)
+      comp <- sum(ch == b) / n
+      score <- score +
+        lookup(asym, position_para, position_prob[[b]]) *
+          position_weight[[b]] +
+        lookup(comp, content_para, content_prob[[b]]) * content_weight[[b]]
+    }
+    score
+  }
+  testthat::expect_identical(
+    fickett_score(seqs),
+    vapply(seqs, fickett_reference, numeric(1L), USE.NAMES = FALSE)
+  )
+
+  # Hexamer score: mean log-odds of the in-frame hexamers, unknown ones left
+  # out
+  table <- hexamer_table()
+  hexamer_reference <- function(s) {
+    n <- nchar(s)
+    if (n < 6L) {
+      return(0)
+    }
+    starts <- seq.int(1L, n - 5L, by = 3L)
+    v <- table[substring(s, starts, starts + 5L)]
+    v <- v[!is.na(v)]
+    if (length(v)) mean(v) else 0
+  }
+  testthat::expect_identical(
+    hexamer_score(seqs),
+    vapply(seqs, hexamer_reference, numeric(1L), USE.NAMES = FALSE)
+  )
+
+  # A multibyte character counts as one position, as in nchar() and
+  # substring(), so the frame of the bases after it does not shift
+  odd <- c(
+    "ACGT\u00c4ACGTACGTACGTATGGCC",
+    "ATGAAAC\u00e9GGTTTCCCAAAGGGTAA",
+    "\u4e2dATGCCCGGGAAATTTTAG"
+  )
+  testthat::expect_identical(
+    hexamer_score(odd),
+    vapply(odd, hexamer_reference, numeric(1L), USE.NAMES = FALSE)
+  )
+  testthat::expect_identical(
+    fickett_score(odd),
+    vapply(odd, fickett_reference, numeric(1L), USE.NAMES = FALSE)
+  )
+
+  # Longest ORF, frame by frame; ties go to the lower frame, then to the
+  # upstream ORF
+  longest_reference <- function(s, stops, min_orf_length) {
+    a <- as.integer(gregexpr("ATG", s, fixed = TRUE)[[1L]])
+    a <- a[a > 0L]
+    best <- c(NA_real_, NA_real_, 0)
+    for (f in 0:2) {
+      for (x in a[a %% 3L == f]) {
+        nxt <- stops[stops > x & (stops - x) %% 3L == 0L]
+        end <- if (length(nxt)) {
+          nxt[[1L]] + 2
+        } else {
+          x + floor((nchar(s) - x + 1) / 3) * 3 - 1
+        }
+        if (end - x + 1 > best[[3L]]) {
+          best <- c(x, end, end - x + 1)
+        }
+      }
+    }
+    if (best[[3L]] < min_orf_length) {
+      best <- rep(NA_real_, 3L)
+    }
+    best
+  }
+  for (min_len in c(6L, 90L)) {
+    res <- longest_orfs(seqs, stops, min_orf_length = min_len)
+    ref <- mapply(
+      longest_reference,
+      seqs,
+      stops,
+      MoreArgs = list(min_orf_length = min_len),
+      USE.NAMES = FALSE
+    )
+    testthat::expect_identical(res$start, ref[1L, ])
+    testthat::expect_identical(res$end, ref[2L, ])
+    testthat::expect_identical(res$length, ref[3L, ])
+  }
+  tie <- longest_orfs(
+    "ATGAAATAAATGCCCTGA",
+    find_stop_positions("ATGAAATAAATGCCCTGA"),
+    min_orf_length = 6L
+  )
+  testthat::expect_identical(c(tie$start, tie$end), c(1, 9))
+
+  # uORFs: the first in-frame stop after each upstream ATG
+  uorf_reference <- function(s, stops, p) {
+    utr <- substring(s, 1L, p - 1)
+    a <- as.integer(gregexpr("ATG", utr, fixed = TRUE)[[1L]])
+    a <- a[a > 0L]
+    stop_end <- vapply(
+      a,
+      function(x) {
+        sx <- stops[stops > x & (stops - x) %% 3 == 0]
+        if (length(sx)) sx[[1L]] + 2 else NA_real_
+      },
+      numeric(1L)
+    )
+    complete <- !is.na(stop_end) & stop_end < p & (stop_end - a + 1) >= 9L
+    overlapping <- (p - a) %% 3 != 0 & (is.na(stop_end) | stop_end >= p)
+    c(sum(complete), sum(overlapping))
+  }
+  long <- nchar(seqs) > 100L
+  orf_start <- c(50, 120, 250, 333, 101)[seq_len(sum(long))]
+  u <- count_uorfs(seqs[long], stops[long], orf_start)
+  ref <- mapply(uorf_reference, seqs[long], stops[long], orf_start)
+  testthat::expect_identical(u$n_uorf, unname(ref[1L, ]))
+  testthat::expect_identical(u$n_overlapping_uorf, unname(ref[2L, ]))
+})
+
 testthat::test_that("transcript_orfs works on IsoformicExperiment objects and is cached", {
   iso <- mini_experiment(with_dea = FALSE)
   testthat::expect_error(transcript_orfs(iso), class = "isoformic_no_sequences")
   annot <- mini_annotation("mini_cds.gff3")
-  extract_transcript_sequences(annot, genome_fasta = mini_genome_fasta())
+  suppressMessages(extract_transcript_sequences(
+    annot,
+    genome_fasta = mini_genome_fasta()
+  ))
   mat <- matrix(
     1,
     nrow = 5,
@@ -300,7 +543,10 @@ testthat::test_that("stream_fasta drops the carriage returns of CRLF files", {
 
 testthat::test_that("transcript_orfs keeps its rows in the annotation directory", {
   annot <- mini_annotation("mini_cds.gff3")
-  extract_transcript_sequences(annot, genome_fasta = mini_genome_fasta())
+  suppressMessages(extract_transcript_sequences(
+    annot,
+    genome_fasta = mini_genome_fasta()
+  ))
   file <- fs::path(annot, "annot_data_orfs.parquet")
   ids <- paste0("t", c("A1", "A2", "A3", "A4", "B1"))
   experiment <- function(ids) {
@@ -364,7 +610,10 @@ testthat::test_that("transcript_orfs keeps its rows in the annotation directory"
 
 testthat::test_that("the stored ORF rows are not used for another canonical isoform or another annotation", {
   annot <- mini_annotation("mini_cds.gff3")
-  extract_transcript_sequences(annot, genome_fasta = mini_genome_fasta())
+  suppressMessages(extract_transcript_sequences(
+    annot,
+    genome_fasta = mini_genome_fasta()
+  ))
   file <- fs::path(annot, "annot_data_orfs.parquet")
   transcripts <- read_parquet(fs::path(annot, "annot_data_transcripts.parquet"))
   transcripts <- transcripts[transcripts$gene_id %in% transcripts$gene_id[1L], ]
@@ -436,7 +685,10 @@ testthat::test_that("the stored ORF rows are not used for another canonical isof
 
 testthat::test_that("stored and computed ORF rows are mixed in the order of the call", {
   annot <- mini_annotation("mini_cds.gff3")
-  extract_transcript_sequences(annot, genome_fasta = mini_genome_fasta())
+  suppressMessages(extract_transcript_sequences(
+    annot,
+    genome_fasta = mini_genome_fasta()
+  ))
   file <- fs::path(annot, "annot_data_orfs.parquet")
   uncached <- function(...) {
     withr::local_options(isoformic.orf_cache = FALSE)
@@ -499,7 +751,10 @@ testthat::test_that("stored and computed ORF rows are mixed in the order of the 
 
 testthat::test_that("the stored ORF rows follow the annotation and are written only where allowed", {
   annot <- mini_annotation("mini_cds.gff3")
-  extract_transcript_sequences(annot, genome_fasta = mini_genome_fasta())
+  suppressMessages(extract_transcript_sequences(
+    annot,
+    genome_fasta = mini_genome_fasta()
+  ))
   file <- fs::path(annot, "annot_data_orfs.parquet")
   uncached <- function(...) {
     withr::local_options(isoformic.orf_cache = FALSE)

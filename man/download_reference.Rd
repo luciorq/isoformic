@@ -97,7 +97,16 @@ mapping, gene information and CAGE cluster tables come from
 Instead of assuming file names, the function lists the release directory
 on the server and picks the matching file, so new releases and new genome
 patch versions (for example \code{GRCh38.p15}) work without a package update.
-Files already present in \code{output_path} are not downloaded again. Any other
+Files already present in \code{output_path} are not downloaded again. When the
+request determines the file name (GENCODE annotations and transcript
+sequences, MANE with an explicit \code{version}, FANTOM CAT), a file already
+in \code{output_path} is used without contacting the server. Otherwise, when
+the directory cannot be listed (a transient server error, or no
+connection) and exactly one file in \code{output_path} matches the request,
+that file is used with a message. A GENCODE genome must be of the
+release's assembly, and an Ensembl \code{region = "all"} annotation must be
+the \code{chr_patch_hapl_scaff} file; requests for the current Ensembl or
+MANE release always need the listing. Any other
 file reachable by URL (for example the T2T consortium Liftoff GFF3 files)
 can be cached the same way with \code{\link[=download_reference_url]{download_reference_url()}}, and HPRC
 per-haplotype annotations with \code{\link[=download_hprc_annotation]{download_hprc_annotation()}}.
@@ -106,7 +115,8 @@ per-haplotype annotations with \code{\link[=download_hprc_annotation]{download_h
 
 The function fails early with a specific condition class:
 \itemize{
-\item \code{isoformic_download_reference_no_internet_error}: no connection.
+\item \code{isoformic_download_reference_no_internet_error}: no connection and no
+matching file in \code{output_path}.
 \item \code{isoformic_download_reference_release_not_found_error}: the release
 (or species, assembly) directory does not exist; for GENCODE the
 message lists the latest available releases.

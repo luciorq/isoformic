@@ -21,12 +21,51 @@
 #   nmd_biotype     nonsense_mediated_decay against protein_coding
 #   ri_biotype      retained_intron against protein_coding
 # Models: logistic regression, cross-validation grouped by gene, pooled
-# out-of-fold AUC. For the Karousis pairs also the share of pairs in which the
-# NMD transcript has the lower value of each score.
+# out-of-fold AUC, repeated with several seeds (the fold assignment changes;
+# with the first seed the draws are those of the single run of the first
+# version of this script, which fitted each feature set on its own complete
+# cases). Uncertainty: bootstrap over genes (genes drawn with replacement,
+# all transcripts of a drawn gene kept), applied to the out-of-fold
+# predictions, so the models are not refitted in each replicate; each
+# replicate averages the AUC over the seeds. The differences between feature
+# sets in `contrasts` are paired: the same genes in each replicate. For the
+# Karousis pairs also the share of pairs in which the NMD transcript has the
+# lower value of each score, with a sign test.
 #
 # Usage (from the package root, after 01_targets.R):
 #   ISOFORMIC_ALPHAGENOME_DIR=/path/to/workdir Rscript data-raw/alphagenome/03_evaluate.R
-# Writes <work_dir>/evaluation/{features,auc,pairs,diagnostics}.parquet.
+# Optional environment variables:
+#   ISOFORMIC_ALPHAGENOME_GENCODE     GENCODE release (default: the package default)
+#   ISOFORMIC_ALPHAGENOME_TARGETS     sub-directory with the targets (default
+#                                     "targets")
+#   ISOFORMIC_ALPHAGENOME_EVALUATION  sub-directory to write into (default
+#                                     "evaluation")
+#   ISOFORMIC_ALPHAGENOME_SEEDS       comma-separated seeds of the
+#                                     cross-validation (default "1,2,3,4,5")
+#   ISOFORMIC_ALPHAGENOME_BOOT        bootstrap replicates (default 2000; 0
+#                                     skips the bootstrap)
+#   ISOFORMIC_ALPHAGENOME_SCORES      "false" leaves the AlphaGenome features
+#                                     out even when <work_dir>/scores/ exists:
+#                                     the baseline alone, on all target genes
+#                                     (default "true")
+# The AlphaGenome scores are always read from <work_dir>/scores/.
+# Within a truth every feature set is fitted on the same transcripts: those
+# with a value for every feature of every set (single-exon transcripts have
+# no splice-site score and are left out), so that the differences between
+# feature sets compare the same transcripts.
+# Writes <work_dir>/<evaluation>/:
+#   features.parquet      one row per transcript
+#   auc.parquet           pooled out-of-fold AUC per truth, feature set and seed
+#   auc_summary.parquet   per truth and feature set: AUC of the first seed,
+#                         mean, minimum and maximum over the seeds, bootstrap
+#                         95% interval of the seed mean
+#   auc_contrasts.parquet differences between feature sets, with the
+#                         bootstrap 95% interval and the share of replicates
+#                         at or below zero
+#   predictions.parquet   out-of-fold linear predictors per truth, feature set
+#                         and seed
+#   pairs.parquet         Karousis pairs and sign tests
+#   diagnostics.parquet   AlphaGenome coverage of the introns (when scored)
 
 devtools::load_all(".", quiet = TRUE)
 
@@ -36,10 +75,21 @@ if (is.na(work_dir) || !nzchar(work_dir)) {
 }
 release <- Sys.getenv("ISOFORMIC_ALPHAGENOME_GENCODE", unset = "")
 release <- if (nzchar(release)) release else NULL
-seed <- as.integer(Sys.getenv("ISOFORMIC_ALPHAGENOME_SEED", unset = "1"))
+seeds <- as.integer(strsplit(
+  Sys.getenv("ISOFORMIC_ALPHAGENOME_SEEDS", unset = "1,2,3,4,5"),
+  ","
+)[[1L]])
+n_boot <- as.integer(Sys.getenv("ISOFORMIC_ALPHAGENOME_BOOT", unset = "2000"))
+boot_seed <- 20261117L
 n_folds <- 5L
-target_dir <- fs::path(work_dir, "targets")
-out_dir <- fs::dir_create(fs::path(work_dir, "evaluation"))
+target_dir <- fs::path(
+  work_dir,
+  Sys.getenv("ISOFORMIC_ALPHAGENOME_TARGETS", unset = "targets")
+)
+out_dir <- fs::dir_create(fs::path(
+  work_dir,
+  Sys.getenv("ISOFORMIC_ALPHAGENOME_EVALUATION", unset = "evaluation")
+))
 
 tx <- read_parquet(fs::path(target_dir, "transcripts.parquet"))
 pairs <- read_parquet(fs::path(target_dir, "karousis_pairs.parquet"))
@@ -110,7 +160,11 @@ features <- tx |>
     log_introns = log2(.data$n_introns)
   )
 
-has_ag <- fs::file_exists(fs::path(work_dir, "scores", "tracks.parquet"))
+has_ag <- fs::file_exists(fs::path(work_dir, "scores", "tracks.parquet")) &&
+  !identical(
+    tolower(Sys.getenv("ISOFORMIC_ALPHAGENOME_SCORES", unset = "true")),
+    "false"
+  )
 if (has_ag) {
   source("data-raw/alphagenome/03_features_alphagenome.R")
   features <- features |>
@@ -161,23 +215,36 @@ if (has_ag) {
   )
 }
 
+truth_karousis <- features |>
+  dplyr::filter(!is.na(.data$karousis)) |>
+  dplyr::mutate(y = as.integer(.data$karousis == "nmd"))
+truth_nmd_biotype <- features |>
+  dplyr::filter(
+    .data$transcript_type %in% c("nonsense_mediated_decay", "protein_coding")
+  ) |>
+  dplyr::mutate(
+    y = as.integer(.data$transcript_type == "nonsense_mediated_decay")
+  )
+truth_ri_biotype <- features |>
+  dplyr::filter(
+    .data$transcript_type %in% c("retained_intron", "protein_coding")
+  ) |>
+  dplyr::mutate(y = as.integer(.data$transcript_type == "retained_intron"))
 truths <- list(
-  karousis = features |>
-    dplyr::filter(!is.na(.data$karousis)) |>
-    dplyr::mutate(y = as.integer(.data$karousis == "nmd")),
-  nmd_biotype = features |>
-    dplyr::filter(
-      .data$transcript_type %in% c("nonsense_mediated_decay", "protein_coding")
-    ) |>
-    dplyr::mutate(
-      y = as.integer(.data$transcript_type == "nonsense_mediated_decay")
-    ),
-  ri_biotype = features |>
-    dplyr::filter(
-      .data$transcript_type %in% c("retained_intron", "protein_coding")
-    ) |>
-    dplyr::mutate(y = as.integer(.data$transcript_type == "retained_intron"))
+  karousis = truth_karousis,
+  nmd_biotype = truth_nmd_biotype,
+  ri_biotype = truth_ri_biotype
 )
+# The same transcripts for every feature set of a truth
+all_vars <- unique(unlist(feature_sets, use.names = FALSE))
+n_dropped <- vapply(
+  truths,
+  function(d) sum(!stats::complete.cases(d[, all_vars, drop = FALSE])),
+  integer(1L)
+)
+truths <- lapply(truths, function(d) {
+  d[stats::complete.cases(d[, all_vars, drop = FALSE]), ]
+})
 
 # 2. Cross-validated AUC -------------------------------------------------------
 auc <- function(score, y) {
@@ -186,7 +253,9 @@ auc <- function(score, y) {
   n0 <- sum(y == 0L)
   (sum(r[y == 1L]) - n1 * (n1 + 1) / 2) / (n1 * n0)
 }
-cv_auc <- function(data, vars) {
+# Out-of-fold linear predictors; draws the fold assignment from the current
+# random state
+cv_predict <- function(data, vars) {
   data <- data[stats::complete.cases(data[, vars, drop = FALSE]), ]
   genes <- unique(data$gene_id)
   fold <- sample(rep_len(seq_len(n_folds), length(genes)))
@@ -205,20 +274,160 @@ cv_auc <- function(data, vars) {
     ))
   }
   tibble::tibble(
-    n = nrow(data),
-    n_positive = sum(data$y),
-    auc = auc(pred, data$y)
+    transcript_id = data$transcript_id,
+    gene_id = data$gene_id,
+    y = data$y,
+    pred = pred
   )
 }
-set.seed(seed)
-auc_tbl <- dplyr::bind_rows(lapply(names(truths), function(truth) {
-  dplyr::bind_rows(lapply(names(feature_sets), function(set) {
-    dplyr::bind_cols(
-      tibble::tibble(truth = truth, features = set),
-      cv_auc(truths[[truth]], feature_sets[[set]])
-    )
+# Same order of draws as the single-seed version: one set.seed() per seed,
+# then truths and feature sets in order
+pred_tbl <- dplyr::bind_rows(lapply(seeds, function(s) {
+  set.seed(s)
+  dplyr::bind_rows(lapply(names(truths), function(truth) {
+    dplyr::bind_rows(lapply(names(feature_sets), function(set) {
+      dplyr::bind_cols(
+        tibble::tibble(seed = s, truth = truth, features = set),
+        cv_predict(truths[[truth]], feature_sets[[set]])
+      )
+    }))
   }))
 }))
+auc_tbl <- pred_tbl |>
+  dplyr::summarise(
+    n = dplyr::n(),
+    n_positive = sum(.data$y),
+    auc = auc(.data$pred, .data$y),
+    .by = c("truth", "features", "seed")
+  )
+
+# Bootstrap over genes. AUC with integer weights (the number of times the
+# gene of each transcript was drawn): sort once, then per replicate sum the
+# weights of positives and negatives within groups of tied predictions.
+weighted_auc_setup <- function(pred, y, gene_idx) {
+  o <- order(pred)
+  tie <- cumsum(c(TRUE, diff(pred[o]) != 0))
+  list(y = y[o], gene_idx = gene_idx[o], tie = tie, n_tie = max(tie))
+}
+weighted_auc <- function(setup, mult) {
+  w <- mult[setup$gene_idx]
+  w1 <- w * setup$y
+  w0 <- w - w1
+  g1 <- tabulate_weights(setup$tie, w1, setup$n_tie)
+  g0 <- tabulate_weights(setup$tie, w0, setup$n_tie)
+  below <- cumsum(g0) - g0
+  sum(g1 * (below + g0 / 2)) / (sum(g1) * sum(g0))
+}
+tabulate_weights <- function(group, w, n) {
+  out <- numeric(n)
+  sums <- rowsum(w, group, reorder = FALSE)
+  out[as.integer(rownames(sums))] <- sums[, 1L]
+  out
+}
+contrasts <- list(
+  c("rules_and_pwm", "rules"),
+  c("baseline", "rules_and_pwm"),
+  c("baseline_and_contained", "baseline"),
+  c("baseline_and_ag", "baseline"),
+  c("baseline_and_ag", "baseline_and_contained"),
+  c("rules_and_ag", "rules")
+)
+contrasts <- Filter(function(x) all(x %in% names(feature_sets)), contrasts)
+boot_tbl <- NULL
+if (n_boot > 0L) {
+  set.seed(boot_seed)
+  boot_tbl <- dplyr::bind_rows(lapply(names(truths), function(truth) {
+    sub <- pred_tbl[pred_tbl$truth == truth, ]
+    genes <- unique(truths[[truth]]$gene_id)
+    keys <- unique(sub[, c("features", "seed")])
+    setups <- lapply(seq_len(nrow(keys)), function(i) {
+      rows <- sub$features == keys$features[i] & sub$seed == keys$seed[i]
+      weighted_auc_setup(
+        sub$pred[rows],
+        sub$y[rows],
+        match(sub$gene_id[rows], genes)
+      )
+    })
+    # With every gene drawn once the weighted AUC is the plain one
+    unit <- vapply(
+      setups,
+      weighted_auc,
+      numeric(1L),
+      mult = rep(1L, length(genes))
+    )
+    plain <- auc_tbl$auc[match(
+      paste(truth, keys$features, keys$seed),
+      paste(auc_tbl$truth, auc_tbl$features, auc_tbl$seed)
+    )]
+    stopifnot(isTRUE(all.equal(unit, plain)))
+    values <- matrix(NA_real_, n_boot, nrow(keys))
+    for (b in seq_len(n_boot)) {
+      mult <- tabulate(
+        sample.int(length(genes), replace = TRUE),
+        nbins = length(genes)
+      )
+      values[b, ] <- vapply(setups, weighted_auc, numeric(1L), mult = mult)
+    }
+    # Mean over seeds within each replicate
+    set_mean <- vapply(
+      names(feature_sets),
+      function(set) rowMeans(values[, keys$features == set, drop = FALSE]),
+      numeric(n_boot)
+    )
+    tibble::tibble(
+      truth = truth,
+      replicate = rep(seq_len(n_boot), times = ncol(set_mean)),
+      features = rep(colnames(set_mean), each = n_boot),
+      auc = as.vector(set_mean)
+    )
+  }))
+}
+auc_summary <- auc_tbl |>
+  dplyr::summarise(
+    n = .data$n[1L],
+    n_positive = .data$n_positive[1L],
+    auc_first_seed = .data$auc[.data$seed == seeds[1L]],
+    auc_mean = mean(.data$auc),
+    auc_min = min(.data$auc),
+    auc_max = max(.data$auc),
+    .by = c("truth", "features")
+  )
+contrast_tbl <- NULL
+if (!is.null(boot_tbl)) {
+  boot_ci <- boot_tbl |>
+    dplyr::summarise(
+      ci_low = stats::quantile(.data$auc, 0.025, names = FALSE),
+      ci_high = stats::quantile(.data$auc, 0.975, names = FALSE),
+      .by = c("truth", "features")
+    )
+  auc_summary <- auc_summary |>
+    dplyr::left_join(boot_ci, by = c("truth", "features"))
+  contrast_tbl <- dplyr::bind_rows(lapply(contrasts, function(x) {
+    dplyr::bind_rows(lapply(names(truths), function(truth) {
+      a <- boot_tbl[boot_tbl$truth == truth & boot_tbl$features == x[1L], ]
+      b <- boot_tbl[boot_tbl$truth == truth & boot_tbl$features == x[2L], ]
+      stopifnot(identical(a$replicate, b$replicate))
+      delta <- a$auc - b$auc
+      point <- auc_summary[auc_summary$truth == truth, ]
+      seed_delta <- auc_tbl$auc[
+        auc_tbl$truth == truth & auc_tbl$features == x[1L]
+      ] -
+        auc_tbl$auc[auc_tbl$truth == truth & auc_tbl$features == x[2L]]
+      tibble::tibble(
+        truth = truth,
+        features = x[1L],
+        minus = x[2L],
+        delta_mean = point$auc_mean[point$features == x[1L]] -
+          point$auc_mean[point$features == x[2L]],
+        delta_min = min(seed_delta),
+        delta_max = max(seed_delta),
+        ci_low = stats::quantile(delta, 0.025, names = FALSE),
+        ci_high = stats::quantile(delta, 0.975, names = FALSE),
+        share_at_or_below_zero = mean(delta <= 0)
+      )
+    }))
+  }))
+}
 
 # 3. Karousis pairs: is the NMD transcript the one with the weaker site? ------
 scores <- c(
@@ -249,7 +458,12 @@ pair_tbl <- dplyr::bind_rows(lapply(scores, function(column) {
 
 write_parquet(features, fs::path(out_dir, "features.parquet"))
 write_parquet(auc_tbl, fs::path(out_dir, "auc.parquet"))
+write_parquet(auc_summary, fs::path(out_dir, "auc_summary.parquet"))
+write_parquet(pred_tbl, fs::path(out_dir, "predictions.parquet"))
 write_parquet(pair_tbl, fs::path(out_dir, "pairs.parquet"))
+if (!is.null(contrast_tbl)) {
+  write_parquet(contrast_tbl, fs::path(out_dir, "auc_contrasts.parquet"))
+}
 
 if (has_ag) {
   write_parquet(diagnostics, fs::path(out_dir, "diagnostics.parquet"))
@@ -257,5 +471,12 @@ if (has_ag) {
   print(as.data.frame(diagnostics), digits = 3)
 }
 cli::cli_h2(if (has_ag) "Baseline and AlphaGenome" else "Baseline")
-print(as.data.frame(auc_tbl), digits = 3)
+cli::cli_inform(c(
+  i = "Seeds: {seeds}; bootstrap replicates over genes: {n_boot}",
+  i = "Transcripts without a value for some feature, left out: {paste(names(n_dropped), n_dropped, sep = ' ', collapse = ', ')}"
+))
+print(as.data.frame(auc_summary), digits = 3)
+if (!is.null(contrast_tbl)) {
+  print(as.data.frame(contrast_tbl), digits = 3)
+}
 print(as.data.frame(pair_tbl), digits = 3)

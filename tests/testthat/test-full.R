@@ -5,8 +5,8 @@ testthat::test_that("GENCODE downloads and prepares into an annotation directory
   skip_if_not_full()
   testthat::skip_if_offline()
   out <- withr::local_tempdir()
+  # The release the package targets (the default of download_reference())
   gff <- download_reference(
-    version = "33",
     file_type = "gff",
     output_path = out
   )
@@ -90,6 +90,11 @@ testthat::test_that("Salmon indexes and quantifies the example transcripts", {
     num_threads = 2
   ))
   testthat::expect_true(fs::dir_exists(decoy_index))
+  # Salmon records the decoys it indexed
+  if (requireNamespace("jsonlite", quietly = TRUE)) {
+    decoy_info <- jsonlite::read_json(fs::path(decoy_index, "info.json"))
+    testthat::expect_identical(as.integer(decoy_info$num_decoys), 1L)
+  }
 
   quant <- fs::path(root, "sample_quant")
   suppressMessages(salmon_quant(
@@ -102,7 +107,7 @@ testthat::test_that("Salmon indexes and quantifies the example transcripts", {
   testthat::expect_true(fs::file_exists(fs::path(quant, "quant.sf")))
 
   annot_dir <- suppressMessages(prepare_isoformic_annotation(
-    fs::path(extdata, "example.gff3"),
+    fs::path(extdata, "example.gff3.gz"),
     output_path = root
   ))
   iso <- suppressMessages(read_salmon(

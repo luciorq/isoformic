@@ -19,7 +19,7 @@ create_salmon_env <- function(
 ) {
   rlang::check_installed("condathis")
   condathis::create_env(
-    packages = paste0("bioconda::salmon==", version),
+    paste0("bioconda::salmon==", version),
     env_name = env_name,
     additional_channels = "bioconda",
     verbose = "output",
@@ -70,10 +70,12 @@ check_env_installed <- function(env_name = "salmon-env") {
 #' header), passes them to `salmon index` as `--transcripts` and `--decoys`,
 #' and removes them afterwards. Reads that align better to a decoy than to a
 #' transcript are then discarded instead of being assigned to a transcript.
-#' The `gentrome` has the compression of `decoy_fasta` (the decoy file is
+#' The `gentrome` is gzipped when `decoy_fasta` is (the decoy file is
 #' appended byte by byte, and concatenated gzip streams are valid gzip), so a
 #' gzipped genome is not decompressed to disk; the transcript FASTA, plain or
-#' gzipped, is re-encoded to match.
+#' gzipped, is re-encoded to match. A decoy compressed with xz or bzip2 is
+#' decompressed into a plain `gentrome`. Decoy names that are also
+#' transcript names are an error.
 #'
 #' @param fasta_path Path to the reference transcriptome FASTA file.
 #' @param index_path Directory path to save the Salmon index (default is
@@ -85,7 +87,8 @@ check_env_installed <- function(env_name = "salmon-env") {
 #' @param is_gencode Logical indicating if the FASTA is from GENCODE
 #' (default is `FALSE`); the transcript names are then truncated at the
 #' first `|` so that they match the annotation.
-#' @param decoy_fasta Optional path to a FASTA file, plain or gzipped, with
+#' @param decoy_fasta Optional path to a FASTA file, plain or compressed
+#' with gzip, xz or bzip2, with
 #' the decoy sequences (default is `NULL`, an index without decoys). Usually
 #' the genome assembly the transcripts come from (for GENCODE, the
 #' `GRCh38.primary_assembly.genome.fa.gz` of the same release). A full human
@@ -158,8 +161,9 @@ salmon_index <- function(
 
 #' Write the gentrome FASTA and the decoy names for a decoy-aware index
 #'
-#' @param fasta_path Path to the transcript FASTA (plain or gzipped).
-#' @param decoy_fasta Path to the decoy FASTA (plain or gzipped).
+#' @param fasta_path Path to the transcript FASTA (plain or compressed).
+#' @param decoy_fasta Path to the decoy FASTA (plain, or compressed with gzip,
+#'   xz or bzip2).
 #' @param out_dir Existing directory for the output files.
 #'
 #' @returns A list with the paths `gentrome` and `decoys`.
@@ -170,6 +174,12 @@ write_salmon_gentrome <- function(fasta_path, decoy_fasta, out_dir) {
   check_fasta_file(fasta_path)
   check_fasta_file(decoy_fasta)
   decoy_is_gz <- is_gzip_file(decoy_fasta)
+  # A plain or gzipped FASTA decoy with LF line endings is appended byte by
+  # byte (fast, and concatenated gzip streams are valid gzip); any other file
+  # (xz, bzip2, or plain or gzipped text with CRLF line endings or not
+  # starting with a header) is decompressed and written line by line, because
+  # appending its raw bytes would corrupt the gentrome.
+  decoy_append <- is_plain_fasta_file(decoy_fasta)
   gentrome <- file.path(
     out_dir,
     if (decoy_is_gz) "gentrome.fa.gz" else "gentrome.fa"
@@ -185,12 +195,23 @@ write_salmon_gentrome <- function(fasta_path, decoy_fasta, out_dir) {
   }
   write_ok <- FALSE
   on.exit(if (!write_ok) close(out_con), add = TRUE)
-  for_each_line_chunk(fasta_path, function(lines) writeLines(lines, out_con))
+  found <- new.env(parent = emptyenv())
+  found$tx <- character()
+  found$decoy <- character()
+  for_each_line_chunk(fasta_path, function(lines) {
+    writeLines(lines, out_con)
+    found$tx <- c(found$tx, fasta_header_names(lines))
+  })
+  if (!decoy_append) {
+    for_each_line_chunk(decoy_fasta, function(lines) {
+      writeLines(sub("\r$", "", lines), out_con)
+    })
+  }
   write_ok <- TRUE
   close(out_con)
 
   # A plain decoy file without a final newline still ends the gentrome
-  if (!file.append(gentrome, decoy_fasta)) {
+  if (decoy_append && !file.append(gentrome, decoy_fasta)) {
     cli::cli_abort(
       "Could not append {.path {decoy_fasta}} to {.path {gentrome}}.",
       class = "isoformic_gentrome_error"
@@ -202,21 +223,76 @@ write_salmon_gentrome <- function(fasta_path, decoy_fasta, out_dir) {
   names_ok <- FALSE
   on.exit(if (!names_ok) close(name_con), add = TRUE)
   for_each_line_chunk(decoy_fasta, function(lines) {
-    headers <- lines[startsWith(lines, ">")]
-    if (length(headers) > 0L) {
-      ids <- sub("^>[[:space:]]*([^[:space:]]*).*$", "\\1", headers)
+    ids <- fasta_header_names(lines)
+    if (length(ids) > 0L) {
       writeLines(ids, name_con)
+      found$decoy <- c(found$decoy, ids)
     }
   })
   names_ok <- TRUE
   close(name_con)
-  if (file.size(decoys) == 0) {
+  if (length(found$decoy) == 0L) {
     cli::cli_abort(
       "{.path {decoy_fasta}} has no FASTA header ({.code >}).",
       class = "isoformic_gentrome_error"
     )
   }
+  # Salmon cannot tell a decoy from a transcript of the same name (GENCODE
+  # names are compared up to the first '|', as with `is_gencode = TRUE`)
+  clash <- intersect(
+    sub("[|].*$", "", found$decoy),
+    sub("[|].*$", "", found$tx)
+  )
+  if (length(clash) > 0L) {
+    cli::cli_abort(
+      c(
+        x = "Decoy sequence names are also transcript names: {.val {utils::head(clash, 5L)}}.",
+        i = "Rename the decoy sequences in {.path {decoy_fasta}}."
+      ),
+      class = "isoformic_gentrome_error"
+    )
+  }
   list(gentrome = gentrome, decoys = decoys)
+}
+
+#' First word of each FASTA header line, without `>` (and without a CR)
+#' @keywords internal
+#' @noRd
+fasta_header_names <- function(lines) {
+  headers <- lines[startsWith(lines, ">")]
+  sub("^>[[:space:]]*([^[:space:]]*).*$", "\\1", headers)
+}
+
+#' Is a file a plain or gzipped FASTA file with LF line endings?
+#'
+#' Checks that the (decompressed, for a gzip file) content starts with a
+#' header line and has no carriage return anywhere: the whole file is read,
+#' in chunks of `chunk_size` bytes, because a CRLF part after the first
+#' bytes would otherwise be appended raw to the gentrome. Files compressed in
+#' other formats do not start with `>` and return `FALSE`.
+#' @keywords internal
+#' @noRd
+is_plain_fasta_file <- function(path, chunk_size = 16777216L) {
+  con <- if (is_gzip_file(path)) {
+    gzfile(path, open = "rb")
+  } else {
+    file(path, open = "rb")
+  }
+  on.exit(close(con), add = TRUE)
+  cr <- as.raw(0x0d)
+  bytes <- readBin(con, what = "raw", n = chunk_size)
+  if (length(bytes) == 0L || !identical(bytes[[1L]], charToRaw(">"))) {
+    return(FALSE)
+  }
+  repeat {
+    if (length(grepRaw(cr, bytes, fixed = TRUE))) {
+      return(FALSE)
+    }
+    bytes <- readBin(con, what = "raw", n = chunk_size)
+    if (length(bytes) == 0L) {
+      return(TRUE)
+    }
+  }
 }
 
 check_fasta_file <- function(path, arg = rlang::caller_arg(path)) {
@@ -274,8 +350,16 @@ is_gzip_file <- function(path) {
 #' @param num_threads Number of threads to use (default is 8).
 #' @param num_gibbs Number of Gibbs samples (inferential replicates) drawn per
 #' sample (default is 30). They quantify how well each transcript abundance is
-#' determined by the reads and are used by [add_uncertainty()] and by `swish`;
-#' 30 is enough for those summaries, and more only costs time and disk space.
+#' determined by the reads and are used by [add_uncertainty()] and by `swish`.
+#' The genome-wide evaluation of the uncertainty evidence article used 30 and
+#' did not test more draws for its calls. For isoforms near a cutoff (few
+#' unique fragments or reads, retained introns, lncRNAs), more draws (for
+#' example 100) are expected to make the `uncertain` flag more stable, since
+#' InfRV from more draws has a smaller sampling error, but this was not
+#' tested; they cost time and disk space. TreeTerminus trees of lncRNAs often
+#' differed between a 30-draw run and a separate 100-draw run, a comparison
+#' that does not separate the number of draws from run-to-run randomness (see
+#' the quantification stability article).
 #' Set it to `0` to skip them.
 #' @param min_score_fraction Minimum score fraction for alignments
 #' (default is "0.65").

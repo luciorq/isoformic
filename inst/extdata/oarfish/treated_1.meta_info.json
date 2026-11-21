@@ -33,7 +33,7 @@
     "valid_best_aln": 3000
   },
   "alignments": null,
-  "output": "/data/gamma/luciorq/workspaces/temp/isoformic-v50/oarfish/out/treated_1",
+  "output": "out/treated_1",
   "verbose": false,
   "single_cell": false,
   "quiet": false,

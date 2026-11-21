@@ -17,6 +17,7 @@ run_enrichment(
   min_size = 15,
   max_size = 500,
   rank_by = c("log2FC", "signed_p", "lfc_z"),
+  workers = getOption("isoformic.workers", 1L),
   ...
 )
 
@@ -52,18 +53,26 @@ Defaults to \code{\link[=default_enrichment_types]{default_enrichment_types()}},
 \code{processed_transcript} or \code{protein_coding_CDS_not_defined} depending
 on the annotation version.}
 
-\item{min_size, max_size}{Minimum and maximum gene set size passed to
-\code{fgsea}.}
+\item{min_size, max_size}{Minimum and maximum gene set size: sets with
+fewer or more genes are not tested. \code{run_enrichment()} counts, in each
+transcript category, the genes of the set that have at least one ranked
+transcript of that category (the \code{size} column of the result counts
+transcripts); the gene-level enrichments count the ranked genes of the
+set.}
 
 \item{rank_by}{Statistic that ranks the transcripts: \code{"log2FC"}
 (default), \code{"signed_p"} or \code{"lfc_z"} (see \emph{Ranking}).}
 
-\item{...}{Passed on to \code{fgsea::fgseaMultilevel()}. fgsea runs in the
-session unless \code{nproc} or \code{BPPARAM} is given. On Unix-like systems these
-fork the session: the workers share its memory, but tools that add up
-the resident memory of the processes count it once per worker. Give the
-number of workers (\code{nproc = 4}); the default of \code{BiocParallel} is all
-the cores of the machine but two, whatever a job scheduler allocated.}
+\item{workers}{Number of worker processes that run the \code{fgsea} calls
+(one per collection and transcript category) in parallel: a whole
+number, or \code{"auto"} for the CPUs available to the session (see
+\emph{Workers}). Defaults to the \code{isoformic.workers} option, or 1 (serial).}
+
+\item{...}{Passed on to \code{fgsea::fgseaMultilevel()}. Each \code{fgsea} call runs
+with \code{BiocParallel::SerialParam()} unless \code{nproc} or \code{BPPARAM} is given.
+Prefer \code{workers}: \code{nproc} parallelises inside one call, which was slower
+than a serial run in our benchmarks, and on Unix-like systems it forks
+the session (see \emph{Workers}).}
 
 \item{annotation_types}{Transcript types present in the annotation,
 used to choose between \code{processed_transcript} and
@@ -129,7 +138,7 @@ of zero gets the largest finite value of the table.
 \item \code{"lfc_z"}: the median fold-change over the inferential replicates
 divided by its standard deviation (\code{lfc_median / lfc_sd} of
 \code{\link[=de_confidence]{de_confidence()}}), so that a fold-change the quantification cannot
-determine ranks low. It needs the confidence table that
+determine ranks low. It needs the fold-change table that
 \code{add_uncertainty(x, group = )} stores, or these two columns in a data
 frame (the table of \code{\link[=de_confidence]{de_confidence()}} works). The ranking has the
 contrast of that table, the last level of \code{add_uncertainty()} against
@@ -153,6 +162,72 @@ collection, and the result has a \code{collection} column, by which
 needs a name.
 }
 
+\section{Workers}{
+
+Each collection and transcript category is one \code{fgsea} call. With
+\code{workers} above 1 (or the \code{isoformic.workers} option), these calls run in
+parallel on that many \code{mirai} daemons (at most one per call), which need
+the \code{mirai} package. \code{workers = "auto"} uses
+\code{parallelly::availableCores()}, which follows the CPUs a job scheduler
+(Slurm, the CPU affinity mask, a cgroup quota) allocated; without
+\code{parallelly} it runs serially.
+
+The daemons are fresh R processes that receive only the ranking of their
+call and the gene sets cut down to the IDs of that ranking (which gives
+the same result), never the session's objects, so their memory does not
+grow with the session. The session serializes all calls at once when it
+sends them, which costs it about the size of each ranking and of the gene
+sets cut down to it, once per call.
+
+The first call with \code{workers} above 1 starts the daemons (one per
+\code{fgsea} call, up to \code{workers}), with the session's library paths and one
+BLAS and OpenMP thread each, and keeps them for the session: later calls
+reuse them, so a loop of small calls (one contrast and a few collections
+each) does not pay their start-up and their loading of \code{fgsea} every
+time. A call that needs more daemons launches the missing ones; a call
+with a smaller \code{workers} than the daemons running starts them again for
+that call (one per \code{fgsea} call, up to its \code{workers}), so that no call
+runs more \code{fgsea} calls at once than its \code{workers}. Daemons that died
+between calls (killed for their memory, for example) are replaced by the
+next call; when all of them die during a call, it fails after 30 seconds
+without a connected daemon instead of waiting forever, and the next call
+starts them again. An idle daemon holds the memory of its R process and of
+\code{fgsea} (about 0.3 GB once it has run a call). Stop the daemons with
+\code{\link[=isoformic_workers]{isoformic_workers(0)}}; they are also stopped when
+the session ends or isoformic is unloaded, and an interrupted call cancels
+its \code{fgsea} calls on them. \code{\link[=isoformic_workers]{isoformic_workers(n)}}
+starts \code{n} daemons ahead
+(stopping those running), with the same settings,
+which every call then uses as they are (replacing those that died), and
+so do daemons started with \code{mirai::daemons(n, .compute = "isoformic")}
+(\code{workers} then only decides whether to use them; they keep their own
+thread settings, but every call puts the session's library paths first
+while it runs; a call fails when none of them is connected, because
+isoformic does not restart them).
+
+Warnings of \code{fgsea} (ties in the ranking, imprecise p-values) raised on a
+worker are raised again in the session when all calls have returned, once
+per distinct message and call, naming the collection and the category.
+
+\code{fgsea} estimates p-values by sampling. With one worker the calls use the
+session's random number stream, in order, as in earlier versions, so
+\code{set.seed()} before the call reproduces them. With more than one worker
+every call gets its own seed, drawn from the session's stream before the
+calls start: the result is the same for any number of workers above one,
+and whether or not the daemons were already running (and reproducible
+with \code{set.seed()}), but its sampled p-values differ slightly from those
+of a serial run. Starting daemons with \code{mirai::daemons()} draws from the
+session's stream, so daemons started that way after \code{set.seed()} change
+the p-values of the calls that follow; start them before \code{set.seed()},
+or with \code{\link[=isoformic_workers]{isoformic_workers()}}, which leaves the stream where it was. A
+single call always runs in the session.
+
+\code{BiocParallel::MulticoreParam()} (and \code{nproc} on Unix-like systems) forks
+the session: the forked workers share its memory, but tools that add up
+the resident memory of processes (\code{top}, Slurm accounting without
+\code{UsePss}) count the whole session once per worker.
+}
+
 \examples{
 iso <- example_isoformic()
 gmt <- system.file("extdata", "reactome_subset.gmt", package = "isoformic")
@@ -165,4 +240,7 @@ if (requireNamespace("fgsea", quietly = TRUE)) {
   plot_enrichment(res, n = 10)
 }
 
+}
+\seealso{
+\code{\link[=isoformic_workers]{isoformic_workers()}} to start or stop the daemons ahead.
 }

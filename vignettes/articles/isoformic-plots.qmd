@@ -56,16 +56,16 @@ They start from the object built in the [introduction](isoformic-introduction.ht
 #| message: false
 library(isoformic)
 
-extdata <- fs::path_package("isoformic", "extdata")
+data_dir <- "data/preeclampsia"
 annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 iso <- IsoformicExperiment(
   experiment_name = "preeclampsia_placenta",
   annot_path = annot_dir,
-  assays = list(abundance = read_parquet(fs::path(extdata, "pe_abundance.parquet"))),
-  col_data = read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+  assays = list(abundance = read_parquet(fs::path(data_dir, "pe_abundance.parquet"))),
+  col_data = read_parquet(fs::path(data_dir, "pe_col_data.parquet"))
 )
-de_tx(iso) <- read_parquet(fs::path(extdata, "pe_det.parquet"))
-de_gene(iso) <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+de_tx(iso) <- read_parquet(fs::path(data_dir, "pe_det.parquet"))
+de_gene(iso) <- read_parquet(fs::path(data_dir, "pe_deg.parquet"))
 ```
 
 ## Log2 fold-change plot

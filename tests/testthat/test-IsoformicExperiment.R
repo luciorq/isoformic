@@ -467,6 +467,47 @@ testthat::test_that("example_isoformic writes go to a private annotation copy", 
   testthat::expect_false("appris_principal" %in% colnames(row_data(other)))
 })
 
+testthat::test_that("write_isoformic copies an annotation in the session temporary directory", {
+  # The annotation of example_isoformic() is a copy under tempdir(), which
+  # is removed when the session ends: an experiment written elsewhere must
+  # keep its own copy. A fake session directory stands in for tempdir().
+  root <- withr::local_tempdir()
+  session <- fs::path(root, "session")
+  fs::dir_create(session)
+  iso <- mini_experiment()
+  annot <- fs::path(session, "annotation")
+  fs::dir_copy(iso@annot_path, annot)
+  iso@annot_path <- as.character(fs::path_real(annot))
+  testthat::local_mocked_bindings(session_tempdir = function() session)
+
+  # Written inside the session directory: the path is stored, no copy
+  inside <- fs::path(session, "exp")
+  testthat::expect_no_message(write_isoformic(iso, inside))
+  testthat::expect_false(fs::dir_exists(fs::path(inside, "annotation")))
+
+  # Written outside: the annotation is copied, with a message
+  dir <- fs::path(root, "exp")
+  testthat::expect_message(
+    write_isoformic(iso, dir),
+    class = "isoformic_annotation_copied"
+  )
+  testthat::expect_true(is_annotation_dir(fs::path(dir, "annotation")))
+  stored <- read_parquet(fs::path(dir, "experiment.parquet"))
+  testthat::expect_equal(stored$value[stored$key == "annot_path"], "annotation")
+
+  # The session ends: the experiment can still be read
+  fs::dir_delete(session)
+  iso2 <- read_isoformic(dir)
+  testthat::expect_equal(
+    iso2@annot_path,
+    as.character(fs::path(dir, "annotation"))
+  )
+  testthat::expect_equal(
+    tx_assay(iso2, "abundance"),
+    tx_assay(iso, "abundance")
+  )
+})
+
 testthat::test_that("read_salmon reads quant.sf files into an experiment", {
   quant_dirs <- list.files(
     system.file("extdata", "mini_quants", package = "isoformic"),

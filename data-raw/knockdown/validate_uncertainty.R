@@ -7,14 +7,23 @@
 #     control and three knockdown samples): every difference is noise;
 #   * the real contrast (control against knockdown), called in half 1 and
 #     checked in half 2.
-# Five methods are compared: swish, edgeR on the counts, edgeR on the counts
-# divided by the overdispersion of the replicates (Baldoni et al. 2024), and
-# the stability and confidence classes of de_confidence().
+# Compared: swish, edgeR on the counts, edgeR on the counts divided by the
+# overdispersion of the replicates (Baldoni et al. 2024), and the descriptive
+# flags of de_confidence() (unstable direction, uncertain quantification,
+# ambiguous with a sibling isoform).
 #
 # Usage:
 #   ISOFORMIC_KNOCKDOWN_DIR=/path/to/workdir Rscript data-raw/knockdown/validate_uncertainty.R
 #
 # Writes the small result tables to inst/extdata/knockdown/read_split/.
+#
+# Memory: without the cached read_split_contrasts.rds the four contrasts are
+# recomputed, and each holds several copies of 6 samples x 655k transcripts x
+# 30 draws (about 0.94 GB per copy): the peak measured on GENCODE 50 is about
+# 7.6 GiB of resident memory, so give that path a memory cap of at least
+# 10 GB. Reading the cached .rds needs much less. A cache written before
+# de_confidence() reported `unstable` (it has a `confidence` column instead)
+# is refused: delete it to recompute.
 suppressPackageStartupMessages({
   library(isoformic)
   library(dplyr)
@@ -130,8 +139,15 @@ contrast <- function(label, dirs, group, annot) {
       transcript_id = feature_id,
       lfc_median,
       sign_agreement,
+      unstable,
       mean_inf_rv,
-      confidence,
+      # NA for the transcripts below min_count, as `unstable`
+      uncertain = dplyr::if_else(
+        is.na(sign_agreement),
+        NA,
+        grepl("uncertain quantification", flags, fixed = TRUE)
+      ),
+      ambiguous,
       mean_count = mean_count
     )
   conf |>
@@ -142,6 +158,13 @@ contrast <- function(label, dirs, group, annot) {
 
 if (file.exists(rds)) {
   res <- readRDS(rds)
+  if (!all(c("unstable", "uncertain", "ambiguous") %in% colnames(res[[1L]]))) {
+    stop(
+      rds,
+      " was written by an earlier version of this script; delete it to recompute.",
+      call. = FALSE
+    )
+  }
 } else {
   annot <- prepare_isoformic_annotation(download_reference(
     version = "50",
@@ -203,7 +226,6 @@ null_calls <- dplyr::bind_rows(lapply(
 ))
 
 # 2. Large changes that are stable over the draws in the null contrasts --------
-classes <- c("high", "moderate", "low")
 null_stable <- dplyr::bind_rows(lapply(
   c("null_control", "null_knockdown"),
   function(nm) {
@@ -216,9 +238,10 @@ null_stable <- dplyr::bind_rows(lapply(
     tibble::tibble(
       contrast = nm,
       stable_large_changes = nrow(s),
-      high = sum(s$confidence == "high", na.rm = TRUE),
-      moderate = sum(s$confidence == "moderate", na.rm = TRUE),
-      low = sum(s$confidence == "low", na.rm = TRUE)
+      uncertain = sum(s$uncertain),
+      ambiguous = sum(s$ambiguous %in% TRUE),
+      uncertain_or_ambiguous = sum(s$uncertain | s$ambiguous %in% TRUE),
+      neither = sum(!s$uncertain & !(s$ambiguous %in% TRUE))
     )
   }
 ))
@@ -231,7 +254,9 @@ both <- dplyr::inner_join(
     h1,
     transcript_id,
     lfc1 = lfc_median,
-    conf1 = confidence,
+    unstable1 = unstable,
+    uncertain1 = uncertain,
+    ambiguous1 = ambiguous,
     rv1 = mean_inf_rv,
     sa1 = sign_agreement,
     ed1 = ed_q
@@ -245,16 +270,29 @@ both <- dplyr::inner_join(
   ),
   by = "transcript_id"
 )
-replication_class <- both |>
-  dplyr::filter(.data$ed1 < 0.05) |>
-  dplyr::group_by(class = factor(.data$conf1, classes)) |>
-  dplyr::summarise(
-    calls = dplyr::n(),
-    same_direction = round(mean(sign(.data$lfc1) == sign(.data$lfc2)), 3),
-    significant_again = round(mean(.data$ed2 < 0.05, na.rm = TRUE), 3),
-    .groups = "drop"
-  ) |>
-  dplyr::mutate(class = as.character(.data$class))
+# Each flag of half 1 on its own, among the calls of edgeR in half 1
+calls1 <- dplyr::filter(both, .data$ed1 < 0.05)
+replication_flag <- dplyr::bind_rows(
+  lapply(
+    c(
+      `unstable direction` = "unstable1",
+      `uncertain quantification` = "uncertain1",
+      `ambiguous with a sibling` = "ambiguous1"
+    ),
+    function(column) {
+      calls1 |>
+        dplyr::filter(!is.na(.data[[column]])) |>
+        dplyr::group_by(flagged = .data[[column]]) |>
+        dplyr::summarise(
+          calls = dplyr::n(),
+          same_direction = round(mean(sign(.data$lfc1) == sign(.data$lfc2)), 3),
+          significant_again = round(mean(.data$ed2 < 0.05, na.rm = TRUE), 3),
+          .groups = "drop"
+        )
+    }
+  ),
+  .id = "flag"
+)
 replication_rv <- both |>
   dplyr::filter(abs(.data$lfc1) > 1, .data$sa1 >= 0.95, .data$n2 >= 5) |>
   dplyr::group_by(
@@ -275,9 +313,9 @@ out <- fs::path("inst", "extdata", "knockdown", "read_split")
 fs::dir_create(out)
 write_parquet(null_calls, fs::path(out, "null_calls.parquet"))
 write_parquet(null_stable, fs::path(out, "null_stable.parquet"))
-write_parquet(replication_class, fs::path(out, "replication_class.parquet"))
+write_parquet(replication_flag, fs::path(out, "replication_flag.parquet"))
 write_parquet(replication_rv, fs::path(out, "replication_rv.parquet"))
 print(null_calls)
 print(null_stable)
-print(replication_class)
+print(replication_flag)
 print(replication_rv)

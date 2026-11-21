@@ -9,7 +9,9 @@ cover.
 definition to the function that implements it. Section 5 is the backlog:
 ten items (U1 to U10) with the function to change, the effect, the tests and
 the effort, and its status (5.1). Section 2 holds
-the formulas and numbers behind them.
+the formulas and numbers behind them. Section 8 is the pre-registered
+genome-wide evaluation of 2026-11-18 (does uncertainty change the results?),
+and 8.5 the package changes it proposed (U11 to U13), applied on 2026-11-20.
 
 Evidence level per paper is marked: `[full]` the full text was read (through
 Undermind PDF readers or scite excerpts), `[abs]` abstract only. Statements
@@ -317,7 +319,7 @@ Function names are given instead of line numbers.
 
 | Item | Where in isoformic | Literature | Verdict |
 |---|---|---|---|
-| Overdispersion | `overdispersion_from_moments()` through `object_overdispersion()` (`R/uncertainty.R`), used by `inferential_overdispersion()`, `scale_counts()`, `overdispersion_for()` and `test_usage()` | Baldoni 2024 estimator (2.1) | Same: Pearson statistic over draws, `df = n_expressed * (B - 1)`, prior `max(1, median(phi) / qf(0.5, median(df), 3))`, moderated, floored at 1. Terms with zero mean are left out of sum and df, a case the paper does not specify. The moments come from every transcript of the index (`moments` attribute of `read_inferential_replicates()`), so the prior is the one of `catchSalmon()` whatever `min_count` keeps (checked: 517,038 transcripts, largest relative difference 4e-12). Replicates without moments fall back to the stored transcripts |
+| Overdispersion | `overdispersion_from_moments()` through `object_overdispersion()` (`R/uncertainty.R`), used by `inferential_overdispersion()`, `scale_counts()`, `overdispersion_for()` and `test_usage()` | Baldoni 2024 estimator (2.1) | Same: Pearson statistic over draws, `df = n_expressed * (B - 1)`, prior `max(1, median(phi) / qf(0.5, median(df), 3))`, moderated, floored at 1. Terms with zero mean are left out of sum and df, a case the paper does not specify. The moments come from every transcript of the index (`moments` attribute of `read_inferential_replicates()`), so the prior is the one of `catchSalmon()` whatever `min_count` keeps (checked on GENCODE 50 in the evaluation of section 8: 654,828 placenta targets, largest relative difference 1.35e-11; the earlier GENCODE 49 check gave 4e-12 on 517,038 transcripts). Replicates without moments fall back to the stored transcripts |
 | Number of draws | `add_uncertainty(n_draws = )`; 30 Gibbs draws in examples and articles; stored in `metadata$uncertainty_n_draws` | `N * (B - 1) >= 60`, better 200 to 300 | Met from 3 samples (87); 7 samples reach 203. Not checked or reported by the package |
 | Replicate type | `read_meta_info()` reads `samp_type`; stored in `metadata$uncertainty_replicate_type` | Gibbs preferred over bootstrap (2.1) | Recorded, no advice given |
 | InfRV | `inferential_rv()`: `pmax(0.01, var - mean) / (mean + 5)` | `pmax(var - mean, 0) / (mean + 5) + 0.01` (fishpond, Terminus) | **Differs.** Ours is 0.01 lower when `var - mean > 0.01`, and equals `0.01 / (mean + 5)` instead of `0.01` when `var <= mean`. The roxygen says "as in fishpond" |
@@ -357,6 +359,10 @@ paper and must be validated before it is trusted.
 
 Open items: U10, and the ranges of U5, which need a decision on the model
 first (see 5.4).
+
+U11 to U13 come from the genome-wide evaluation and are listed in 8.5
+(applied on 2026-11-20: `unstable` reported as the flag of a call, the
+confidence class removed, `inf_rv_cutoff = 0.5` kept as a description).
 
 ### 5.2 Items
 
@@ -506,11 +512,20 @@ first (see 5.4).
 
 ### 5.3 Applied on 2026-11-11
 
+The effect sizes below were measured on the GENCODE 49 quantifications of
+the knockdown data, before the bundled data moved to GENCODE 50 (commit
+f3a1a87); they were not rerun and describe the change, not the current
+tables. The current numbers of the articles are checked against the
+GENCODE 50 bundles. Where the evaluation of section 8 (GENCODE 50) measured
+the same thing, its number is given in the item.
+
 - **U1.** `inferential_rv()` is now
   `pmax(var - mean, 0) / (mean + pseudocount) + shift`; `cut_transcript_trees()`
   calls it instead of its inline copy; `data-raw/knockdown/isoform_features.R`
-  has the same form. A test compares it with `fishpond::computeInfRV()`.
-  Effect on the six-sample knockdown data (116,229 assessed transcripts):
+  has the same form. A test compares it with `fishpond::computeInfRV()`;
+  on GENCODE 50 the snapshot used in section 8 matches `computeInfRV()` on
+  the placenta data to a largest relative difference of 1.29e-11.
+  Effect on the six-sample knockdown data (GENCODE 49) (116,229 assessed transcripts):
   median InfRV of the groups up by 0.01; among the large changes 2 isoforms
   moved from high to moderate confidence (203 to 201); one isoform changed
   InfRV bin in the replication table; uncertain isoforms left alone by the
@@ -531,7 +546,12 @@ first (see 5.4).
 - **U3.** `resampling_df()` and `inform_resampling_df()`; `add_uncertainty()`
   stores `metadata$uncertainty_resampling_df` and informs below 60 (class
   `isoformic_few_inferential_replicates`); `uncertainty_methods()` states the
-  number; `uncertainty_report()$replicates` is new.
+  number; `uncertainty_report()$replicates` is new. Section 8 checked the
+  sufficiency of 30 draws on GENCODE 50: InfRV thirds from 15 and 30 draws
+  agree for 93.5% of the expressed placenta transcripts, the default class
+  flag (class not `high`) for 98.0% of the replication calls, and the overdispersion prior moves
+  by +2.0% from 30 to 100 draws. Whether 100 draws change the calls was not
+  tested.
 - **U9.** The article and `?add_uncertainty` state the long-read expectation;
   `uncertainty_report()$replicates$median_overdispersion` lets it be checked
   (needs the draws in the object).
@@ -541,7 +561,9 @@ first (see 5.4).
 Checked on the six GSE129540 samples (`quants_sub`, GENCODE 49, 116,229
 assessed transcripts, 639,909 sibling pairs; Terminus groups from
 `terminus_all/out`). The script was a scratch file and is not in the
-repository; the numbers come from one run.
+repository; the numbers come from one run. They are GENCODE 49 numbers and
+were not rerun on GENCODE 50; the identifiability items (U5) have GENCODE 50
+counterparts from section 8, given at the end of U5.
 
 - **U4, done.** `isoform_ambiguity()$collapse_gain`, computed in
   `inferential_correlation()` from the two variances and the correlation, so
@@ -650,11 +672,22 @@ repository; the numbers come from one run.
     `add_uncertainty(identifiability = TRUE)` stores `identifiable` and
     `identifiable_fraction`, and `de_confidence()` counts a
     non-identifiable isoform as a fourth failed condition. Off by default
-    (cost; the article numbers do not change). Not yet measured: how many
-    confident calls of GSE129540 this removes.
+    (cost; the article numbers do not change). How many confident calls of
+    GSE129540 this removes was not measured; section 8 measured the flag on
+    its own instead (next item).
+  - GENCODE 50, placenta (section 8; 25 samples, 2026-11-18). 22,181 of the
+    57,294 expressed transcripts (38.7%) are not identifiable in at least
+    one sample, in 10,631 of 14,844 genes; the function took 203 minutes
+    for the 25 samples (about 8 minutes per sample, against 30 to 185 s on
+    the 12 M pair knockdown samples). In the held-out replication,
+    non-identifiable calls (20.4% of the calls) replicate in 51.6% against
+    65.5% (adjusted OR 0.56, 0.54-0.58, planned bootstrap). In the
+    7 v 7 null they do not attract more false calls (adjusted RR 0.83,
+    0.43-1.57, sensitivity model). So the flag predicts non-replication more
+    than the class does, but less than `sign_agreement` (OR 0.36).
   - Open: a weighted variant;
     whether the flip between halves is the effective-length mechanism
-    above. The numbers above are one run on one dataset.
+    above. The GENCODE 49 numbers above are one run on one dataset.
   - `read_eq_classes()` reads files with weights correctly (it takes the
     first `size` fields as members and the last as the count) and ignores
     the weights.
@@ -743,3 +776,380 @@ Verified DOIs.
   doi:10.1186/s13059-026-03988-1
 - Patro R et al. Salmon provides fast and bias-aware quantification of
   transcript expression. Nat Methods 2017. doi:10.1038/nmeth.4197
+
+## 8. Genome-wide evaluation (2026-11-18)
+
+A pre-registered evaluation of whether quantification uncertainty changes
+transcript-level results, and whether the flags of `add_uncertainty()` and
+`de_confidence()` predict which calls fail to replicate. Negative results
+are kept. The article
+`vignettes/articles/isoformic-uncertainty-evidence.qmd` presents it; every
+number there is computed inline from the bundled tables.
+
+### 8.1 Where things are
+
+- Scripts: `data-raw/uncertainty_evidence/` (numbered in run order; the
+  README gives the run order, the inputs and the environment variables).
+  `prereg.yaml` is the frozen plan (seeds, methods, thresholds, rules R-A
+  and R-B); `prereg_amendments.yaml` lists every change, A1 to A24; A5 to A9
+  and A11 to A24 were made or recorded after the results were seen and say
+  so (`post_hoc: true`; A10 changes no analysis). A18 records the F4 tables
+  recomputed with the repository code instead of the snapshot, and A19 that
+  the mouse null was not pre-registered. Neither file is in an external registry, and both
+  were committed together with the results, so the git history does not
+  show that the plan came first: that rests on `written` in `prereg.yaml`
+  and the snapshot sha256 it records (A16). The A4 pilot wrote the null
+  results of its 9 splits before A4 fixed the design; they are kept in the
+  reported results (the only DESeq2 rows at 5 v 5 and 3 v 3), and nothing
+  records whether they were looked at (A16).
+- Code: every script loads a frozen `git archive` snapshot of commit
+  4a6e983 (its sha256 is in `prereg.yaml`), not the live `R/`, and stamps
+  every table with the git sha, the snapshot sha256, the seed and the
+  script.
+  `92_package_flag_check.R` (post hoc, A24) is the link to the live code:
+  it recomputes the sign agreement of the discovery half of all 60
+  directed pairs with the repository's `add_uncertainty()` and
+  `de_confidence()` and counts the calls whose `unstable` differs from the
+  evaluated flag (keys `B.pkgcheck.*`; 0 of 167,318 on 2026-11-20). Rerun
+  it after any change to `compute_de_confidence()` and the evidence
+  numbers still describe the package only if the count stays 0.
+- Outputs: everything is written under `$ISOFORMIC_UE_OUT` (not in the
+  repository): `S0/`, `store/`, `null_placenta/`, `placenta_audit/`,
+  `null_mouse/`, `rhalf/`, `wpc_summary/`, `od_prior/`, `article_tables/`,
+  and a summary report `REPORT.md`.
+- Article data: `90_article_tables.R` copies every stated number with its
+  CI, CI type and source table into `article_tables/`;
+  `91_bundle_article_data.R` copies those tables into
+  `vignettes/articles/data/uncertainty_evidence/`, pruned to the keys the
+  articles use (about 19 KB).
+
+### 8.2 Design
+
+- Data (all GENCODE 50, Salmon, 30 Gibbs draws): placenta GSE148241 /
+  PRJNA622166, 8 preeclampsia and 17 controls (15 control units: two
+  labelled A/B pairs, probably twins, keep one member each); mouse adBNST
+  PRJNA984605, 10 control males (GENCODE vM39); random read halves of the
+  two knockdown series GSE129540 and GSE75489.
+- Universe: 57,294 transcripts of 14,844 genes expressed in the
+  preeclampsia samples; InfRV thirds from those samples only (cut points
+  2.17 and 7.59).
+- WP-A, placenta null: control-only splits 3 v 3, 5 v 5 (100 each) and
+  7 v 7 (210 leave-one-unit-out); methods M1 (edgeR QL, point counts), M2
+  (divided counts), M6 (swish on draws), M7 (swish on tied point counts, a
+  control), M9a (M1 kept in class `high`), M10a (M1 after dropping as many
+  low-expression transcripts), M11 (gene level), plus M3/M4 (limma-voom,
+  7 v 7 only) and M5 (DESeq2 Wald, 20 7 v 7 splits; 3 pilot splits at 5 v 5
+  and 3 v 3); DTU (diffSplice, satuRn, DEXSeq) and NMD; a gene-thinning
+  power arm on 30 7 v 7 and 30 5 v 5 splits (5% of the filtered
+  multi-isoform genes, sampled within InfRV thirds, plus as many
+  single-isoform genes, each with |log2FC| uniform in [0.58, 2]). Rule R-A:
+  adjusted RR (false calls p < 0.01, top against bottom InfRV third,
+  quasi-Poisson with expression decile and isoform class) above 1, removed
+  by an uncertainty-aware method, absent at gene level. prereg.yaml names
+  no group size; the analysis judges it at 7 v 7, the design A4 gave the
+  most splits (A13, recorded after the results).
+- WP-B, placenta real contrast: prevalence of fragile calls; held-out
+  replication over 30 half-splits in both directions (60 directed pairs,
+  167,318 calls at q < 0.10, a script rule with a top-500 fallback that
+  prereg.yaml does not contain, A14; replicated = same sign at one-sided
+  p < 0.05 in the other half); flags from the discovery half only, except
+  `unique_fraction == 0` (all PE samples). Rule R-B: the default flag
+  (class not `high`) has an adjusted OR CI below 1 and beats the
+  count-matched flag. prereg.yaml describes that control as having the same
+  mean-count distribution; it was implemented as C4, the same number of
+  lowest-count calls per pair, a different control (A12, recorded after the
+  results). prereg.yaml registers only the class flag; sign agreement and
+  the other flags are secondary, and making sign agreement the headline was
+  a post hoc choice (its 0.95 threshold was fixed).
+- WP-C: mouse null (all 126 5 v 5 splits; not in prereg.yaml, which names
+  no mouse dataset or design: it applies the R-A rule by analogy, A19); read
+  halves (technical).
+- WP-D: the overdispersion prior genome-wide against the bundled 39-gene
+  panel prior.
+- Intervals: placenta null, delete-one-unit jackknife with a Monte Carlo
+  correction where valid (A5; the raw jackknife is the conservative
+  interval and is reported where the correction removes most of the
+  variance); mouse, exact jackknife over all splits per animal (A8); WP-B,
+  the planned two-level bootstrap (half-splits, then genes within each
+  pair; prereg.yaml says transcripts, A15), plus gene-clustered and
+  split x gene bootstraps (A11);
+  WP-D, bootstrap over genes.
+
+### 8.3 Verdicts
+
+- **R-A fails** at 7 v 7, the size the analysis judged it at (A13): M1
+  adjusted RR 1.00 (raw jackknife 0.56-1.76; the MC-corrected 0.92-1.08
+  keeps only about 2% of the jackknife variance, within the noise of the MC
+  term, and is not reliable; same for 5 v 5, 1.81, raw 1.17-2.80). The raw
+  interval does not rule out an excess of up to about 1.8. edgeR QL on point
+  counts is calibrated there (inflation at p < 0.01 0.83; 0.095 false
+  calls per split at q < 0.05), as is limma-voom (0.076); DESeq2 Wald is
+  not (43.9 false calls per split, raw jackknife 0-115, inflation 1.82,
+  20 splits). swish makes more false calls than M1 in the placenta too
+  (5 v 5: 2.39, 1.71-3.07, against 0.11; 7 v 7: 0.67 against 0.095).
+  Nothing above 7 per group was tested.
+- **Small n (secondary sizes, not judged by R-A)**: 5 v 5 1.81 (raw jackknife
+  1.17-2.80), 3 v 3 2.44 (1.65-3.60); overall inflation stays near 1 (1.13
+  at 3 v 3), so false calls are redistributed towards uncertain isoforms,
+  not added. Mouse 5 v 5: 2.70 (1.68-4.33), passing R-A only under the A8
+  deviations (the mouse design was not pre-registered, A19); the mouse controls hold a hidden library batch, and the
+  excess survives on the batch-balanced splits (3.86, 1.31-11.4).
+- **Divided counts** remove the small-n concentration (ratio of RRs M2/M1
+  0.45 at 5 v 5, 0.28 at 3 v 3) but do not reduce false discoveries (3 v 3:
+  0.20 against 1.21 per split at q < 0.05, 0.39 without M2's worst split)
+  and cost power (thinning: 21,349 against 31,886 true calls; 2,507 against
+  7,254 in the top InfRV third).
+- **R-B passes formally but is fragile**: class-not-high OR 0.68
+  (0.647-0.726); it beats C4 by 0.018 (0.004-0.031) under the planned
+  bootstrap, but C4 is not the control prereg.yaml describes (A12), and the
+  CI includes 0 with genes as clusters (-0.018 to 0.053)
+  or split x gene (-0.019 to 0.057). Closer to the planned control, the
+  class keeps a matched deficit within count x |z| cells of 0.099
+  (0.087-0.110), and the class permuted within those cells has -0.017. A
+  same-size flag from count and |z|
+  (C4b, post hoc) beats the class (deficit 0.200 against 0.085). In the
+  null, class `high` holds 8.4% of tested transcripts but 18.5% of false
+  calls (enrichment 2.22), because 93% of null calls are stable across
+  draws.
+- **`sign_agreement < 0.95` predicts non-replication** (secondary flag,
+  made the headline after the results; strongest by OR in the placenta
+  half-splits but narrow, it catches about 10% of failures; in the read
+  halves other flags do as well or better): 5.7% of the calls of the
+  discovery halves (q < 0.10), 2.1% of the 6,636 full-cohort calls at
+  q < 0.05;
+  replication 34.7% against 64.3% (pooled half-split rates; per pair
+  24.0-51.1% against 51.3-85.9%, lower in all 60 pairs); deficit matched
+  within count x |z| cells 0.249 (0.232-0.266); adjusted OR 0.36,
+  planned-bootstrap CI 0.33-0.39, gene-clustered 0.31-0.41; pair fixed effects
+  0.35; splines on count and |z| 0.36; sign-concordance outcome 0.29. PPV
+  for non-replication 65% (base 37%), catches 10% of failures, removes 3.2%
+  of replicating calls. Read halves (technical consistency only): OR 0.069
+  (0.030-0.130) GSE129540 and 0.154 (0.079-0.268) GSE75489, the latter on
+  fallback calls (29 and 45 calls at q < 0.10, so the top 500 by p).
+- **InfRV >= 0.5** marks 87.1% of the expressed placenta transcripts; the
+  top InfRV third has OR 0.63; an ambiguous partner 0.87; no unique reads
+  0.69; not identifiable 0.56.
+- **Point against draws** (post hoc): 23.0% of the 6,636 full-contrast DTE
+  calls (q < 0.05) have a point log2FC outside the 2.5-97.5% range of their
+  30 per-draw refits, 2.0% by at least FLT1-214's 1.53 (FLT1-214: 5.28
+  against 2.51-3.75; LEP-203, 1.51, is just short of it and not among
+  the 134); 1.8% of class `high`, 27.0% `moderate`, 39.4% `low`.
+  In 1,239 of the 1,529 the point estimate is further from 0 than the whole
+  range: the per-draw refits are pulled towards 0 relative to the EM point
+  estimate, a systematic EM against Gibbs difference; neither is ground
+  truth, and the draw range is not a CI for the point estimate. 6 of the 8
+  tested FLT1 isoforms lie outside their range (5 further from 0; FLT1-204
+  by 0.01 only). The refits are edgeR refits per draw; `de_confidence()`'s
+  `lfc_median`/`lfc_lo`/`lfc_hi` (difference of the group means of
+  log2(scaled count + 5), a log ratio of geometric means) were
+  not compared with the point estimate.
+- **Story genes** (prereg `story_genes`; `story_genes.parquet`): ENG
+  (gene log2FC 1.88, replicated 59 of 59) and LEP (6.79, 60 of 60); ENG-202
+  (12,749 reads) and ENG-216 (3,927) are class `low` yet replicate 42 of 42
+  and 60 of 60. The prereg fragile rule selected no gene (0 candidates); a
+  substitute rule of 32_story.R (F2/F4, not in prereg.yaml) picked LAS1L
+  (of 120): gene point log2FC 0.40 while only 3% of the per-draw refits
+  share its sign, yet the call replicates in 14 of 16 pairs; LAS1L-202
+  (point 4.74, refits -0.96 to 1.61) replicates 40 of 40. Replication uses
+  the same EM point counts, so it cannot catch a distortion repeated in all
+  samples. The robust rule picked TBC1D26 (of 411; one isoform, class
+  `high`, 60 of 60).
+- **DTU**: scaling helps diffSplice at 5 v 5 (3.49 -> 0.17 false genes per
+  split, intervals separated), satuRn inflation 0.71 (0.15-3.48) -> 1.25
+  (0.13-11.68) cannot be told apart, DEXSeq is anti-conservative either
+  way.
+- **Prior**: genome-wide 1.477 (1.447-1.504); the bundled panel prior is
+  2.94 times the genome-wide one for GSE129540 but swapping them changes no
+  DTE call.
+
+### 8.4 Corrections made to the articles
+
+`isoformic-uncertainty.qmd` (2026-11-19): the class gradient, the "all 72
+below 0.5" scale, the "about three times chance" excess on raw counts and
+the usage gains are now qualified as technical-half results with the
+biological numbers next to them; the reporting advice no longer implies
+filtering on the class and names `sign_agreement` as the column to report;
+`confident_only` is described as a sensitivity analysis; the cut-off
+caution says which default was supported. The stability article sentence
+"uncertainty is not a problem of low counts" is only partly supported (the
+flags keep an effect after adjustment for count and |z|, but a count and
+|z| flag beats the class and the largest distortions are in low-count
+isoforms); on 2026-11-20 it was narrowed to the InfRV result ("A high
+InfRV is not a sign of low counts"), with a pointer to the low-count
+exceptions of the evidence article.
+
+`isoformic-uncertainty-evidence.qmd` (2026-11-19, on review): the
+pre-registration is described as it is (two rules; sign agreement a
+secondary flag made the headline after the results; files in the
+repository, not a registry); R-A's group size, R-B's control and the
+discovery rule are described as implemented, with amendments A12 to A14;
+LEP-203 is "close to" FLT1-214, not among the 134; the mouse batch-aligned
+false calls are attributed to the one fully confounded split; the thinning
+design and the recommendation (7 per group, edgeR QL only) are stated as
+tested; a supplementary section gives every null method (limma-voom, DESeq2,
+Wilcoxon, M9/M10 variants, gene level), the 5 v 5 thinning arm and the
+robustness variants. `isoformic-uncertainty.qmd`: sign agreement is the
+best, not the only, predictor; C4 is described as the lowest-count calls.
+`REPORT.md` in the output directory is not tracked; its stale numbers
+(enrichment CI 1.72-2.85, from before A6; "about 28" reads instead of 27;
+"satuRn gets worse") were corrected on 2026-11-19, but
+`workflow_results.json` still has the old enrichment CI: quote the bundled
+tables, which are the source of record.
+
+`isoformic-uncertainty-evidence.qmd` (2026-11-19, second review): sign
+agreement is described as a secondary flag of the analysis scripts, with
+only its threshold in the plan; the plan/pilot/results order is stated as
+the files show it (A16); the replication bootstrap is the "planned
+bootstrap" with its gene unit (A15); every story gene of the plan and both
+rules are reported; the point-against-draws text no longer says the
+uncertainty only changes the effect size, and the advice names the edgeR
+refits that were evaluated and says `lfc_median` was not; the satuRn,
+thinning FDR, thinning design, robustness, draws and placenta-size
+sentences match the tables. `isoformic-uncertainty.qmd`: the satuRn
+sentence and the `lfc_median` advice follow, and an HTML comment says where
+each typed Terminus/TreeTerminus/IsoformSwitchAnalyzeR number comes from.
+
+`isoformic-uncertainty-evidence.qmd` (2026-11-19, third review): the
+read-half check now shows every flag (table `tbl-rhalf-flags`): there
+sign agreement is not the best flag, and InfRV, "uncertain" and the
+ambiguous partner have adjusted ORs as low or lower (the ambiguous partner
+only after adjustment), so the read halves support "the draws carry
+information", not sign agreement in particular; "best" is limited to the
+placenta half-splits, by OR and replication gap (by delta-AUC over count
+and |z| the non-identifiable flag is level with it). The plan's two other
+R-B controls are reported: the placebo as implemented (the class shuffled
+within count x |z| cells) and the label-permutation baseline C1 (deficit
+0.096 under permuted labels against 0.085 observed; not a null with 4 PE
+samples per discovery half), with amendment A17. WP-D is in the text:
+divided counts made 7,887 against 6,235 calls on the common tested set
+(about as many with their own filters, 7,889 against 7,975), of unknown
+truth; the panel prior (2.9 and 2.4 times the genome-wide one) changed no
+knockdown call. The sign-agreement headline and advice give its
+sensitivity (10% of failures) and the 93% of null false calls stable over
+the draws; the small-sample excess is "at nominal p < 0.01" with the q <
+0.05 false calls (0.20 and 0.11 per split) next to it. Smaller fixes: the
+fragile and robust rules use "validation halves" (not held out for a cohort
+call), the substitute rule counts 120 candidate results (117 genes), the
+TBC1D26 numbers are given for the gene and for TBC1D26-204, the FLT1 gap
+sentence is hedged, the tutorial pointer says "two knockdown series", and
+Limits says the prior was the only quantity computed from 100 draws
+(+2.0%). `isoformic-uncertainty.qmd`: "best predicted" is limited to the
+placenta half-splits with its 10% sensitivity, "thirty replicates ...
+change little" is replaced by what was and was not tested (and the
+stability article's 100-draw advice), the class is no longer described as
+how far a call "can be trusted", and the panel-prior and real-contrast
+WP-D results are stated. The note that `R/uncertainty.R` still called the
+class a measure of trust was closed by U11 to U13 (8.5, 2026-11-20).
+
+Articles aligned with U11 to U13 (2026-11-20). `isoformic-uncertainty.qmd`
+reports `unstable` / `unstable_de` / `flags` instead of the class, states
+the measured effect (OR 0.36, gene-clustered 0.31-0.41, 60 of 60 pairs) with
+its 10% sensitivity, that the flag was chosen after the results, and that
+R-A failed at 7 v 7 (the 3 v 3 excess is nominal, p < 0.01, only); it
+describes `uncertain` as a description of the isoform (87% of expressed
+placenta isoforms), says to read `unstable` on the calls only (null
+transcripts have a median log2FC near 0), and presents `drop_unstable` as
+a sensitivity analysis. The knockdown scripts count by flag instead of
+class and were rerun with the working tree on GENCODE 50
+(`validate_uncertainty.R`, `compare_terminus.R`, `compare_treeterminus.R`):
+`replication_class` became `replication_flag` (per flag: unstable 15 of
+110 half-1 calls, same direction 0.80 against 0.96, none called again);
+`null_stable` counts uncertain and ambiguous isoforms (1,189 of 1,192 stable
+large null changes are uncertain); `terminus_comparison` and
+`grouping_comparison` count the large changes with an unstable direction
+(1,698 of 5,110, the same under every grouping) and with an ambiguous
+sibling (1,003 correlation, 2,867 Terminus, 1,061 TreeTerminus); every
+other value of these tables, `null_calls` and `replication_rv` came out
+identical. `isar_comparison` lost its `high_confidence` column (the rest is
+unchanged; IsoformSwitchAnalyzeR was not rerun). The new read-split cache
+replaces the old one in the GENCODE 50 work directory; the old one is kept
+as `read_split_contrasts.pre_unstable.rds`. `isoformic-uncertainty-evidence.qmd`
+calls the class "former default" or "of the evaluated snapshot", replaces
+the "defaults predate this evaluation" note with the change, and adds to
+Limits that the package flag reproduces the evaluated flag on all 60 pairs
+and is a secondary, post hoc flag whose effect elsewhere is untested. The
+stability, introduction, preprocess and enrichment articles, the README and
+`_pkgdown.yml` no longer mention a confidence of the calls. The untracked
+evidence `REPORT.md` was synced with the article (read halves are a
+technical check, not two independent series; gene-clustered intervals; R-A
+fails; small-n excess nominal only).
+
+Fourth review (2026-11-20). The 5.7% share of unstable calls is that of
+the discovery halves (q < 0.10); the evidence article and the uncertainty
+tutorial now give the full-cohort share next to it (2.1% of 6,636 calls at
+q < 0.05, key `B.prevalence.F1.pct_sign_agree_lt_0.95`, added to
+`90_article_tables.R` from `summary_family.parquet`). The 2.22-fold excess of
+class `high` among null calls is no longer read as the class working the
+wrong way: a stable direction alone is over-represented 3.00 times (31% of
+tested transcripts, 93% of null calls), since selecting calls at p < 0.01
+selects stable signs; the evidence against the class in the null is the
+equal-removal comparison (M9a minus M10a -0.097, -0.24 to 0.05). The usage
+section of the tutorial says that scaling raised satuRn's null calls at
+q < 0.05 from 0 to 6 and 2, about as many as its 11 extra real calls.
+`REPORT.md`: the FLT1-214 example no longer says the uncertainty changes
+only the size of the effect or that LEP-203 is among the 134, and the
+Baldoni pattern is reported as holding only in part (no power gain from
+divided counts).
+
+### 8.5 Package changes (applied 2026-11-20)
+
+Status: U11, U12 and U13 applied on 2026-11-20 (spec of that day, kept
+outside the repository). The articles, the README and the knockdown
+read-split tables were aligned the same day (8.4, last paragraph).
+
+- **U11 applied.** `de_confidence()` reports `unstable`
+  (`sign_agreement < min_agreement`, `NA` when not assessed) right after
+  `sign_agreement`, and `unstable_de` (a significant call with an unstable
+  direction); `reason` is renamed `flags` ("unstable direction" first).
+  `uncertainty_report()$de` has one row per flag (`unstable`, `uncertain`,
+  `ambiguous`, `not_identifiable` when computed) with its rule and counts;
+  `uncertainty_methods()` describes the sign agreement and makes no trust
+  claim; `plot_de_confidence()` colours by the direction over the
+  replicates. The help text states the measured effect (OR 0.36,
+  gene-clustered 0.31-0.41, 60 of 60 pairs, about 10% of failures caught,
+  93% of null false calls stable) and that the headline was chosen after the
+  results.
+- **U12 applied: the class was removed**, not redefined (it was never
+  released: v0.1.2 exports none of these functions). `confidence` and
+  `confident_de` are gone; `isoform_switches(confident_only = )` is defunct
+  (error of class `isoformic_defunct_argument`; the formal goes after the
+  0.1.3 release), `drop_unstable = TRUE` leaves out the unstable calls and
+  keeps the not-assessed ones, `n_det_unstable` replaces `n_det_confident`,
+  `uncertainty_report()$switches` compares all calls with the calls without
+  unstable directions, and `confidence_palette()` is removed. Identifiability
+  stays a separate column, never combined with `unstable` (combining weak
+  flags is what diluted the class OR from 0.36 to 0.68). Tables stored by
+  earlier development builds are upgraded by `read_isoformic()` (one message,
+  class `isoformic_legacy_confidence`) and silently in memory.
+- **U13: kept 0.5, no longer a gate; quantile cut not adopted**
+  (object-dependent, changes with panels and `x[i, ]`; top-third OR 0.63 is
+  weaker than `unstable` and non-identifiability; `cut_transcript_trees()`
+  relies on the absolute 0.5). The docs now say it marks InfRV above the
+  sampling noise of about 30 draws and describes the isoform without judging
+  calls; `uncertainty_report()$transcripts` gains `q25_inf_rv` and
+  `q75_inf_rv`.
+- The per-draw range (`lfc_lo`-`lfc_hi`) is documented as the spread of the
+  screening statistic, not a confidence interval for the point estimate of
+  the primary test, and the sign agreement as measured against the median
+  draw sign, not `det_log2FC`.
+- The fold-change of `de_confidence()` (`lfc_median`, `lfc_lo`, `lfc_hi`,
+  and so `sign_agreement`) is documented as what the code and the evaluated
+  rule (`m9_flags()` of `21_null_dte.R`) compute: the difference between
+  the groups of the mean of log2(scaled count + 5), a log ratio of
+  geometric means on the scale of the Welch test. Earlier text called it a
+  log ratio of group means; the two can differ in sign. A unit test pins
+  `welch_matrix()` to it.
+
+The original proposals:
+
+| ID | Change | Evidence (8.3) | Effort |
+|---|---|---|---|
+| U11 | Report `sign_agreement < min_agreement` as the primary flag: a count in `uncertainty_report()$de`, a sentence in `uncertainty_methods()`, highlighted in `plot_de_confidence()` | OR 0.36 (gene-clustered 0.31-0.41), robust to power adjustment and pair fixed effects; read halves 0.07-0.15 | S |
+| U12 | Change the role of the class in `confident_de` (`R/uncertainty.R`, `n_det_sig > 0 & confidence == "high"`) and in `isoform_switches(confident_only = TRUE)` / `uncertainty_report()$switches`: base it on sign agreement (optionally identifiability), or keep the class as a description only and drop the filter wording | class flags 82.5% of calls, OR 0.68, beats count-matched C4 by 0.018 with a CI that includes 0 under gene clustering, beaten by a count and |z| flag; `high` enriched 2.22 times for null calls; at equal removal no better than dropping low-expression transcripts | M (changes numbers in articles and tests) |
+| U13 | Revisit `inf_rv_cutoff = 0.5`: a data-relative cut (for example the top InfRV third of the expressed transcripts), or keep InfRV out of the class | 87.1% of expressed placenta transcripts are above 0.5; the bottom third ends at 2.17; top-third flag OR 0.63; `cor_cutoff = -0.5` (ambiguous partner) OR 0.87 | S-M |
+
+Also proposed, and applied with U11: state in `?de_confidence` that the
+per-draw fold-change range is not a confidence interval for the point
+estimate, and that the point estimate of low-count isoforms can lie outside
+it (8.3, point against draws). Not tested here: long reads, `delta_z`, `lfc_z`,
+`dominant_inf_rv`, and more than 30 draws for the calls.

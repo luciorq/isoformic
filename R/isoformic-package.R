@@ -8,7 +8,3 @@
 #' @importFrom rlang %||%
 ## usethis namespace: end
 NULL
-
-.onLoad <- function(...) {
-  S7::methods_register()
-}

@@ -88,6 +88,29 @@ testthat::test_that("test_usage handles groups, filters, scaling and missing bac
   testthat::expect_false(unique(unscaled$scaled))
 })
 
+testthat::test_that("test_usage checks workers like the enrichment functions", {
+  testthat::skip_if_not_installed("edgeR")
+  x <- usage_experiment()
+  for (bad in list(2.5, -1, 0, "two", c(1L, 2L), NA_integer_)) {
+    testthat::expect_error(
+      test_usage(x$iso, group = "condition", workers = bad),
+      class = "isoformic_invalid_workers"
+    )
+  }
+  # "auto" is accepted; diffsplice runs serially whatever the count. The
+  # CPU count is mocked: parallelly caches it for the session, which would
+  # change the scheduler test of test-parallel.R
+  testthat::skip_if_not_installed("parallelly")
+  testthat::local_mocked_bindings(
+    availableCores = function(...) c(system = 2L),
+    .package = "parallelly"
+  )
+  serial <- test_usage(x$iso, group = "condition")
+  auto <- test_usage(x$iso, group = "condition", workers = "auto")
+  testthat::expect_identical(auto, serial)
+  testthat::expect_identical(formals(test_usage)$workers, 1L)
+})
+
 testthat::test_that("filter_usage keeps genes with two expressed transcripts", {
   counts <- rbind(
     a1 = c(50, 60, 55, 40),
@@ -246,4 +269,31 @@ testthat::test_that("omnibus_usage combines the contrasts with Simes", {
   omni <- omnibus_usage(res)
   testthat::expect_equal(omni$pvalue, c(0.02, 0.3))
   testthat::expect_true(all(is.na(omni$usage_log2FC)))
+})
+
+testthat::test_that("adjust_usage gives each gene the Simes p-value of its rows", {
+  res <- tibble::tibble(
+    transcript_id = paste0("t", 1:9),
+    gene_id = c("g2", "g1", "g2", NA, "g3", "g1", "g2", "g3", NA),
+    pvalue = c(0.04, 0.01, 0.5, 0.2, NA, 0.3, 0.02, NA, 0.1)
+  )
+  out <- adjust_usage(res)
+  testthat::expect_identical(out[, colnames(res)], res)
+  testthat::expect_equal(out$qvalue, stats::p.adjust(res$pvalue, "BH"))
+  expected <- c(
+    g2 = min(3 * c(0.02, 0.04, 0.5) / 1:3),
+    g1 = min(2 * c(0.01, 0.3) / 1:2),
+    g3 = NA_real_
+  )
+  testthat::expect_equal(
+    unname(out$gene_pvalue),
+    unname(expected[res$gene_id])
+  )
+  testthat::expect_true(all(is.na(out$gene_pvalue[is.na(res$gene_id)])))
+  gene_q <- stats::p.adjust(c(expected, NA), "BH")
+  names(gene_q) <- c(names(expected), NA)
+  testthat::expect_equal(
+    unname(out$gene_qvalue),
+    unname(gene_q[match(res$gene_id, names(gene_q))])
+  )
 })

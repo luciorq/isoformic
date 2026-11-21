@@ -50,6 +50,7 @@ r-curl = "*"
 r-jsonlite = "*"
 r-knitr = "*"
 r-matrix = "*"
+r-parallelly = "*"
 r-patchwork = "*"
 r-readr = "*"
 r-readxl = "*"
@@ -96,7 +97,10 @@ bioconductor-limma = "*"
 bioconductor-saturn = "*"
 bioconductor-summarizedexperiment = "*"
 bioconductor-tximeta = "*"
-bioconductor-tximport = "*"
+# `Suggests` on conda-forge that win-64 cannot use: the win-64 `r-nanonext`
+# there is too old for mirai, so on Windows `pixi run r-packages` installs
+# mirai and the newer nanonext it needs from CRAN.
+r-mirai = ">=2.3.0"
 # condathis is not on conda-forge; build it from the commit that
 # https://luciorq.r-universe.dev/api/packages/condathis reports as RemoteSha.
 r-condathis = { git = "https://github.com/luciorq/condathis", rev = "ecc46447b094aba91e5fc1cd61493fa97f0194a0", package = { build.backend = { name = "pixi-build-r", version = "0.2.*" }, host-dependencies = { r-base = "4.5.*" } } }
@@ -170,6 +174,7 @@ format = "just format"
 lint = "just lint"
 test = "just test"
 test-full = "just test-full"
+benchmark-memory = "just benchmark-memory"
 
 [feature.pkg.tasks]
 render-articles = "just render-articles"

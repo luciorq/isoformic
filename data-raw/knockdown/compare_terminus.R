@@ -4,9 +4,10 @@
 # Needs data-raw/knockdown/quantify_knockdown.sh (quants_sub/) and the
 # Terminus run on Salmon output with --dumpEqWeights (terminus group and
 # terminus collapse on all six samples, output folder terminus_all/out). The
-# comparison reports how much the two groupings overlap and how the confidence
-# classes change when the groups of Terminus are used; neither grouping is the
-# truth.
+# comparison reports how much the two groupings overlap and how many large
+# changes have an ambiguous sibling under each grouping; neither grouping is
+# the truth. The direction flag (`unstable`) of a transcript does not depend on
+# the grouping, which the script checks.
 #
 # Usage:
 #   ISOFORMIC_KNOCKDOWN_DIR=/path/to/workdir Rscript data-raw/knockdown/compare_terminus.R
@@ -89,13 +90,16 @@ pairs_c <- dplyr::bind_rows(lapply(
 ))
 same_t <- group_of_t[pairs_c$V1] == group_of_t[pairs_c$V2]
 
-classes <- function(obj) {
+large_changes <- function(obj) {
   conf <- de_confidence(obj)
-  conf <- conf[abs(conf$lfc_median) > 1 & !is.na(conf$confidence), ]
-  table(factor(conf$confidence, c("high", "moderate", "low")))
+  conf[abs(conf$lfc_median) > 1 & !is.na(conf$unstable), ]
 }
-cc <- classes(by_correlation)
-ct <- classes(by_terminus)
+cc <- large_changes(by_correlation)
+ct <- large_changes(by_terminus)
+stopifnot(
+  identical(cc$feature_id, ct$feature_id),
+  identical(cc$unstable, ct$unstable)
+)
 
 comparison <- tibble::tibble(
   quantity = c(
@@ -108,12 +112,10 @@ comparison <- tibble::tibble(
     "median InfRV, correlation-grouped",
     "median InfRV, Terminus-grouped",
     "median InfRV, in neither",
-    "large changes (|log2FC| > 1): high, correlation groups",
-    "large changes (|log2FC| > 1): moderate, correlation groups",
-    "large changes (|log2FC| > 1): low, correlation groups",
-    "large changes (|log2FC| > 1): high, Terminus groups",
-    "large changes (|log2FC| > 1): moderate, Terminus groups",
-    "large changes (|log2FC| > 1): low, Terminus groups"
+    "large changes (|log2FC| > 1)",
+    "large changes with an unstable direction (either grouping)",
+    "large changes with an ambiguous sibling, correlation groups",
+    "large changes with an ambiguous sibling, Terminus groups"
   ),
   value = c(
     length(assessed),
@@ -136,12 +138,10 @@ comparison <- tibble::tibble(
       ],
       na.rm = TRUE
     ),
-    cc[["high"]],
-    cc[["moderate"]],
-    cc[["low"]],
-    ct[["high"]],
-    ct[["moderate"]],
-    ct[["low"]]
+    nrow(cc),
+    sum(cc$unstable),
+    sum(cc$ambiguous %in% TRUE),
+    sum(ct$ambiguous %in% TRUE)
   )
 )
 comparison$value <- round(comparison$value, 3)

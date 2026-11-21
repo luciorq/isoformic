@@ -207,16 +207,20 @@ table(enrichment$experiment)
 plot_enrichment(enrichment, n = 20)
 ```
 
-At an adjusted p-value below 0.05, six gene sets go down in the protein coding isoforms of the treated cells,
-among them androgen response, cholesterol homeostasis and mitotic spindle,
+At an adjusted p-value below 0.05, nine gene sets go down in the protein coding isoforms of the treated cells,
+among them androgen response, cholesterol homeostasis, mitotic spindle
+and the proliferation sets E2F targets and G2M checkpoint (the most significant),
 and four go up (interferon alpha and gamma responses, KRAS signalling and the p53 pathway).
-The loss of the mitotic spindle set agrees with the anti-proliferative effect of lorecivivint reported by
-@vangoubergen2024.
-The proliferation sets go down in the unproductive isoforms:
+The loss of the mitotic spindle and proliferation sets agrees with the anti-proliferative effect of
+lorecivivint reported by @vangoubergen2024.
+The proliferation sets also go down in the unproductive isoforms:
 G2M checkpoint and E2F targets in the retained intron, the nonsense-mediated decay and the grouped
-unproductive isoforms, and MYC targets in the retained intron ones.
-They do not go down in the protein coding ones.
-Only the transcript-level analysis shows this part of the response to the drug.
+unproductive isoforms, and E2F targets has a larger normalized enrichment score in each of these
+three groups than in the protein coding isoforms,
+so the unproductive isoforms of these genes fall together with the coding ones.
+MYC targets go down only in the retained intron isoforms.
+`run_enrichment()` sizes the gene sets by their genes, not by their transcripts,
+so the large hallmark sets are tested in every transcript type.
 
 ## Citing isoformic
 

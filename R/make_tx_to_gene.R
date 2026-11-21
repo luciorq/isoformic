@@ -22,7 +22,7 @@
 #'   `NA` for GFF3/GTF inputs and annotation directories.
 #'
 #' @examples
-#' gff <- system.file("extdata", "example.gff3", package = "isoformic")
+#' gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 #' tx2gene <- make_tx_to_gene(gff, output_path = tempdir())
 #' head(tx2gene)
 #'

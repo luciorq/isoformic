@@ -72,10 +72,36 @@
 #' are dropped they are not recomputed, and a message says so. Differential
 #' expression and enrichment results are kept as they are.
 #'
-#' A subset holds its own copy of the inferential replicates of the kept
-#' transcripts and samples. To compare two groups of a larger object, pass
-#' `levels` to the function instead of subsetting: the samples of the other
-#' groups are ignored and nothing is copied. A subset with other transcripts
+#' The inferential replicates are not copied: the `metadata$inf_reps` of a
+#' subset holds the draws of `x` and a `selection` attribute, a list with
+#' the IDs of the kept `transcripts` and `samples`. The functions of the
+#' package (and [inferential_replicates_table()]) read the draws through
+#' that selection, and [write_isoformic()] writes only the selected rows and
+#' columns, so the results are those of a copy of the kept draws, while the
+#' memory of a subset does not grow with the draws. The trade-off: the draws
+#' of `x` (every transcript and sample) stay in memory as long as a subset
+#' made from it exists, even after `x` itself is removed, and they go with
+#' every serialised copy of the subset: [saveRDS()], [serialize()] and the
+#' objects sent to parallel workers that do not share memory (such as
+#' `future` or `mirai` workers) carry every transcript and sample of the
+#' draws of `x`, while [write_isoformic()] writes only the selected ones.
+#' Code that indexes the matrices of `metadata$inf_reps` directly sees the
+#' draws of `x`. A list operation on `metadata$inf_reps` (such as
+#' [lapply()] or `[`) drops the `selection` attribute and returns the draws
+#' of `x`: the functions that take the object still read only its kept
+#' transcripts and samples, while code that gets only the list, such as
+#' [inferential_replicates_table()] without its `x` argument, reads every
+#' transcript and sample of `x`. When no kept
+#' transcript has draws, the subset keeps only the replicate moments (with
+#' zero-row draws), so that [scale_counts()] and
+#' [inferential_overdispersion()] still work, but the functions that need
+#' the draws treat it as an object without inferential replicates; without
+#' moments, `metadata$inf_reps` is `NULL`. To replace the draws by plain matrices of
+#' the kept draws (and free those of `x`), write the subset with
+#' [write_isoformic()] and read it back; to drop them, set
+#' `metadata$inf_reps <- NULL`. To compare two groups of a larger object,
+#' pass `levels` to the function instead of subsetting: the samples of the
+#' other groups are ignored. A subset with other transcripts
 #' starts with an empty cache of derived tables (the transcript annotation
 #' join is shared).
 #'
@@ -162,7 +188,7 @@ IsoformicExperiment <- S7::new_class(
       class = S7::class_list,
       default = list(),
       getter = function(self) {
-        stored <- attr(self, "gene_assays", exact = TRUE)
+        stored <- prop_raw(self, "gene_assays")
         if (length(stored) > 0L) {
           return(stored)
         }
@@ -189,7 +215,7 @@ IsoformicExperiment <- S7::new_class(
       default = list(),
       getter = function(self) {
         stored <- attr(self, "annot_metadata", exact = TRUE)
-        if (length(stored) > 0L || is.null(attr(self, "annot_path"))) {
+        if (length(stored) > 0L || is.null(prop_raw(self, "annot_path"))) {
           return(stored)
         }
         kv_to_list(get_annot_table(self, "metadata"))
@@ -442,7 +468,7 @@ standardize_col_data <- function(col_data) {
 #' @keywords internal
 #' @noRd
 validate_isoformic <- function(self) {
-  name <- attr(self, "experiment_name", exact = TRUE)
+  name <- prop_raw(self, "experiment_name")
   if (!is.character(name) || length(name) != 1L) {
     cli::cli_abort(
       message = c(
@@ -451,7 +477,7 @@ validate_isoformic <- function(self) {
       class = "isoformic_invalid_experiment_name"
     )
   }
-  annot_path <- attr(self, "annot_path", exact = TRUE)
+  annot_path <- prop_raw(self, "annot_path")
   if (!is.null(annot_path) && !is_annotation_dir(annot_path)) {
     cli::cli_abort(
       message = c(
@@ -460,7 +486,7 @@ validate_isoformic <- function(self) {
       class = "isoformic_annot_path_dont_exist"
     )
   }
-  data_path <- attr(self, "data_path", exact = TRUE)
+  data_path <- prop_raw(self, "data_path")
   if (!is.null(data_path) && !rlang::is_string(data_path)) {
     cli::cli_abort(
       message = c(
@@ -469,8 +495,8 @@ validate_isoformic <- function(self) {
       class = "isoformic_invalid_data_path"
     )
   }
-  assays <- attr(self, "assays", exact = TRUE)
-  col_data <- attr(self, "col_data", exact = TRUE)
+  assays <- prop_raw(self, "assays")
+  col_data <- prop_raw(self, "col_data")
   if (length(assays) > 0L) {
     if (is.null(annot_path)) {
       cli::cli_abort(
@@ -493,7 +519,7 @@ validate_isoformic <- function(self) {
       where = "col_data"
     )
   }
-  gene_assays <- attr(self, "gene_assays", exact = TRUE)
+  gene_assays <- prop_raw(self, "gene_assays")
   if (length(gene_assays) > 0L) {
     validate_assay_ids(
       ids = rownames(gene_assays[[1L]]),
@@ -508,7 +534,7 @@ validate_isoformic <- function(self) {
       where = "col_data"
     )
   }
-  dea <- attr(self, "dea", exact = TRUE)
+  dea <- prop_raw(self, "dea")
   if (length(dea) > 0L) {
     validate_dea(self, dea)
   }
@@ -590,7 +616,7 @@ cache_fetch <- function(cache, key, signature, compute) {
 #' @keywords internal
 #' @noRd
 get_annot_table <- function(self, type) {
-  annot_path <- attr(self, "annot_path", exact = TRUE)
+  annot_path <- prop_raw(self, "annot_path")
   if (is.null(annot_path)) {
     return(empty_annotation_table(type))
   }
@@ -603,11 +629,23 @@ get_annot_table <- function(self, type) {
   )
 }
 
+#' Is an annotation table of an object in the annotation cache, up to date?
+#' @keywords internal
+#' @noRd
+annot_table_cached <- function(self, type) {
+  annot_path <- prop_raw(self, "annot_path")
+  if (is.null(annot_path)) {
+    return(FALSE)
+  }
+  hit <- annotation_cache[[paste0(type, "::", annot_path)]]
+  !is.null(hit) && identical(hit$signature, annot_signature(annot_path, type))
+}
+
 #' Row count of an annotation table without loading it when not cached
 #' @keywords internal
 #' @noRd
 annot_nrow <- function(self, type) {
-  annot_path <- attr(self, "annot_path", exact = TRUE)
+  annot_path <- prop_raw(self, "annot_path")
   if (is.null(annot_path)) {
     return(0L)
   }
@@ -633,7 +671,7 @@ annot_ids <- function(self, type = c("transcripts", "genes")) {
 #' @keywords internal
 #' @noRd
 annot_full_signature <- function(self) {
-  annot_path <- attr(self, "annot_path", exact = TRUE)
+  annot_path <- prop_raw(self, "annot_path")
   if (is.null(annot_path)) {
     return("none")
   }
@@ -649,15 +687,15 @@ annot_full_signature <- function(self) {
 #' @keywords internal
 #' @noRd
 assays_signature <- function(self) {
-  attr(self, "assays_hash", exact = TRUE) %||%
-    rlang::hash(attr(self, "assays", exact = TRUE))
+  prop_raw(self, "assays_hash") %||%
+    rlang::hash(prop_raw(self, "assays"))
 }
 
 #' Signature of the stored (explicitly set) gene assays
 #' @keywords internal
 #' @noRd
 gene_assays_signature <- function(self) {
-  stored <- attr(self, "gene_assays", exact = TRUE)
+  stored <- prop_raw(self, "gene_assays")
   if (length(stored) > 0L) rlang::hash(stored) else "derived"
 }
 
@@ -665,7 +703,16 @@ gene_assays_signature <- function(self) {
 #' @keywords internal
 #' @noRd
 object_cache_fetch <- function(self, key, signature, compute) {
-  cache_fetch(attr(self, ".cache", exact = TRUE), key, signature, compute)
+  cache_fetch(prop_raw(self, ".cache"), key, signature, compute)
+}
+
+#' A derived value of the per-object cache, or `NULL` when absent or stale
+#' @keywords internal
+#' @noRd
+object_cache_peek <- function(self, key, signature) {
+  cache <- prop_raw(self, ".cache")
+  hit <- if (is.null(cache)) NULL else cache[[key]]
+  if (!is.null(hit) && identical(hit$signature, signature)) hit$value else NULL
 }
 
 # Gene-level derivation -------------------------------------------------------
@@ -680,7 +727,7 @@ object_cache_fetch <- function(self, key, signature, compute) {
 #' @keywords internal
 #' @noRd
 derive_gene_assays <- function(self) {
-  assays <- attr(self, "assays", exact = TRUE)
+  assays <- prop_raw(self, "assays")
   if (!length(assays)) {
     return(list())
   }
@@ -759,9 +806,9 @@ summarize_to_gene <- function(x, tx_to_gene) {
 # Base generics ---------------------------------------------------------------
 
 S7::method(print, IsoformicExperiment) <- function(x, ...) {
-  assays <- attr(x, "assays", exact = TRUE)
-  col_data <- attr(x, "col_data", exact = TRUE)
-  annot_path <- attr(x, "annot_path", exact = TRUE)
+  assays <- prop_raw(x, "assays")
+  col_data <- prop_raw(x, "col_data")
+  annot_path <- prop_raw(x, "annot_path")
   fmt <- function(n) format(n, big.mark = ",")
 
   cat("<IsoformicExperiment> ", x@experiment_name, "\n", sep = "")
@@ -816,7 +863,7 @@ S7::method(print, IsoformicExperiment) <- function(x, ...) {
       "\n",
       sep = ""
     )
-    stored_gene <- attr(x, "gene_assays", exact = TRUE)
+    stored_gene <- prop_raw(x, "gene_assays")
     cat(
       "  gene assays: ",
       if (length(stored_gene)) {
@@ -830,7 +877,7 @@ S7::method(print, IsoformicExperiment) <- function(x, ...) {
   } else {
     cat("  assays     : <none>\n")
   }
-  dea <- attr(x, "dea", exact = TRUE)
+  dea <- prop_raw(x, "dea")
   de_summary <- character()
   if (!is.null(dea[["det"]])) {
     de_summary <- c(
@@ -847,19 +894,35 @@ S7::method(print, IsoformicExperiment) <- function(x, ...) {
     "\n",
     sep = ""
   )
-  gsea <- attr(x, "gsea", exact = TRUE)
+  gsea <- prop_raw(x, "gsea")
   if (length(gsea)) {
     cat("  enrichment : ", paste(names(gsea), collapse = ", "), "\n", sep = "")
   }
-  data_path <- attr(x, "data_path", exact = TRUE)
+  data_path <- prop_raw(x, "data_path")
   if (!is.null(data_path)) {
-    cat("  on disk    : ", data_path, "\n", sep = "")
+    cat("  on disk    : ", display_data_path(data_path), "\n", sep = "")
   }
   invisible(x)
 }
 
+# The printed form of `data_path`: relative to the working directory when the
+# directory lies under it, absolute otherwise. `data_path` itself stays
+# absolute, since the lazy readers and write_isoformic() rely on it.
+display_data_path <- function(data_path) {
+  real_or_abs <- function(path) {
+    out <- tryCatch(fs::path_real(path), error = function(e) NULL)
+    as.character(out %||% fs::path_abs(path))
+  }
+  path <- real_or_abs(data_path)
+  wd <- real_or_abs(getwd())
+  if (!identical(path, wd) && fs::path_has_parent(path, wd)) {
+    return(as.character(fs::path_rel(path, start = wd)))
+  }
+  as.character(data_path)
+}
+
 S7::method(dim, IsoformicExperiment) <- function(x) {
-  assays <- attr(x, "assays", exact = TRUE)
+  assays <- prop_raw(x, "assays")
   if (!length(assays)) {
     return(c(0L, 0L))
   }
@@ -867,7 +930,7 @@ S7::method(dim, IsoformicExperiment) <- function(x) {
 }
 
 S7::method(dimnames, IsoformicExperiment) <- function(x) {
-  assays <- attr(x, "assays", exact = TRUE)
+  assays <- prop_raw(x, "assays")
   if (!length(assays)) {
     return(list(NULL, NULL))
   }
@@ -875,7 +938,7 @@ S7::method(dimnames, IsoformicExperiment) <- function(x) {
 }
 
 S7::method(`[`, IsoformicExperiment) <- function(x, i, j, ..., drop = FALSE) {
-  assays <- attr(x, "assays", exact = TRUE)
+  assays <- prop_raw(x, "assays")
   if (!length(assays)) {
     cli::cli_abort(
       message = c(
@@ -897,13 +960,13 @@ S7::method(`[`, IsoformicExperiment) <- function(x, i, j, ..., drop = FALSE) {
   new_assays <- lapply(assays, function(m) {
     m[tx_rows, sample_cols, drop = FALSE]
   })
-  col_data <- attr(x, "col_data", exact = TRUE)
+  col_data <- prop_raw(x, "col_data")
   new_col_data <- col_data[
     match(sample_ids, col_data$sample_id),
     ,
     drop = FALSE
   ]
-  stored_gene <- attr(x, "gene_assays", exact = TRUE)
+  stored_gene <- prop_raw(x, "gene_assays")
   if (length(stored_gene)) {
     gene_ids <- rownames(stored_gene[[1L]])
     if (has_i) {
@@ -922,11 +985,11 @@ S7::method(`[`, IsoformicExperiment) <- function(x, i, j, ..., drop = FALSE) {
       stored_gene <- list()
     }
   }
-  metadata <- attr(x, "metadata", exact = TRUE)
+  metadata <- prop_raw(x, "metadata")
   if (!is.null(metadata$inf_reps)) {
     metadata$inf_reps <- subset_inf_reps(metadata$inf_reps, tx_ids, sample_ids)
   }
-  dea <- attr(x, "dea", exact = TRUE)
+  dea <- prop_raw(x, "dea")
   has_tables <- any(uncertainty_table_names() %in% names(dea))
   if (has_tables && has_i) {
     dea <- subset_uncertainty_tables(dea, tx_ids)
@@ -947,7 +1010,7 @@ S7::method(`[`, IsoformicExperiment) <- function(x, i, j, ..., drop = FALSE) {
     # Other transcripts: the subset gets its own cache, so that it does not
     # replace the entries of `x` (keyed by the transcripts) nor keep them
     # alive. The annotation join does not depend on the transcripts.
-    old_cache <- attr(x, ".cache", exact = TRUE)
+    old_cache <- prop_raw(x, ".cache")
     new_cache <- new.env(parent = emptyenv())
     shared <- old_cache[["tx_gene_annotation"]]
     if (!is.null(shared)) {
@@ -1014,63 +1077,217 @@ subset_ids <- function(index, ids, what) {
   ids[unname(picked)]
 }
 
-#' Inferential replicates of the given transcripts and samples
+#' Inferential replicates of the given transcripts and samples, as a view
+#'
+#' The draws are not copied: the list keeps the matrices of `reps` and gets
+#' a `selection` attribute with the IDs of the kept transcripts and samples
+#' (the list itself, a vector of pointers, is the only new object). Every
+#' consumer reads the draws through `inf_reps_reader()` (one selected draw at
+#' a time), `inf_reps_draw_index()` (the positions of the selection in a
+#' draw) or `inf_reps_moments()`, which apply the selection. A subset of a
+#' subset replaces the selection: its transcripts and samples are among
+#' those of the first one, so selecting them in the parent draws gives the
+#' same rows and columns as selecting them in the selected draws.
 #'
 #' The draws may hold fewer transcripts than the assays ([add_uncertainty()]
 #' keeps the expressed ones), so rows are matched by ID. Draws that do not
 #' have every sample are left as they are; their consumers report them.
+#' When no kept transcript has draws, the result is `NULL`, unless the
+#' `moments` attribute covers the kept samples: the subset then keeps the
+#' moments (which cover every transcript) with zero-row draws, as plain
+#' copies, so that it does not hold the draws of the parent. Its consumers
+#' treat it as an object without draws (`draws_view()` aborts with
+#' `isoformic_no_inferential_replicates`, `resolve_inf_reps()` gives
+#' `NULL`), but its overdispersion comes from the moments.
 #'
-#' Draws usually share their dimnames, so the positions are matched once and
-#' reused, the new draws share one dimnames list, and a draw that already is
-#' the selection is returned as it is, without a copy.
+#' The `selection` attribute is lost by list operations (`lapply()`, `[`);
+#' the consumers therefore read the stored draws through
+#' `object_inf_reps()`, which restores the selection from the transcripts
+#' and samples of the object.
 #' @keywords internal
 #' @noRd
 subset_inf_reps <- function(reps, tx_ids, sample_ids) {
-  if (!is.list(reps) || !length(reps)) {
+  if (!is.list(reps) || is.data.frame(reps) || !length(reps)) {
     return(reps)
   }
-  extra <- attributes(reps)
-  out <- vector("list", length(reps))
-  last_dn <- NULL
-  index <- NULL
-  for (k in seq_along(reps)) {
-    m <- reps[[k]]
-    dn <- dimnames(m)
-    if (
-      is.null(dim(m)) ||
-        length(dn) != 2L ||
-        is.null(dn[[1L]]) ||
-        !all(sample_ids %in% dn[[2L]])
-    ) {
-      out[k] <- list(m)
-      next
+  attr(reps, "selection") <- list(transcripts = tx_ids, samples = sample_ids)
+  if (!inf_reps_has_rows(reps)) {
+    # No kept transcript has draws. Without moments of the kept samples the
+    # object has no replicates left; with them, only the moments are kept
+    # (zero-row copies of the draws), not the draws of the parent
+    mom <- attr(reps, "moments", exact = TRUE)
+    if (is.null(mom) || !all(sample_ids %in% colnames(mom$mean))) {
+      return(NULL)
     }
-    if (is.null(last_dn) || !identical(dn, last_dn)) {
-      index <- inf_reps_index(dn, tx_ids, sample_ids)
-      last_dn <- dn
-    }
-    out[k] <- list(subset_one_draw(m, index))
-  }
-  is_empty <- vapply(
-    out,
-    function(m) !is.null(dim(m)) && nrow(m) == 0L,
-    logical(1L)
-  )
-  if (all(is_empty)) {
-    # No kept transcript has draws: the object has no replicates left
-    return(NULL)
+    return(inf_reps_materialize(reps))
   }
   # The moments keep every transcript (the overdispersion prior uses them
-  # all) but only the kept samples
-  mom <- extra$moments
-  if (!is.null(mom) && all(sample_ids %in% colnames(mom$mean))) {
-    cols <- match(sample_ids, colnames(mom$mean))
-    mom$mean <- mom$mean[, cols, drop = FALSE]
-    mom$var <- mom$var[, cols, drop = FALSE]
-    extra$moments <- mom
+  # all); inf_reps_moments() gives the kept samples
+  reps
+}
+
+#' The stored inferential replicates of an object, with its selection
+#'
+#' `x@metadata$inf_reps` read as the draws of the transcripts and samples of
+#' the object. The `selection` that `x[i, j]` records is an attribute, which
+#' list operations on the draws drop (`lapply()`, `[`); without it, the
+#' matrices of a subset would still be those of its parent. When the draws
+#' have no selection but hold transcripts or samples that are not in the
+#' object, the selection is rebuilt from the object (its transcripts and
+#' samples, matched by ID), so that the results are those of the kept
+#' draws. Draws that only cover the object are returned as they are.
+#' @keywords internal
+#' @noRd
+object_inf_reps <- function(self, reps = self@metadata$inf_reps) {
+  if (
+    !is.list(reps) ||
+      is.data.frame(reps) ||
+      !length(reps) ||
+      !is.null(inf_reps_selection(reps))
+  ) {
+    return(reps)
+  }
+  dn <- dimnames(reps[[1L]])
+  if (length(dn) != 2L || is.null(dn[[1L]]) || is.null(dn[[2L]])) {
+    return(reps)
+  }
+  obj_dn <- dimnames(self)
+  if (all(dn[[1L]] %in% obj_dn[[1L]]) && all(dn[[2L]] %in% obj_dn[[2L]])) {
+    return(reps)
+  }
+  attr(reps, "selection") <- list(
+    transcripts = obj_dn[[1L]],
+    samples = obj_dn[[2L]]
+  )
+  reps
+}
+
+#' The selection of a view of inferential replicates, `NULL` when none
+#' @keywords internal
+#' @noRd
+inf_reps_selection <- function(reps) {
+  attr(reps, "selection", exact = TRUE)
+}
+
+#' Positions of the selection in one draw
+#'
+#' `NULL` when `reps` has no selection or the draw is left as it is (not a
+#' matrix with transcript names, or without every selected sample);
+#' otherwise the index of `inf_reps_index()`. `cache` (an environment) keeps
+#' the index of the last dimnames seen, so that draws that share their
+#' dimnames are matched once.
+#' @keywords internal
+#' @noRd
+inf_reps_draw_index <- function(m, selection, cache = NULL) {
+  if (is.null(selection)) {
+    return(NULL)
+  }
+  dn <- dimnames(m)
+  if (
+    is.null(dim(m)) ||
+      length(dn) != 2L ||
+      is.null(dn[[1L]]) ||
+      !all(selection$samples %in% dn[[2L]])
+  ) {
+    return(NULL)
+  }
+  if (!is.null(cache) && identical(dn, cache$dimnames)) {
+    return(cache$index)
+  }
+  index <- inf_reps_index(dn, selection$transcripts, selection$samples)
+  if (!is.null(cache)) {
+    cache$dimnames <- dn
+    cache$index <- index
+  }
+  index
+}
+
+#' Read the draws of inferential replicates with their selection applied
+#'
+#' Returns a function of `k` that gives draw `k` restricted to the selected
+#' transcripts and samples (see `subset_inf_reps()`). Replicates without a
+#' selection, and a draw that already is the selection, are returned without
+#' a copy; otherwise only the one draw read is copied.
+#' @keywords internal
+#' @noRd
+inf_reps_reader <- function(reps) {
+  selection <- inf_reps_selection(reps)
+  cache <- new.env(parent = emptyenv())
+  function(k) {
+    m <- reps[[k]]
+    index <- inf_reps_draw_index(m, selection, cache)
+    if (is.null(index)) {
+      return(m)
+    }
+    subset_one_draw(m, index)
+  }
+}
+
+#' Moments of inferential replicates with their selection applied
+#'
+#' The moments keep every transcript; with a selection that they cover, they
+#' are restricted to the selected samples.
+#' @keywords internal
+#' @noRd
+inf_reps_moments <- function(reps) {
+  mom <- attr(reps, "moments", exact = TRUE)
+  samples <- inf_reps_selection(reps)$samples
+  if (
+    is.null(mom) || is.null(samples) || !all(samples %in% colnames(mom$mean))
+  ) {
+    return(mom)
+  }
+  if (identical(samples, colnames(mom$mean))) {
+    return(mom)
+  }
+  cols <- match(samples, colnames(mom$mean))
+  mom$mean <- mom$mean[, cols, drop = FALSE]
+  mom$var <- mom$var[, cols, drop = FALSE]
+  mom
+}
+
+#' Inferential replicates with their selection applied, as a plain list
+#'
+#' A copy of the selected draws: what `x[i, j]` stored before the draws
+#' became a view. Replicates without a selection are returned as they are.
+#' @keywords internal
+#' @noRd
+inf_reps_materialize <- function(reps) {
+  if (is.null(inf_reps_selection(reps))) {
+    return(reps)
+  }
+  read <- inf_reps_reader(reps)
+  out <- lapply(seq_along(reps), read)
+  extra <- attributes(reps)
+  extra$selection <- NULL
+  if (!is.null(extra$moments)) {
+    extra$moments <- inf_reps_moments(reps)
   }
   attributes(out) <- extra
   out
+}
+
+#' Does any draw have rows once its selection is applied?
+#'
+#' Draws left as they are count by their own rows; draws that are not
+#' matrices count as having rows.
+#' @keywords internal
+#' @noRd
+inf_reps_has_rows <- function(reps) {
+  selection <- inf_reps_selection(reps)
+  cache <- new.env(parent = emptyenv())
+  for (k in seq_along(reps)) {
+    m <- reps[[k]]
+    if (is.null(dim(m))) {
+      return(TRUE)
+    }
+    index <- inf_reps_draw_index(m, selection, cache)
+    n <- if (is.null(index)) nrow(m) else length(index$rows)
+    if (n > 0L) {
+      return(TRUE)
+    }
+  }
+  FALSE
 }
 
 #' Positions and new dimnames of the kept transcripts and samples of a draw
@@ -1160,4 +1377,15 @@ subset_uncertainty_tables <- function(dea, tx_ids) {
 gene_ids_of <- function(self, transcript_ids) {
   tx <- get_annot_table(self, "transcripts")
   tx$gene_id[match(transcript_ids, tx$transcript_id)]
+}
+
+# Read a property as stored, without its getter. S7 >= 1.0.0 stores a NULL
+# property as an internal marker symbol; older versions drop the attribute.
+# No property of the class holds a symbol, so any symbol means NULL.
+prop_raw <- function(x, name) {
+  value <- attr(x, name, exact = TRUE)
+  if (is.symbol(value)) {
+    return(NULL)
+  }
+  value
 }

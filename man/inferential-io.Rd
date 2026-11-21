@@ -21,9 +21,9 @@ equivalence_support(paths, transcripts = NULL, ignore_after_bar = TRUE)
 
 salmon_run_qc(paths, min_percent_mapped = 50)
 
-inferential_replicates_table(reps)
+inferential_replicates_table(reps = NULL, x = NULL)
 
-inferential_moments_table(reps)
+inferential_moments_table(reps = NULL, x = NULL)
 
 as_inferential_replicates(table, samp_type = "gibbs", moments = NULL)
 }
@@ -47,7 +47,13 @@ before the first \code{|} (GENCODE FASTA headers used as Salmon references).}
 \item{min_percent_mapped}{Samples below this mapping rate (percent) get the
 \code{low_mapping_rate} flag in \code{salmon_run_qc()}.}
 
-\item{reps}{A list of transcript x sample count matrices, one per replicate.}
+\item{reps}{A list of transcript x sample count matrices, one per replicate.
+In \code{inferential_replicates_table()} and \code{inferential_moments_table()},
+it defaults to \code{x@metadata$inf_reps} when \code{x} is given.}
+
+\item{x}{Optional \link{IsoformicExperiment}. When given, the replicates are
+read as those of its transcripts and samples, matched by ID, even when
+\code{reps} lost the \code{selection} of a subset.}
 
 \item{table}{A long table with \code{transcript_id}, \code{sample_id}, \code{draw} and
 \code{count} columns, as returned by \code{inferential_replicates_table()}.}
@@ -115,11 +121,21 @@ many replicates were drawn.
 \item \code{inferential_replicates_table()} and \code{as_inferential_replicates()}
 convert the list of replicates to and from a long table (one row per
 transcript, sample and replicate), which can be stored as Parquet with
-\code{\link[=write_parquet]{write_parquet()}} and read back with \code{\link[=read_parquet]{read_parquet()}}. This is the way to
-keep the replicates of an object, which \code{\link[=write_isoformic]{write_isoformic()}} does not
-write. \code{inferential_moments_table()} converts the \code{moments} attribute to
-a table in the same way (one row per transcript and sample); pass it to
-the \code{moments} argument of \code{as_inferential_replicates()} to restore it.
+\code{\link[=write_parquet]{write_parquet()}} and read back with \code{\link[=read_parquet]{read_parquet()}}, for example to
+exchange them with other tools. \code{inferential_moments_table()} converts
+the \code{moments} attribute to a table in the same way (one row per
+transcript and sample); pass it to the \code{moments} argument of
+\code{as_inferential_replicates()} to restore it. The long table takes
+several times the memory of the replicates: to save the replicates of
+an object, use \code{\link[=write_isoformic]{write_isoformic()}}, which writes one wide file per draw.
+Both apply the \code{selection} of the replicates of a subset \code{x[i, j]}
+(see \link{IsoformicExperiment}): the replicate table holds the kept
+transcripts and samples only, the moment table the kept samples (the
+moments keep every transcript). The selection is an attribute of the
+unmodified \code{x@metadata$inf_reps}: a list operation such as \code{\link[=lapply]{lapply()}}
+or \code{[} drops it, and the list then holds the draws of the parent. Pass
+the object as \code{x} (alone, or with such a list as \code{reps}) to read the
+draws of its transcripts and samples in every case.
 }
 
 The functions also read Oarfish output (see \code{\link[=read_oarfish]{read_oarfish()}}): its

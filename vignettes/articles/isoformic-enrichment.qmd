@@ -1,7 +1,7 @@
 ---
 title: "Functional enrichment by transcript type"
 date: 2026-10-17
-date-modified: 2026-11-12
+date-modified: 2026-11-20
 date-format: long
 author:
   - name: Lucio Rezende Queiroz
@@ -57,24 +57,24 @@ It starts from the object built in the [introduction](isoformic-introduction.htm
 library(isoformic)
 library(dplyr)
 
-extdata <- fs::path_package("isoformic", "extdata")
+data_dir <- "data/preeclampsia"
 annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 iso <- IsoformicExperiment(
   experiment_name = "preeclampsia_placenta",
   annot_path = annot_dir,
-  assays = list(abundance = read_parquet(fs::path(extdata, "pe_abundance.parquet"))),
-  col_data = read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+  assays = list(abundance = read_parquet(fs::path(data_dir, "pe_abundance.parquet"))),
+  col_data = read_parquet(fs::path(data_dir, "pe_col_data.parquet"))
 )
-de_tx(iso) <- read_parquet(fs::path(extdata, "pe_det.parquet"))
-de_gene(iso) <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+de_tx(iso) <- read_parquet(fs::path(data_dir, "pe_det.parquet"))
+de_gene(iso) <- read_parquet(fs::path(data_dir, "pe_deg.parquet"))
 ```
 
 ## Gene sets
 
-`read_gmt()` reads a GMT file into a named list of gene symbols; the package bundles a subset of the Reactome collection of MSigDB.
+`read_gmt()` reads a GMT file into a named list of gene symbols. This article reads the complete Reactome collection of MSigDB release 2023.1 (C2:CP:REACTOME), which sits next to the placenta tables in the source repository of the package; the package bundles `reactome_subset.gmt`, a small subset of it for quick examples (`system.file("extdata", "reactome_subset.gmt", package = "isoformic")`).
 
 ```{r}
-genesets <- read_gmt(fs::path(extdata, "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"))
+genesets <- read_gmt(fs::path(data_dir, "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"))
 length(genesets)
 head(names(genesets))
 ```
@@ -111,7 +111,7 @@ plot_enrichment(enrichment, n = 20, experiments = c("retained_intron", "nonsense
 
 By default the transcripts are ranked by their log2 fold-change, a point estimate that ignores how well it is determined.
 `rank_by = "signed_p"` ranks them by `-log10(pvalue)` with the sign of the fold-change, so that the test of the differential expression weighs the ranking.
-`rank_by = "lfc_z"` ranks them by the median fold-change over the inferential replicates divided by its standard deviation, so that a fold-change the quantification cannot determine ranks low; it needs the confidence table that `add_uncertainty(x, group = )` stores (see the [uncertainty article](isoformic-uncertainty.html)), which this object does not have.
+`rank_by = "lfc_z"` ranks them by the median fold-change over the inferential replicates divided by its standard deviation, so that a fold-change the quantification cannot determine ranks low; it needs the fold-change table that `add_uncertainty(x, group = )` stores (see the [uncertainty article](isoformic-uncertainty.html)), which this object does not have.
 The `rank_by` column of the result records the choice.
 
 ```{r}

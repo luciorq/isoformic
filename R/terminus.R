@@ -317,7 +317,7 @@ create_terminus_env <- function(
 ) {
   rlang::check_installed("condathis")
   condathis::create_env(
-    packages = paste0("bioconda::terminus==", version),
+    paste0("bioconda::terminus==", version),
     env_name = env_name,
     additional_channels = "bioconda",
     verbose = "output",

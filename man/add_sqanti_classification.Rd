@@ -36,7 +36,7 @@ category, \code{\link[=tx_diversity]{tx_diversity()}}). The categories are part 
 \code{\link[=tx_type_palette]{tx_type_palette()}}.
 }
 \examples{
-gff <- system.file("extdata", "example.gff3", package = "isoformic")
+gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 annot <- prepare_isoformic_annotation(gff, output_path = tempdir(), annot_name = "sqanti_demo")
 tx <- read_parquet(file.path(annot, "annot_data_transcripts.parquet"))
 classification <- data.frame(

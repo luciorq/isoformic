@@ -23,12 +23,12 @@
 #'   transcript whose own variance is at least `cutoff` by its lowest ancestor
 #'   below `cutoff`, and returns the groups, which do not overlap (when two
 #'   chosen nodes are nested, the larger one is kept). The result goes to
-#'   `add_uncertainty(groups = )`, so that the confidence classes and
+#'   `add_uncertainty(groups = )`, so that `ambiguous` and
 #'   `collapse_groups` work at the resolution the data support.
 #'
 #' Transcripts whose whole path to the root stays above the cutoff are
 #' unresolved: by default they are left as they are (`unresolved =
-#' "transcript"`), where the confidence classes still flag them as uncertain;
+#' "transcript"`), where `uncertain` still flags them;
 #' `unresolved = "root"` merges every tree that has one into a single group.
 #'
 #' @param path A Newick file of TreeTerminus, or a folder holding, directly

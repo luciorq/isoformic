@@ -1,21 +1,27 @@
-# Regenerates the bundled example data under inst/extdata/ from the Salmon
-# quantifications of the preeclampsia placenta dataset (PRJNA622166) against
-# GENCODE release 50, made by data-raw/placenta/quantify_placenta.sh, and
-# from the GENCODE 50 annotation. Run from the package root:
+# Regenerates the bundled example data under inst/extdata/, and the placenta
+# tables the articles read from vignettes/articles/data/preeclampsia/, from
+# the Salmon quantifications of the preeclampsia placenta dataset
+# (PRJNA622166) against GENCODE release 50, made by
+# data-raw/placenta/quantify_placenta.sh, and from the GENCODE 50 annotation.
+# Run from the package root:
 #   ISOFORMIC_PLACENTA_DIR=/path/to/workdir Rscript data-raw/prepare_extdata.R
 #
-# Writes:
+# Writes to vignettes/articles/data/preeclampsia/ (only the articles use
+# them; they are too large for the package):
 #   pe_abundance.parquet, pe_det.parquet, pe_deg.parquet, pe_col_data.parquet
 #     TPM of the tested transcripts in the 25 samples, swish results for
 #     every tested transcript and gene, and the sample table
+# and to inst/extdata/:
 #   example_experiment/  69 genes (showcase genes + top 60 genes by q-value),
 #     annotation with transcript sequences copied inside
-#   example.gff3, example_transcripts.fa.gz  three genes, for the annotation
+#   example.gff3.gz, example_transcripts.fa.gz  three genes, for the annotation
 #     and sequence examples
 #   mini_quants/, mini_draws.parquet, mini_annotation/  six samples
 #     quantified against the transcripts of 15 genes, their 20 Gibbs draws as
 #     a long table, and the matching annotation subset
-#   reactome_subset.gmt  the 40 Reactome pathways with most example genes
+#   reactome_subset.gmt  the 40 Reactome pathways with most example genes of
+#     the complete MSigDB collection, which the articles read from
+#     vignettes/articles/data/preeclampsia/
 suppressPackageStartupMessages({
   library(dplyr)
   library(SummarizedExperiment)
@@ -32,6 +38,8 @@ if (is.na(work_dir) || !dir.exists(fs::path(work_dir, "placenta", "quants"))) {
   )
 }
 extdata <- fs::path("inst", "extdata")
+article_data <- fs::path("vignettes", "articles", "data", "preeclampsia")
+fs::dir_create(article_data)
 sheet <- utils::read.delim(fs::path(
   "data-raw",
   "placenta",
@@ -198,12 +206,12 @@ write_parquet_float <- function(x, path) {
   )
   invisible(path)
 }
-write_parquet_float(abundance, fs::path(extdata, "pe_abundance.parquet"))
-write_parquet(det, fs::path(extdata, "pe_det.parquet"))
-write_parquet(deg, fs::path(extdata, "pe_deg.parquet"))
+write_parquet_float(abundance, fs::path(article_data, "pe_abundance.parquet"))
+write_parquet(det, fs::path(article_data, "pe_det.parquet"))
+write_parquet(deg, fs::path(article_data, "pe_deg.parquet"))
 write_parquet(
   dplyr::mutate(col_data, condition = as.character(.data$condition)),
-  fs::path(extdata, "pe_col_data.parquet")
+  fs::path(article_data, "pe_col_data.parquet")
 )
 
 # 3. Example experiment: showcase genes + top differentially expressed genes ---
@@ -284,7 +292,9 @@ header <- header[
 ]
 pattern <- paste0("gene_id=(", paste(tiny_genes, collapse = "|"), ");")
 body <- lines[grepl(pattern, lines)]
-writeLines(c(header, body), fs::path(extdata, "example.gff3"))
+con <- gzfile(fs::path(extdata, "example.gff3.gz"), "w", compression = 9)
+writeLines(c(header, body), con)
+close(con)
 # Matching transcript FASTA (sequences of the same transcripts)
 tiny_tx <- tx_all$transcript_id[tx_all$gene_id %in% tiny_genes]
 tiny_fasta <- fs::path(extdata, "example_transcripts.fa.gz")
@@ -312,7 +322,8 @@ close(con)
 
 # 5. Mini quantifications, their Gibbs draws and annotation --------------------
 # The Salmon directories are copied without the draws (aux_info/bootstrap),
-# which go to mini_draws.parquet, and with the paths of the work directory
+# which go to mini_draws.parquet, without the aux_info/*.gz files, and with
+# the paths of the work directory
 # replaced by /work.
 mini_src <- fs::dir_ls(
   fs::path(work_dir, "placenta", "mini_quants"),
@@ -334,6 +345,10 @@ for (src in mini_src) {
   dest <- fs::path(mini_dir, fs::path_file(src))
   fs::dir_copy(src, dest)
   fs::dir_delete(fs::path(dest, "aux_info", "bootstrap"))
+  # The bias and fragment length files (*.gz) are not read by the package
+  # and are ignored by git: without them a local build and a build from a
+  # clean clone ship the same files
+  fs::file_delete(fs::dir_ls(fs::path(dest, "aux_info"), glob = "*.gz"))
   for (f in fs::dir_ls(dest, recurse = TRUE, type = "file")) {
     if (grepl("[.](json|log|txt)$", f)) {
       txt <- readLines(f, warn = FALSE)
@@ -356,7 +371,7 @@ write_annotation_subset(
 
 # 6. Reactome gene set subset (pathways with example genes) -------------------
 all_sets <- read_gmt(fs::path(
-  extdata,
+  article_data,
   "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"
 ))
 example_gene_names <- genes_all$gene_name[genes_all$gene_id %in% gene_ids]

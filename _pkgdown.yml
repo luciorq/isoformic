@@ -26,6 +26,7 @@ articles:
       - articles/isoformic-diversity
       - articles/isoformic-uncertainty
       - articles/isoformic-quantification-stability
+      - articles/isoformic-uncertainty-evidence
       - articles/isoformic-productivity
       - articles/isoformic-polyadenylation
       - articles/isoformic-enrichment
@@ -78,7 +79,7 @@ reference:
   - title: Quantification uncertainty
     desc: >
       Inferential replicates, equivalence classes and run metadata from Salmon
-      turned into uncertainty, ambiguity and confidence of isoform-level
+      turned into uncertainty, ambiguity and stability of isoform-level
       results.
     contents:
       - inferential-io
@@ -128,6 +129,7 @@ reference:
   - title: Enrichment
     contents:
       - enrichment
+      - isoformic_workers
   - title: Parquet and quantification tools
     contents:
       - parquet

@@ -179,14 +179,14 @@ S7::method(transcript_orfs, S7::class_character) <- function(
   long_utr3 = Inf,
   ...
 ) {
-  annot <- prepare_annotation(self)
-  transcripts <- annot$transcripts |>
-    dplyr::left_join(annot$genes[, c("gene_id", "gene_name")], by = "gene_id")
+  annot_dir <- annotation_dir_of(self)
+  # Only the transcripts and exons of the selected genes are read
+  annot <- annotation_of_genes(annot_dir, gene_name)
   res <- stored_transcript_orfs(
-    annot_dir = annotation_dir_of(self),
-    transcripts = transcripts,
-    exons = function() annot$exons,
-    annotation = function() annot$transcripts,
+    annot_dir = annot_dir,
+    transcripts = annot$transcripts,
+    exons = annot$exons,
+    annotation = function() annot$annotation,
     min_orf_length = min_orf_length,
     nmd_rule = nmd_rule,
     start_proximal = start_proximal,
@@ -214,7 +214,7 @@ stop_codons <- function() {
 #' @keywords internal
 #' @noRd
 orf_table_version <- function() {
-  1L
+  2L
 }
 
 #' Signature of the inputs the stored ORF table depends on
@@ -529,11 +529,14 @@ compute_transcript_orfs <- function(
   minus <- tx$strand == "-"
   cds_first_g <- ifelse(minus, tx$cds_end, tx$cds_start)
   cds_last_g <- ifelse(minus, tx$cds_start, tx$cds_end)
+  # One DuckDB connection for the coordinate conversions below
+  con <- duckdb_connect()
   cds_tx <- genomic_to_transcript_coord(
     ex,
     tx$transcript_id,
     cds_first_g,
-    cds_last_g
+    cds_last_g,
+    con = con
   )
   orf_start <- rep(NA_real_, n)
   orf_end <- rep(NA_real_, n)
@@ -573,7 +576,8 @@ compute_transcript_orfs <- function(
   proj_pos[need] <- genomic_to_transcript_pos(
     ex,
     tx$transcript_id[need],
-    can_start_g[need]
+    can_start_g[need],
+    con = con
   )
   proj_ok <- !is.na(proj_pos) & codon_at(seq, proj_pos) == "ATG"
   proj_end <- first_inframe_stop(stops, proj_pos)
@@ -645,10 +649,25 @@ compute_transcript_orfs <- function(
 
   uorfs <- count_uorfs(seq, stops, orf_start)
 
-  orf_start_g <- transcript_to_genomic_coord(ex, tx$transcript_id, orf_start)
+  orf_start_g <- transcript_to_genomic_coord(
+    ex,
+    tx$transcript_id,
+    orf_start,
+    con = con
+  )
   stop_first <- ifelse(is.na(stop_codon), NA_real_, orf_end - 2)
-  orf_stop_g <- transcript_to_genomic_coord(ex, tx$transcript_id, stop_first)
-  orf_end_g <- transcript_to_genomic_coord(ex, tx$transcript_id, orf_end)
+  orf_stop_g <- transcript_to_genomic_coord(
+    ex,
+    tx$transcript_id,
+    stop_first,
+    con = con
+  )
+  orf_end_g <- transcript_to_genomic_coord(
+    ex,
+    tx$transcript_id,
+    orf_end,
+    con = con
+  )
   can_orf_start_g <- orf_start_g[can_idx]
   can_stop_g <- orf_stop_g[can_idx]
   start_same <- ifelse(
@@ -662,7 +681,12 @@ compute_transcript_orfs <- function(
     NA
   )
   # Frame of this ORF's stop codon within the canonical transcript
-  can_stop_tx <- genomic_to_transcript_pos(ex, canonical_id, orf_stop_g)
+  can_stop_tx <- genomic_to_transcript_pos(
+    ex,
+    canonical_id,
+    orf_stop_g,
+    con = con
+  )
   can_orf_start_tx <- orf_start[can_idx]
   frame_vs_canonical <- rep(NA_character_, n)
   ok_frame <- has_orf & !is.na(can_stop_tx) & !is.na(can_orf_start_tx)
@@ -774,37 +798,30 @@ longest_orfs <- function(seq, stops, min_orf_length = 90L) {
       next
     }
     s <- stops[[i]]
-    best_len <- 0
-    best_start <- NA_real_
-    best_end <- NA_real_
-    for (f in 0:2) {
-      af <- a[a %% 3 == f]
-      if (!length(af)) {
-        next
-      }
-      sf <- s[s %% 3 == f]
-      # Next in-frame stop after each ATG; open-ended when none
-      pos <- findInterval(af, sf) + 1L
-      nxt <- ifelse(pos <= length(sf), sf[pmin(pos, length(sf))], NA_real_)
-      end <- ifelse(
-        is.na(nxt),
-        af + floor((seq_len[[i]] - af + 1) / 3) * 3 - 1,
-        nxt + 2
-      )
-      # Keep only the first ATG of each ORF (same stop => same ORF)
-      keep <- !duplicated(end)
-      len <- end[keep] - af[keep] + 1
-      j <- which.max(len)
-      if (length(j) && len[[j]] > best_len) {
-        best_len <- len[[j]]
-        best_start <- af[keep][[j]]
-        best_end <- end[keep][[j]]
-      }
-    }
-    if (best_len >= min_orf_length) {
-      out$start[[i]] <- best_start
-      out$end[[i]] <- best_end
-      out$length[[i]] <- best_len
+    # ATGs ordered by frame (0, 1, 2), then by position, as the ties of the
+    # longest ORF are broken; a stop codon and an ATG never start at the same
+    # base, so the next stop of the same frame is the first larger key
+    frame <- a %% 3L
+    ord <- order(frame, a)
+    a <- a[ord]
+    frame <- frame[ord]
+    span <- seq_len[[i]] + 3
+    s_key <- sort(s %% 3L * span + s)
+    nxt_idx <- findInterval(frame * span + a, s_key) + 1L
+    nxt_key <- s_key[nxt_idx]
+    # Open-ended (no in-frame stop) when there is no larger key or the next
+    # one is a stop of another frame
+    open <- is.na(nxt_key) | nxt_key %/% span != frame
+    end <- nxt_key - frame * span + 2
+    end[open] <- a[open] + floor((seq_len[[i]] - a[open] + 1) / 3) * 3 - 1
+    # Keep only the first ATG of each ORF (same stop => same ORF)
+    keep <- !duplicated(end)
+    len <- end[keep] - a[keep] + 1
+    j <- which.max(len)
+    if (len[[j]] > 0 && len[[j]] >= min_orf_length) {
+      out$start[[i]] <- a[keep][[j]]
+      out$end[[i]] <- end[keep][[j]]
+      out$length[[i]] <- len[[j]]
     }
   }
   out
@@ -838,14 +855,17 @@ count_uorfs <- function(seq, stops, orf_start, min_uorf_length = 9L) {
     }
     s <- stops[[i]]
     p <- orf_start[[i]]
-    stop_end <- vapply(
-      a,
-      function(x) {
-        sx <- s[s > x & (s - x) %% 3 == 0]
-        if (length(sx)) sx[[1L]] + 2 else NA_real_
-      },
-      numeric(1L)
-    )
+    # Last base of the first in-frame stop after each ATG, frame by frame
+    stop_end <- rep(NA_real_, length(a))
+    a_frame <- a %% 3L
+    s_frame <- s %% 3L
+    for (f in unique(a_frame)) {
+      in_f <- which(a_frame == f)
+      sf <- s[s_frame == f]
+      nxt <- findInterval(a[in_f], sf) + 1L
+      found <- nxt <= length(sf)
+      stop_end[in_f[found]] <- sf[nxt[found]] + 2
+    }
     complete <- !is.na(stop_end) &
       stop_end < p &
       (stop_end - a + 1) >= min_uorf_length
@@ -982,6 +1002,11 @@ fickett_score <- function(seq) {
     i <- which(value >= para)[1L]
     if (is.na(i)) prob[[length(prob)]] else prob[[i]]
   }
+  # Bin of each character (by code point): 1 to 4 for A, C, G and T; any
+  # other character falls outside the 12 bins (4 bases times 3 codon
+  # positions) and is not counted
+  base_bin <- rep(13L, 256L)
+  base_bin[utf8ToInt("ACGT")] <- 1:4
   vapply(
     seq,
     function(s) {
@@ -989,13 +1014,17 @@ fickett_score <- function(seq) {
       if (n < 3L) {
         return(0)
       }
-      ch <- strsplit(s, "", fixed = TRUE)[[1L]]
-      frame <- (seq_along(ch) - 1L) %% 3L
+      # Code points, not bytes, so that positions match nchar(); a code
+      # point above 255 indexes past base_bin and gives NA, not counted
+      codes <- utf8ToInt(enc2utf8(s))
+      bins <- base_bin[codes] + rep_len(c(0L, 4L, 8L), length(codes))
+      # Rows are the bases, columns the codon positions
+      counts <- matrix(tabulate(bins, 12L), nrow = 4L)
       score <- 0
-      for (b in bases) {
-        counts <- vapply(0:2, function(f) sum(ch[frame == f] == b), numeric(1L))
-        asym <- max(counts) / (min(counts) + 1)
-        comp <- sum(ch == b) / n
+      for (k in seq_along(bases)) {
+        b <- bases[[k]]
+        asym <- max(counts[k, ]) / (min(counts[k, ]) + 1)
+        comp <- sum(counts[k, ]) / n
         score <- score +
           lookup(asym, position_para, position_prob[[b]]) *
             position_weight[[b]] +
@@ -1012,7 +1041,15 @@ fickett_score <- function(seq) {
 #' @keywords internal
 #' @noRd
 hexamer_score <- function(orf_seq) {
-  table <- hexamer_table()
+  # Log-odds indexed by the hexamer read as a base-4 number (A = 0, C = 1,
+  # G = 2, T = 3, first base most significant) plus 1; a hexamer with any
+  # other character, or missing from the table, gets NA and is left out
+  bases <- c("A", "C", "G", "T")
+  grid <- expand.grid(rep(list(bases), 6L), stringsAsFactors = FALSE)
+  log_odds <- unname(hexamer_table()[do.call(paste0, rev(grid))])
+  base_code <- rep(NA_integer_, 256L)
+  base_code[utf8ToInt("ACGT")] <- 0:3
+  weights <- 4L^(5:0)
   vapply(
     orf_seq,
     function(s) {
@@ -1020,9 +1057,15 @@ hexamer_score <- function(orf_seq) {
       if (n < 6L) {
         return(0)
       }
+      # Code points, not bytes, so that positions match nchar(); a code
+      # point above 255 indexes past base_code and gives NA
+      code <- base_code[utf8ToInt(enc2utf8(s))]
       starts <- seq.int(1L, n - 5L, by = 3L)
-      hex <- substring(s, starts, starts + 5L)
-      v <- table[hex]
+      idx <- 1L
+      for (k in 0:5) {
+        idx <- idx + weights[[k + 1L]] * code[starts + k]
+      }
+      v <- log_odds[idx]
       v <- v[!is.na(v)]
       if (length(v)) mean(v) else 0
     },

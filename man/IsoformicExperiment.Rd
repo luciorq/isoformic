@@ -119,10 +119,36 @@ collapsed ambiguity group stays only with all its members); when samples
 are dropped they are not recomputed, and a message says so. Differential
 expression and enrichment results are kept as they are.
 
-A subset holds its own copy of the inferential replicates of the kept
-transcripts and samples. To compare two groups of a larger object, pass
-\code{levels} to the function instead of subsetting: the samples of the other
-groups are ignored and nothing is copied. A subset with other transcripts
+The inferential replicates are not copied: the \code{metadata$inf_reps} of a
+subset holds the draws of \code{x} and a \code{selection} attribute, a list with
+the IDs of the kept \code{transcripts} and \code{samples}. The functions of the
+package (and \code{\link[=inferential_replicates_table]{inferential_replicates_table()}}) read the draws through
+that selection, and \code{\link[=write_isoformic]{write_isoformic()}} writes only the selected rows and
+columns, so the results are those of a copy of the kept draws, while the
+memory of a subset does not grow with the draws. The trade-off: the draws
+of \code{x} (every transcript and sample) stay in memory as long as a subset
+made from it exists, even after \code{x} itself is removed, and they go with
+every serialised copy of the subset: \code{\link[=saveRDS]{saveRDS()}}, \code{\link[=serialize]{serialize()}} and the
+objects sent to parallel workers that do not share memory (such as
+\code{future} or \code{mirai} workers) carry every transcript and sample of the
+draws of \code{x}, while \code{\link[=write_isoformic]{write_isoformic()}} writes only the selected ones.
+Code that indexes the matrices of \code{metadata$inf_reps} directly sees the
+draws of \code{x}. A list operation on \code{metadata$inf_reps} (such as
+\code{\link[=lapply]{lapply()}} or \code{[}) drops the \code{selection} attribute and returns the draws
+of \code{x}: the functions that take the object still read only its kept
+transcripts and samples, while code that gets only the list, such as
+\code{\link[=inferential_replicates_table]{inferential_replicates_table()}} without its \code{x} argument, reads every
+transcript and sample of \code{x}. When no kept
+transcript has draws, the subset keeps only the replicate moments (with
+zero-row draws), so that \code{\link[=scale_counts]{scale_counts()}} and
+\code{\link[=inferential_overdispersion]{inferential_overdispersion()}} still work, but the functions that need
+the draws treat it as an object without inferential replicates; without
+moments, \code{metadata$inf_reps} is \code{NULL}. To replace the draws by plain matrices of
+the kept draws (and free those of \code{x}), write the subset with
+\code{\link[=write_isoformic]{write_isoformic()}} and read it back; to drop them, set
+\code{metadata$inf_reps <- NULL}. To compare two groups of a larger object,
+pass \code{levels} to the function instead of subsetting: the samples of the
+other groups are ignored. A subset with other transcripts
 starts with an empty cache of derived tables (the transcript annotation
 join is shared).
 }

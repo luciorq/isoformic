@@ -43,6 +43,63 @@ testthat::test_that("read_inferential_replicates reads Salmon draws exactly", {
   )
 })
 
+testthat::test_that("replicate_moments sums the first n replicates exactly", {
+  withr::local_seed(3L)
+  counts <- matrix(
+    stats::rgamma(7L * 9L, shape = 2, rate = 0.01),
+    nrow = 7L,
+    dimnames = list(paste0("t", 1:7), NULL)
+  )
+  # The reference: rowSums() of a copy of the first n columns
+  reference <- function(counts, n) {
+    kept <- counts[, seq_len(n), drop = FALSE]
+    s1 <- rowSums(kept)
+    s2 <- rowSums(kept * kept)
+    mean_draw <- s1 / n
+    var_draw <- if (n > 1L) {
+      pmax(s2 - n * mean_draw^2, 0) / (n - 1L)
+    } else {
+      mean_draw * 0
+    }
+    list(mean = unname(mean_draw), var = unname(var_draw))
+  }
+  for (n in c(1L, 4L, 9L)) {
+    testthat::expect_identical(
+      replicate_moments(counts, n),
+      reference(counts, n)
+    )
+  }
+  testthat::expect_identical(
+    replicate_moments(counts[0L, , drop = FALSE], 4L),
+    list(mean = numeric(), var = numeric())
+  )
+})
+
+testthat::test_that("read_inferential_replicates matches transcripts listed in another order", {
+  fx <- salmon_uncertainty_fixture()
+  same <- read_inferential_replicates(fx$dirs, transcripts = c("tB1", "tA3"))
+  # Rewrite s2 with its transcripts in another order
+  perm <- c(8L, 3L, 1L, 6L, 2L, 7L, 5L, 4L)
+  tx <- dimnames(fx$draws)[[1L]][perm]
+  boot <- fs::path(fx$dirs[["s2"]], "aux_info", "bootstrap")
+  names_con <- gzfile(fs::path(boot, "names.tsv.gz"), "wb")
+  writeBin(charToRaw(paste0(paste(tx, collapse = "\t"), "\n")), names_con)
+  close(names_con)
+  boot_con <- gzfile(fs::path(boot, "bootstraps.gz"), "wb")
+  writeBin(
+    as.vector(fx$draws[perm, "s2", ]),
+    boot_con,
+    size = 8L,
+    endian = "little"
+  )
+  close(boot_con)
+  shuffled <- read_inferential_replicates(
+    fx$dirs,
+    transcripts = c("tB1", "tA3")
+  )
+  testthat::expect_identical(shuffled, same)
+})
+
 testthat::test_that("equivalence_support reports the unique read support", {
   fx <- salmon_uncertainty_fixture()
   eq <- equivalence_support(fx$dirs)
@@ -64,6 +121,125 @@ testthat::test_that("equivalence_support reports the unique read support", {
   testthat::expect_error(
     equivalence_support(fx$dirs),
     class = "isoformic_no_equivalence_classes"
+  )
+})
+
+# The line-by-line parser that the readers replaced
+eq_classes_by_line <- function(file) {
+  lines <- readLines(file)
+  n_tx <- as.integer(lines[[1L]])
+  n_classes <- as.integer(lines[[2L]])
+  tx <- lines[2L + seq_len(n_tx)]
+  parts <- strsplit(lines[2L + n_tx + seq_len(n_classes)], "\t", fixed = TRUE)
+  size <- vapply(parts, function(p) as.integer(p[[1L]]), integer(1L))
+  count <- vapply(parts, function(p) as.numeric(p[[length(p)]]), numeric(1L))
+  tid <- unlist(lapply(parts, function(p) {
+    as.integer(p[1L + seq_len(as.integer(p[[1L]]))]) + 1L
+  }))
+  cls <- rep.int(seq_along(size), size)
+  list(
+    transcripts = tx,
+    members = data.frame(
+      tid = as.integer(tid),
+      size = size[cls],
+      count = count[cls],
+      class = cls
+    )
+  )
+}
+
+support_by_line <- function(dirs) {
+  ec <- lapply(dirs, function(d) {
+    eq_classes_by_line(eq_classes_file(d))
+  })
+  ids <- sub("\\|.*$", "", ec[[1L]]$transcripts)
+  total <- unique_total <- n_classes <- numeric(length(ids))
+  for (e in ec) {
+    m <- e$members
+    tid <- match(sub("\\|.*$", "", e$transcripts), ids)[m$tid]
+    for (i in seq_along(tid)) {
+      total[tid[i]] <- total[tid[i]] + m$count[i]
+      unique_total[tid[i]] <- unique_total[tid[i]] +
+        m$count[i] * (m$size[i] == 1L)
+      n_classes[tid[i]] <- n_classes[tid[i]] + 1
+    }
+  }
+  tibble::tibble(
+    transcript_id = ids,
+    n_classes = n_classes / length(ec),
+    n_fragments = total,
+    n_unique_fragments = unique_total,
+    unique_fraction = ifelse(total > 0, unique_total / total, NA_real_),
+    n_samples = length(ec)
+  )
+}
+
+testthat::test_that("the equivalence class readers match a line-by-line parser", {
+  fx <- salmon_uncertainty_fixture()
+  tmp <- withr::local_tempdir()
+  tx <- c("tx1|g1", "tx2|g1", "tx3|g2", "tx4|g2", "tx5|g3")
+  write_eq <- function(name, classes, gz = FALSE) {
+    dir <- fs::path(tmp, name)
+    fs::dir_create(fs::path(dir, "aux_info"))
+    file <- fs::path(dir, "aux_info", "eq_classes.txt")
+    if (gz) {
+      file <- paste0(file, ".gz")
+    }
+    con <- if (gz) gzfile(file, "w") else file(file, "w")
+    writeLines(c(length(tx), length(classes), tx, classes), con)
+    close(con)
+    as.character(dir)
+  }
+  dirs <- c(
+    # Plain, with weights (--dumpEqWeights), with weights compressed
+    plain = write_eq("plain", c("2\t0\t1\t10", "1\t2\t5", "3\t4\t2\t0\t7")),
+    weights = write_eq(
+      "weights",
+      c("2\t0\t1\t0.4\t0.6\t10", "1\t2\t1\t5", "3\t4\t2\t0\t0.2\t0.3\t0.5\t7")
+    ),
+    weights_gz = write_eq(
+      "weights_gz",
+      c("1\t1\t1\t2", "2\t3\t4\t0.5\t0.5\t1e3"),
+      gz = TRUE
+    ),
+    empty = write_eq("empty", character()),
+    # Hand-written or post-processed files may end lines with a tab
+    trailing_tab = write_eq(
+      "trailing_tab",
+      c("2\t0\t1\t10\t", "1\t2\t5\t", "2\t3\t4\t0.5\t0.5\t7")
+    )
+  )
+  # The fixture mixes lines with and without weights
+  for (dir in c(fx$dirs, dirs)) {
+    expected <- eq_classes_by_line(eq_classes_file(dir))
+    testthat::expect_identical(read_eq_classes(dir), expected)
+    members <- read_eq_class_members(dir)
+    testthat::expect_identical(
+      members$members,
+      expected$members[, c("tid", "class")]
+    )
+  }
+  testthat::expect_null(read_eq_classes(fs::path(tmp, "none")))
+  for (set in list(fx$dirs, dirs[1:3], dirs)) {
+    testthat::expect_equal(
+      equivalence_support(set),
+      support_by_line(set)
+    )
+  }
+  # A class line cut short is an error, not a shifted parse
+  bad <- write_eq("bad", c("2\t0\t1\t10", "3\t1"))
+  testthat::expect_error(
+    read_eq_class_members(bad),
+    class = "isoformic_invalid_equivalence_classes"
+  )
+  testthat::expect_error(
+    equivalence_support(bad),
+    class = "isoformic_invalid_equivalence_classes"
+  )
+  not_numeric <- write_eq("not_numeric", c("2\t0\t1\tx"))
+  testthat::expect_error(
+    equivalence_support(not_numeric),
+    class = "isoformic_invalid_equivalence_classes"
   )
 })
 
@@ -192,6 +368,50 @@ testthat::test_that("add_uncertainty measures quantification uncertainty and amb
   )
 })
 
+testthat::test_that("add_uncertainty keeps the cached features and productivity", {
+  x <- uncertainty_experiment()
+  calls <- new.env(parent = emptyenv())
+  calls$features <- 0L
+  calls$productivity <- 0L
+  real_features <- compute_transcript_features
+  real_classify <- classify_productivity
+  testthat::local_mocked_bindings(
+    compute_transcript_features = function(...) {
+      calls$features <- calls$features + 1L
+      real_features(...)
+    },
+    classify_productivity = function(...) {
+      calls$productivity <- calls$productivity + 1L
+      real_classify(...)
+    }
+  )
+  feats <- transcript_features(x$iso)
+  prod <- transcript_productivity(x$iso)
+  testthat::expect_identical(
+    c(features = calls$features, productivity = calls$productivity),
+    c(features = 1L, productivity = 1L)
+  )
+  iso <- suppressMessages(
+    add_uncertainty(x$iso, paths = x$fixture$dirs, group = "condition")
+  )
+  # The cached tables are reused, by the new object and by the original one
+  testthat::expect_identical(transcript_features(iso), feats)
+  testthat::expect_identical(transcript_productivity(iso), prod)
+  testthat::expect_identical(transcript_productivity(x$iso), prod)
+  testthat::expect_identical(
+    c(features = calls$features, productivity = calls$productivity),
+    c(features = 1L, productivity = 1L)
+  )
+  # And they are those computed from scratch on the new object
+  clear_cache(iso)
+  testthat::expect_identical(transcript_features(iso), feats)
+  testthat::expect_identical(transcript_productivity(iso), prod)
+  testthat::expect_identical(
+    c(features = calls$features, productivity = calls$productivity),
+    c(features = 2L, productivity = 2L)
+  )
+})
+
 testthat::test_that("without uncertainty tables the accessors explain what to do", {
   x <- uncertainty_experiment()
   testthat::expect_error(
@@ -211,8 +431,16 @@ testthat::test_that("without uncertainty tables the accessors explain what to do
     class = "isoformic_no_inferential_replicates"
   )
   testthat::expect_error(
-    isoform_switches(x$iso, confident_only = TRUE),
+    isoform_switches(x$iso, drop_unstable = TRUE),
     class = "isoformic_no_uncertainty"
+  )
+  testthat::expect_error(
+    isoform_switches(x$iso, confident_only = TRUE),
+    class = "isoformic_defunct_argument"
+  )
+  testthat::expect_error(
+    isoform_switches(x$iso, drop_unstable = NA),
+    class = "isoformic_invalid_argument"
   )
 })
 
@@ -230,31 +458,78 @@ testthat::test_that("de_confidence repeats the contrast on every draw", {
   conf <- de_confidence(iso)
   get <- function(id, col) conf[[col]][conf$feature_id == id]
   testthat::expect_true(all(conf$feature_type == "transcript"))
-  # Well determined, strongly changed isoform: high confidence
-  testthat::expect_identical(as.character(get("tA3", "confidence")), "high")
+  testthat::expect_false(any(
+    c("confidence", "confident_de", "reason") %in% colnames(conf)
+  ))
+  testthat::expect_identical(
+    colnames(conf),
+    c(
+      "feature_id",
+      "feature_type",
+      "gene_id",
+      "gene_name",
+      "transcript_ids",
+      "transcript_name",
+      "transcript_type",
+      "mean_count",
+      "lfc_median",
+      "lfc_lo",
+      "lfc_hi",
+      "lfc_sd",
+      "sign_agreement",
+      "unstable",
+      "frac_draws_effect",
+      "frac_draws_sig",
+      "mean_inf_rv",
+      "ambiguous",
+      "flags",
+      "det_log2FC",
+      "det_qvalue",
+      "n_det_sig",
+      "unstable_de"
+    )
+  )
+  testthat::expect_identical(conf$unstable, conf$sign_agreement < 0.95)
+  # Well determined, strongly changed isoform: stable direction, no flag
+  testthat::expect_false(get("tA3", "unstable"))
   testthat::expect_gt(get("tA3", "lfc_lo"), 1)
   testthat::expect_equal(get("tA3", "sign_agreement"), 1)
   testthat::expect_gt(get("tA3", "frac_draws_sig"), 0.5)
-  testthat::expect_true(is.na(get("tA3", "reason")))
-  testthat::expect_true(get("tA3", "confident_de"))
+  testthat::expect_true(is.na(get("tA3", "flags")))
+  testthat::expect_false(get("tA3", "unstable_de"))
   testthat::expect_equal(get("tA3", "det_log2FC"), 1.8)
   testthat::expect_equal(get("tA3", "n_det_sig"), 1L)
-  # Ambiguous and uncertain isoform: low confidence even though its call is stable
-  testthat::expect_identical(as.character(get("tA1", "confidence")), "low")
-  testthat::expect_match(get("tA1", "reason"), "ambiguous")
-  testthat::expect_match(get("tA1", "reason"), "uncertain quantification")
-  testthat::expect_false(get("tA1", "confident_de"))
+  # Ambiguous and uncertain isoform: the descriptive flags are listed, but
+  # they do not make its stable call unstable
+  testthat::expect_false(get("tA1", "unstable"))
+  testthat::expect_match(get("tA1", "flags"), "ambiguous")
+  testthat::expect_match(get("tA1", "flags"), "uncertain quantification")
+  testthat::expect_false(get("tA1", "unstable_de"))
   testthat::expect_gt(get("tA1", "lfc_median"), 0)
   testthat::expect_lt(get("tA2", "lfc_median"), 0)
-  # Overdispersed isoform without a real change: unstable fold-change
+  # Overdispersed isoform without a real change: unstable direction
   testthat::expect_lt(get("tA4", "sign_agreement"), 0.95)
-  testthat::expect_match(get("tA4", "reason"), "unstable fold-change")
-  testthat::expect_identical(as.character(get("tA4", "confidence")), "low")
-  testthat::expect_false(get("tA4", "confident_de"))
+  testthat::expect_true(get("tA4", "unstable"))
+  testthat::expect_match(get("tA4", "flags"), "^unstable direction")
+  testthat::expect_false(get("tA4", "unstable_de"))
   # Not significant in the primary test
   testthat::expect_equal(get("tA6", "n_det_sig"), 0L)
-  testthat::expect_false(get("tA6", "confident_de"))
-  testthat::expect_s3_class(conf$confidence, "ordered")
+  testthat::expect_false(get("tA6", "unstable_de"))
+  # The threshold is the one given
+  strict <- de_confidence(iso, group = "condition", min_agreement = 1)
+  testthat::expect_identical(strict$unstable, strict$sign_agreement < 1)
+  # Below min_count the direction is not assessed: unstable is NA and the
+  # flags do not mention it; such a call is never counted as unstable
+  high_min <- add_uncertainty(iso, group = "condition", min_count = 40)
+  na_conf <- de_confidence(high_min)
+  low <- na_conf$mean_count < 40
+  testthat::expect_true(any(low))
+  testthat::expect_true(all(is.na(na_conf$unstable[low])))
+  testthat::expect_false(any(
+    grepl("unstable direction", na_conf$flags[low], fixed = TRUE)
+  ))
+  testthat::expect_true(all(!is.na(na_conf$unstable[!low])))
+  testthat::expect_false(any(na_conf$unstable_de[low]))
   testthat::expect_identical(iso@metadata$uncertainty_group, "condition")
   testthat::expect_identical(iso@metadata$uncertainty_levels, "a|b")
   # Computed on demand, with the reference level swapped
@@ -315,7 +590,7 @@ testthat::test_that("library_size in col_data sets the scaling of the fold-chang
   testthat::expect_gt(shift, -1.5)
 })
 
-testthat::test_that("uncertainty tables survive write_isoformic without the draws", {
+testthat::test_that("uncertainty tables and draws survive write_isoformic", {
   x <- uncertainty_experiment()
   iso <- add_uncertainty(x$iso, paths = x$fixture$dirs, group = "condition")
   out <- withr::local_tempdir()
@@ -329,7 +604,7 @@ testthat::test_that("uncertainty tables survive write_isoformic without the draw
     "uncertainty.parquet"
   )))
   back <- read_isoformic(fs::path(out, "exp"))
-  testthat::expect_null(back@metadata$inf_reps)
+  testthat::expect_identical(back@metadata$inf_reps, iso@metadata$inf_reps)
   testthat::expect_equal(
     tx_uncertainty(back)$mean_inf_rv,
     tx_uncertainty(iso)$mean_inf_rv
@@ -342,22 +617,214 @@ testthat::test_that("uncertainty tables survive write_isoformic without the draw
     de_confidence(back)$sign_agreement,
     de_confidence(iso)$sign_agreement
   )
+  testthat::expect_identical(
+    de_confidence(back)$unstable,
+    de_confidence(iso)$unstable
+  )
   testthat::expect_equal(back@metadata$uncertainty_n_draws, "30")
   testthat::expect_equal(uncertainty_settings(back)$inf_rv_cutoff, 0.5)
+  # Without the draws only the tables are written
+  no_draws <- add_uncertainty(
+    x$iso,
+    paths = x$fixture$dirs,
+    keep_draws = FALSE
+  )
+  write_isoformic(no_draws, fs::path(out, "tables"))
+  testthat::expect_false(fs::dir_exists(fs::path(out, "tables", "inf_reps")))
+  testthat::expect_null(
+    read_isoformic(fs::path(out, "tables"))@metadata$inf_reps
+  )
 })
 
-testthat::test_that("isoform_switches and dominant_isoform use the confidence", {
+testthat::test_that("fold-change tables of earlier development versions are upgraded", {
+  x <- uncertainty_experiment()
+  iso <- add_uncertainty(x$iso, paths = x$fixture$dirs, group = "condition")
+  current <- de_confidence(iso)
+  # The layout written before the confidence class was removed
+  legacy <- current[,
+    setdiff(colnames(current), c("unstable", "unstable_de", "flags"))
+  ]
+  legacy$confidence <- factor(
+    ifelse(current$unstable, "low", "high"),
+    levels = c("high", "moderate", "low"),
+    ordered = TRUE
+  )
+  legacy$reason <- sub(
+    "unstable direction",
+    "unstable fold-change",
+    current$flags,
+    fixed = TRUE
+  )
+  legacy$confident_de <- current$n_det_sig > 0L & !current$unstable
+  old <- iso
+  dea <- old@dea
+  dea[["confidence"]] <- legacy
+  old@dea <- dea
+  # In memory, silently
+  testthat::expect_no_message(upgraded <- de_confidence(old))
+  testthat::expect_identical(upgraded$unstable, upgraded$sign_agreement < 0.95)
+  testthat::expect_false(any(
+    c("confidence", "confident_de", "reason") %in% colnames(upgraded)
+  ))
+  testthat::expect_equal(upgraded, current)
+  sw <- isoform_switches(old)
+  testthat::expect_true("n_det_unstable" %in% colnames(sw))
+  # From disk, with one message; the class may be stored as text
+  out <- withr::local_tempdir()
+  for (as_text in c(FALSE, TRUE)) {
+    if (as_text) {
+      dea[["confidence"]]$confidence <- as.character(legacy$confidence)
+      old@dea <- dea
+    }
+    dir <- fs::path(out, paste0("legacy_", as_text))
+    write_isoformic(old, dir)
+    testthat::expect_message(
+      back <- read_isoformic(dir),
+      class = "isoformic_legacy_confidence"
+    )
+    testthat::expect_false(any(
+      c("confidence", "confident_de", "reason") %in%
+        colnames(back@dea[["confidence"]])
+    ))
+    testthat::expect_equal(
+      as.data.frame(de_confidence(back)),
+      as.data.frame(current),
+      ignore_attr = TRUE
+    )
+  }
+})
+
+testthat::test_that("legacy tables lose the uncertain flag of features that were not assessed", {
+  x <- uncertainty_experiment()
+  iso <- add_uncertainty(x$iso, paths = x$fixture$dirs, group = "condition")
+  # From the stored draws, so that the features below `min_count` are kept
+  iso <- add_uncertainty(iso, group = "condition", min_count = 45)
+  current <- de_confidence(iso)
+  low <- is.na(current$sign_agreement)
+  testthat::expect_true(any(low))
+  testthat::expect_true(any(!low))
+  # Older versions kept the InfRV, and could set the uncertain flag, below
+  # `min_count`
+  legacy <- current[,
+    setdiff(colnames(current), c("unstable", "unstable_de", "flags"))
+  ]
+  legacy$mean_inf_rv[low] <- 0.9
+  legacy$reason <- sub(
+    "unstable direction",
+    "unstable fold-change",
+    current$flags,
+    fixed = TRUE
+  )
+  legacy$reason[low] <- "uncertain quantification"
+  legacy$confidence <- factor(
+    ifelse(low | current$unstable %in% TRUE, "low", "high"),
+    levels = c("high", "moderate", "low"),
+    ordered = TRUE
+  )
+  legacy$confident_de <- current$n_det_sig > 0L & !current$unstable %in% TRUE
+  old <- iso
+  dea <- old@dea
+  dea[["confidence"]] <- legacy
+  old@dea <- dea
+  stored <- uncertainty_settings(iso)$min_agreement
+  upgraded <- de_confidence(old)
+  testthat::expect_identical(
+    upgraded$flags,
+    de_confidence(old, min_agreement = stored)$flags
+  )
+  testthat::expect_true(all(is.na(upgraded$flags[low])))
+  testthat::expect_true(all(is.na(upgraded$mean_inf_rv[low])))
+  testthat::expect_equal(upgraded, current)
+  testthat::expect_equal(uncertainty_report(old)$de, uncertainty_report(iso)$de)
+  # The same from disk
+  out <- withr::local_tempdir()
+  dir <- fs::path(out, "legacy")
+  write_isoformic(old, dir)
+  testthat::expect_message(
+    back <- read_isoformic(dir),
+    class = "isoformic_legacy_confidence"
+  )
+  testthat::expect_equal(
+    as.data.frame(de_confidence(back)),
+    as.data.frame(current),
+    ignore_attr = TRUE
+  )
+})
+
+testthat::test_that("draws read for an object without counts cover only its rows", {
+  x <- uncertainty_experiment()
+  sub <- x$iso[c("tA1", "tA2", "tB1"), ]
+  tx_assay(sub, "counts") <- NULL
+  sub <- add_uncertainty(sub, paths = x$fixture$dirs)
+  testthat::expect_setequal(
+    rownames(sub@metadata$inf_reps[[1L]]),
+    c("tA1", "tA2", "tB1")
+  )
+  unc <- tx_uncertainty(sub)
+  testthat::expect_setequal(unc$transcript_id, c("tA1", "tA2", "tB1"))
+  # The tables recomputed from the stored draws match those from the paths
+  again <- add_uncertainty(sub)
+  testthat::expect_equal(
+    tx_uncertainty(again)$mean_inf_rv,
+    unc$mean_inf_rv
+  )
+  # The draws written are the draws in memory
+  out <- withr::local_tempdir()
+  write_isoformic(sub, fs::path(out, "exp"))
+  back <- read_isoformic(fs::path(out, "exp"))
+  testthat::expect_identical(back@metadata$inf_reps, sub@metadata$inf_reps)
+  testthat::expect_equal(
+    tx_uncertainty(back)$mean_inf_rv,
+    unc$mean_inf_rv
+  )
+})
+
+testthat::test_that("isoform_switches and dominant_isoform use the stability", {
   x <- uncertainty_experiment()
   iso <- add_uncertainty(x$iso, paths = x$fixture$dirs, group = "condition")
   sw <- isoform_switches(iso)
   ga <- sw[sw$gene_id == "gA", ]
   testthat::expect_identical(ga$switch_type, "opposite_direction")
   testthat::expect_equal(ga$n_det_sig, 3L)
-  testthat::expect_equal(ga$n_det_confident, 1L)
-  conf_sw <- isoform_switches(iso, confident_only = TRUE)
-  ga <- conf_sw[conf_sw$gene_id == "gA", ]
-  testthat::expect_equal(ga$n_det_sig, 1L)
-  testthat::expect_identical(ga$switch_type, "det_not_deg")
+  testthat::expect_equal(ga$n_det_unstable, 0L)
+  testthat::expect_false("n_det_confident" %in% colnames(sw))
+  # A significant call with an unstable direction (tA4) is counted, and
+  # drop_unstable = TRUE leaves out exactly that call
+  de_tx(iso) <- data.frame(
+    transcript_id = c("tA1", "tA2", "tA3", "tA4", "tB1"),
+    log2FC = c(1.2, -1.2, 1.8, 1.5, 0.1),
+    pvalue = c(0.001, 0.001, 0.0001, 0.001, 0.6),
+    qvalue = c(0.01, 0.01, 0.001, 0.01, 0.7)
+  )
+  sw <- isoform_switches(iso)
+  ga <- sw[sw$gene_id == "gA", ]
+  testthat::expect_equal(ga$n_det_sig, 4L)
+  testthat::expect_equal(ga$n_det_unstable, 1L)
+  # The stored table follows the new results as well
+  conf <- de_confidence(iso)
+  testthat::expect_equal(conf$n_det_sig[conf$feature_id == "tA4"], 1L)
+  testthat::expect_true(conf$unstable_de[conf$feature_id == "tA4"])
+  testthat::expect_equal(conf$det_log2FC[conf$feature_id == "tA4"], 1.5)
+  de <- uncertainty_report(iso)$de
+  testthat::expect_equal(de$n_significant[de$flag == "unstable"], 4L)
+  testthat::expect_equal(de$n_flagged[de$flag == "unstable"], 1L)
+  testthat::expect_identical(
+    colnames(sw)[match("n_det_sig", colnames(sw)) + 1L],
+    "n_det_unstable"
+  )
+  kept <- isoform_switches(iso, drop_unstable = TRUE)
+  ga_kept <- kept[kept$gene_id == "gA", ]
+  testthat::expect_equal(ga_kept$n_det_sig, ga$n_det_sig - ga$n_det_unstable)
+  testthat::expect_identical(ga_kept$switch_type, "opposite_direction")
+  testthat::expect_error(
+    isoform_switches(iso, confident_only = FALSE),
+    class = "isoformic_defunct_argument"
+  )
+  # An old positional call does not silently mean drop_unstable
+  testthat::expect_error(
+    isoform_switches(iso, NULL, TRUE),
+    class = "isoformic_defunct_argument"
+  )
   dom <- dominant_isoform(iso, group = "condition")
   testthat::expect_true(all(
     c("dominant_inf_rv", "dominant_ambiguous") %in% colnames(dom)
@@ -366,8 +833,204 @@ testthat::test_that("isoform_switches and dominant_isoform use the confidence", 
   testthat::expect_false(
     "dominant_inf_rv" %in% colnames(dominant_isoform(x$iso))
   )
-  testthat::expect_false(
-    "n_det_confident" %in% colnames(isoform_switches(x$iso))
+  testthat::expect_false(any(
+    c("n_det_unstable", "n_det_confident") %in%
+      colnames(isoform_switches(x$iso))
+  ))
+})
+
+testthat::test_that("members of a collapsed group take the direction of the group", {
+  x <- uncertainty_experiment()
+  iso <- add_uncertainty(
+    x$iso,
+    paths = x$fixture$dirs,
+    group = "condition",
+    collapse_groups = TRUE
+  )
+  # gA_amb1 sums tA1 and tA2, both significant; tA3 is significant alone
+  sw <- isoform_switches(iso)
+  testthat::expect_equal(sw$n_det_sig[sw$gene_id == "gA"], 3L)
+  testthat::expect_equal(sw$n_det_unstable[sw$gene_id == "gA"], 0L)
+  dea <- iso@dea
+  g <- dea$confidence$feature_type == "group"
+  testthat::expect_identical(dea$confidence$feature_id[g], "gA_amb1")
+  dea$confidence$sign_agreement[g] <- 0.5
+  dea$confidence$unstable[g] <- TRUE
+  iso@dea <- dea
+  conf <- de_confidence(iso)
+  testthat::expect_true(conf$unstable_de[conf$feature_id == "gA_amb1"])
+  sw <- isoform_switches(iso)
+  testthat::expect_equal(sw$n_det_sig[sw$gene_id == "gA"], 3L)
+  testthat::expect_equal(sw$n_det_unstable[sw$gene_id == "gA"], 2L)
+  kept <- isoform_switches(iso, drop_unstable = TRUE)
+  testthat::expect_equal(kept$n_det_sig[kept$gene_id == "gA"], 1L)
+  # The report counts the group once, as one significant feature
+  de <- uncertainty_report(iso)$de
+  testthat::expect_equal(de$n_significant, rep(2L, 3L))
+  testthat::expect_equal(de$n_flagged[de$flag == "unstable"], 1L)
+  testthat::expect_identical(
+    uncertainty_report(iso)$switches$n_opposite_direction,
+    c(1L, 0L)
+  )
+})
+
+testthat::test_that("uncertainty_report counts switches without a gene-level table", {
+  x <- uncertainty_experiment()
+  iso <- add_uncertainty(x$iso, paths = x$fixture$dirs, group = "condition")
+  with_genes <- uncertainty_report(iso)$switches
+  dea <- iso@dea
+  dea[["deg"]] <- NULL
+  iso@dea <- dea
+  sw <- uncertainty_report(iso)$switches
+  testthat::expect_s3_class(sw, "tbl_df")
+  testthat::expect_identical(nrow(sw), 2L)
+  testthat::expect_identical(sw$n_genes, with_genes$n_genes)
+  testthat::expect_identical(
+    sw$n_opposite_direction,
+    with_genes$n_opposite_direction
+  )
+  testthat::expect_identical(sw$n_det_not_deg, c(NA_integer_, NA_integer_))
+})
+
+testthat::test_that("de_confidence applies new thresholds to the stored table", {
+  x <- uncertainty_experiment()
+  iso <- add_uncertainty(x$iso, paths = x$fixture$dirs, group = "condition")
+  stored <- de_confidence(iso)
+  testthat::expect_identical(
+    de_confidence(iso, min_agreement = 0.95, inf_rv_cutoff = 0.5),
+    stored
+  )
+  strict <- de_confidence(iso, min_agreement = 1)
+  testthat::expect_identical(strict$unstable, strict$sign_agreement < 1)
+  testthat::expect_identical(
+    strict$unstable_de,
+    strict$n_det_sig > 0L & strict$sign_agreement < 1
+  )
+  testthat::expect_true(any(strict$unstable & !stored$unstable))
+  # tA6 agrees in 29 of 30 replicates
+  testthat::expect_match(
+    strict$flags[strict$feature_id == "tA6"],
+    "unstable direction",
+    fixed = TRUE
+  )
+  loose <- de_confidence(iso, inf_rv_cutoff = Inf)
+  testthat::expect_false(any(grepl(
+    "uncertain quantification",
+    loose$flags,
+    fixed = TRUE
+  )))
+  testthat::expect_identical(loose$unstable, stored$unstable)
+})
+
+testthat::test_that("invalid thresholds are rejected", {
+  x <- uncertainty_experiment()
+  iso <- add_uncertainty(x$iso, paths = x$fixture$dirs, group = "condition")
+  bad_agreement <- list("a", c(0.5, 0.9), NA_real_, 1.5, -0.1)
+  for (bad in bad_agreement) {
+    testthat::expect_error(
+      de_confidence(iso, min_agreement = bad),
+      class = "isoformic_invalid_argument"
+    )
+    testthat::expect_error(
+      de_confidence(iso, group = "condition", min_agreement = bad),
+      class = "isoformic_invalid_argument"
+    )
+    testthat::expect_error(
+      add_uncertainty(iso, min_agreement = bad),
+      class = "isoformic_invalid_argument"
+    )
+  }
+  for (bad in list("z", -1, NA_real_, c(1, 2))) {
+    testthat::expect_error(
+      de_confidence(iso, inf_rv_cutoff = bad),
+      class = "isoformic_invalid_argument"
+    )
+    testthat::expect_error(
+      add_uncertainty(iso, inf_rv_cutoff = bad),
+      class = "isoformic_invalid_argument"
+    )
+  }
+  # A valid value marks exactly the features below it
+  res <- de_confidence(iso, min_agreement = 0.85)
+  testthat::expect_identical(res$unstable, res$sign_agreement < 0.85)
+  testthat::expect_identical(
+    de_confidence(iso, min_agreement = 1L)$unstable,
+    res$sign_agreement < 1
+  )
+})
+
+testthat::test_that("features below min_count are not flagged as uncertain", {
+  x <- uncertainty_experiment()
+  iso <- add_uncertainty(x$iso, paths = x$fixture$dirs, group = "condition")
+  high <- add_uncertainty(iso, group = "condition", min_count = 300)
+  unc <- tx_uncertainty(high)
+  testthat::expect_false(any(unc$assessed))
+  conf <- de_confidence(high)
+  testthat::expect_true(all(is.na(conf$sign_agreement)))
+  testthat::expect_true(all(is.na(conf$mean_inf_rv)))
+  no_uncertain <- function(flags) {
+    !any(grepl("uncertain quantification", flags, fixed = TRUE))
+  }
+  testthat::expect_true(no_uncertain(conf$flags))
+  testthat::expect_true(no_uncertain(
+    de_confidence(high, inf_rv_cutoff = 0.1)$flags
+  ))
+  testthat::expect_true(no_uncertain(
+    de_confidence(high, group = "condition")$flags
+  ))
+  # A table stored before this change keeps the InfRV of such features
+  old <- de_confidence(iso)
+  old$sign_agreement[] <- NA_real_
+  testthat::expect_true(no_uncertain(
+    rethreshold_confidence(
+      old,
+      list(min_agreement = 0.95, inf_rv_cutoff = 0)
+    )$flags
+  ))
+})
+
+testthat::test_that("uncertainty_report counts switches without the stability", {
+  x <- uncertainty_experiment()
+  i0 <- add_uncertainty(x$iso, paths = x$fixture$dirs)
+  sw <- uncertainty_report(i0)$switches
+  testthat::expect_s3_class(sw, "tbl_df")
+  testthat::expect_identical(nrow(sw), 2L)
+  all_sw <- isoform_switches(i0)
+  testthat::expect_identical(sw$n_genes[[1L]], nrow(all_sw))
+  testthat::expect_identical(
+    sw$n_opposite_direction[[1L]],
+    sum(all_sw$switch_type == "opposite_direction")
+  )
+  testthat::expect_identical(
+    sw$n_det_not_deg[[1L]],
+    sum(all_sw$switch_type == "det_not_deg")
+  )
+  testthat::expect_true(is.na(sw$n_genes[[2L]]))
+  testthat::expect_true(is.na(sw$n_opposite_direction[[2L]]))
+  testthat::expect_true(is.na(sw$n_det_not_deg[[2L]]))
+  # With the stability both rows are filled
+  ig <- add_uncertainty(i0, group = "condition")
+  testthat::expect_false(anyNA(uncertainty_report(ig)$switches$n_genes))
+  # Without a transcript-level table there is no switch summary
+  dea <- i0@dea
+  dea[["det"]] <- NULL
+  i0@dea <- dea
+  testthat::expect_null(uncertainty_report(i0)$switches)
+})
+
+testthat::test_that("a missing value in the replicates is reported", {
+  x <- uncertainty_experiment()
+  iso <- add_uncertainty(x$iso, paths = x$fixture$dirs, keep_draws = TRUE)
+  meta <- iso@metadata
+  meta$inf_reps[[1L]]["tA4", 2L] <- NA
+  iso@metadata <- meta
+  testthat::expect_error(
+    de_confidence(iso, group = "condition"),
+    class = "isoformic_missing_draws"
+  )
+  testthat::expect_error(
+    add_uncertainty(iso, group = "condition"),
+    class = "isoformic_missing_draws"
   )
 })
 
@@ -389,14 +1052,29 @@ testthat::test_that("uncertainty_report and uncertainty_methods summarise the se
     1L
   )
   testthat::expect_equal(nrow(rep$run), 6L)
-  de <- rep$de
-  testthat::expect_identical(
-    as.character(de$confidence),
-    c("high", "moderate", "low")
+  testthat::expect_true(
+    all(c("q25_inf_rv", "q75_inf_rv") %in% colnames(rep$transcripts))
   )
-  testthat::expect_equal(sum(de$n_significant), 3L)
-  testthat::expect_equal(de$n_significant[de$confidence == "high"], 1L)
-  testthat::expect_equal(de$n_ambiguous[de$confidence == "low"], 2L)
+  testthat::expect_true(all(
+    rep$transcripts$q25_inf_rv <= rep$transcripts$median_inf_rv &
+      rep$transcripts$median_inf_rv <= rep$transcripts$q75_inf_rv
+  ))
+  de <- rep$de
+  testthat::expect_identical(de$flag, c("unstable", "uncertain", "ambiguous"))
+  testthat::expect_named(
+    de,
+    c("flag", "rule", "n_significant", "n_assessed", "n_flagged", "pct_flagged")
+  )
+  testthat::expect_identical(de$rule[1L], "sign_agreement < 0.95")
+  testthat::expect_identical(de$rule[2L], "mean_inf_rv >= 0.5")
+  testthat::expect_equal(de$n_significant, rep(3L, 3L))
+  testthat::expect_equal(de$n_assessed, rep(3L, 3L))
+  testthat::expect_equal(de$n_flagged, c(0L, 2L, 2L))
+  testthat::expect_equal(de$pct_flagged, 100 * c(0, 2, 2) / 3)
+  testthat::expect_identical(
+    rep$switches$set,
+    c("all significant isoforms", "without unstable directions")
+  )
   testthat::expect_equal(rep$switches$n_genes, c(1L, 1L))
   txt <- uncertainty_methods(iso)
   testthat::expect_match(txt, "Salmon 2.8.0", fixed = TRUE)
@@ -406,6 +1084,11 @@ testthat::test_that("uncertainty_report and uncertainty_methods summarise the se
   testthat::expect_match(txt, "b versus a", fixed = TRUE)
   testthat::expect_match(txt, "InfRV of at least 0.5", fixed = TRUE)
   testthat::expect_match(txt, "95%", fixed = TRUE)
+  testthat::expect_match(txt, "sign agreement", fixed = TRUE)
+  testthat::expect_match(txt, "unstable direction", fixed = TRUE)
+  testthat::expect_no_match(txt, "high confidence", fixed = TRUE)
+  testthat::expect_no_match(txt, "moderate", fixed = TRUE)
+  testthat::expect_no_match(txt, "identified each", fixed = TRUE)
 })
 
 testthat::test_that("the uncertainty plots build", {
@@ -414,7 +1097,18 @@ testthat::test_that("the uncertainty plots build", {
   p1 <- plot_de_confidence(iso, gene_name = "GENEA")
   testthat::expect_s3_class(p1, "ggplot")
   testthat::expect_no_error(ggplot2::ggplot_build(p1))
-  testthat::expect_setequal(as.character(p1$data$confidence), c("high", "low"))
+  testthat::expect_identical(
+    levels(p1$data$direction),
+    c("stable", "unstable")
+  )
+  conf_a <- de_confidence(iso, gene_name = "GENEA")
+  testthat::expect_identical(
+    as.character(p1$data$direction[match(
+      conf_a$feature_id,
+      p1$data$feature_id
+    )]),
+    ifelse(conf_a$unstable, "unstable", "stable")
+  )
   p2 <- plot_isoform_correlation(iso, gene_name = c("GENEA", "GENEB"))
   testthat::expect_s3_class(p2, "ggplot")
   testthat::expect_no_error(ggplot2::ggplot_build(p2))
@@ -426,7 +1120,9 @@ testthat::test_that("the uncertainty plots build", {
     plot_de_confidence(iso, gene_name = "nope"),
     class = "isoformic_no_uncertainty"
   )
-  testthat::expect_named(confidence_palette(), c("high", "moderate", "low"))
+  testthat::expect_false(
+    exists("confidence_palette", envir = asNamespace("isoformic"))
+  )
 })
 
 testthat::test_that("productive_fraction accepts replicates of expressed transcripts only", {
@@ -533,6 +1229,76 @@ testthat::test_that("replicates convert to a long table and back without loss", 
   )
 })
 
+testthat::test_that("canonical and shuffled replicate tables give the same draws", {
+  fx <- salmon_uncertainty_fixture()
+  reps <- read_inferential_replicates(fx$dirs, n_draws = 5L)
+  tab <- inferential_replicates_table(reps)
+  ids <- unique(tab$transcript_id)
+  samples <- unique(tab$sample_id)
+  testthat::expect_identical(
+    canonical_replicates_layout(tab),
+    list(ids = ids, samples = samples, draws = 1:5)
+  )
+  # Two rows of the second draw swapped: same cells, general path
+  swapped <- tab
+  rows <- length(ids) * length(samples) + 1:2
+  swapped[rows, ] <- tab[rev(rows), ]
+  testthat::expect_null(canonical_replicates_layout(swapped))
+  # Draws out of order, or a draw block of another size, are not canonical
+  testthat::expect_null(
+    canonical_replicates_layout(tab[order(-tab$draw, seq_len(nrow(tab))), ])
+  )
+  testthat::expect_null(canonical_replicates_layout(tab[-1L, ]))
+  fast <- as_inferential_replicates(tab)
+  general <- as_inferential_replicates(swapped)
+  testthat::expect_identical(general, fast)
+  # Integer counts and factor columns give the same double matrices
+  int_tab <- tab
+  int_tab$count <- as.integer(round(int_tab$count))
+  int_tab$transcript_id <- factor(int_tab$transcript_id, levels = ids)
+  as_int <- as_inferential_replicates(int_tab)
+  testthat::expect_type(as_int[[1L]], "double")
+  testthat::expect_identical(
+    as_int[[2L]],
+    round(unclass(fast)[[2L]])
+  )
+})
+
+testthat::test_that("a repeated cell in a replicate or moments table is an error", {
+  tab <- tibble::tibble(
+    transcript_id = rep(c("t1", "t2"), 4L),
+    sample_id = rep(rep(c("s1", "s2"), each = 2L), 2L),
+    draw = rep(1:2, each = 4L),
+    count = as.numeric(1:8)
+  )
+  ok <- as_inferential_replicates(tab)
+  testthat::expect_identical(ok[[2L]]["t2", "s1"], 6)
+  # Row 2 (t2, s1, draw 1) replaced by a copy of row 1: as many rows, one
+  # cell twice and one missing
+  dup <- tab
+  dup[2L, ] <- tab[1L, ]
+  testthat::expect_error(
+    as_inferential_replicates(dup),
+    class = "isoformic_invalid_inferential_replicates",
+    regexp = "more than one row"
+  )
+  mom <- tibble::tibble(
+    transcript_id = c("t1", "t2", "t1", "t2"),
+    sample_id = c("s1", "s1", "s2", "s2"),
+    n_draws = 2L,
+    mean = 1:4,
+    var = 1:4
+  )
+  testthat::expect_equal(moments_from_table(mom)$mean[["t2", "s2"]], 4)
+  mom_dup <- mom
+  mom_dup[2L, ] <- mom[1L, ]
+  testthat::expect_error(
+    moments_from_table(mom_dup),
+    class = "isoformic_invalid_inferential_replicates",
+    regexp = "more than one row"
+  )
+})
+
 testthat::test_that("inferential_overdispersion follows the quasi-Poisson estimator of catchSalmon", {
   x <- uncertainty_experiment()
   reps <- read_inferential_replicates(x$fixture$dirs)
@@ -634,9 +1400,28 @@ testthat::test_that("the overdispersion does not depend on the transcripts whose
 
   # Subsetting the samples keeps the moments of those samples only
   two <- suppressMessages(kept[, c("s1", "s4")])
-  mom <- attr(two@metadata$inf_reps, "moments")
+  mom <- inf_reps_moments(two@metadata$inf_reps)
   testthat::expect_identical(colnames(mom$mean), c("s1", "s4"))
   testthat::expect_true("tA5" %in% rownames(mom$mean))
+
+  # A subset made only of transcripts without stored replicates keeps the
+  # moments, so their overdispersion is still available
+  only_a5 <- suppressMessages(kept["tA5", ])
+  testthat::expect_false(is.null(only_a5@metadata$inf_reps))
+  testthat::expect_false(is.null(attr(only_a5@metadata$inf_reps, "moments")))
+  testthat::expect_equal(
+    tx_assay(scale_counts(only_a5), "counts_scaled")["tA5", ],
+    tx_assay(scale_counts(kept), "counts_scaled")["tA5", ]
+  )
+  od_a5 <- inferential_overdispersion(only_a5)
+  testthat::expect_identical(od_a5$transcript_id, "tA5")
+  testthat::expect_equal(
+    od_a5$overdispersion,
+    od_kept$overdispersion[od_kept$transcript_id == "tA5"]
+  )
+  # Without the moments such a subset has no replicates left
+  no_mom_a5 <- suppressMessages(no_mom["tA5", ])
+  testthat::expect_null(no_mom_a5@metadata$inf_reps)
 })
 
 testthat::test_that("the moments use the replicates kept in every sample", {
@@ -652,6 +1437,34 @@ testthat::test_that("the moments use the replicates kept in every sample", {
   expected <- draw_moments(simplify2array(unname(lapply(all_reps, unclass))))
   testthat::expect_equal(unname(mom$mean), unname(expected$mean))
   testthat::expect_equal(unname(mom$var), unname(expected$var))
+
+  # The same with the samples with fewer draws first
+  dirs_rev <- c(few$dirs[c("s3", "s4")], many$dirs[c("s1", "s2")])
+  reps_rev <- read_inferential_replicates(
+    dirs_rev,
+    transcripts = c("tA1", "tA3")
+  )
+  testthat::expect_length(reps_rev, 10L)
+  mom_rev <- attr(reps_rev, "moments")
+  testthat::expect_identical(mom_rev$n, 10L)
+  all_rev <- read_inferential_replicates(dirs_rev)
+  expected_rev <- draw_moments(simplify2array(unname(lapply(all_rev, unclass))))
+  testthat::expect_equal(unname(mom_rev$mean), unname(expected_rev$mean))
+  testthat::expect_equal(unname(mom_rev$var), unname(expected_rev$var))
+
+  # n_draws: the moments use the same first draws as the replicates
+  reps_7 <- read_inferential_replicates(
+    dirs,
+    transcripts = c("tA1", "tA3"),
+    n_draws = 7L
+  )
+  testthat::expect_length(reps_7, 7L)
+  mom_7 <- attr(reps_7, "moments")
+  testthat::expect_identical(mom_7$n, 7L)
+  all_7 <- read_inferential_replicates(dirs, n_draws = 7L)
+  expected_7 <- draw_moments(simplify2array(unname(lapply(all_7, unclass))))
+  testthat::expect_equal(unname(mom_7$mean), unname(expected_7$mean))
+  testthat::expect_equal(unname(mom_7$var), unname(expected_7$var))
 })
 
 testthat::test_that("scale_counts divides the counts by the overdispersion", {
@@ -819,7 +1632,7 @@ testthat::test_that("cor_cutoff = 'adaptive' derives the cutoff from the pairs",
   testthat::expect_match(uncertainty_methods(fixed), "with a fixed cutoff")
 })
 
-testthat::test_that("identifiability becomes one more condition of the confidence", {
+testthat::test_that("identifiability is reported and does not change the direction flag", {
   x <- uncertainty_experiment()
   plain <- add_uncertainty(x$iso, paths = x$fixture$dirs, group = "condition")
   testthat::expect_false("identifiable" %in% colnames(de_confidence(plain)))
@@ -846,7 +1659,8 @@ testthat::test_that("identifiability becomes one more condition of the confidenc
     identifiability = ident
   )
   testthat::expect_identical(de_confidence(from_table), de_confidence(iso))
-  # A transcript marked non-identifiable loses one confidence class
+  # A transcript marked non-identifiable is flagged as such; its direction
+  # flag does not change
   ident$identifiable[ident$transcript_id == "tA3"] <- FALSE
   flagged <- add_uncertainty(
     plain,
@@ -856,12 +1670,33 @@ testthat::test_that("identifiability becomes one more condition of the confidenc
   conf <- de_confidence(flagged)
   at <- conf$feature_id == "tA3"
   testthat::expect_false(conf$identifiable[at])
-  testthat::expect_identical(as.character(conf$confidence[at]), "moderate")
-  testthat::expect_match(conf$reason[at], "not identifiable")
-  testthat::expect_false(conf$confident_de[at])
+  testthat::expect_match(conf$flags[at], "not identifiable")
+  plain_conf <- de_confidence(plain)
+  testthat::expect_identical(
+    conf$unstable,
+    plain_conf$unstable[match(conf$feature_id, plain_conf$feature_id)]
+  )
+  testthat::expect_identical(
+    conf$unstable_de,
+    plain_conf$unstable_de[match(conf$feature_id, plain_conf$feature_id)]
+  )
+  testthat::expect_identical(
+    colnames(conf)[match("ambiguous", colnames(conf)) + 1:2],
+    c("identifiable", "flags")
+  )
+  de <- uncertainty_report(flagged)$de
+  testthat::expect_identical(
+    de$flag,
+    c("unstable", "uncertain", "ambiguous", "not_identifiable")
+  )
+  testthat::expect_equal(de$n_flagged[de$flag == "not_identifiable"], 1L)
   testthat::expect_match(
     paste(uncertainty_methods(flagged), collapse = " "),
-    "equivalence classes of every sample identified"
+    "structurally identifiable from the equivalence classes of every sample"
+  )
+  testthat::expect_match(
+    paste(uncertainty_methods(flagged), collapse = " "),
+    "not the same as, the range-of-optima non-identifiability"
   )
   # The flag is kept when the tables are recomputed from the stored draws
   again <- add_uncertainty(flagged, group = "condition")
@@ -882,4 +1717,45 @@ testthat::test_that("identifiability becomes one more condition of the confidenc
     add_uncertainty(plain, identifiability = data.frame(transcript_id = "tA1")),
     class = "isoformic_invalid_identifiability"
   )
+})
+
+testthat::test_that("row_stats matches median, quantile and sd row by row", {
+  set.seed(11)
+  for (d in c(1L, 2L, 7L, 30L)) {
+    m <- matrix(round(stats::rnorm(40L * d), 1L), nrow = 40L)
+    m[1L, ] <- 2.5
+    m[2L, ] <- c(0, rep(1, d - 1L))
+    m[3L, 1L] <- NA
+    if (d > 1L) {
+      m[4L, ] <- NA
+      m[5L, 2L] <- NaN
+    }
+    m[6L, 1L] <- -Inf
+    rownames(m) <- paste0("f", seq_len(nrow(m)))
+    probs <- c(0.025, 0.5, 0.975)
+    res <- row_stats(m, probs)
+    testthat::expect_identical(res$median, unname(apply(m, 1L, stats::median)))
+    testthat::expect_identical(res$quantiles, row_quantiles(m, probs))
+    testthat::expect_equal(
+      res$sd,
+      unname(apply(m, 1L, stats::sd)),
+      tolerance = 1e-12
+    )
+  }
+  empty <- row_stats(matrix(numeric(), 0L, 5L), 0.5)
+  testthat::expect_identical(empty$median, numeric())
+  testthat::expect_identical(dim(empty$quantiles), c(1L, 0L))
+})
+
+testthat::test_that("the fold-change of de_confidence is a difference of mean log counts", {
+  # one feature, group a = (0, 0, 100), group b = (30, 30, 30): the log
+  # ratio of the arithmetic means is negative, the documented statistic (the
+  # difference of the group means of log2(count + 5)) is positive
+  counts <- matrix(c(0, 0, 100, 30, 30, 30), nrow = 1L)
+  in_b <- c(FALSE, FALSE, FALSE, TRUE, TRUE, TRUE)
+  w <- welch_matrix(log2(counts + 5), in_b)
+  expected <- log2(35) - mean(log2(c(5, 5, 105)))
+  testthat::expect_equal(w$lfc, expected, tolerance = 1e-12)
+  testthat::expect_gt(w$lfc, 1.3)
+  testthat::expect_lt(log2(35) - log2(mean(c(0, 0, 100)) + 5), 0)
 })

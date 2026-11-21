@@ -1,7 +1,7 @@
 ---
 title: "How confident are we in an isoform-level result?"
 date: 2026-10-17
-date-modified: 2026-11-12
+date-modified: 2026-11-20
 date-format: long
 author:
   - name: Lucio Rezende Queiroz
@@ -26,23 +26,48 @@ knitr:
 #| label: setup
 #| include: false
 knitr::opts_chunk$set(echo = TRUE)
+# Numbers of the genome-wide evaluation quoted in the pointers below, from
+# the tables of the evidence article (vignettes/articles/data/uncertainty_evidence)
+evidence <- isoformic::read_parquet("data/uncertainty_evidence/evidence_numbers.parquet")
+ev_val <- function(key) {
+  x <- evidence$estimate[evidence$key == key]
+  if (length(x) != 1L) {
+    stop("evidence key not found or not unique: ", key)
+  }
+  x
+}
+ev_ci <- function(key, digits = 2) {
+  r <- evidence[evidence$key == key, ]
+  sprintf("%.*f to %.*f", digits, r$ci_lo, digits, r$ci_hi)
+}
+ev_pct <- function(x, digits = 1) paste0(formatC(100 * x, digits = digits, format = "f"), "%")
+ev_int <- function(x) formatC(round(x), format = "d", big.mark = ",")
 ```
 
 Reads that map to several isoforms of a gene can be shared out between them in more than one way, so the abundance of an isoform is estimated with an uncertainty that has nothing to do with biological variability.
 A fold-change between two isoforms that share most of their reads can be an artefact of how those reads were apportioned in each sample, however clean the statistics look.
 
 Salmon [@salmon] measures this *inferential uncertainty* by drawing replicates from the posterior of the abundances (Gibbs sampling, `--numGibbsSamples`, 30 by default in `salmon_quant()`) and by writing the equivalence classes (`--dumpEq`) and a run summary (`meta_info.json`).
-Gibbs samples resolve low counts better than bootstrap replicates, and the overdispersion used further down to scale counts is precise once the study has at least 60 degrees of freedom, counted as samples times replicates minus one (200 to 300 preferred) [@baldoni2024gibbs]: 30 draws are enough from three samples up, and `add_uncertainty()` says so when a study falls short.
-`isoformic` turns them into four kinds of evidence for every isoform and one confidence class for every differential expression call:
+Gibbs samples resolve low counts better than bootstrap replicates, and the overdispersion used further down to scale counts is precise once the study has at least 60 degrees of freedom, counted as samples times replicates minus one (200 to 300 preferred) [@baldoni2024gibbs]: 30 draws meet that minimum from three samples up (87 degrees of freedom) and reach the preferred range from seven (203), and `add_uncertainty()` says so when a study falls short.
+`isoformic` turns them into four kinds of evidence for every isoform and a check of the direction of every differential expression call:
 
 | Evidence | Question it answers | Columns |
 |---|---|---|
 | Quantification uncertainty | Is the abundance determined by the reads? | `mean_inf_rv`, `uncertain` |
 | Ambiguity between isoforms | Can the isoform be told apart from its siblings? | `min_sibling_cor`, `ambiguity_group` |
 | Read support | How many of its reads map to it alone? | `unique_fraction` |
-| Fold-change stability | Does the contrast survive resampling the quantification? | `lfc_lo`, `lfc_hi`, `sign_agreement`, `frac_draws_sig` |
+| Fold-change stability | Does the contrast survive resampling the quantification? | `sign_agreement`, `unstable`, `lfc_lo`, `lfc_hi`, `frac_draws_sig` |
 
 The first three are properties of the quantification; the last one is a property of one contrast.
+
+This article shows how to compute and read these columns on a small panel of genes.
+Whether they matter in a genome-wide analysis of a real cohort is the subject of the
+[evidence article](isoformic-uncertainty-evidence.html).
+In short, in held-out halves of a placenta cohort the calls whose direction fewer than 95% of the draws agreed on (`unstable`) replicated less often than the other calls,
+and the other columns predicted replication more weakly there (in technical read halves every flag predicted non-replication),
+but the flag marked only about one in ten of the calls that failed to replicate, so a stable direction does not make a call right.
+`isoformic` therefore reports `unstable` as the flag of a call and the other columns as descriptions of the isoform:
+a three-way confidence class built from all of them, used by earlier development versions, marked most of the calls (`r ev_pct(ev_val("B.flags.flag_primary.pct_flagged") / 100, 0)`), separated replicating from non-replicating calls only modestly, and as a filter would have discarded `r ev_pct(ev_val("B.5_ppv_cost_flag_primary.replicated_calls_removed_pct") / 100, 0)` of the calls that replicated, so it was removed.
 
 ## Quantifying with replicates
 
@@ -53,8 +78,14 @@ Ask Salmon for the replicates and the equivalence classes.
 salmon quant ... --numGibbsSamples 30 --dumpEq --dumpEqWeights
 ```
 
-Thirty replicates are enough for the summaries below.
-More cost time and disk space and change little.
+The [evidence article](isoformic-uncertainty-evidence.html) used 30 replicates.
+Its InfRV thirds barely changed when computed from 15 of them (`r ev_pct(ev_val("S0.tertile_agreement_15_vs_30"), 0)` of transcripts stay in the same third),
+but it did not test more draws for its calls.
+For isoforms near a cutoff (few unique fragments or reads, retained introns, lncRNAs), more draws are expected to make the flags more stable,
+since InfRV computed from more draws has a smaller sampling error, but this was not tested, and they cost time and disk space.
+Separately, about half of lncRNA isoforms sit in a TreeTerminus tree that differs between two Salmon runs, one with 30 and one with 100 draws;
+that comparison mixes the number of draws with the randomness of an independent run
+(see the [quantification stability article](isoformic-quantification-stability.html)).
 Then read everything in one call, from the same output directories used for `read_salmon()`:
 
 ```{r}
@@ -67,7 +98,7 @@ iso <- add_uncertainty(iso, paths = quant_dirs, group = "condition")
 ```
 
 The replicates are read for the transcripts with an estimated mean count of at least one, and the run metadata of every sample is added to `col_data()`.
-The replicates stay in memory (`iso@metadata$inf_reps`; `keep_draws = FALSE` drops them); the tables derived from them are stored in the object and written by `write_isoformic()`.
+The replicates stay in memory (`iso@metadata$inf_reps`; `keep_draws = FALSE` drops them); the tables derived from them, and the draws that are kept, are stored in the object and written by `write_isoformic()`.
 
 ## The example
 
@@ -81,7 +112,30 @@ In prostate cancer the androgen receptor controls `ESRP2`, which makes this swit
 | GSE75489 | H358 lung epithelial | `ESRP1` and `ESRP2` shRNA, 3 vs 3 | @yang2016 |
 
 Both were re-quantified from the public reads (the first 12 million read pairs of each sample) with Salmon 2.8.0 against GENCODE v50, with 30 Gibbs draws and equivalence classes.
-The `swish` test [@swish] was run on the complete quantification, so its q-values are those of the full analysis; only the transcripts of 39 genes (known ESRP targets and the genes with the most significant transcripts) are bundled.
+
+```{r}
+#| include: false
+# Genes of each bundled series, counted by name and by GENCODE gene ID
+knockdown_genes <- function(series) {
+  ext <- fs::path_package("isoformic", "extdata")
+  annot <- fs::path(ext, "knockdown_annotation")
+  tx <- isoformic::read_parquet(fs::path(annot, "annot_data_transcripts.parquet"))
+  genes <- isoformic::read_parquet(fs::path(annot, "annot_data_genes.parquet"))
+  kept <- isoformic::read_parquet(fs::path(ext, "knockdown", series, "abundance.parquet"))
+  ids <- unique(tx$gene_id[tx$transcript_id %in% kept$transcript_id])
+  gene_names <- genes$gene_name[match(ids, genes$gene_id)]
+  list(
+    names = length(unique(gene_names)),
+    ids = length(ids),
+    split = sort(unique(gene_names[duplicated(gene_names)]))
+  )
+}
+genes_prostate <- knockdown_genes("GSE129540")
+genes_h358 <- knockdown_genes("GSE75489")
+```
+
+The `swish` test [@swish] was run on the complete quantification, so its q-values are those of the full analysis; only the transcripts of `r genes_prostate$names` genes for the prostate series and `r genes_h358$names` for H358 (known ESRP targets and the genes with the most significant transcripts) are bundled.
+These counts are gene names: `r knitr::combine_words(union(genes_prostate$split, genes_h358$split))` also have copies on alternate haplotypes and patches, so the objects below count `r genes_prostate$ids` and `r genes_h358$ids` GENCODE gene IDs.
 `data-raw/build_knockdown_example.R` rebuilds everything from the Salmon output.
 
 ```{r}
@@ -121,6 +175,18 @@ The small result tables of the checks further down (read-split experiments, tool
 read_split <- function(name) {
   read_parquet(fs::path(extdata, "knockdown", "read_split", paste0(name, ".parquet")))
 }
+usage_rep <- read_split("usage_replication")
+usage_pct <- function(method, scaled, column) {
+  x <- usage_rep[[column]][usage_rep$method == method & usage_rep$scaled == scaled]
+  paste0(round(100 * x), "%")
+}
+usage_null <- read_split("usage_null")
+# a column of usage_null for one method and scaling, in both null contrasts
+null_n <- function(method, scaled, column) {
+  x <- usage_null[usage_null$method == method & usage_null$scaled == scaled, ]
+  x <- x[order(x$contrast), ]
+  paste(x[[column]], collapse = " and ")
+}
 ```
 
 Run-level checks come first: the mapping rate, the library type and whether the optimiser converged are in the sample table, from `salmon_run_qc()`.
@@ -133,10 +199,12 @@ col_data(iso) |>
 The `library_size` column holds the total estimated count of the complete quantification.
 Because the object keeps only a subset of the transcripts, `add_uncertainty()` uses it to scale the counts before it computes the fold-changes.
 
-The bundled `swish` result flags the isoforms that change:
+The bundled `swish` result has these isoforms at a q-value below 0.05;
+isoformic calls an isoform significant (`det_sig`, counted by `de_confidence()` as `n_det_sig`) when it also changes by at least 1 log2 unit, the default of `de_cutoffs()`:
 
 ```{r}
-sum(de_tx(iso)$qvalue < 0.05, na.rm = TRUE)
+det <- de_tx(iso)
+c(q_below_0.05 = sum(det$qvalue < 0.05, na.rm = TRUE), significant = sum(det$det_sig %in% "yes"))
 ```
 
 ## Computing the uncertainty
@@ -171,7 +239,9 @@ unc |>
 table(unc$transcript_type, unc$uncertain)
 ```
 
-The distribution per transcript type, with the cutoff that separates uncertain isoforms (0.5 by default; with 30 draws, sampling noise puts well-determined, highly expressed transcripts near 0.1):
+The distribution per transcript type, with the cutoff that marks `uncertain` isoforms (`inf_rv_cutoff`, 0.5 by default).
+The cutoff marks inferential variance above the sampling noise of 30 draws, which puts well-determined, highly expressed transcripts near 0.1; it describes the isoform and is not used to judge a call.
+In a full human annotation it marks most expressed isoforms (`r ev_pct(ev_val("S0.uncertain.TRUE") / ev_val("S0.U.all"), 0)` in the placenta cohort of the evidence article), so read `mean_inf_rv` itself rather than the flag:
 
 ```{r}
 plot_inf_rv(iso)
@@ -201,34 +271,39 @@ The sum of the pair is better determined than either part.
 ## How stable is each fold-change?
 
 `de_confidence()` repeats the contrast on every draw and summarises the log2 fold-change: its median and 95% interval, the share of draws that agree on its direction (`sign_agreement`) and the share in which the isoform is called differentially expressed (`frac_draws_sig`).
-Combined with the quantification uncertainty and the ambiguity it gives a confidence class:
+The direction is compared with the median of the per-draw fold-changes, not with the fold-change of the primary test.
 
-- `high`: the fold-change is stable (`sign_agreement >= 0.95`), the isoform is not `uncertain` and has no ambiguous sibling;
-- `moderate`: exactly one of these fails;
-- `low`: two or more fail.
+- `unstable` is `TRUE` when fewer than `min_agreement` (95%) of the draws agree on the direction. With 30 draws that allows one draw to disagree; with fewer than 20 draws, none.
+- `unstable_de` is `TRUE` for a call of the primary test with an unstable direction. Read the flag on the significant isoforms only: an isoform that does not change has a median fold-change near zero, and its direction over the draws is close to a coin toss.
+- `flags` lists the descriptions that apply to the isoform: unstable direction, uncertain quantification (`mean_inf_rv` at or above the cutoff), ambiguous with a sibling isoform and, when computed, not identifiable from the equivalence classes.
 
-The class says how far a call on this isoform can be trusted, so read it for the isoforms flagged by the primary test; for the others it only says that nothing would be believed.
+None of these is a verdict on a call.
+In the genome-wide evaluation calls with an unstable direction replicated less often in held-out halves of the cohort (odds ratio `r sprintf("%.2f", ev_val("B.flags.flag_unstable.adjusted_or"))`, see below), but the flag marked only `r ev_pct(ev_val("B.5_ppv_cost_flag_unstable.sensitivity_nonreplication"), 0)` of the calls that failed to replicate: most false calls have a stable direction.
 
 ```{r}
 conf <- de_confidence(iso)
 conf |>
   filter(n_det_sig > 0) |>
-  select(gene_name, transcript_name, det_log2FC, lfc_lo, lfc_hi, sign_agreement, mean_inf_rv, confidence, reason) |>
+  select(gene_name, transcript_name, det_log2FC, lfc_lo, lfc_hi, sign_agreement, unstable, mean_inf_rv, flags) |>
   head(10)
 
-table(significant = conf$n_det_sig > 0, confidence = conf$confidence, useNA = "ifany")
+table(significant = conf$n_det_sig > 0, unstable = conf$unstable, useNA = "ifany")
 ```
+
+In this panel `r n_unstable_de <- sum(conf$unstable_de, na.rm = TRUE); if (n_unstable_de == 0) "none" else n_unstable_de` of the `r sum(conf$n_det_sig > 0, na.rm = TRUE)` significant isoforms has an unstable direction.
+Most of the isoforms that are not significant do, as expected for isoforms that do not change, whose direction over the draws is close to a coin toss; that is why the flag is read on the calls only.
 
 ```{r}
 plot_de_confidence(iso, gene_name = c("SCRIB", "CTNND1"))
 ```
 
-A significant isoform with a low class is not wrong: it is a call that the quantification does not support strongly.
-Typical reasons are shown in `reason`; a fold-change interval that crosses zero is the clearest sign.
+A significant isoform with an unstable direction is not wrong: the quantification does not determine its sign, which is worth a second look before the call is interpreted.
+A fold-change interval that crosses zero is the visible form of the same thing.
+`flags` describes the isoform behind a call; an uncertain or ambiguous isoform can still carry a real change.
 
 Two things stand out in these data.
 First, the isoforms with the largest fold-changes are not the ESRP targets: `IFIT1`, `IFIT2`, `IFIT3`, `OASL` and `ZC3HAV1` are interferon-stimulated genes, which is a common response to transfected siRNA (an interpretation, not something these data test).
-Their intervals are narrow (about 1.5 log2 units wide or less for the ten largest changes), but none of them gets a high class: their inferential variance is 0.8 to 18, above the cutoff, and the `IFIT1` and `IFIT2` isoforms and `OASL-201` also have an ambiguous sibling.
+Their intervals are narrow (about 1.5 log2 units wide or less for the ten largest changes) and every draw agrees on their direction, but their inferential variance is 0.8 to 18, above the cutoff, and the `IFIT1` and `IFIT2` isoforms and `OASL-201` also have an ambiguous sibling: the gene changes, and which of its isoforms carries the change is less certain.
 Second, the ESRP targets themselves are mostly in genes with many annotated isoforms (91 for `CTNND1`, 30 for `ENAH` and 15 for `SCRIB` on the primary assembly of GENCODE v50), where the reads cannot decide between near-identical transcripts.
 Compare the two genes of the plot above:
 
@@ -238,10 +313,10 @@ conf |>
   filter(gene_name %in% c("SCRIB", "CTNND1"), abs(lfc_median) > 1.5) |>
   arrange(gene_name, desc(abs(lfc_median))) |>
   slice_head(n = 3, by = gene_name) |>
-  select(gene_name, transcript_name, lfc_median, lfc_lo, lfc_hi, sign_agreement, mean_inf_rv, unique_fraction, confidence)
+  select(gene_name, transcript_name, lfc_median, lfc_lo, lfc_hi, sign_agreement, unstable, mean_inf_rv, unique_fraction)
 ```
 
-`SCRIB-207` is the clean case: an interval far from zero, an inferential variance of 0.3 and no ambiguous partner, so a high confidence call that the primary test also flags, and the only one in these data.
+`SCRIB-207` is the clean case: a stable direction with an interval far from zero, an inferential variance of 0.3 and no ambiguous partner, and the primary test calls it; it is the only significant isoform of this panel with no flag at all.
 The `CTNND1` isoforms change by about two log2 units with every draw agreeing on the direction, but their inferential variance is 9 to 27 against a cutoff of 0.5, no fragment is unique to them (`unique_fraction` is zero) and `swish` calls none of them: the data say that something in this gene changes, not which of the transcripts it is.
 `ENAH` has no change that large, but it has two ambiguous pairs (`ENAH-228` with `ENAH-227` and with `ENAH-202`, above), which `collapse_groups` handles by testing their sum as one feature.
 
@@ -249,7 +324,7 @@ The `CTNND1` isoforms change by about two log2 units with every draw agreeing on
 
 The H358 series is the classical case.
 Without ESRP1 and ESRP2, `CD44` skips its variable exons: the variant transcripts that include them (up to 18 exons) give way to the standard form, which has none (`CD44-210`, 10 exons).
-The reads tell the same story, with the confidence the quantification allows:
+The reads tell the same story, as far as the quantification allows:
 
 ```{r}
 lung <- read_knockdown("GSE75489")
@@ -266,7 +341,7 @@ de_confidence(iso_lung, gene_name = "CD44") |>
   ) |>
   filter(abs(lfc_median) > 1.5) |>
   arrange(desc(lfc_median)) |>
-  select(transcript_name, lfc_median, lfc_lo, lfc_hi, sign_agreement, mean_inf_rv, unique_fraction, confidence)
+  select(transcript_name, lfc_median, lfc_lo, lfc_hi, sign_agreement, unstable, mean_inf_rv, unique_fraction, flags)
 ```
 
 ```{r}
@@ -274,9 +349,9 @@ plot_de_confidence(iso_lung, gene_name = "CD44")
 ```
 
 The direction of the switch is certain: the standard `CD44-210` goes up, as does `CD44-207`, an 8-exon transcript without variable exons annotated as nonsense-mediated decay; the 18-exon `CD44-208` (the MANE Select transcript, with every variable exon) falls the most, and `CD44-302` (9 exons, ending in the variable region) and two partial transcripts, `CD44-231` and `CD44-218`, fall as well, with every draw agreeing on every direction.
-Which transcript carries each change is not, because the transcripts share most of their exons and almost none of their reads are their own (`unique_fraction` below 0.002), so none gets better than a moderate class.
-`CD44-302` is low, because the reads cannot tell it from `CD44-303`, which differs from it by three bases at the start of one exon and 14 at the 3' end; of these six transcripts, `swish` calls only `CD44-207`.
-Reporting the class next to the fold-change is the honest summary: *CD44 switches towards its short form (high agreement), but the individual variant isoforms cannot be resolved with short reads*.
+Which transcript carries each change is not, because the transcripts share most of their exons and almost none of their reads are their own (`unique_fraction` below 0.002), so every one of them is flagged as an uncertain quantification.
+`CD44-302` is also ambiguous, because the reads cannot tell it from `CD44-303`, which differs from it by three bases at the start of one exon and 14 at the 3' end; of these six transcripts, `swish` calls only `CD44-207`.
+The direction and the flags together give the summary: *CD44 switches towards its short form (every draw agrees on the direction), but the individual variant isoforms cannot be resolved with short reads*.
 
 ### Testing ambiguous isoforms as one feature
 
@@ -286,13 +361,13 @@ When a pair cannot be told apart, test the part that can be measured, the sum.
 ```{r}
 de_confidence(iso, group = "condition", levels = c("control", "knockdown"), collapse_groups = TRUE) |>
   filter(feature_type == "group") |>
-  select(feature_id, transcript_ids, lfc_median, lfc_lo, lfc_hi, sign_agreement, mean_inf_rv, confidence)
+  select(feature_id, transcript_ids, lfc_median, lfc_lo, lfc_hi, sign_agreement, unstable, mean_inf_rv)
 ```
 
 ### Groups from Terminus
 
 Terminus [@terminus] groups the transcripts whose abundances the reads cannot estimate separately, from the equivalence classes and the replicates of all samples, and gives one consensus grouping.
-`run_terminus()` runs it from R on the Salmon output directories, installing Terminus with `condathis` the first time, and returns the consensus groups; `add_uncertainty(groups = )` uses them in place of the groups built from the correlation of the replicates, and the confidence classes and `collapse_groups` follow them.
+`run_terminus()` runs it from R on the Salmon output directories, installing Terminus with `condathis` the first time, and returns the consensus groups; `add_uncertainty(groups = )` uses them in place of the groups built from the correlation of the replicates, and `ambiguous` and `collapse_groups` follow them.
 Terminus needs replicates and equivalence classes with their weights (`--dumpEq --dumpEqWeights`), which `salmon_quant()` writes; `run_terminus()` checks them before it starts.
 
 ```{r}
@@ -304,6 +379,21 @@ iso <- add_uncertainty(iso, paths = quant_dirs, group = "condition", groups = gr
 groups <- read_terminus_groups("terminus/sample1")
 ```
 
+<!--
+Typed numbers in this section and the next that no bundled table holds (the
+others come from terminus_comparison and grouping_comparison): 20,817 groups
+of 78,177 transcripts are num_nontrivial_groups and
+num_targets_in_nontrivial_group of terminus_info.json in the Terminus
+consensus output (terminus collapse, run by
+data-raw/knockdown/gibbs_terminus.sh); Terminus 0.1.0 is the Bioconda
+package of that run; 4,356 is the "pairs in correlation groups" line that
+compare_terminus.R prints; 43 minutes is the wall time of `treeterminus
+group` (gibbs_terminus.sh); about six minutes is the "read and cut the trees
+in ... s" message of compare_treeterminus.R (351 s in the run of 2026-11-20);
+IsoformSwitchAnalyzeR 2.10.0 is the version table that compare_isar.R
+prints. Rerun those scripts to check them.
+-->
+
 On the six prostate samples (`data-raw/knockdown/compare_terminus.R`, Terminus 0.1.0), the consensus holds 20,817 groups of 78,177 transcripts.
 The two groupings point at the same isoforms but differ in reach:
 
@@ -311,9 +401,17 @@ The two groupings point at the same isoforms but differ in reach:
 read_split("terminus_comparison")
 ```
 
+```{r}
+#| include: false
+terminus_comparison <- read_split("terminus_comparison")
+tc_val <- function(quantity) terminus_comparison$value[terminus_comparison$quantity == quantity]
+fmt_n <- function(x) format(x, big.mark = ",")
+```
+
 About three quarters of the transcripts that the correlation rule groups are also in a Terminus group (6,342 of 8,326), and the same share of its pairs fall in the same group (3,257 of 4,356).
 Terminus groups three times as many transcripts (24,755 against 8,326 of the assessed ones), and the isoforms it groups are the most uncertain (median inferential relative variance 16.0, against 12.7 for the correlation groups and 1.6 for the isoforms in neither).
-Among the large changes the high class stays at 143 isoforms, and about 1,100 isoforms move from moderate to low because a Terminus group counts as an ambiguous sibling.
+A Terminus group counts as an ambiguous sibling, so `ambiguous` follows the grouping: of the `r fmt_n(tc_val("large changes (|log2FC| > 1)"))` large changes (|log2FC| > 1), `r fmt_n(tc_val("large changes with an ambiguous sibling, Terminus groups"))` have an ambiguous sibling with the Terminus groups against `r fmt_n(tc_val("large changes with an ambiguous sibling, correlation groups"))` with the correlation rule.
+The direction does not depend on the grouping: `r fmt_n(tc_val("large changes with an unstable direction (either grouping)"))` of those changes have an unstable direction either way.
 Both groupings are heuristics built from the same replicates; neither is the truth, and the Terminus groups come from the 12 million read pairs of these samples.
 
 ### Trees from TreeTerminus
@@ -333,50 +431,69 @@ iso <- add_uncertainty(iso, group = "condition", groups = groups)
 On the six prostate samples (`data-raw/knockdown/compare_treeterminus.R`; TreeTerminus Mean trees of the six samples), the three groupings compare as follows:
 
 ```{r}
-read_split("grouping_comparison")
+grouping_comparison <- read_split("grouping_comparison")
+grouping_comparison
 ```
 
 The trees reach about as many of the uncertain isoforms as Terminus (85,245 are left alone, against 84,469 with Terminus and 99,513 with the correlation rule), but the features they produce are the ones the reads determine: the median inferential relative variance of a group is 0.24 and every group is below the cutoff, against 3.67 for the Terminus groups, 88% of which stay uncertain after summing.
-The trees also group the most isoforms (25,247), and grouping flags them as ambiguous, so fewer large changes stay in the high class (110 against 143).
+The trees also group the most isoforms (25,247), but they leave about as many large changes with an ambiguous sibling as the correlation rule (`r fmt_n(grouping_comparison$large_ambiguous[grouping_comparison$grouping == "TreeTerminus"])` against `r fmt_n(grouping_comparison$large_ambiguous[grouping_comparison$grouping == "correlation"])`, and `r fmt_n(grouping_comparison$large_ambiguous[grouping_comparison$grouping == "Terminus"])` with Terminus).
 The isoforms still left alone are those whose whole tree stays above the cutoff; `unresolved = "root"` merges such trees into one group each.
-TreeTerminus needed 43 minutes for the six samples; reading and cutting the trees took about eight and a half minutes.
+TreeTerminus needed 43 minutes for the six samples; reading and cutting the trees took about six minutes.
 
-## Does the confidence predict what does not reproduce?
+## Does the uncertainty predict what does not reproduce?
 
-A confidence class is only useful if it separates the calls that hold up from those that do not.
+A flag is only useful if it separates the calls that hold up from those that do not.
 The prostate dataset allows a direct check, because a library can be quantified twice.
 Each of the six libraries was split into its first and second 6 million read pairs and quantified separately (`data-raw/knockdown/split_halves.sh`, `data-raw/knockdown/validate_uncertainty.R`), which gives technical replicates and two kinds of contrast:
 
 - **null contrasts**, half 1 against half 2 of the same libraries, for the controls and for the knockdowns, where every difference is noise;
 - **the real contrast** (control against knockdown), called in half 1 and checked in half 2.
 
-**Stability alone is not enough.**
+```{r}
+#| include: false
+null_stable <- read_split("null_stable")
+replication_flag <- read_split("replication_flag")
+rf <- function(flag, flagged) replication_flag[replication_flag$flag == flag & replication_flag$flagged == flagged, ]
+rf_pct <- function(x) paste0(round(100 * x), "%")
+```
+
+**A stable direction is not enough.**
 The null contrasts contain hundreds of transcripts whose fold-change exceeds two-fold and is stable over the draws (at least 95% of them agree on the direction), because the draws describe the quantification and the two halves differ in the reads that were sampled.
-Nearly all of them are demoted by the confidence class:
+Nearly all of them (`r format(sum(null_stable$uncertain), big.mark = ",")` of `r format(sum(null_stable$stable_large_changes), big.mark = ",")`) are on isoforms with an uncertain quantification, and about a quarter have an ambiguous sibling:
 
 ```{r}
-read_split("null_stable")
+null_stable
 ```
 
-**Uncertain isoforms reproduce less.**
-Among the isoforms called by `edgeR` in half 1, the share that goes the same way in half 2 and that is called again falls from the high to the low class:
+**In technical halves, every flag points the same way.**
+Among the `r sum(rf("unstable direction", TRUE)$calls, rf("unstable direction", FALSE)$calls)` isoforms called by `edgeR` in half 1, the `r rf("unstable direction", TRUE)$calls` with an unstable direction kept it in half 2 in `r rf_pct(rf("unstable direction", TRUE)$same_direction)` of cases and `r again <- rf("unstable direction", TRUE)$significant_again; if (again == 0) "none" else rf_pct(again)` were called again, against `r rf_pct(rf("unstable direction", FALSE)$same_direction)` and `r rf_pct(rf("unstable direction", FALSE)$significant_again)` for the others.
+The uncertain and the ambiguous isoforms also replicate less, and the calls are few:
 
 ```{r}
-read_split("replication_class")
+replication_flag
 ```
 
-The inferential relative variance shows the same gradient on every large, stable change, and puts a scale on the cutoff: the direction agrees in all 72 isoforms below 0.5, which is the default cutoff for `uncertain`, and in 78% of those above 10.
+The inferential relative variance shows the same gradient on every large, stable change, and puts a scale on the cutoff of `uncertain`: the direction agrees in all 72 isoforms below 0.5 and in 78% of those above 10.
 
 ```{r}
 read_split("replication_rv")
 ```
 
+These checks compare technical halves of the same libraries, the most favourable case for the draws, and the panel is small.
+In a biological cohort the picture is different (see the [evidence article](isoformic-uncertainty-evidence.html), placenta, held-out half-splits):
+
+- **An unstable direction predicts non-replication, but catches few failures.** Calls with `sign_agreement` below 0.95 were `r ev_pct(ev_val("B.flags.flag_unstable.pct_flagged") / 100)` of the calls of the discovery halves (`r ev_pct(ev_val("B.prevalence.F1.pct_sign_agree_lt_0.95") / 100)` of the calls of the full cohort) and replicated in `r ev_pct(ev_val("B.flags.flag_unstable.rate_flagged"))` of cases, against `r ev_pct(ev_val("B.flags.flag_unstable.rate_unflagged"))` (odds ratio `r sprintf("%.2f", ev_val("B.flags.flag_unstable.adjusted_or"))`, 95% CI `r ev_ci("B.cluster.cluster.gene.unstable_or")` with genes as clusters), and their raw replication rate was lower in all `r ev_int(ev_val("B.cluster.pairs.unstable.n_flagged_lower"))` directed comparisons (`r ev_int(ev_val("design.half_splits"))` half-splits, each used in both directions; against flags of the same size made of the lowest-count or lowest-|z| calls, the gap was larger in `r ev_int(ev_val("B.posthoc.same_size.lowest_count.pairs_unstable_larger_deficit"))` and `r ev_int(ev_val("B.posthoc.same_size.lowest_absz.pairs_unstable_larger_deficit"))` of them). But the flag marked only `r ev_pct(ev_val("B.5_ppv_cost_flag_unstable.sensitivity_nonreplication"), 0)` of the calls that failed to replicate, it was a secondary flag of that evaluation made the headline after the results, and in the technical halves above every flag predicted non-replication, not this one in particular.
+- **The confidence class was a weak filter, and was removed.** Earlier development versions combined the direction, `uncertain` and `ambiguous` into a class (`high`, `moderate`, `low`). A class other than `high` marked `r ev_pct(ev_val("B.flags.flag_primary.pct_flagged") / 100, 0)` of the calls, which replicated somewhat less (odds ratio `r sprintf("%.2f", ev_val("B.flags.flag_primary.adjusted_or"))`; a gap of `r sprintf("%.3f", ev_val("B.flags.flag_primary.matched_deficit"))` in replication rate within cells of equal count and test statistic), and a filter on it would have removed `r ev_pct(ev_val("B.5_ppv_cost_flag_primary.replicated_calls_removed_pct") / 100, 0)` of the calls that replicated. It beat a flag of the same size made of the lowest-count calls by only `r sprintf("%.3f", ev_val("B.3_C4_count_matched.deficit_primary_minus_deficit_C4"))` in replication rate, a margin whose interval includes 0 once genes are resampled as clusters (`r ev_ci("B.cluster.cluster.gene.primary_minus_c4", 3)`). In the null, keeping only class `high` removed no more false calls than dropping as many of the least expressed transcripts (difference in the share of false calls removed `r sprintf("%.2f", ev_val("A.m9_vs_m10.7v7.common.a.removed_M9_minus_M10"))`, 95% CI `r ev_ci("A.m9_vs_m10.7v7.common.a.removed_M9_minus_M10")`).
+- **The cutoff of 0.5 is not a practical guide genome-wide.** `r ev_pct(ev_val("S0.uncertain.TRUE") / ev_val("S0.U.all"))` of the `r ev_int(ev_val("S0.U.all"))` expressed placenta transcripts are above it, so the bin below 0.5 that reproduces so well here holds few isoforms in a full human annotation; `uncertain` therefore describes the isoform and does not judge a call. An ambiguous partner (`cor_cutoff = -0.5`) predicted little (odds ratio `r sprintf("%.2f", ev_val("B.flags.flag_ambiguous.adjusted_or"))`).
+- **No excess of false calls was detected with 7 samples per group.** The pre-registered rule that false positives concentrate in uncertain isoforms failed there (rate ratio `r sprintf("%.2f", ev_val("A.adj_rr.7v7.M1.prereg.top"))`), but the conservative raw jackknife interval, `r ev_ci("A.adj_rr_rawjk.7v7.M1.prereg.top")`, does not rule out an excess close to the one at 5 v 5 (`r sprintf("%.2f", ev_val("A.adj_rr.5v5.M1.prereg.top"))`; the narrower Monte Carlo corrected interval, `r ev_ci("A.adj_rr.7v7.M1.prereg.top")`, removes about 98% of the jackknife variance and is not reliable); the excess seen with 3 or 5 per group was at nominal p < 0.01 only, not at FDR level (see below).
+
 ## Dividing out the uncertainty
 
-The classes describe a call after the test.
+The flags describe a call after the test.
 The same replicates can also go into the test: `inferential_overdispersion()` estimates how much more variable than Poisson the count of each isoform is because of the read ambiguity, as `edgeR::catchSalmon()` does [@baldoni2024], and `scale_counts()` divides the counts by it.
 The scaled counts can then be given to any count-based test.
-On a full quantification the prior of the estimates comes from every transcript of the index, as in `catchSalmon()`, also when `add_uncertainty()` keeps the replicates of the expressed transcripts only; the draws bundled here are those of the expressed transcripts of 38 genes, so here it comes from those transcripts.
+On a full quantification the prior of the estimates comes from every transcript of the index, as in `catchSalmon()`, also when `add_uncertainty()` keeps the replicates of the expressed transcripts only; the draws bundled here are those of the expressed transcripts of `r genes_prostate$names` genes (`r genes_prostate$ids` gene IDs), so here it comes from those transcripts.
+That makes the prior of these panels `r sprintf("%.1f", ev_val("D.3_HEADLINE_GSE129540_ratio_panel_prior_genome-wide_prior"))` and `r sprintf("%.1f", ev_val("D.3_HEADLINE_GSE75489_ratio_panel_prior_genome-wide_prior"))` times the genome-wide one, but in the [evidence article](isoformic-uncertainty-evidence.html) using the genome-wide prior instead changed `r kd <- ev_val("D.impact.GSE129540_DTE_edgeR_QL_divided_counts.panel_prior_-_genome_prior_swapped.common.n_lost") + ev_val("D.impact.GSE129540_DTE_edgeR_QL_divided_counts.panel_prior_-_genome_prior_swapped.common.n_gained") + ev_val("D.impact.GSE75489_DTE_edgeR_QL_divided_counts.panel_prior_-_genome_prior_swapped.common.n_lost") + ev_val("D.impact.GSE75489_DTE_edgeR_QL_divided_counts.panel_prior_-_genome_prior_swapped.common.n_gained"); if (kd == 0) "none of the calls" else paste(ev_int(kd), "calls")` in the two series on the transcripts both runs tested.
 In the null contrasts above, `edgeR` on the raw counts calls about three times as many transcripts at a p-value below 0.001 as chance allows (95 and 85 against 33 and 32), and on the scaled counts about as many as chance allows (10 and 14 against 12):
 
 ```{r}
@@ -384,7 +501,13 @@ read_split("null_calls")
 ```
 
 Fewer transcripts pass the expression filter of the scaled test (about 12,400 against 32,400), and these null contrasts compare technical replicates of the same libraries, a favourable case; no biological variability is involved.
-The classes and the scaling answer different questions and can be used together.
+The flags and the scaling answer different questions and can be used together.
+
+The excess of raw-count calls in these null contrasts is a property of technical halves, where the draws describe all of the noise there is.
+In a biological null of control placentas (evidence article), `edgeR` on raw counts was not detectably inflated: the observed share at p < 0.01 was `r sprintf("%.2f", ev_val("A.inflation_p01.7v7.M1.own.all"))` times the expected one with 7 samples per group (95% CI `r ev_ci("A.inflation_p01.7v7.M1.own.all")`) and `r sprintf("%.2f", ev_val("A.inflation_p01.3v3.M1.own.all"))` with 3 (`r ev_ci("A.inflation_p01.3v3.M1.own.all")`).
+With 3 or 5 samples per group, its nominal false calls (p < 0.01) fell more often on uncertain isoforms, and scaling removed that concentration (the ratio of the rate ratios, scaled over raw, was `r sprintf("%.2f", ev_val("A.rr_ratio.3v3.prereg.M2_vs_M1"))` at 3 v 3), but it did not lower the number of false discoveries: at q < 0.05, raw counts made `r sprintf("%.2f", ev_val("A.mean_calls_q05.3v3.M1.own.all"))` false calls per 3 v 3 split and scaled counts `r sprintf("%.2f", ev_val("A.mean_calls_q05.3v3.M2.own.all"))` (`r sprintf("%.2f", ev_val("A.tail.3v3.M2.own.mean_q05_without_max_split"))` without their worst split).
+It also cost power: with known changes added to 7 v 7 splits, scaled counts found `r ev_int(ev_val("A.thin.7v7_louo.M2.all.q_0.05.total_calls") - ev_val("A.thin.7v7_louo.M2.all.q_0.05.total_false"))` true changes against `r ev_int(ev_val("A.thin.7v7_louo.M1.all.q_0.05.total_calls") - ev_val("A.thin.7v7_louo.M1.all.q_0.05.total_false"))` for raw counts.
+On the whole placenta comparison, by contrast, scaled counts made more calls than raw counts on the transcripts both tested (`r ev_int(ev_val("D.impact.placenta_8_PE_vs_15_control_units_DTE_edgeR_QL.raw_counts_-_divided_counts_genome-wide_prior.common.n_calls_alternative"))` against `r ev_int(ev_val("D.impact.placenta_8_PE_vs_15_control_units_DTE_edgeR_QL.raw_counts_-_divided_counts_genome-wide_prior.common.n_calls_reference"))`), and about as many when each kept its own expression filter; a real comparison cannot say whether the extra calls are true.
 
 ```{r}
 #| eval: !expr requireNamespace("edgeR", quietly = TRUE)
@@ -422,7 +545,7 @@ usage |>
 The division matters.
 In the null contrasts of the read-split experiment, where every call is a false positive, the unscaled `diffSplice` and `DEXSeq` call dozens to hundreds of transcripts.
 The calls of the real contrast made in one half of the reads go the same way in the other half in 64% of the cases for unscaled `diffSplice` and for `DEXSeq`, not far above the 50% of chance.
-With the scaling the false positives nearly vanish (6 to 17 transcripts at a q-value below 0.05 for `diffSplice` and `DEXSeq`), and the calls reproduce (100% and 98%):
+With the scaling the false positives of `diffSplice` and `DEXSeq` nearly vanish (6 to 17 transcripts at a q-value below 0.05), and the calls that could be checked in the other half keep their direction (`r usage_pct("diffsplice", TRUE, "same_direction")` of `r usage_rep$tested_in_half2[usage_rep$method == "diffsplice" & usage_rep$scaled]` for `diffSplice` and `r usage_pct("DEXSeq", TRUE, "same_direction")` of `r usage_rep$tested_in_half2[usage_rep$method == "DEXSeq" & usage_rep$scaled]` for `DEXSeq`, against `r usage_pct("diffsplice", FALSE, "same_direction")` unscaled); `r usage_pct("diffsplice", TRUE, "significant_again")` and `r usage_pct("DEXSeq", TRUE, "significant_again")` are called again, against `r usage_pct("diffsplice", FALSE, "significant_again")` and `r usage_pct("DEXSeq", FALSE, "significant_again")` unscaled:
 
 ```{r}
 read_split("usage_null") |>
@@ -430,9 +553,13 @@ read_split("usage_null") |>
 read_split("usage_replication")
 ```
 
-`satuRn` is the most conservative of the three without the scaling, and still gains calls that reproduce with it.
-The scaled runs test fewer transcripts, because fewer pass the expression filter once the counts are divided; the false positives are fewer partly for that reason.
+`satuRn` behaves the other way.
+Without the scaling it is the most conservative of the three: it makes `r null_n("satuRn", FALSE, "q_below_0.05")` calls at a q-value below 0.05 in the two null contrasts (control and knockdown), and `r null_n("satuRn", FALSE, "p_below_0.001")` at p < 0.001, fewer than the `r null_n("satuRn", FALSE, "expected_p_below_0.001")` that chance predicts.
+With the scaling it makes `r null_n("satuRn", TRUE, "q_below_0.05")` false calls at a q-value below 0.05, and `r null_n("satuRn", TRUE, "p_below_0.001")` at p < 0.001 against `r null_n("satuRn", TRUE, "expected_p_below_0.001")` expected, so its p-values move closer to chance but it also makes false calls.
+Those are about as many as the `r usage_rep$calls_half1[usage_rep$method == "satuRn" & usage_rep$scaled]` calls it gains in the real contrast (of which `r usage_pct("satuRn", TRUE, "same_direction")` of the `r usage_rep$tested_in_half2[usage_rep$method == "satuRn" & usage_rep$scaled]` tested in the other half keep their direction and `r usage_pct("satuRn", TRUE, "significant_again")` are called again), so the extra `satuRn` calls cannot be read as extra true calls: the scaling makes `satuRn` less conservative, not more accurate.
+The scaled runs test fewer transcripts, because fewer pass the expression filter once the counts are divided; for `diffSplice` and `DEXSeq` the false positives are fewer partly for that reason.
 These are technical replicates of the same libraries, which is the most favourable comparison for a usage test: biological variability is absent, so they say how well a method resists read ambiguity and nothing else.
+In a biological null of control placentas (evidence article) the gain was smaller and depended on the method: `diffSplice` gained at 5 samples per group (`r sprintf("%.2f", ev_val("A.dtu.diffsplice.5v5.raw.mean_n_genes_q05"))` false genes per split on raw counts against `r sprintf("%.2f", ev_val("A.dtu.diffsplice.5v5.scaled.mean_n_genes_q05"))` scaled), for `satuRn` the observed over expected share at p < 0.01 went from `r sprintf("%.2f", ev_val("A.dtu.satuRn.7v7_louo.raw.gene_inflation_p01"))` (95% CI `r ev_ci("A.dtu.satuRn.7v7_louo.raw.gene_inflation_p01")`) to `r sprintf("%.2f", ev_val("A.dtu.satuRn.7v7_louo.scaled.gene_inflation_p01"))` (`r ev_ci("A.dtu.satuRn.7v7_louo.scaled.gene_inflation_p01")`) with the scaling, the same direction as in the read halves, with intervals too wide to tell the two apart, and `DEXSeq` made many false calls either way.
 
 ### Against IsoformSwitchAnalyzeR
 
@@ -442,7 +569,7 @@ Run on the same six prostate samples (`data-raw/knockdown/compare_isar.R`), with
 ```{r}
 isar <- read_split("isar_comparison")
 isar |>
-  select(tool, tested, calls, shared_with_isar, uncertain, ambiguous, unstable, high_confidence)
+  select(tool, tested, calls, shared_with_isar, uncertain, ambiguous, unstable_expression = unstable)
 ```
 
 ```{r}
@@ -460,19 +587,25 @@ The tools tested different isoforms (`r fmt(isar_tool$tested)` for IsoformSwitch
 
 What the uncertainty tables add is a way to read each call.
 Most calls of every tool (`r round(100 * min(isar$uncertain / isar$calls))`% to `r round(100 * max(isar$uncertain / isar$calls))`%) are on isoforms with an inferential relative variance of at least 0.5, as usage switches mostly occur in genes with many near-identical isoforms.
-The calls differ in their stability over the replicates: `r isar_tool$unstable` of the `r isar_tool$calls` switches of IsoformSwitchAnalyzeR and `r isar_raw$unstable` of the `r isar_raw$calls` calls on raw counts have a fold-change that fewer than 95% of the replicates agree on, against `r isar_scaled$unstable` of the `r isar_scaled$calls` calls on scaled counts, which are also the calls that reproduce between read halves above.
+The last column is not a stability of the switch calls. It counts the calls whose isoform has an expression fold-change (`de_confidence()`) that fewer than 95% of the replicates agree on in direction: `r isar_tool$unstable` of the `r isar_tool$calls` switches of IsoformSwitchAnalyzeR, `r isar_raw$unstable` of the `r isar_raw$calls` calls on raw counts and `r isar_scaled$unstable` of the `r isar_scaled$calls` calls on scaled counts.
+That is the direction of the isoform's expression change, not of its usage change, and the usage of an isoform can change while its expression barely does; such an isoform has a fold-change near zero, whose direction over the draws is close to a coin toss (in the panel above `r sum(!(conf$n_det_sig > 0) & conf$unstable, na.rm = TRUE)` of the `r sum(!(conf$n_det_sig > 0), na.rm = TRUE)` non-significant isoforms have an unstable direction, against `r sum(conf$n_det_sig > 0 & conf$unstable, na.rm = TRUE)` of the `r sum(conf$n_det_sig > 0, na.rm = TRUE)` significant ones).
+For usage calls the column therefore mostly marks isoforms whose expression does not change, and the smaller count for the scaled calls also follows from their stricter expression filter (`r fmt(isar_scaled$tested)` isoforms tested against `r fmt(isar_raw$tested)` on raw counts and `r fmt(isar_tool$tested)` by IsoformSwitchAnalyzeR).
+How stable the direction of the usage change is over the replicates was not computed here, so the table does not say which tool's switches are more reliable.
 
-## Using the confidence downstream
+## Using the stability downstream
 
 Isoform switches count significant isoforms, which is where ambiguous quantification does most damage.
-With the confidence stored, `isoform_switches()` reports how many significant isoforms of each gene are confident and `confident_only = TRUE` keeps only those:
+With the fold-change table stored, `isoform_switches()` reports how many significant isoforms of each gene have an unstable direction (`n_det_unstable`), and `drop_unstable = TRUE` leaves them out (calls whose direction was not assessed stay).
+Treat the second table as a sensitivity analysis next to the first, not as the set of switches to report: in the placenta cohort leaving out the unstable calls would have removed `r ev_pct(ev_val("B.5_ppv_cost_flag_unstable.replicated_calls_removed_pct") / 100, 0)` of the calls that replicated and only `r ev_pct(ev_val("B.5_ppv_cost_flag_unstable.sensitivity_nonreplication"), 0)` of those that did not, and it does not remove false calls caused by biological variability.
+
+`r if (n_unstable_de == 0) "In this panel no significant isoform has an unstable direction (see above), so the two tables below are the same:" else paste0("In this panel ", n_unstable_de, " significant isoforms have an unstable direction, and the second table below leaves them out:")`
 
 ```{r}
 isoform_switches(iso) |>
-  select(gene_name, n_det_sig, n_det_confident, switch_type) |>
+  select(gene_name, n_det_sig, n_det_unstable, switch_type) |>
   head(8)
-isoform_switches(iso, confident_only = TRUE) |>
-  select(gene_name, n_det_sig, n_det_confident, switch_type) |>
+isoform_switches(iso, drop_unstable = TRUE) |>
+  select(gene_name, n_det_sig, n_det_unstable, switch_type) |>
   head(8)
 ```
 
@@ -487,7 +620,7 @@ dominant_isoform(iso, group = "condition") |>
 
 ## Reporting the uncertainty
 
-Report the numbers next to the classes, and the settings that produced them.
+Report the numbers next to the calls, and the settings that produced them.
 `uncertainty_report()` collects the tables a methods or results section needs:
 
 ```{r}
@@ -499,8 +632,11 @@ report$de
 report$switches
 ```
 
-- **Results.** State how many of the significant isoforms have each confidence class and why the others do not (`report$de`: unstable fold-change, uncertain quantification, ambiguous sibling), and how many switches or genes remain once only confident isoforms are kept (`report$switches`).
-- **Tables.** For every isoform you discuss, give the fold-change with its interval (`lfc_median`, `lfc_lo`, `lfc_hi`), `sign_agreement`, `mean_inf_rv`, `unique_fraction` and the ambiguous partner, if any, next to the p-value of the primary test.
+`report$switches` counts genes with significant isoforms, all and without the calls of unstable direction; `n_det_not_deg` needs a gene-level table (`de_gene()`) and is `NA` without one, as here.
+`r if (identical(report$switches$n_genes[1], report$switches$n_genes[2])) "The two rows are the same here because no significant isoform of this panel has an unstable direction." else ""`
+
+- **Results.** State how many of the significant isoforms have an unstable direction (`report$de`, first row): in the placenta half-splits of the genome-wide evaluation those calls replicated less often than the other calls, and they deserve a second look rather than silent removal. A stable direction is not a clean bill: the flag marked only `r ev_pct(ev_val("B.5_ppv_cost_flag_unstable.sensitivity_nonreplication"), 0)` of the calls that failed to replicate. The other rows of `report$de` (uncertain quantification, ambiguous sibling, and not identifiable when computed) describe the isoforms behind the calls; do not filter the results on them, and if you report switches without the unstable calls (`report$switches`), give them as a sensitivity analysis next to the unfiltered ones.
+- **Tables.** For every isoform you discuss, give the fold-change with its interval (`lfc_median`, `lfc_lo`, `lfc_hi`), `sign_agreement`, `mean_inf_rv`, `unique_fraction` and the ambiguous partner, if any, next to the p-value of the primary test. For low-count isoforms, do not quote the fold-change of the primary test alone: in the genome-wide evaluation the point estimate of `r ev_pct(ev_val("B.posthoc.f1.outside_range.share"))` of the calls lay outside the range of the same model refitted on each draw, mostly further from zero, and neither is the true value. `lfc_median` is a simpler statistic (the difference between the groups of the mean of log2 counts, pseudocount 5: a log ratio of geometric means) that pulls low-count fold-changes towards zero, so a gap between it and the primary test is expected for low counts; it was not itself compared with the point estimate in that evaluation.
 - **Figures.** `plot_de_confidence()` for the isoforms of a gene, `plot_isoform_correlation()` for the ambiguous ones.
 - **Methods.** `uncertainty_methods()` writes a paragraph with the Salmon version, the number of draws and the cutoffs; edit it to fit.
 
@@ -511,11 +647,16 @@ uncertainty_methods(iso)
 Some cautions belong in the text as well.
 The draws describe the uncertainty of the quantification only; they do not replace biological replicates, and an isoform with a stable fold-change can still be a false positive of the primary test.
 The cutoffs (`inf_rv_cutoff`, `cor_cutoff`, `min_agreement`) are heuristics: rerun `add_uncertainty()` with other values and report how the numbers change.
-The classes are calibrated against nothing but the data at hand.
+Of the three defaults, only `min_agreement = 0.95` was tested as a flag of its own and supported in the biological (placenta) half-splits of the [evidence article](isoformic-uncertainty-evidence.html); it was fixed before that evaluation and no other value was tried.
+`inf_rv_cutoff = 0.5` was not tested as a flag there: it marked `r ev_pct(ev_val("S0.uncertain.TRUE") / ev_val("S0.U.all"), 0)` of the expressed isoforms of that cohort, although a stricter split, the top third of InfRV, did predict less replication (odds ratio `r sprintf("%.2f", ev_val("B.flags.flag_infrv_top_tertile.adjusted_or"))`).
+An ambiguous partner (`cor_cutoff = -0.5`) predicted little in the placenta (odds ratio `r sprintf("%.2f", ev_val("B.flags.flag_ambiguous.adjusted_or"))`).
+In the technical read halves, both flags, like every other, predicted non-replication.
+The defaults now follow that evaluation: the confidence class of earlier development versions is gone, `unstable` is reported as the flag of a call, and the two other cutoffs keep their values as descriptions of the isoform, not as judgements of a call.
+This change was made after the results were known, on one cohort with one primary test (`edgeR`) and short-read Gibbs draws, so how well the flag carries over to other data is still an open question.
 Two kinds of error are outside what the draws can show.
 An abundance can be non-identifiable, with several solutions that explain the reads equally well: only about half of the transcripts flagged by the variance of the draws were also non-identifiable in that sense in one comparison [@zheng2022], so an ambiguous pair is a statement about the draws, not a proof.
 `equivalence_identifiability()` checks the first kind from the equivalence classes of each sample: a transcript is identifiable when its abundance is fixed once the total of every class is fixed.
-`add_uncertainty(identifiability = TRUE)` computes it from the Salmon directories (minutes per human sample) and adds `identifiable` to `tx_uncertainty()`, and `de_confidence()` then counts a non-identifiable transcript as one more reason against the call.
+`add_uncertainty(identifiability = TRUE)` computes it from the Salmon directories (minutes per human sample) and adds `identifiable` to `tx_uncertainty()`, and `de_confidence()` then reports `identifiable` next to each call (and "not identifiable" in `flags`), without combining it with the direction.
 It uses class membership only, not the range of optimal estimates of @zheng2022.
 
 ```{r}
@@ -530,12 +671,14 @@ Finally, the contrast repeated on each draw is a screening statistic (a Welch te
 
 ## Saving
 
-The tables, the settings and the run metadata are saved with the object; the draws are not, and are re-read from the Salmon directories with `add_uncertainty(iso, paths = )` when the tables need to be recomputed.
+`write_isoformic()` saves the tables, the settings, the run metadata and the draws (`inf_reps/`, one Parquet file per draw), and `read_isoformic()` restores them all.
+To save only the tables, build them with `add_uncertainty(keep_draws = FALSE)` or set `iso@metadata$inf_reps <- NULL` before writing; the draws are then re-read from the Salmon directories with `add_uncertainty(iso, paths = )` when the tables need to be recomputed.
 
 ```{r}
 out_dir <- fs::path(tempdir(), "knockdown_uncertainty")
 invisible(write_isoformic(iso, out_dir, overwrite = TRUE))
 fs::dir_ls(fs::path(out_dir, "dea"))
+fs::dir_ls(fs::path(out_dir, "inf_reps")) |> head(3)
 tx_uncertainty(read_isoformic(out_dir)) |> head(3)
 ```
 

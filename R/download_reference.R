@@ -25,7 +25,16 @@
 #' Instead of assuming file names, the function lists the release directory
 #' on the server and picks the matching file, so new releases and new genome
 #' patch versions (for example `GRCh38.p15`) work without a package update.
-#' Files already present in `output_path` are not downloaded again. Any other
+#' Files already present in `output_path` are not downloaded again. When the
+#' request determines the file name (GENCODE annotations and transcript
+#' sequences, MANE with an explicit `version`, FANTOM CAT), a file already
+#' in `output_path` is used without contacting the server. Otherwise, when
+#' the directory cannot be listed (a transient server error, or no
+#' connection) and exactly one file in `output_path` matches the request,
+#' that file is used with a message. A GENCODE genome must be of the
+#' release's assembly, and an Ensembl `region = "all"` annotation must be
+#' the `chr_patch_hapl_scaff` file; requests for the current Ensembl or
+#' MANE release always need the listing. Any other
 #' file reachable by URL (for example the T2T consortium Liftoff GFF3 files)
 #' can be cached the same way with [download_reference_url()], and HPRC
 #' per-haplotype annotations with [download_hprc_annotation()].
@@ -71,7 +80,8 @@
 #'
 #' @section Errors:
 #' The function fails early with a specific condition class:
-#' * `isoformic_download_reference_no_internet_error`: no connection.
+#' * `isoformic_download_reference_no_internet_error`: no connection and no
+#'   matching file in `output_path`.
 #' * `isoformic_download_reference_release_not_found_error`: the release
 #'   (or species, assembly) directory does not exist; for GENCODE the
 #'   message lists the latest available releases.
@@ -156,31 +166,44 @@ download_reference <- function(
       class = "isoformic_download_reference_file_not_found_error"
     )
   }
-  check_internet()
 
   if (identical(output_path, ":cache:")) {
     output_path <- get_isoformic_cache()
   }
   check_string(output_path)
 
+  # The connection is only checked when a listing is needed (in
+  # `abort_release_not_found()`), so cached files work offline.
   target <- switch(
     reference,
-    gencode = resolve_gencode_file(version, organism, file_type, region),
+    gencode = resolve_gencode_file(
+      version,
+      organism,
+      file_type,
+      region,
+      cache_dir = output_path
+    ),
     ensembl = resolve_ensembl_file(
       version = version,
       species = species %||%
         switch(organism, human = "homo_sapiens", mouse = "mus_musculus"),
       division = division,
       file_type = file_type,
-      region = region
+      region = region,
+      cache_dir = output_path
     ),
-    ncbi = resolve_ncbi_file(accession, file_type),
+    ncbi = resolve_ncbi_file(accession, file_type, cache_dir = output_path),
     t2t = {
       check_t2t_request(version, organism)
-      resolve_ncbi_file("GCF_009914755.1", file_type)
+      resolve_ncbi_file("GCF_009914755.1", file_type, cache_dir = output_path)
     },
-    mane = resolve_mane_file(version, mane_source, file_type),
-    fantom = resolve_fantom_file(version, file_type)
+    mane = resolve_mane_file(
+      version,
+      mane_source,
+      file_type,
+      cache_dir = output_path
+    ),
+    fantom = resolve_fantom_file(version, file_type, cache_dir = output_path)
   )
   download_reference_file(
     download_url = target$url,
@@ -254,7 +277,7 @@ fantom_cat_base_url <- function(level) {
 #' Resolve a FANTOM CAT GTF file
 #' @keywords internal
 #' @noRd
-resolve_fantom_file <- function(version, file_type) {
+resolve_fantom_file <- function(version, file_type, cache_dir) {
   level <- version %||% "lv3_robust"
   levels <- c("lv1_raw", "lv2_permissive", "lv3_robust", "lv4_stringent")
   if (!level %in% levels) {
@@ -276,13 +299,18 @@ resolve_fantom_file <- function(version, file_type) {
     )
   }
   dir_url <- fantom_cat_base_url(level)
-  files <- list_remote_dir(dir_url)
+  file <- paste0("FANTOM_CAT.", level, ".gtf.gz")
+  cached <- cached_known_file(cache_dir, file, dir_url)
+  if (!is.null(cached)) {
+    return(cached)
+  }
+  files <- list_reference_dir(dir_url)
   if (is.null(files)) {
     abort_release_not_found(paste0("FANTOM CAT ", level), dir_url)
   }
   pick_remote_file(
     files = files,
-    pattern = paste0("^FANTOM_CAT\\.", level, "\\.gtf\\.gz$"),
+    pattern = literal_pattern(file),
     kind_pattern = kind_pattern("gtf"),
     what = paste0("FANTOM CAT ", level, " GTF"),
     dir_url = dir_url
@@ -492,6 +520,8 @@ normalize_gencode_version <- function(version, organism) {
 #' @keywords internal
 #' @noRd
 abort_release_not_found <- function(what, url, releases = character()) {
+  # A failed listing without a connection is reported as such
+  check_internet()
   cli::cli_abort(
     message = c(
       x = "{what} was not found at {.url {url}}.",
@@ -541,10 +571,24 @@ kind_pattern <- function(file_type) {
   )
 }
 
-#' Find the GENCODE file for a release by listing the release directory
+#' Find the GENCODE file for a release
+#'
+#' Annotation, transcript and poly(A) file names are determined by the
+#' release, so a file already in `cache_dir` is used without listing the
+#' release directory. Genome file names carry the assembly patch, so they
+#' are found by listing, with the one cached genome of the release's assembly
+#' as fallback when the listing fails (unless the listing of all releases
+#' works and does not include the release).
+#'
 #' @keywords internal
 #' @noRd
-resolve_gencode_file <- function(version, organism, file_type, region) {
+resolve_gencode_file <- function(
+  version,
+  organism,
+  file_type,
+  region,
+  cache_dir
+) {
   version <- normalize_gencode_version(version, organism)
   if (identical(file_type, "ncrna_fasta")) {
     cli::cli_abort(
@@ -557,14 +601,41 @@ resolve_gencode_file <- function(version, organism, file_type, region) {
   }
   base_url <- gencode_base_url(organism)
   release_url <- paste0(base_url, "release_", version, "/")
-  files <- list_remote_dir(release_url)
+  cached <- cached_known_file(
+    cache_dir,
+    gencode_file_name(version, file_type, region),
+    release_url
+  )
+  if (!is.null(cached)) {
+    return(cached)
+  }
+  files <- list_reference_dir(release_url)
   if (is.null(files)) {
-    available <- list_remote_dir(base_url)
+    available <- list_reference_dir(base_url)
     releases <- sort_releases(grep(
       "^release_",
       available %||% character(),
       value = TRUE
     ))
+    # A cached genome stands in only when the release may exist: when the
+    # base directory was listed, the release must be in it
+    release_listed <- is.null(available) ||
+      paste0("release_", version) %in% available
+    if (identical(file_type, "genome_fasta") && release_listed) {
+      cached <- cached_fallback(
+        cache_dir,
+        gencode_file_pattern(
+          version,
+          file_type,
+          region,
+          assembly_re = gencode_assembly(version, organism)
+        ),
+        release_url
+      )
+      if (!is.null(cached)) {
+        return(cached)
+      }
+    }
     abort_release_not_found(
       paste0("GENCODE release ", version, " for ", organism),
       release_url,
@@ -580,41 +651,81 @@ resolve_gencode_file <- function(version, organism, file_type, region) {
   )
 }
 
-#' Regular expression of the expected GENCODE file name
+#' Genome assembly of a GENCODE release (without its patch)
+#'
+#' Human releases up to 19 are on GRCh37 and later ones on GRCh38; mouse
+#' releases up to M25 are on GRCm38 and later ones on GRCm39.
+#'
 #' @keywords internal
 #' @noRd
-gencode_file_pattern <- function(version, file_type, region) {
-  v <- gsub(".", "\\.", version, fixed = TRUE)
+gencode_assembly <- function(version, organism) {
+  number <- as.integer(sub("^M", "", version))
+  if (identical(organism, "mouse")) {
+    if (number <= 25L) "GRCm38" else "GRCm39"
+  } else {
+    if (number <= 19L) "GRCh37" else "GRCh38"
+  }
+}
+
+#' Expected GENCODE file name, or `NULL` when the name is not determined
+#'
+#' Genome FASTA names carry the assembly and its patch (`GRCh38.p14`), which
+#' the request does not determine.
+#'
+#' @keywords internal
+#' @noRd
+gencode_file_name <- function(version, file_type, region) {
   annot_prefix <- switch(
     region,
-    all = "chr_patch_hapl_scaff\\.",
+    all = "chr_patch_hapl_scaff.",
     chr = "",
-    primary = "primary_assembly\\."
+    primary = "primary_assembly."
   )
   switch(
     file_type,
-    gff = paste0(
-      "^gencode\\.v",
-      v,
-      "\\.",
-      annot_prefix,
-      "annotation\\.gff3\\.gz$"
-    ),
-    gtf = paste0(
-      "^gencode\\.v",
-      v,
-      "\\.",
-      annot_prefix,
-      "annotation\\.gtf\\.gz$"
-    ),
-    fasta = paste0("^gencode\\.v", v, "\\.transcripts\\.fa\\.gz$"),
-    polya = paste0("^gencode\\.v", v, "\\.polyAs\\.gff3\\.gz$"),
-    genome_fasta = if (identical(region, "primary")) {
-      "^[A-Za-z0-9]+\\.primary_assembly\\.genome\\.fa\\.gz$"
-    } else {
-      "^[A-Za-z0-9]+(\\.p[0-9]+)?\\.genome\\.fa\\.gz$"
-    }
+    gff = paste0("gencode.v", version, ".", annot_prefix, "annotation.gff3.gz"),
+    gtf = paste0("gencode.v", version, ".", annot_prefix, "annotation.gtf.gz"),
+    fasta = paste0("gencode.v", version, ".transcripts.fa.gz"),
+    polya = paste0("gencode.v", version, ".polyAs.gff3.gz"),
+    genome_fasta = NULL
   )
+}
+
+#' Regular expression of the expected GENCODE file name
+#'
+#' `assembly_re` restricts the assembly part of genome FASTA names (for
+#' example `"GRCh38"`), used to pick a cached genome of one assembly.
+#'
+#' @keywords internal
+#' @noRd
+gencode_file_pattern <- function(
+  version,
+  file_type,
+  region,
+  assembly_re = "[A-Za-z0-9]+"
+) {
+  if (identical(file_type, "genome_fasta")) {
+    if (identical(region, "primary")) {
+      return(paste0(
+        "^",
+        assembly_re,
+        "\\.primary_assembly\\.genome\\.fa\\.gz$"
+      ))
+    }
+    return(paste0("^", assembly_re, "(\\.p[0-9]+)?\\.genome\\.fa\\.gz$"))
+  }
+  literal_pattern(gencode_file_name(version, file_type, region))
+}
+
+#' Anchored regular expression matching one literal file name
+#'
+#' Reference file names contain no regular expression metacharacters other
+#' than dots.
+#'
+#' @keywords internal
+#' @noRd
+literal_pattern <- function(file) {
+  paste0("^", gsub(".", "\\.", file, fixed = TRUE), "$")
 }
 
 #' Sort GENCODE release directory names by release number
@@ -631,18 +742,12 @@ sort_releases <- function(x) {
   x[order(num, suffix)]
 }
 
-#' Find an Ensembl file (any division, species and release)
+#' URL of the Ensembl directory that holds a file type of a species
+#'
+#' `species` is lower case; `version = NULL` is the current release.
 #' @keywords internal
 #' @noRd
-resolve_ensembl_file <- function(
-  version,
-  species,
-  division,
-  file_type,
-  region
-) {
-  check_string(species)
-  species <- tolower(species)
+ensembl_dir_url <- function(version, species, division, file_type) {
   kind_dir <- switch(
     file_type,
     gff = "gff3",
@@ -660,21 +765,63 @@ resolve_ensembl_file <- function(
   )
   if (identical(division, "vertebrates")) {
     base <- "https://ftp.ensembl.org/pub/"
-    release_dir <- if (is.null(version)) {
-      paste0("current_", kind_dir, "/")
-    } else {
-      paste0("release-", as.character(version), "/", kind_dir, "/")
-    }
+    current <- paste0("current_", kind_dir, "/")
   } else {
     base <- paste0("https://ftp.ebi.ac.uk/ensemblgenomes/pub/", division, "/")
-    release_dir <- if (is.null(version)) {
-      paste0("current/", kind_dir, "/")
-    } else {
-      paste0("release-", as.character(version), "/", kind_dir, "/")
+    current <- paste0("current/", kind_dir, "/")
+  }
+  release_dir <- if (is.null(version)) {
+    current
+  } else {
+    paste0("release-", as.character(version), "/", kind_dir, "/")
+  }
+  paste0(base, release_dir, species, "/", sub_dir)
+}
+
+#' Find an Ensembl file (any division, species and release)
+#'
+#' Ensembl file names carry the assembly name, which the request does not
+#' determine, so the file is found by listing. When the listing of an
+#' explicit release fails, a cached annotation of that species and release
+#' is used; transcript and genome FASTA names carry no release number, so
+#' they have no cached fallback. For `region = "all"` only a cached
+#' `chr_patch_hapl_scaff` file is used: offline, a plain annotation cannot be
+#' told apart from the `region = "primary"` file of a species with patches.
+#'
+#' @keywords internal
+#' @noRd
+resolve_ensembl_file <- function(
+  version,
+  species,
+  division,
+  file_type,
+  region,
+  cache_dir
+) {
+  check_string(species)
+  species <- tolower(species)
+  dir_url <- ensembl_dir_url(version, species, division, file_type)
+  files <- list_reference_dir(dir_url)
+  if (is.null(files) && !is.null(version) && file_type %in% c("gff", "gtf")) {
+    species_file <- paste0(
+      toupper(substr(species, 1L, 1L)),
+      substr(species, 2L, nchar(species))
+    )
+    cached <- cached_fallback(
+      cache_dir,
+      ensembl_file_pattern(
+        file_type,
+        region,
+        species_re = paste0("^", species_file, "\\.[^/]+?"),
+        release_re = as.character(version),
+        patches = identical(region, "all")
+      ),
+      dir_url
+    )
+    if (!is.null(cached)) {
+      return(cached)
     }
   }
-  dir_url <- paste0(base, release_dir, species, "/", sub_dir)
-  files <- list_remote_dir(dir_url)
   if (is.null(files)) {
     abort_release_not_found(
       paste0(
@@ -718,29 +865,51 @@ resolve_ensembl_file <- function(
 }
 
 #' File name pattern of an Ensembl file type and region
+#'
+#' `species_re` and `release_re` default to any species and any release; a
+#' cached fallback restricts them to the requested ones. With `patches =
+#' TRUE` the `region = "all"` annotation must be a `chr_patch_hapl_scaff`
+#' file.
+#'
 #' @keywords internal
 #' @noRd
-ensembl_file_pattern <- function(file_type, region) {
-  species_re <- "^[A-Z][a-z0-9_]+\\.[^/]+?"
+ensembl_file_pattern <- function(
+  file_type,
+  region,
+  species_re = "^[A-Z][a-z0-9_]+\\.[^/]+?",
+  release_re = "[0-9]+",
+  patches = FALSE
+) {
+  patch_re <- if (patches) {
+    "\\.chr_patch_hapl_scaff"
+  } else {
+    "(\\.chr_patch_hapl_scaff)?"
+  }
   switch(
     file_type,
     gff = switch(
       region,
       all = paste0(
         species_re,
-        "\\.[0-9]+(\\.chr_patch_hapl_scaff)?\\.gff3\\.gz$"
+        "\\.",
+        release_re,
+        patch_re,
+        "\\.gff3\\.gz$"
       ),
-      chr = paste0(species_re, "\\.[0-9]+\\.chr\\.gff3\\.gz$"),
-      primary = paste0(species_re, "\\.[0-9]+\\.gff3\\.gz$")
+      chr = paste0(species_re, "\\.", release_re, "\\.chr\\.gff3\\.gz$"),
+      primary = paste0(species_re, "\\.", release_re, "\\.gff3\\.gz$")
     ),
     gtf = switch(
       region,
       all = paste0(
         species_re,
-        "\\.[0-9]+(\\.chr_patch_hapl_scaff)?\\.gtf\\.gz$"
+        "\\.",
+        release_re,
+        patch_re,
+        "\\.gtf\\.gz$"
       ),
-      chr = paste0(species_re, "\\.[0-9]+\\.chr\\.gtf\\.gz$"),
-      primary = paste0(species_re, "\\.[0-9]+\\.gtf\\.gz$")
+      chr = paste0(species_re, "\\.", release_re, "\\.chr\\.gtf\\.gz$"),
+      primary = paste0(species_re, "\\.", release_re, "\\.gtf\\.gz$")
     ),
     fasta = paste0(species_re, "\\.cdna\\.all\\.fa\\.gz$"),
     ncrna_fasta = paste0(species_re, "\\.ncrna\\.fa\\.gz$"),
@@ -753,9 +922,14 @@ ensembl_file_pattern <- function(file_type, region) {
 }
 
 #' Find a file of an NCBI assembly by accession
+#'
+#' File names carry the assembly name, which the accession does not give,
+#' so the file is found by listing. An assembly accession version never
+#' changes, so when a listing fails a cached file of that accession is used.
+#'
 #' @keywords internal
 #' @noRd
-resolve_ncbi_file <- function(accession, file_type) {
+resolve_ncbi_file <- function(accession, file_type, cache_dir) {
   check_string(accession)
   accession <- toupper(trimws(accession))
   if (!grepl("^GC[AF]_[0-9]{9}\\.[0-9]+$", accession)) {
@@ -787,7 +961,42 @@ resolve_ncbi_file <- function(accession, file_type) {
     substr(digits, 7, 9),
     "/"
   )
-  dirs <- list_remote_dir(parent_url)
+  suffix <- switch(
+    file_type,
+    gff = "_genomic\\.gff\\.gz$",
+    gtf = "_genomic\\.gtf\\.gz$",
+    fasta = "_rna\\.fna\\.gz$",
+    genome_fasta = "_genomic\\.fna\\.gz$"
+  )
+  # The assembly directory is the cached file name without its suffix
+  fallback <- function(dir_url) {
+    cached <- cached_fallback(
+      cache_dir,
+      paste0(
+        "^",
+        gsub(".", "\\.", accession, fixed = TRUE),
+        "_(?:(?!_(cds|rna)_from_genomic).)+",
+        suffix
+      ),
+      dir_url
+    )
+    if (!is.null(cached)) {
+      cached$url <- paste0(
+        parent_url,
+        sub(suffix, "", cached$file),
+        "/",
+        cached$file
+      )
+    }
+    cached
+  }
+  dirs <- list_reference_dir(parent_url)
+  if (is.null(dirs)) {
+    cached <- fallback(parent_url)
+    if (!is.null(cached)) {
+      return(cached)
+    }
+  }
   assembly_dir <- grep(
     paste0("^", gsub(".", "\\.", accession, fixed = TRUE), "_"),
     dirs %||% character(),
@@ -802,17 +1011,14 @@ resolve_ncbi_file <- function(accession, file_type) {
   }
   assembly_dir <- assembly_dir[[1L]]
   dir_url <- paste0(parent_url, assembly_dir, "/")
-  files <- list_remote_dir(dir_url)
+  files <- list_reference_dir(dir_url)
   if (is.null(files)) {
+    cached <- fallback(dir_url)
+    if (!is.null(cached)) {
+      return(cached)
+    }
     abort_release_not_found(paste0("NCBI assembly ", accession), dir_url)
   }
-  suffix <- switch(
-    file_type,
-    gff = "_genomic\\.gff\\.gz$",
-    gtf = "_genomic\\.gtf\\.gz$",
-    fasta = "_rna\\.fna\\.gz$",
-    genome_fasta = "_genomic\\.fna\\.gz$"
-  )
   pick_remote_file(
     files = files,
     pattern = paste0("^", gsub(".", "\\.", assembly_dir, fixed = TRUE), suffix),
@@ -823,9 +1029,13 @@ resolve_ncbi_file <- function(accession, file_type) {
 }
 
 #' Find a MANE release file
+#'
+#' With an explicit `version` the file name is determined, so a cached file
+#' is used without listing; the current release is always listed.
+#'
 #' @keywords internal
 #' @noRd
-resolve_mane_file <- function(version, mane_source, file_type) {
+resolve_mane_file <- function(version, mane_source, file_type, cache_dir) {
   if (identical(file_type, "genome_fasta")) {
     cli::cli_abort(
       message = c(
@@ -850,9 +1060,30 @@ resolve_mane_file <- function(version, mane_source, file_type) {
     paste0("release_", sub("^v", "", as.character(version)), "/")
   }
   dir_url <- paste0(base, release_dir)
-  files <- list_remote_dir(dir_url)
+  if (!is.null(version)) {
+    cached <- cached_known_file(
+      cache_dir,
+      paste0(
+        "MANE.GRCh38.v",
+        sub("^v", "", as.character(version)),
+        ".",
+        mane_source,
+        switch(
+          file_type,
+          gff = "_genomic.gff.gz",
+          gtf = "_genomic.gtf.gz",
+          fasta = "_rna.fna.gz"
+        )
+      ),
+      dir_url
+    )
+    if (!is.null(cached)) {
+      return(cached)
+    }
+  }
+  files <- list_reference_dir(dir_url)
   if (is.null(files)) {
-    available <- list_remote_dir(base)
+    available <- list_reference_dir(base)
     releases <- grep("^release_", available %||% character(), value = TRUE)
     abort_release_not_found(
       paste0(
@@ -925,6 +1156,66 @@ list_remote_dir <- function(url, timeout = 60) {
   hrefs <- hrefs[!grepl("^(\\?|/|\\.\\./|#|http)", hrefs)]
   hrefs <- sub("/$", "", hrefs)
   unique(hrefs[nzchar(hrefs)])
+}
+
+#' List a remote directory, or return `NULL` without a connection
+#'
+#' Skips the request when `curl` reports no connection, so that resolvers
+#' fall back to cached files quickly offline.
+#'
+#' @keywords internal
+#' @noRd
+list_reference_dir <- function(url) {
+  if (
+    requireNamespace("curl", quietly = TRUE) && !isTRUE(curl::has_internet())
+  ) {
+    return(NULL)
+  }
+  list_remote_dir(url)
+}
+
+#' Target of a file whose name is known, when it is already cached
+#' @keywords internal
+#' @noRd
+cached_known_file <- function(cache_dir, file, dir_url) {
+  if (is.null(file) || !isTRUE(fs::file_exists(fs::path(cache_dir, file)))) {
+    return(NULL)
+  }
+  list(url = paste0(dir_url, file), file = file)
+}
+
+#' Cached files whose names match a regular expression (Perl syntax)
+#' @keywords internal
+#' @noRd
+cached_reference_files <- function(cache_dir, pattern) {
+  if (!isTRUE(fs::dir_exists(cache_dir))) {
+    return(character())
+  }
+  # Symbolic links to files count, as they do for a file named by the request
+  paths <- fs::dir_ls(cache_dir, type = c("file", "symlink"))
+  paths <- paths[fs::is_file(paths)]
+  files <- as.character(fs::path_file(paths))
+  grep(pattern, files, value = TRUE, perl = TRUE)
+}
+
+#' Target of the one cached file matching `pattern`, used when the remote
+#' directory cannot be listed
+#'
+#' Returns `NULL` when no file or more than one file matches, so that an
+#' ambiguous cache never silently picks a file.
+#'
+#' @keywords internal
+#' @noRd
+cached_fallback <- function(cache_dir, pattern, dir_url) {
+  matches <- cached_reference_files(cache_dir, pattern)
+  if (!identical(length(matches), 1L)) {
+    return(NULL)
+  }
+  cli::cli_inform(c(
+    "!" = "Could not list {.url {dir_url}}.",
+    i = "Using the cached {.path {fs::path(cache_dir, matches)}}."
+  ))
+  list(url = paste0(dir_url, matches), file = matches)
 }
 
 #' Download a reference file unless it is already cached

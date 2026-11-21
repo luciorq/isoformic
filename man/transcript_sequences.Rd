@@ -32,12 +32,15 @@ transcript_sequences(x, transcript_id = NULL)
 \item{chunk_bytes}{Number of bytes read per chunk while streaming (default 64 MB).}
 
 \item{transcript_id}{Optional transcript identifiers to read; \code{NULL} reads
-all sequences.}
+all sequences. The selection is done while reading, so only the
+sequences of these transcripts are loaded into memory.}
 }
 \value{
 \code{extract_transcript_sequences()} returns the path of the
 Parquet file, invisibly (an existing file is kept, with a message,
-unless \code{overwrite = TRUE}). The table has columns \code{transcript_id},
+unless \code{overwrite = TRUE}; a warning says when its recorded source is
+not the FASTA given, for example sequences of a cached directory cut
+from a genome while a transcript FASTA is given). The table has columns \code{transcript_id},
 \code{sequence} and \code{seq_length}; the source and the number of sequences are
 recorded in the annotation metadata (\code{sequences_source},
 \code{sequences_n}). \code{has_sequences()} returns \code{TRUE} or \code{FALSE}, and
@@ -70,7 +73,7 @@ whose chromosome is absent from the FASTA (or whose identifier is absent
 from a transcript FASTA) are reported and left out.
 }
 \examples{
-gff <- system.file("extdata", "example.gff3", package = "isoformic")
+gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 fasta <- system.file("extdata", "example_transcripts.fa.gz", package = "isoformic")
 annot <- prepare_isoformic_annotation(gff, output_path = tempdir(), annot_name = "seq_demo")
 extract_transcript_sequences(annot, transcript_fasta = fasta, overwrite = TRUE)

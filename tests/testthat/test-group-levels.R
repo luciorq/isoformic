@@ -11,10 +11,11 @@ three_group_example <- function() {
   iso
 }
 
+# Draws are counts, as read_inferential_replicates() returns them
 example_draws <- function(iso, n = 8L) {
   set.seed(42)
   draws <- lapply(seq_len(n), function(k) {
-    m <- tx_assay(iso, "abundance")
+    m <- tx_assay(iso, "counts")
     m * matrix(stats::runif(length(m), 0.7, 1.3), nrow = nrow(m))
   })
   attr(draws, "samp_type") <- "gibbs"
@@ -313,7 +314,7 @@ testthat::test_that("delta_z ranks the genes with a certain change at the extrem
   iso <- three_group_example()
   lv <- c("a", "b")
   # The same draw twice: every change has a standard deviation of zero
-  draws <- rep(list(tx_assay(iso, "abundance")), 2L)
+  draws <- rep(list(tx_assay(iso, "counts")), 2L)
   pf <- productive_fraction(iso, group = "g3", levels = lv, inf_reps = draws)
   changed <- !pf$delta_productive_fraction %in% c(0, NA)
   testthat::expect_true(any(changed))
@@ -396,7 +397,9 @@ testthat::test_that("the contrast of de_confidence follows the levels, its table
     class = "isoformic_group_levels"
   )
   conf <- de_confidence(iso, group = "g3", levels = c("a", "b"))
-  testthat::expect_true(all(c("feature_id", "confidence") %in% colnames(conf)))
+  testthat::expect_true(all(
+    c("feature_id", "sign_agreement", "unstable") %in% colnames(conf)
+  ))
   # `levels` without `group` is an error here as well
   testthat::expect_error(
     de_confidence(iso, levels = c("a", "b")),
@@ -443,7 +446,9 @@ testthat::test_that("subsetting carries the replicates and the uncertainty table
     sub <- iso[, c("s5", "s1", "s2")],
     class = "isoformic_stale_uncertainty"
   )
-  sub_draws <- sub@metadata$inf_reps
+  # The subset shares the draws and reads them through its selection
+  testthat::expect_identical(sub@metadata$inf_reps[[3L]], draws[[3L]])
+  sub_draws <- inf_reps_materialize(sub@metadata$inf_reps)
   testthat::expect_length(sub_draws, length(draws))
   testthat::expect_identical(colnames(sub_draws[[1L]]), c("s5", "s1", "s2"))
   testthat::expect_identical(
@@ -458,7 +463,7 @@ testthat::test_that("subsetting carries the replicates and the uncertainty table
   testthat::expect_no_message(iso[, rev(colnames(iso))])
 
   rows <- suppressMessages(iso[c("tA2", "tA1"), ])
-  row_draws <- rows@metadata$inf_reps
+  row_draws <- inf_reps_materialize(rows@metadata$inf_reps)
   testthat::expect_setequal(rownames(row_draws[[1L]]), c("tA1", "tA2"))
   testthat::expect_identical(colnames(row_draws[[1L]]), colnames(iso))
   testthat::expect_setequal(
@@ -478,11 +483,30 @@ testthat::test_that("subsetting carries the replicates and the uncertainty table
   testthat::expect_false("tA5" %in% rownames(draws[[1L]]))
   with_unexpressed <- suppressMessages(iso[c("tA5", "tA1"), ])
   testthat::expect_identical(
-    rownames(with_unexpressed@metadata$inf_reps[[1L]]),
+    rownames(inf_reps_materialize(with_unexpressed@metadata$inf_reps)[[1L]]),
     "tA1"
   )
-  # No kept transcript has draws: the object has no replicates left
+  # No kept transcript has draws: the subset keeps the moments, which cover
+  # every transcript, with zero-row copies of the draws (not the parent's)
   none <- suppressMessages(iso["tA5", ])
+  testthat::expect_null(attr(none@metadata$inf_reps, "selection"))
+  testthat::expect_identical(
+    unique(vapply(none@metadata$inf_reps, nrow, integer(1L))),
+    0L
+  )
+  testthat::expect_false(is.null(attr(none@metadata$inf_reps, "moments")))
+  testthat::expect_identical(
+    inferential_overdispersion(none)$transcript_id,
+    "tA5"
+  )
+  testthat::expect_error(
+    draws_view(none),
+    class = "isoformic_no_inferential_replicates"
+  )
+  # Without the moments the object has no replicates left
+  no_mom <- iso
+  attr(no_mom@metadata$inf_reps, "moments") <- NULL
+  none <- suppressMessages(no_mom["tA5", ])
   testthat::expect_null(none@metadata$inf_reps)
   testthat::expect_error(
     inferential_overdispersion(none),
@@ -599,11 +623,19 @@ testthat::test_that("productive_fraction reads the draws one at a time with the 
   gene_ids <- prod$gene_id[match(tx_ids, prod$transcript_id)]
   is_prod <- prod$productivity[match(tx_ids, prod$transcript_id)] %in%
     c("productive", "altered_productive")
-  fraction_of <- function(m) {
+  # Count draws on the abundance scale: every cell of the example with a
+  # count has an abundance, and a cell without a count has no draw either
+  to_abundance <- tx_assay(iso, "abundance")[, samples] /
+    tx_assay(iso, "counts")[, samples]
+  to_abundance[!is.finite(to_abundance)] <- 0
+  fraction_of <- function(m, scale = NULL) {
     full <- matrix(0, length(tx_ids), length(samples))
     dimnames(full) <- list(tx_ids, samples)
     shared <- intersect(tx_ids, rownames(m))
     full[shared, ] <- m[shared, samples]
+    if (!is.null(scale)) {
+      full <- full * scale
+    }
     full[full < 2] <- 0
     frac <- rowsum(full * is_prod, gene_ids) / rowsum(full, gene_ids)
     frac[!is.finite(frac)] <- NA_real_
@@ -616,15 +648,244 @@ testthat::test_that("productive_fraction reads the draws one at a time with the 
   }
   point <- fraction_of(tx_assay(iso, "abundance"))
   testthat::expect_equal(pf$delta_productive_fraction, delta_of(point))
-  draw_fracs <- lapply(draws, fraction_of)
+  # Only the samples where the assay gives a fraction count
+  draw_fracs <- lapply(draws, function(m) {
+    f <- fraction_of(m, to_abundance)
+    f[is.na(point)] <- NA_real_
+    f
+  })
   draw_delta <- vapply(draw_fracs, delta_of, numeric(nrow(pf)))
   expected_sd <- apply(draw_delta, 1L, stats::sd, na.rm = TRUE)
   testthat::expect_equal(pf$delta_productive_fraction_sd, expected_sd)
-  sq_dev <- Reduce(`+`, lapply(draw_fracs, function(f) (f - point)^2))
-  expected_sample_sd <- rowMeans(sqrt(sq_dev / length(draws)), na.rm = TRUE)
+  # The standard deviation over the draws in each sample, averaged, each
+  # over the draws that give the gene a fraction there
+  cell_sd <- apply(
+    simplify2array(draw_fracs),
+    c(1L, 2L),
+    stats::sd,
+    na.rm = TRUE
+  )
+  expected_sample_sd <- rowMeans(cell_sd, na.rm = TRUE)
   expected_sample_sd[is.nan(expected_sample_sd)] <- NA_real_
   testthat::expect_equal(pf$productive_fraction_sd, unname(expected_sample_sd))
   testthat::expect_true(any(pf$productive_fraction_sd > 0, na.rm = TRUE))
+})
+
+testthat::test_that("the standard deviation is the spread of the draws, on the scale of the assay", {
+  iso <- three_group_example()
+  lv <- c("a", "b")
+  counts <- tx_assay(iso, "counts")
+  # Every draw the same, but away from the point estimate: no spread
+  shifted <- counts
+  shifted[seq(1L, nrow(shifted), by = 2L), ] <- shifted[
+    seq(1L, nrow(shifted), by = 2L),
+  ] +
+    50
+  pf <- productive_fraction(
+    iso,
+    group = "g3",
+    levels = lv,
+    inf_reps = rep(list(shifted), 3L)
+  )
+  has_sd <- !is.na(pf$productive_fraction_sd)
+  testthat::expect_true(any(has_sd))
+  testthat::expect_true(all(pf$productive_fraction_sd[has_sd] == 0))
+  testthat::expect_true(all(pf$delta_productive_fraction_sd %in% c(0, NA)))
+  # Count draws equal to the point counts give the fractions of the
+  # abundance assay: the change of each draw is the reported change
+  drawn <- productive_fraction(
+    iso,
+    group = "g3",
+    levels = lv,
+    inf_reps = rep(list(counts), 2L)
+  )
+  testthat::expect_true(all(drawn$delta_productive_fraction_sd %in% c(0, NA)))
+  on_counts <- productive_fraction(
+    iso,
+    group = "g3",
+    levels = lv,
+    assay = "counts",
+    inf_reps = rep(list(counts), 2L)
+  )
+  testthat::expect_true(all(on_counts$productive_fraction_sd %in% c(0, NA)))
+})
+
+testthat::test_that("draw_assay_scale turns counts into TPM, also where a count is zero", {
+  len <- c(t1 = 500, t2 = 1000, t3 = 2000, t4 = 250)
+  counts <- matrix(
+    c(10, 20, 0, 5, 30, 0, 8, 0, 12, 6, 4, 9),
+    nrow = 4,
+    dimnames = list(names(len), c("s1", "s2", "s3"))
+  )
+  # t4 has no count in any sample
+  counts["t4", ] <- 0
+  per_base <- counts / len
+  tpm <- sweep(per_base, 2L, colSums(per_base), "/") * 1e6
+  lengths <- matrix(len, 4, 3, dimnames = dimnames(counts))
+  with_len <- list(
+    abundance = tpm,
+    counts = counts,
+    length = lengths
+  )
+  k <- 1e6 / colSums(per_base)
+  expected <- sweep(1 / lengths, 2L, k, "*")
+  stub <- function(assays) {
+    testthat::local_mocked_bindings(
+      assay_names = function(self) names(assays),
+      tx_assay = function(self, name) assays[[name]],
+      row_data = function(self) data.frame(transcript_id = names(len)),
+      .env = parent.frame()
+    )
+  }
+  local({
+    stub(with_len)
+    scale <- draw_assay_scale(NULL, "abundance", names(len), colnames(counts))
+    testthat::expect_equal(scale, expected)
+    testthat::expect_null(
+      draw_assay_scale(NULL, "counts", names(len), colnames(counts))
+    )
+  })
+  # Without a length assay the zero cells come from the other cells; a
+  # transcript without any count takes the median transcript effect
+  local({
+    stub(with_len[c("abundance", "counts")])
+    scale <- draw_assay_scale(NULL, "abundance", names(len), colnames(counts))
+    seen <- counts > 0
+    testthat::expect_equal(scale[seen], expected[seen])
+    testthat::expect_equal(scale[1:3, ], expected[1:3, ])
+    testthat::expect_true(all(is.finite(scale) & scale > 0))
+  })
+  # Without a counts assay the draws are taken as they are
+  local({
+    stub(with_len["abundance"])
+    testthat::expect_null(
+      draw_assay_scale(NULL, "abundance", names(len), colnames(counts))
+    )
+  })
+})
+
+testthat::test_that("unseen_tx_effect predicts a transcript effect from its length", {
+  fit_ids <- paste0("f", 1:20)
+  fit_len <- seq(300, 3000, length.out = 20)
+  rd <- data.frame(
+    transcript_id = c(fit_ids, "t_len"),
+    tx_length = c(fit_len, 1500)
+  )
+  testthat::local_mocked_bindings(row_data = function(self) rd)
+  # Effects of minus the log of the effective length, with a fragment of
+  # 200 nt (on the 10-nt grid of the fit) and an offset of 3
+  fit_eff <- 3 - log(fit_len - 200)
+  typical <- stats::median(fit_eff)
+  out <- unseen_tx_effect(NULL, fit_ids, fit_eff, c("t_len", "t_none"))
+  testthat::expect_equal(out[[1L]], 3 - log(1500 - 200))
+  # A transcript without an annotated length takes the median effect
+  testthat::expect_equal(out[[2L]], typical)
+  # Transcripts without a cell (NaN) do not enter the fit
+  with_nan <- unseen_tx_effect(
+    NULL,
+    c(fit_ids, "t_len"),
+    c(fit_eff, NaN),
+    "t_len"
+  )
+  testthat::expect_equal(with_nan, 3 - log(1500 - 200))
+  # Effects that the lengths do not explain give the median for every target
+  random_eff <- withr::with_seed(1L, stats::rnorm(20L, sd = 0.05))
+  testthat::expect_equal(
+    unseen_tx_effect(NULL, fit_ids, random_eff, c("t_len", "t_none")),
+    rep(stats::median(random_eff), 2L)
+  )
+  # Fewer than 10 known effects give the median
+  few <- fit_eff
+  few[10:20] <- NaN
+  testthat::expect_equal(
+    unseen_tx_effect(NULL, fit_ids, few, "t_len"),
+    stats::median(fit_eff[1:9])
+  )
+  # Without a tx_length column, the median
+  testthat::local_mocked_bindings(
+    row_data = function(self) rd["transcript_id"]
+  )
+  testthat::expect_equal(
+    unseen_tx_effect(NULL, fit_ids, fit_eff, "t_len"),
+    typical
+  )
+})
+
+testthat::test_that("draw_assay_scale fills a transcript without counts from its length", {
+  # Effective lengths equal to the annotated length minus 200 nt, which the
+  # fragment fit recovers exactly; t12 has no count in any sample
+  eff_len <- stats::setNames(seq(250, 2450, by = 200), paste0("t", 1:12))
+  counts <- matrix(
+    c(seq(5, 60, by = 5), seq(7, 84, by = 7), seq(3, 36, by = 3)),
+    nrow = 12,
+    dimnames = list(names(eff_len), c("s1", "s2", "s3"))
+  )
+  counts["t12", ] <- 0
+  per_base <- counts / eff_len
+  k <- 1e6 / colSums(per_base)
+  tpm <- sweep(per_base, 2L, k, "*")
+  expected <- sweep(matrix(1 / eff_len, 12, 3), 2L, k, "*")
+  dimnames(expected) <- dimnames(counts)
+  assays <- list(abundance = tpm, counts = counts)
+  testthat::local_mocked_bindings(
+    assay_names = function(self) names(assays),
+    tx_assay = function(self, name) assays[[name]],
+    row_data = function(self) {
+      data.frame(transcript_id = names(eff_len), tx_length = eff_len + 200)
+    }
+  )
+  scale <- draw_assay_scale(NULL, "abundance", names(eff_len), colnames(counts))
+  testthat::expect_equal(scale, expected)
+})
+
+testthat::test_that("gene_name and min_gene_count read only the genes reported", {
+  iso <- three_group_example()
+  lv <- c("a", "b")
+  draws <- example_draws(iso, n = 4L)
+  full <- productive_fraction(iso, group = "g3", levels = lv, inf_reps = draws)
+  genes <- full$gene_name[!is.na(full$gene_name)][1:2]
+  seen <- new.env(parent = emptyenv())
+  seen$n_tx <- integer()
+  real <- draw_productive_fraction
+  testthat::local_mocked_bindings(
+    draw_productive_fraction = function(draw, tx_ids, ...) {
+      seen$n_tx <- c(seen$n_tx, length(tx_ids))
+      real(draw, tx_ids, ...)
+    }
+  )
+  one <- productive_fraction(
+    iso,
+    group = "g3",
+    levels = lv,
+    inf_reps = draws,
+    gene_name = c(genes[[1L]], full$gene_id[full$gene_name %in% genes[[2L]]])
+  )
+  testthat::expect_equal(one, full[full$gene_name %in% genes, ])
+  prod <- transcript_productivity(iso)
+  n_tx <- sum(
+    prod$gene_id %in%
+      one$gene_id &
+      prod$transcript_id %in% rownames(tx_assay(iso, "abundance"))
+  )
+  testthat::expect_true(all(seen$n_tx == n_tx))
+  kept <- productive_fraction(
+    iso,
+    group = "g3",
+    levels = lv,
+    inf_reps = draws,
+    min_gene_count = 50
+  )
+  testthat::expect_lt(nrow(kept), nrow(full))
+  testthat::expect_equal(kept, full[full$gene_id %in% kept$gene_id, ])
+  none <- productive_fraction(
+    iso,
+    group = "g3",
+    levels = lv,
+    inf_reps = draws,
+    gene_name = "no such gene"
+  )
+  testthat::expect_identical(nrow(none), 0L)
+  testthat::expect_identical(colnames(none), colnames(full))
 })
 
 testthat::test_that("inf_reps = FALSE skips the stored replicates", {

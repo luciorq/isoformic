@@ -209,8 +209,10 @@ plot_enrichment(
 ```
 
 Translation and mitochondrial pathways go down in the protein coding isoforms of the stressed animals
-(eukaryotic translation initiation, mitochondrial translation, respiratory electron transport,
-complex I biogenesis and complex IV assembly).
+(translation and eukaryotic translation initiation, rRNA processing, mitochondrial translation,
+aerobic respiration and respiratory electron transport, and complex IV assembly;
+false discovery rate below 5%).
+Complex I biogenesis, in the figure, goes down too, but not at a 5% false discovery rate.
 Few pathways go up in the protein coding isoforms, and none of them is synaptic.
 The ribosomal protein genes dominate the *nonsense-mediated decay* pathways of Reactome
 (75 of the 92 leading-edge genes in the protein coding isoforms),

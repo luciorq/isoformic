@@ -36,16 +36,19 @@ haplotype of a phased assembly. See \code{\link[=merge_annotations]{merge_annota
 The path to the annotation directory (character string).
 }
 \description{
-Parses a GENCODE/Ensembl style GFF3 or GTF annotation file with DuckDB in
-a single pass and writes one Parquet table per feature level (genes,
+Parses a GENCODE/Ensembl style GFF3 or GTF annotation file with DuckDB,
+reading the file once, and writes one Parquet table per feature level (genes,
 transcripts, exons) plus metadata and sequence-region tables into an
 \emph{annotation directory}. This directory is what \link{IsoformicExperiment}
 objects point to through their \code{annot_path} property.
 }
 \details{
-Reading a full human GENCODE release (3 to 4 million features,
-gzip-compressed) takes under a minute; the result is cached so repeated
-calls with the same file and output location return immediately.
+Converting the comprehensive human GENCODE release 50 with patches and
+haplotypes (11.6 million features, gzip-compressed GFF3 or GTF) takes
+about 30 seconds and 2 GB of memory with four DuckDB threads; the result
+is cached so repeated calls with the same file and output location return
+immediately. The memory DuckDB may use is set by the
+\code{isoformic.duckdb_memory_limit} option (see \link{isoformic-options}).
 
 The parser is vocabulary-agnostic so that annotations from different
 providers and assemblies work the same way:
@@ -104,7 +107,7 @@ format, creation time, isoformic version and the header pragmas).
 }
 }
 \examples{
-gff <- system.file("extdata", "example.gff3", package = "isoformic")
+gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 annot_dir <- prepare_isoformic_annotation(gff, output_path = tempdir())
 list.files(annot_dir)
 head(read_parquet(file.path(annot_dir, "annot_data_transcripts.parquet")))

@@ -1,9 +1,9 @@
 seq_experiment <- function(envir = parent.frame(), file = "mini_cds.gff3") {
   annot <- mini_annotation(file, envir = envir)
-  extract_transcript_sequences(
+  suppressMessages(extract_transcript_sequences(
     annot,
     genome_fasta = mini_genome_fasta(envir = envir)
-  )
+  ))
   tx <- read_parquet(fs::path(
     annot,
     "annot_data_transcripts.parquet"
@@ -268,13 +268,13 @@ testthat::test_that("benchmark_productivity measures the rules against biotypes"
 testthat::test_that("evidence columns override computed calls in priority order", {
   iso <- seq_experiment()
   annot <- iso@annot_path
-  add_annotation_columns(
+  suppressMessages(add_annotation_columns(
     annot,
     data.frame(
       transcript_id = c("tA1", "tA3", "tA4"),
       appris_principal = c(TRUE, TRUE, FALSE)
     )
-  )
+  ))
   clear_cache(iso)
   p <- transcript_productivity(iso)
   testthat::expect_identical(p$source[p$transcript_id == "tA1"], "evidence")
@@ -282,10 +282,10 @@ testthat::test_that("evidence columns override computed calls in priority order"
     as.character(p$productivity[p$transcript_id == "tA3"]),
     "productive"
   )
-  add_annotation_columns(
+  suppressMessages(add_annotation_columns(
     annot,
     data.frame(transcript_id = "tA3", nmd_validated_exon = TRUE)
-  )
+  ))
   clear_cache(iso)
   p <- transcript_productivity(iso)
   testthat::expect_identical(
@@ -293,10 +293,10 @@ testthat::test_that("evidence columns override computed calls in priority order"
     "unproductive"
   )
   testthat::expect_match(p$reason[p$transcript_id == "tA3"], "validated")
-  add_annotation_columns(
+  suppressMessages(add_annotation_columns(
     annot,
     data.frame(transcript_id = "tA3", productivity_evidence = "uncertain")
-  )
+  ))
   clear_cache(iso)
   p <- transcript_productivity(iso)
   testthat::expect_identical(
@@ -492,4 +492,61 @@ testthat::test_that("the statistic ranking compares genes with different degrees
   # A p-value of zero takes the largest finite score
   testthat::expect_equal(z[4], abs(z[1]))
   testthat::expect_true(abs(z[1]) > abs(z[2]))
+})
+
+testthat::test_that("poison exon candidates match a grouped summary", {
+  withr::local_seed(2)
+  n <- 400L
+  exons <- tibble::tibble(
+    transcript_id = sample(paste0("t", 1:60), n, replace = TRUE),
+    seqid = "chr1",
+    start_pos = sample(c(100L, 200L, 300L, 400L, 500L), n, replace = TRUE),
+    end_pos = 0L,
+    strand = sample(c("+", "-"), n, replace = TRUE)
+  )
+  exons$end_pos <- exons$start_pos + 50L
+  exons$gene_id <- paste0(
+    "g",
+    as.integer(sub("t", "", exons$transcript_id)) %% 4L
+  )
+  exons$productivity <- sample(
+    c("unproductive", "productive", "noncoding", NA),
+    n,
+    replace = TRUE,
+    prob = c(0.6, 0.2, 0.15, 0.05)
+  )
+  ref <- exons |>
+    dplyr::summarise(
+      n_unproductive = sum(.data$productivity == "unproductive"),
+      n_other = sum(.data$productivity != "unproductive"),
+      transcript_ids = paste(sort(unique(.data$transcript_id)), collapse = ";"),
+      .by = c("gene_id", "seqid", "start_pos", "end_pos", "strand")
+    ) |>
+    dplyr::filter(.data$n_unproductive > 0L, .data$n_other == 0L)
+  testthat::expect_gt(nrow(ref), 0L)
+  testthat::expect_identical(poison_exon_candidates(exons), ref)
+  testthat::expect_identical(
+    nrow(poison_exon_candidates(exons[0L, ])),
+    0L
+  )
+})
+
+testthat::test_that("poison_exons reads only the exons it needs", {
+  iso <- seq_experiment()
+  invisible(transcript_productivity(iso))
+  # Drop the exon table that the productivity calls loaded
+  rm(
+    list = paste0("exons::", attr(iso, "annot_path", exact = TRUE)),
+    envir = annotation_cache
+  )
+  testthat::expect_false(annot_table_cached(iso, "exons"))
+  cold <- poison_exons(iso)
+  testthat::expect_false(annot_table_cached(iso, "exons"))
+  invisible(iso@annot_data_exons)
+  testthat::expect_true(annot_table_cached(iso, "exons"))
+  testthat::expect_identical(poison_exons(iso), cold)
+  testthat::expect_identical(
+    poison_exons(iso, gene_name = "GENEA"),
+    cold[cold$gene_name %in% "GENEA", ]
+  )
 })

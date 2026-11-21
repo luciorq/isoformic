@@ -95,7 +95,7 @@ summarise_grouping <- function(obj, name) {
   )
   group_rows <- collapsed[collapsed$feature_type == "group", ]
   plain <- de_confidence(obj)
-  large <- plain[abs(plain$lfc_median) > 1 & !is.na(plain$confidence), ]
+  large <- plain[abs(plain$lfc_median) > 1 & !is.na(plain$unstable), ]
   tibble::tibble(
     grouping = name,
     assessed = nrow(unc),
@@ -105,9 +105,9 @@ summarise_grouping <- function(obj, name) {
     features_after_collapse = nrow(collapsed),
     median_group_inf_rv = stats::median(group_rows$mean_inf_rv, na.rm = TRUE),
     groups_below_cutoff = mean(group_rows$mean_inf_rv < 0.5, na.rm = TRUE),
-    large_high = sum(large$confidence == "high"),
-    large_moderate = sum(large$confidence == "moderate"),
-    large_low = sum(large$confidence == "low")
+    large_changes = nrow(large),
+    large_unstable = sum(large$unstable),
+    large_ambiguous = sum(large$ambiguous %in% TRUE)
   )
 }
 comparison <- dplyr::bind_rows(lapply(names(objects), function(nm) {

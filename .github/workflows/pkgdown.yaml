@@ -83,7 +83,9 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.cache/R/isoformic
-          key: isoformic-cache-${{ runner.os }}-gencode-v33
+          # Change the release in the key together with `version = "50"` in
+          # the articles: a restored key is never saved again
+          key: isoformic-cache-${{ runner.os }}-gencode-v50
 
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)

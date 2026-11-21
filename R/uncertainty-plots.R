@@ -3,11 +3,15 @@
 #' @description
 #' * `plot_de_confidence(x, gene_name)` shows, for the isoforms of the given
 #'   genes, the median log2 fold-change over the inferential replicates with
-#'   its 95% interval, coloured by the confidence class that
-#'   `add_uncertainty(group = )` stored (see [de_confidence()]; grey for
+#'   its 95% interval, coloured by whether the direction of the fold-change
+#'   is stable over the replicates (`unstable` in the table that
+#'   `add_uncertainty(group = )` stored, see [de_confidence()]; grey for
 #'   isoforms not assessed) and with the shape marking the calls of the
-#'   primary differential expression test. An interval that crosses zero or a
-#'   `moderate` or `low` class tells the reader not to trust the call.
+#'   primary differential expression test. An unstable direction marks a
+#'   call whose sign the quantification does not determine; in a placenta
+#'   cohort such calls replicated less often. A stable direction does not
+#'   make a call right: in control-versus-control comparisons of that
+#'   cohort, 93% of the false calls had a stable direction.
 #' * `plot_isoform_correlation(x, gene_name)` draws the correlation between
 #'   the replicates of every pair of isoforms of a gene. Strongly negative
 #'   cells (outlined when ambiguous) mark isoforms whose reads cannot be told
@@ -15,30 +19,28 @@
 #' * `plot_inf_rv(x)` shows the distribution of the inferential relative
 #'   variance (log scale) of the assessed transcripts per transcript type,
 #'   with the cutoff used to call isoforms uncertain.
-#' * `confidence_palette()` gives the colours of the confidence classes.
 #'
 #' @param self An [IsoformicExperiment] with uncertainty tables (see
-#'   [add_uncertainty()]); `plot_de_confidence()` also needs the confidence
+#'   [add_uncertainty()]); `plot_de_confidence()` also needs the fold-change
 #'   table of `add_uncertainty(group = )`.
 #' @param gene_name Gene names or IDs to plot.
 #' @param ncol Number of panel columns.
 #' @param top_types Number of the most frequent transcript types to show.
 #' @param ... Not used; reserved for methods.
 #'
-#' @returns A `ggplot` object, or a named character vector for
-#'   `confidence_palette()`.
+#' @returns A `ggplot` object.
 #'
 #' @seealso [add_uncertainty()], [de_confidence()]
 #'
 #' @name uncertainty-plots
 #' @aliases plot_de_confidence plot_isoform_correlation plot_inf_rv
-#' @aliases confidence_palette
 NULL
 
-#' @rdname uncertainty-plots
-#' @export
-confidence_palette <- function() {
-  c(high = "#009E73", moderate = "#E69F00", low = "#D55E00")
+#' Colours of the direction over the replicates (Okabe-Ito)
+#' @keywords internal
+#' @noRd
+direction_palette <- function() {
+  c(stable = "#0072B2", unstable = "#D55E00")
 }
 
 #' @rdname uncertainty-plots
@@ -76,13 +78,17 @@ S7::method(plot_de_confidence, IsoformicExperiment) <- function(
     "not tested",
     ifelse(conf$n_det_sig > 0L, "significant", "not significant")
   )
+  conf$direction <- factor(
+    ifelse(conf$unstable, "unstable", "stable"),
+    levels = c("stable", "unstable")
+  )
   conf$label <- stats::reorder(conf$label, conf$lfc_median)
   ggplot2::ggplot(
     conf,
     ggplot2::aes(
       x = .data$lfc_median,
       y = .data$label,
-      colour = .data$confidence,
+      colour = .data$direction,
       shape = .data$called
     )
   ) +
@@ -98,7 +104,7 @@ S7::method(plot_de_confidence, IsoformicExperiment) <- function(
     ) +
     ggplot2::geom_point(size = 2.6) +
     ggplot2::scale_colour_manual(
-      values = confidence_palette(),
+      values = direction_palette(),
       na.value = "grey60",
       drop = FALSE
     ) +
@@ -113,7 +119,7 @@ S7::method(plot_de_confidence, IsoformicExperiment) <- function(
     ggplot2::labs(
       x = "log2 fold-change (median and 95% interval over replicates)",
       y = NULL,
-      colour = "Confidence",
+      colour = "Direction over replicates",
       shape = "Primary test"
     ) +
     ggplot2::theme_minimal()

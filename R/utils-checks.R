@@ -79,3 +79,35 @@ check_string <- function(x, arg = rlang::caller_arg(x), allow_null = FALSE) {
   }
   return(invisible(x))
 }
+
+#' Check a Scalar Numeric Threshold or Abort
+#'
+#' Accepts a single, non-missing number between `lower` and `upper`.
+#' @keywords internal
+#' @noRd
+check_threshold <- function(
+  x,
+  lower = 0,
+  upper = Inf,
+  allow_null = FALSE,
+  arg = rlang::caller_arg(x),
+  call = rlang::caller_env()
+) {
+  if (is.null(x) && isTRUE(allow_null)) {
+    return(invisible(NULL))
+  }
+  ok <- (rlang::is_scalar_double(x) || rlang::is_scalar_integer(x)) &&
+    !is.na(x) &&
+    x >= lower &&
+    x <= upper
+  if (!isTRUE(ok)) {
+    cli::cli_abort(
+      message = c(
+        x = "{.arg {arg}} must be a single number between {lower} and {upper}."
+      ),
+      class = "isoformic_invalid_argument",
+      call = call
+    )
+  }
+  return(invisible(x))
+}

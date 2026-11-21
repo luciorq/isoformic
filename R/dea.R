@@ -38,7 +38,8 @@
 #' take the defaults and other names are an error.
 #'
 #' The `dea` property also holds the uncertainty tables of
-#' [add_uncertainty()] (`uncertainty`, `ambiguity`, `confidence`).
+#' [add_uncertainty()] (`uncertainty`, `ambiguity`, and `confidence`, the
+#' fold-change table of `add_uncertainty(group = )`).
 #'
 #' @param self An [IsoformicExperiment].
 #' @param value A data frame of results (`de_tx<-`, `de_gene<-`) or a list

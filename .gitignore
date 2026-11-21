@@ -3,6 +3,7 @@ inst/doc
 *.gz
 *.fa
 !inst/extdata/example_transcripts.fa.gz
+!inst/extdata/example.gff3.gz
 *.pdf
 /doc/
 /Meta/
@@ -25,6 +26,9 @@ data-raw/**
 !data-raw/**/*.py
 !data-raw/**/*.tsv
 !data-raw/README.md
+!data-raw/uncertainty_evidence/README.md
+!data-raw/uncertainty_evidence/prereg.yaml
+!data-raw/uncertainty_evidence/prereg_amendments.yaml
 !data-raw/alphagenome/pixi.toml
 !data-raw/alphagenome/pixi.lock
 !data-raw/alphagenome/.gitattributes

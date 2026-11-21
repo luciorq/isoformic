@@ -31,7 +31,13 @@ dominant_isoform(
   ...
 )
 
-isoform_switches(self, gene_name = NULL, confident_only = FALSE, ...)
+isoform_switches(
+  self,
+  gene_name = NULL,
+  confident_only = NULL,
+  drop_unstable = FALSE,
+  ...
+)
 
 exon_diversity(self, gene_name = NULL, ...)
 
@@ -71,8 +77,12 @@ restrict the result to.}
 groups are ignored, as if the object had been subset to these samples.
 \code{NULL} takes all the levels of \code{group}.}
 
-\item{confident_only}{Logical. Count only the significant isoforms with
-high confidence (see \code{\link[=de_confidence]{de_confidence()}}) in \code{isoform_switches()}.}
+\item{confident_only}{Defunct: the confidence class it filtered on was
+removed. Use \code{drop_unstable}, by name.}
+
+\item{drop_unstable}{Logical. In \code{isoform_switches()}, leave out the
+significant isoforms with an unstable direction (\code{unstable} in
+\code{\link[=de_confidence]{de_confidence()}}).}
 }
 \value{
 A matrix for \code{isoform_fraction()}, tibbles otherwise.
@@ -116,8 +126,19 @@ transcript of its gene. When the object carries uncertainty tables (see
 \code{\link[=add_uncertainty]{add_uncertainty()}}) it adds \code{dominant_inf_rv}, the inferential relative
 variance of the dominant isoform, and \code{dominant_ambiguous}, whether it
 cannot be told apart from a sibling isoform. \code{isoform_switches()} adds
-\code{n_det_confident}, the number of significant isoforms with high
-confidence, once \code{\link[=de_confidence]{de_confidence()}} results are stored.
+\code{n_det_unstable}, the number of significant isoforms whose fold-change
+direction the inferential replicates do not agree on (\code{unstable} in
+\code{\link[=de_confidence]{de_confidence()}}), once those results are stored.
+
+\code{drop_unstable = TRUE} leaves these calls out; calls whose direction was
+not assessed (below \code{min_count}) are kept. When ambiguous isoforms were
+summed (\code{add_uncertainty(group = , collapse_groups = TRUE)}), each member
+of a group takes the direction of the group: the significant members of
+an unstable group are counted in \code{n_det_unstable} and left out. It is a sensitivity analysis.
+In a placenta cohort it would have removed about 3\% of the calls that
+replicated and about 10\% of those that did not. It does not remove false
+calls caused by biological variability: most false calls have a stable
+direction.
 }
 \examples{
 iso <- example_isoformic()

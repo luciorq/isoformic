@@ -92,7 +92,8 @@ Benjamini-Hochberg adjustment of \code{pvalue}.
 take the defaults and other names are an error.
 
 The \code{dea} property also holds the uncertainty tables of
-\code{\link[=add_uncertainty]{add_uncertainty()}} (\code{uncertainty}, \code{ambiguity}, \code{confidence}).
+\code{\link[=add_uncertainty]{add_uncertainty()}} (\code{uncertainty}, \code{ambiguity}, and \code{confidence}, the
+fold-change table of \code{add_uncertainty(group = )}).
 }
 \examples{
 iso <- example_isoformic()

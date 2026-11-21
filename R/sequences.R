@@ -37,7 +37,9 @@
 #'
 #' @returns `extract_transcript_sequences()` returns the path of the
 #'   Parquet file, invisibly (an existing file is kept, with a message,
-#'   unless `overwrite = TRUE`). The table has columns `transcript_id`,
+#'   unless `overwrite = TRUE`; a warning says when its recorded source is
+#'   not the FASTA given, for example sequences of a cached directory cut
+#'   from a genome while a transcript FASTA is given). The table has columns `transcript_id`,
 #'   `sequence` and `seq_length`; the source and the number of sequences are
 #'   recorded in the annotation metadata (`sequences_source`,
 #'   `sequences_n`). `has_sequences()` returns `TRUE` or `FALSE`, and
@@ -50,7 +52,7 @@
 #' from a transcript FASTA) are reported and left out.
 #'
 #' @examples
-#' gff <- system.file("extdata", "example.gff3", package = "isoformic")
+#' gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 #' fasta <- system.file("extdata", "example_transcripts.fa.gz", package = "isoformic")
 #' annot <- prepare_isoformic_annotation(gff, output_path = tempdir(), annot_name = "seq_demo")
 #' extract_transcript_sequences(annot, transcript_fasta = fasta, overwrite = TRUE)
@@ -80,6 +82,7 @@ extract_transcript_sequences <- function(
     cli::cli_inform(c(
       i = "{.path {out_file}} already exists; use {.code overwrite = TRUE} to replace it."
     ))
+    warn_sequence_source(annot_dir, genome_fasta, transcript_fasta)
     return(invisible(out_file))
   }
   if (is.null(genome_fasta) == is.null(transcript_fasta)) {
@@ -139,6 +142,54 @@ extract_transcript_sequences <- function(
   invisible(out_file)
 }
 
+#' Warn when kept sequences come from another source than the one requested
+#'
+#' The existing sequences of an annotation directory are kept unless
+#' `overwrite = TRUE`. A cached directory can hold sequences cut from a
+#' genome while the call asks for a transcript FASTA (or the reverse, or
+#' another file), and the two cover different transcripts: the warning names
+#' both sources and how many transcripts of the annotation have no sequence.
+#' @keywords internal
+#' @noRd
+warn_sequence_source <- function(annot_dir, genome_fasta, transcript_fasta) {
+  requested <- if (!is.null(genome_fasta)) {
+    paste0("genome:", fs::path_file(genome_fasta))
+  } else if (!is.null(transcript_fasta)) {
+    paste0("transcripts:", fs::path_file(transcript_fasta))
+  }
+  if (is.null(requested)) {
+    return(invisible(NULL))
+  }
+  meta <- kv_to_list(read_annotation_table(annot_dir, "metadata"))
+  recorded <- meta$sequences_source
+  if (identical(recorded, requested)) {
+    return(invisible(NULL))
+  }
+  n_tx <- nrow(read_annotation_table(
+    annot_dir,
+    "transcripts",
+    columns = "transcript_id"
+  ))
+  n_seq <- suppressWarnings(as.numeric(meta$sequences_n %||% NA_character_))
+  if (is.na(n_seq)) {
+    n_seq <- nrow(read_annotation_table(
+      annot_dir,
+      "sequences",
+      columns = "transcript_id"
+    ))
+  }
+  recorded <- recorded %||% "an unrecorded source"
+  cli::cli_warn(
+    c(
+      "!" = "The kept sequences come from {.val {recorded}}, not from {.val {requested}}.",
+      i = "{max(n_tx - n_seq, 0)} of {n_tx} transcript{?s} of the annotation have no sequence.",
+      i = "Use {.code overwrite = TRUE} to extract them from {.val {requested}}."
+    ),
+    class = "isoformic_sequence_source_mismatch"
+  )
+  invisible(NULL)
+}
+
 #' @rdname transcript_sequences
 #' @export
 has_sequences <- function(x) {
@@ -148,15 +199,67 @@ has_sequences <- function(x) {
 
 #' @rdname transcript_sequences
 #' @param transcript_id Optional transcript identifiers to read; `NULL` reads
-#'   all sequences.
+#'   all sequences. The selection is done while reading, so only the
+#'   sequences of these transcripts are loaded into memory.
 #' @export
 transcript_sequences <- function(x, transcript_id = NULL) {
   annot_dir <- annotation_dir_of(x)
-  seqs <- read_annotation_table(annot_dir, "sequences")
-  if (!is.null(transcript_id)) {
-    seqs <- seqs[seqs$transcript_id %in% transcript_id, ]
+  if (is.null(transcript_id)) {
+    return(read_annotation_table(annot_dir, "sequences"))
   }
-  seqs
+  # Selected in DuckDB: the sequences of a whole release take gigabytes
+  read_annotation_table(
+    annot_dir,
+    "sequences",
+    filter = list(transcript_id = transcript_id)
+  )
+}
+
+#' The last nucleotides of transcript sequences
+#'
+#' Reads only `right(sequence, width)` in DuckDB, so the full sequences never
+#' reach R.
+#'
+#' @param annot_dir Annotation directory with transcript sequences.
+#' @param transcript_id Transcript identifiers to read; `NULL` reads all.
+#' @param width Number of nucleotides kept at the 3' end; a sequence shorter
+#'   than `width` is kept whole.
+#' @returns A tibble with `transcript_id` and `tail`, in the order of the
+#'   sequences file.
+#' @keywords internal
+#' @noRd
+read_sequence_tails <- function(annot_dir, transcript_id = NULL, width) {
+  file <- annot_file_path(annot_dir, "sequences")
+  if (!isTRUE(fs::file_exists(file))) {
+    # Raises the error of a missing sequences table
+    read_annotation_table(annot_dir, "sequences")
+  }
+  # Clamped before the conversion, so that Inf keeps the whole sequence
+  width <- as.integer(max(0, min(as.numeric(width), .Machine$integer.max)))
+  con <- duckdb_connect()
+  path <- as.character(fs::path_abs(file))
+  if (is.null(transcript_id)) {
+    sql <- glue::glue_sql(
+      "SELECT transcript_id, right(sequence, {width}) AS tail
+       FROM read_parquet({path}, file_row_number = true)
+       ORDER BY file_row_number",
+      .con = con
+    )
+  } else {
+    duckdb::duckdb_register(
+      con,
+      "wanted_ids",
+      data.frame(transcript_id = unique(as.character(transcript_id)))
+    )
+    sql <- glue::glue_sql(
+      "SELECT s.transcript_id, right(s.sequence, {width}) AS tail
+       FROM read_parquet({path}, file_row_number = true) s
+       SEMI JOIN wanted_ids w ON s.transcript_id = w.transcript_id
+       ORDER BY s.file_row_number",
+      .con = con
+    )
+  }
+  tibble::as_tibble(DBI::dbGetQuery(con, sql))
 }
 
 #' Annotation directory of an object or path

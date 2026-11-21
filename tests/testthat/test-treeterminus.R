@@ -173,6 +173,14 @@ testthat::test_that("cut_transcript_trees groups uncertain isoforms at the node 
   )
   conf <- de_confidence(grouped, group = "condition", collapse_groups = TRUE)
   testthat::expect_true(unique(cut$group_id) %in% conf$feature_id)
+  de <- uncertainty_report(
+    add_uncertainty(iso, groups = cut, group = "condition")
+  )$de
+  testthat::expect_match(
+    de$rule[de$flag == "ambiguous"],
+    "in a TreeTerminus node (InfRV cutoff ",
+    fixed = TRUE
+  )
 
   testthat::expect_error(
     cut_transcript_trees(data.frame(a = 1), iso),

@@ -38,7 +38,7 @@ With an \link{IsoformicExperiment} object, use \code{\link[=tx_to_gene]{tx_to_ge
 which read the same information from the annotation directory.
 }
 \examples{
-gff <- system.file("extdata", "example.gff3", package = "isoformic")
+gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 tx2gene <- make_tx_to_gene(gff, output_path = tempdir())
 head(tx2gene)
 

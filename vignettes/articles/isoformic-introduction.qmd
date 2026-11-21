@@ -1,7 +1,7 @@
 ---
 title: "Introduction to isoformic"
 date: 2023-04-07
-date-modified: 2026-11-12
+date-modified: 2026-11-20
 date-format: long
 author:
   - name: Izabela Mamede Conceição
@@ -59,8 +59,8 @@ This article builds the object from quantification and differential expression t
 The analyses have one article each:
 
 - [Transcriptomic diversity](isoformic-diversity.html): how many isoforms a gene uses, which one dominates and where isoform switches happen.
-- [Quantification uncertainty](isoformic-uncertainty.html): how well the reads determine each isoform, which isoforms cannot be told apart and how confident each differential expression call is.
-- [What makes an isoform hard to quantify?](isoformic-quantification-stability.html): which isoforms the reads leave uncertain, why, and how many Gibbs draws are enough.
+- [Quantification uncertainty](isoformic-uncertainty.html): how well the reads determine each isoform, which isoforms cannot be told apart and how stable the direction of each differential expression call is over the replicates.
+- [What makes an isoform hard to quantify?](isoformic-quantification-stability.html): which isoforms the reads leave uncertain, why, and how far 30 Gibbs draws can be trusted to measure it.
 - [Isoform structure and productivity](isoformic-productivity.html): open reading frames, nonsense-mediated decay, productive fractions, poison exons and external evidence.
 - [Alternative polyadenylation](isoformic-polyadenylation.html): 3' end usage, 3' UTR length and gene set enrichment on their change.
 - [Functional enrichment by transcript type](isoformic-enrichment.html): gene set enrichment run separately for coding and unproductive transcripts, with a choice of ranking statistic and of gene set collections.
@@ -74,7 +74,7 @@ Two case studies apply the workflow to complete public datasets: [chronic stress
 ## The data
 
 The examples use the placenta RNA-seq dataset from ["Landscape of Dysregulated Placental RNA Editing Associated With Preeclampsia"][pe-paper-ref]: 8 preeclamptic and 17 control placentas quantified with Salmon [@salmon] against GENCODE v50 and tested for differential expression with `swish` [@swish] on the 30 Gibbs draws, at the transcript level and at the gene level (counts and draws summed over the isoforms of each gene).
-The tables ship with the package as Parquet files.
+The tables are Parquet files in the [source repository][pe-data-ref] of the package, under `vignettes/articles/data/preeclampsia/`: they are too large to install with the package, so the code below reads them from that directory, relative to the article.
 The abundance table holds the TPM of the 126,670 transcripts tested by `swish`, the same ones as the transcript-level results; the other transcripts of each gene come from the annotation.
 
 ```{r}
@@ -82,15 +82,15 @@ The abundance table holds the TPM of the 126,670 transcripts tested by `swish`, 
 library(isoformic)
 library(dplyr)
 
-extdata <- fs::path_package("isoformic", "extdata")
-fs::dir_ls(extdata)
+data_dir <- "data/preeclampsia"
+fs::dir_ls(data_dir)
 ```
 
 ```{r}
-abundance <- read_parquet(fs::path(extdata, "pe_abundance.parquet"))
-col_data <- read_parquet(fs::path(extdata, "pe_col_data.parquet"))
-det <- read_parquet(fs::path(extdata, "pe_det.parquet"))
-deg <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+abundance <- read_parquet(fs::path(data_dir, "pe_abundance.parquet"))
+col_data <- read_parquet(fs::path(data_dir, "pe_col_data.parquet"))
+det <- read_parquet(fs::path(data_dir, "pe_det.parquet"))
+deg <- read_parquet(fs::path(data_dir, "pe_deg.parquet"))
 
 abundance[1:3, 1:4]
 col_data
@@ -196,16 +196,16 @@ Every other article starts from this object; the block below is all it takes to 
 ```{r}
 #| eval: false
 library(isoformic)
-extdata <- fs::path_package("isoformic", "extdata")
+data_dir <- "data/preeclampsia" # vignettes/articles/data/preeclampsia in the source repository
 annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 iso <- IsoformicExperiment(
   experiment_name = "preeclampsia_placenta",
   annot_path = annot_dir,
-  assays = list(abundance = read_parquet(fs::path(extdata, "pe_abundance.parquet"))),
-  col_data = read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+  assays = list(abundance = read_parquet(fs::path(data_dir, "pe_abundance.parquet"))),
+  col_data = read_parquet(fs::path(data_dir, "pe_col_data.parquet"))
 )
-de_tx(iso) <- read_parquet(fs::path(extdata, "pe_det.parquet"))
-de_gene(iso) <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+de_tx(iso) <- read_parquet(fs::path(data_dir, "pe_det.parquet"))
+de_gene(iso) <- read_parquet(fs::path(data_dir, "pe_deg.parquet"))
 ```
 
 ## Citing isoformic
@@ -223,3 +223,4 @@ sessionInfo()
 
 [gencode-ref]: <https://www.gencodegenes.org/human/>
 [pe-paper-ref]: <https://pubmed.ncbi.nlm.nih.gov/32306769/>
+[pe-data-ref]: <https://github.com/luciorq/isoformic/tree/main/vignettes/articles/data/preeclampsia>

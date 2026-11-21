@@ -14,6 +14,12 @@
 #' of the per-haplotype transcript FASTA files the same way before building
 #' the Salmon index).
 #'
+#' The tables are copied by DuckDB from the Parquet files of each haplotype
+#' to the merged files, so they are not read into R: merging two annotations
+#' of a whole human release with their transcript sequences takes seconds
+#' and less than 2 GB of memory. The sequences are copied by one DuckDB
+#' thread, which keeps their memory to a few hundred megabytes.
+#'
 #' The `source_gene_id` / `source_transcript_id` columns (GRCh38 identifiers
 #' kept by Liftoff/CAT) are left untouched, which is what
 #' [haplotype_summary()] uses to compare haplotypes of the same gene.
@@ -31,7 +37,7 @@
 #' @returns The path to the merged annotation directory.
 #'
 #' @examples
-#' gff <- system.file("extdata", "example.gff3", package = "isoformic")
+#' gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 #' merged <- merge_annotations(
 #'   c(hap1 = gff, hap2 = gff),
 #'   output_path = tempdir(),
@@ -75,55 +81,54 @@ merge_annotations <- function(
     ))
     return(merged_dir)
   }
-  parts <- lapply(names(annot_paths), function(hap) {
-    path <- annot_paths[[hap]]
-    dir <- if (is_annotation_dir(path)) {
-      path
-    } else {
+  dirs <- vapply(
+    names(annot_paths),
+    function(hap) {
+      path <- annot_paths[[hap]]
+      if (is_annotation_dir(path)) {
+        return(as.character(fs::path_abs(path)))
+      }
       prepare_isoformic_annotation(
         path,
         output_path = output_path,
         haplotype = hap
       )
-    }
-    annot <- prepare_annotation(dir)
-    suffix <- if (isTRUE(id_suffix)) paste0("_", hap) else ""
-    annot$genes$haplotype <- hap
-    annot$transcripts$haplotype <- hap
-    annot$exons$haplotype <- hap
-    annot$genes$gene_id <- paste0(annot$genes$gene_id, suffix)
-    annot$transcripts$gene_id <- paste0(annot$transcripts$gene_id, suffix)
-    annot$transcripts$transcript_id <- paste0(
-      annot$transcripts$transcript_id,
-      suffix
-    )
-    annot$exons$transcript_id <- paste0(annot$exons$transcript_id, suffix)
-    annot$exons$exon_id <- ifelse(
-      is.na(annot$exons$exon_id),
-      NA_character_,
-      paste0(annot$exons$exon_id, suffix)
-    )
-    annot$seq_regions$haplotype <- hap
-    if (has_sequences(dir)) {
-      seqs <- read_annotation_table(dir, "sequences")
-      seqs$transcript_id <- paste0(seqs$transcript_id, suffix)
-      annot$sequences <- seqs
-    }
-    annot$metadata <- stats::setNames(
-      as.list(unlist(annot$metadata)),
-      paste0(hap, ".", names(annot$metadata))
-    )
-    annot
-  })
+    },
+    character(1L)
+  )
   fs::dir_create(merged_dir)
-  bind <- function(name) dplyr::bind_rows(lapply(parts, function(p) p[[name]]))
-  write_parquet(bind("genes"), annot_file_path(merged_dir, "genes"))
-  write_parquet(bind("transcripts"), annot_file_path(merged_dir, "transcripts"))
-  write_parquet(bind("exons"), annot_file_path(merged_dir, "exons"))
-  write_parquet(bind("seq_regions"), annot_file_path(merged_dir, "seq_regions"))
-  if (all(vapply(parts, function(p) !is.null(p$sequences), logical(1L)))) {
-    write_parquet(bind("sequences"), annot_file_path(merged_dir, "sequences"))
+  suffixes <- if (isTRUE(id_suffix)) paste0("_", names(dirs)) else NULL
+  # Each table is copied by DuckDB from the Parquet files of the haplotypes,
+  # so that no table (the sequences of a whole release take gigabytes) is
+  # read into R
+  con <- duckdb_connect()
+  for (type in c("genes", "transcripts", "exons", "seq_regions", "sequences")) {
+    files <- as.character(annot_file_path(dirs, type))
+    present <- fs::file_exists(files)
+    # Sequences are kept only when every haplotype has them; a haplotype
+    # without the (optional) sequence region table is left out of it
+    if (identical(type, "sequences") && !all(present)) {
+      next
+    }
+    if (!any(present)) {
+      empty <- empty_annotation_table(type)
+      empty$haplotype <- character()
+      write_parquet(empty, annot_file_path(merged_dir, type))
+      next
+    }
+    merge_annotation_table(
+      con,
+      files = files[present],
+      haplotypes = names(dirs)[present],
+      suffixes = suffixes[present],
+      type = type,
+      output_file = as.character(annot_file_path(merged_dir, type))
+    )
   }
+  part_metadata <- lapply(names(dirs), function(hap) {
+    meta <- kv_to_list(read_annotation_table(dirs[[hap]], "metadata"))
+    stats::setNames(as.list(unlist(meta)), paste0(hap, ".", names(meta)))
+  })
   metadata <- c(
     list(
       annot_name = annot_name,
@@ -132,10 +137,111 @@ merge_annotations <- function(
       created_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"),
       isoformic_version = as.character(utils::packageVersion("isoformic"))
     ),
-    unlist(lapply(parts, function(p) p$metadata), recursive = FALSE)
+    unlist(part_metadata, recursive = FALSE)
   )
   write_parquet(list_to_kv(metadata), annot_file_path(merged_dir, "metadata"))
   merged_dir
+}
+
+#' Copy one table of several haplotype annotations into one Parquet file
+#'
+#' One `COPY` of a `UNION ALL BY NAME` of the haplotype files, in the order
+#' of `files`: each row keeps its position (DuckDB preserves the insertion
+#' order), the `haplotype` column is set (added at the end when a file has
+#' none, as for the sequence regions) and the identifiers get the suffix of
+#' their haplotype. Columns missing from some files are filled with `NULL`,
+#' like [dplyr::bind_rows()].
+#' @keywords internal
+#' @noRd
+merge_annotation_table <- function(
+  con,
+  files,
+  haplotypes,
+  suffixes,
+  type,
+  output_file
+) {
+  id_columns <- switch(
+    type,
+    genes = "gene_id",
+    transcripts = c("transcript_id", "gene_id"),
+    exons = c("exon_id", "transcript_id"),
+    sequences = "transcript_id",
+    character()
+  )
+  with_haplotype <- !identical(type, "sequences")
+  selects <- vapply(
+    seq_along(files),
+    function(i) {
+      file <- DBI::dbQuoteString(con, files[[i]])
+      columns <- colnames(DBI::dbGetQuery(
+        con,
+        paste0("SELECT * FROM read_parquet(", file, ") LIMIT 0")
+      ))
+      if (with_haplotype && !"haplotype" %in% columns) {
+        columns <- c(columns, "haplotype")
+      }
+      exprs <- vapply(
+        columns,
+        function(column) {
+          name <- as.character(DBI::dbQuoteIdentifier(con, column))
+          if (with_haplotype && identical(column, "haplotype")) {
+            return(paste(DBI::dbQuoteString(con, haplotypes[[i]]), "AS", name))
+          }
+          if (column %in% id_columns && length(suffixes)) {
+            # A missing identifier stays missing
+            return(paste0(
+              "CAST(",
+              name,
+              " AS VARCHAR) || ",
+              DBI::dbQuoteString(con, suffixes[[i]]),
+              " AS ",
+              name
+            ))
+          }
+          name
+        },
+        character(1L)
+      )
+      paste0(
+        "SELECT ",
+        paste(exprs, collapse = ", "),
+        " FROM read_parquet(",
+        file,
+        ")"
+      )
+    },
+    character(1L)
+  )
+  # An order-preserving COPY buffers whole row groups; with the default of
+  # 122,880 rows a row group of sequences takes hundreds of megabytes.
+  # Several threads also buffer the batches that are read out of order: for
+  # the sequences of two GENCODE 50 annotations (3 GB of strings) that is
+  # 6 GB with four threads and 0.5 GB with one, which is about as fast as
+  # the I/O allows
+  row_group <- ""
+  if (identical(type, "sequences")) {
+    row_group <- ", ROW_GROUP_SIZE 20000"
+    threads <- DBI::dbGetQuery(con, "SELECT current_setting('threads') AS n")$n
+    DBI::dbExecute(con, "SET threads = 1")
+    on.exit(
+      DBI::dbExecute(con, paste0("SET threads = ", as.integer(threads))),
+      add = TRUE
+    )
+  }
+  DBI::dbExecute(
+    con,
+    paste0(
+      "COPY (",
+      paste(selects, collapse = " UNION ALL BY NAME "),
+      ") TO ",
+      DBI::dbQuoteString(con, output_file),
+      " (FORMAT parquet, COMPRESSION zstd",
+      row_group,
+      ")"
+    )
+  )
+  invisible(output_file)
 }
 
 #' Haplotype labels of an annotation (empty when not haplotype-resolved)
@@ -176,7 +282,7 @@ annotation_haplotypes <- function(transcripts) {
 #' @returns The annotation directory path, invisibly.
 #'
 #' @examples
-#' gff <- system.file("extdata", "example.gff3", package = "isoformic")
+#' gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 #' annot <- prepare_isoformic_annotation(gff, output_path = tempdir(), annot_name = "sqanti_demo")
 #' tx <- read_parquet(file.path(annot, "annot_data_transcripts.parquet"))
 #' classification <- data.frame(

@@ -78,6 +78,13 @@ A score is the sum over the window of \code{log2(frequency / background)}, with
 the background taken from the base composition of the training windows
 and half a pseudocount per base. Positive means closer to the consensus.
 
+The matrices are trained once per annotation directory and kept for the
+session. With \code{gene_name}, only the introns of those genes are read and
+scored, with the same matrices, so a transcript gets the same scores as in
+the genome-wide table. On an \link{IsoformicExperiment}, the table by
+transcript is cached in the object, and later calls with \code{gene_name} take
+their rows from it.
+
 Limits. The matrices assume that positions are independent, so they are
 weaker than MaxEntScan or a sequence model, and they describe the major
 (GT-AG) spliceosome: U12 introns and other non-canonical sites get low
@@ -87,7 +94,7 @@ own scores are slightly optimistic. Windows that run off the sequence or
 hold a base other than A, C, G or T are not scored.
 }
 \examples{
-gff <- system.file("extdata", "example.gff3", package = "isoformic")
+gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 annot <- prepare_isoformic_annotation(
   gff,
   output_path = tempdir(),

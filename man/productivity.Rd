@@ -75,6 +75,7 @@ run_productivity_enrichment(
   min_expr = 0,
   min_gene_count = 0,
   inf_reps = NULL,
+  workers = getOption("isoformic.workers", 1L),
   ...
 )
 
@@ -109,12 +110,9 @@ that could not be projected from the canonical start) is not believed
 
 \item{...}{Used only by \code{run_productivity_enrichment()}, which passes them
 to \code{fgsea::fgseaMultilevel()}; the other functions do not use them
-(reserved for methods). fgsea runs in the session unless \code{nproc} or
-\code{BPPARAM} is given. On Unix-like systems these fork the session: the
-workers share its memory, but tools that add up the resident memory of
-the processes count it once per worker. Give the number of workers
-(\code{nproc = 4}); the default of \code{BiocParallel} is all the cores of the
-machine but two, whatever a job scheduler allocated.}
+(reserved for methods). Each \code{fgsea} call runs with
+\code{BiocParallel::SerialParam()} unless \code{nproc} or \code{BPPARAM} is given;
+prefer \code{workers} (see \emph{Workers} in \code{\link[=run_enrichment]{run_enrichment()}}).}
 
 \item{group}{Name of a \code{col_data} column defining groups; \code{NULL} for
 per-sample values. \code{run_productivity_enrichment()} requires it for an
@@ -144,10 +142,14 @@ kept without \code{group}); genes below it are dropped. Needs a \code{"counts"}
 assay whatever \code{assay} is. The default 0 keeps every gene. See Details.}
 
 \item{inf_reps}{Optional list of transcript matrices (inferential
-replicates with the same dimnames as the assay); \code{NULL} uses
-\code{x@metadata$inf_reps} when present and \code{FALSE} skips the replicates,
-which leaves out the standard deviations and \code{delta_z} and is much
-faster. \code{run_productivity_enrichment()} reads the replicates only for
+replicates with the transcripts in rows and the samples of the assay in
+columns, as counts, as \code{\link[=read_inferential_replicates]{read_inferential_replicates()}} returns them);
+\code{NULL} uses \code{x@metadata$inf_reps} when present and \code{FALSE} skips the
+replicates, which leaves out the standard deviations and \code{delta_z} and
+is much faster. For an \code{assay} other than \code{"counts"} the draws are put on
+its scale with the \code{"counts"} assay (see Details); an object without a
+\code{"counts"} assay takes the draws to be on the scale of \code{assay}.
+\code{run_productivity_enrichment()} reads the replicates only for
 \code{rank_by = "delta_z"}.}
 
 \item{reference}{Optional tibble from \code{\link[=gtex_reference]{gtex_reference()}}, or a GTEx
@@ -174,6 +176,13 @@ table) is ranked with the largest absolute \code{delta_z} of the table (at
 least 1), with the sign of the change. It reflects the
 quantification uncertainty only, not the variation between samples or
 the number of reads; \code{"statistic"} reflects both (see Details).}
+
+\item{workers}{Number of worker processes that run the \code{fgsea} calls of
+\code{run_productivity_enrichment()} (one per gene set collection) in
+parallel: a whole number, or \code{"auto"} for the CPUs available to the
+session. Defaults to the \code{isoformic.workers} option, or 1 (serial).
+Needs the \code{mirai} package above 1; see \emph{Workers} in \code{\link[=run_enrichment]{run_enrichment()}},
+also for the random seeds.}
 }
 \value{
 \itemize{
@@ -189,7 +198,8 @@ ORF columns behind the call (\code{orf_source}, \code{nmd_class},
 \code{gene_id}, \code{gene_name}, \code{mean_gene_expr}, \code{productive_fraction} (mean
 over the samples kept), with \code{group} one \verb{productive_fraction_<level>}
 column per level and \code{delta_productive_fraction}, with inferential
-replicates \code{productive_fraction_sd} and, with \code{group},
+replicates \code{productive_fraction_sd} (the standard deviation over the
+draws, see Details) and, with \code{group},
 \code{delta_productive_fraction_sd} and \code{delta_z}, and with \code{reference} the
 \verb{reference_*} columns and \code{delta_vs_reference}. A genes x samples
 matrix with \code{as_matrix = TRUE}.
@@ -309,6 +319,27 @@ per-sample fractions in \code{productive_fraction()} when the samples differ
 much in depth. Genes with fewer than 5 reads in one class get no
 statistic and are left out of the ranking, so that a change in the
 expression of the whole gene does not rank it.
+
+\strong{Uncertainty of the fractions.} With inferential replicates,
+\code{productive_fraction()} computes the productive fraction of every gene and
+sample in each draw. The draws are counts; for another \code{assay} each draw
+is first put on the scale of that assay, multiplied by \code{assay / counts} of
+the same transcript and sample (for TPM, the inverse of the effective
+length times the scaling of the sample), so that the fractions of the
+draws and of the assay, and \code{min_expr}, are on one scale. Where the point
+count or value is zero (Gibbs draws often give reads to such cells) the
+factor is estimated: from the \code{length} assay when the assay follows it
+(TPM of \code{\link[=read_salmon]{read_salmon()}} and \code{\link[=read_oarfish]{read_oarfish()}}), otherwise from a transcript
+effect plus a sample effect on the log scale fitted on the other cells,
+and for a transcript without any count from its annotated length.
+\code{productive_fraction_sd} is the sample standard deviation of a gene's
+fraction over the draws, around the mean of the draws, averaged over the
+samples kept; \code{delta_productive_fraction_sd} is the standard deviation
+over the draws of the change between the group means, and \code{delta_z} is
+\code{delta_productive_fraction} divided by it. In every draw, only the samples
+in which the assay gives the gene a fraction are used. Both measure the
+spread of the draws, not their distance to the point estimate: the mean of
+Gibbs draws can differ from the EM estimate of the assay.
 }
 \examples{
 iso <- example_isoformic()

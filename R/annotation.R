@@ -89,9 +89,19 @@ annot_signature <- function(annot_path, type) {
 }
 
 #' Read one table of an annotation directory
+#'
+#' `filter`, a list with one named element such as
+#' `list(transcript_id = ids)`, keeps the rows whose column is in the values,
+#' selected in DuckDB (see `read_parquet_matching()`): the same rows, in the
+#' same order, as reading the whole table and subsetting it with `%in%`.
 #' @keywords internal
 #' @noRd
-read_annotation_table <- function(annot_path, type, columns = NULL) {
+read_annotation_table <- function(
+  annot_path,
+  type,
+  columns = NULL,
+  filter = NULL
+) {
   type <- rlang::arg_match(
     type,
     c(
@@ -135,7 +145,26 @@ read_annotation_table <- function(annot_path, type, columns = NULL) {
       class = "isoformic_annot_path_dont_exist"
     )
   }
-  read_parquet(file, columns = columns)
+  if (is.null(filter)) {
+    return(read_parquet(file, columns = columns))
+  }
+  if (
+    !is.list(filter) ||
+      length(filter) != 1L ||
+      is.null(names(filter)) ||
+      !nzchar(names(filter))
+  ) {
+    cli::cli_abort(
+      message = c(x = "{.arg filter} must be a list with one named element."),
+      class = "isoformic_invalid_argument"
+    )
+  }
+  read_parquet_matching(
+    file,
+    columns = columns,
+    key = names(filter),
+    values = filter[[1L]]
+  )
 }
 
 empty_annotation_table <- function(type) {
@@ -241,15 +270,18 @@ list_to_kv <- function(x) {
 
 #' Convert a GFF3/GTF Annotation to Parquet Files
 #'
-#' Parses a GENCODE/Ensembl style GFF3 or GTF annotation file with DuckDB in
-#' a single pass and writes one Parquet table per feature level (genes,
+#' Parses a GENCODE/Ensembl style GFF3 or GTF annotation file with DuckDB,
+#' reading the file once, and writes one Parquet table per feature level (genes,
 #' transcripts, exons) plus metadata and sequence-region tables into an
 #' *annotation directory*. This directory is what [IsoformicExperiment]
 #' objects point to through their `annot_path` property.
 #'
-#' Reading a full human GENCODE release (3 to 4 million features,
-#' gzip-compressed) takes under a minute; the result is cached so repeated
-#' calls with the same file and output location return immediately.
+#' Converting the comprehensive human GENCODE release 50 with patches and
+#' haplotypes (11.6 million features, gzip-compressed GFF3 or GTF) takes
+#' about 30 seconds and 2 GB of memory with four DuckDB threads; the result
+#' is cached so repeated calls with the same file and output location return
+#' immediately. The memory DuckDB may use is set by the
+#' `isoformic.duckdb_memory_limit` option (see [isoformic-options]).
 #'
 #' @param input_path Path to a GFF3 or GTF file, optionally gzip-compressed.
 #' @param output_path Directory under which the annotation directory is
@@ -322,7 +354,7 @@ list_to_kv <- function(x) {
 #' * seq_regions: `seqid`, `start_pos`, `end_pos`.
 #'
 #' @examples
-#' gff <- system.file("extdata", "example.gff3", package = "isoformic")
+#' gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 #' annot_dir <- prepare_isoformic_annotation(gff, output_path = tempdir())
 #' list.files(annot_dir)
 #' head(read_parquet(file.path(annot_dir, "annot_data_transcripts.parquet")))
@@ -418,22 +450,21 @@ prepare_isoformic_annotation <- function(
 #' @keywords internal
 #' @noRd
 build_annotation_sql <- function(file_type) {
-  attr_expr <- function(keys) {
-    exprs <- vapply(
-      keys,
-      function(key) {
-        pattern <- if (identical(file_type, "gff")) {
-          sprintf("(^|;)%s=([^;]+)", key)
-        } else {
-          sprintf("(^|; *)%s \"?([^\";]+)\"?", key)
-        }
-        # '__na' (FANTOM CAT), 'NA', 'N/A' and '.' are placeholders for missing
-        sprintf(
-          "nullif(nullif(nullif(nullif(nullif(regexp_extract(attributes, '%s', 2), ''), '__na'), 'NA'), 'N/A'), '.')",
-          pattern
-        )
-      },
-      character(1L)
+  attr_raw <- function(key) {
+    pattern <- if (identical(file_type, "gff")) {
+      sprintf("(^|;)%s=([^;]+)", key)
+    } else {
+      sprintf("(^|; *)%s \"?([^\";]+)\"?", key)
+    }
+    sprintf("regexp_extract(attributes, '%s', 2)", pattern)
+  }
+  # `values` are SQL expressions holding the raw values of `keys`, by default
+  # the regular expressions that extract them from `attributes`
+  attr_expr <- function(keys, values = vapply(keys, attr_raw, character(1L))) {
+    # '__na' (FANTOM CAT), 'NA', 'N/A' and '.' are placeholders for missing
+    exprs <- sprintf(
+      "nullif(nullif(nullif(nullif(nullif(%s, ''), '__na'), 'NA'), 'N/A'), '.')",
+      values
     )
     paste0("coalesce(", paste(exprs, collapse = ", "), ")")
   }
@@ -511,8 +542,103 @@ build_annotation_sql <- function(file_type) {
     attr_expr(c("gene_type", "gene_biotype", "biotype", "geneClass"))
   )
 
+  # Feature types that never hold a gene, transcript or exon. `UTR` (the GTF
+  # form) is kept: in files without gene features it can carry the only
+  # gene name and type, and its seqid counts toward the sequence regions
+  excluded_types <- c(
+    "five_prime_UTR",
+    "three_prime_UTR",
+    "start_codon",
+    "stop_codon",
+    "intron",
+    "region",
+    "chromosome",
+    "biological_region",
+    "enhancer",
+    "silencer",
+    "match",
+    "cDNA_match"
+  )
+
+  # Two passes keep the memory low. Exons and CDS are most of the rows of a
+  # file but need only their transcript, exon ID and number: the scan of
+  # the file extracts those and keeps the attribute string of the other
+  # features (genes and transcripts), the only rows for which the gene and
+  # transcript attributes are extracted. The scan extracts the raw values
+  # and the outer query removes the placeholders: DuckDB evaluates each
+  # argument of nullif() twice when it is inside a CASE, so five nested
+  # nullif() around a regular expression would run it 32 times.
   paste0(
-    "CREATE TEMP TABLE parsed AS
+    "CREATE TEMP TABLE features AS
+SELECT
+  type, seqid, start_pos, end_pos, strand,
+  coalesce(",
+    attr_expr("transcript_id", "raw_transcript_id"),
+    ", ",
+    strip_prefix(attr_expr("Parent", "raw_parent")),
+    ") AS transcript_id,
+  ",
+    attr_expr("exon_id", "raw_exon_id"),
+    " AS exon_id,
+  TRY_CAST(",
+    attr_expr(c("exon_number", "rank"), c("raw_exon_number", "raw_rank")),
+    " AS INTEGER) AS exon_number,
+  attributes
+FROM (
+  SELECT
+    type, seqid, start_pos, end_pos, strand,
+    CASE WHEN type IN ('exon', 'CDS') THEN ",
+    attr_raw("transcript_id"),
+    " END AS raw_transcript_id,
+    CASE WHEN type IN ('exon', 'CDS') THEN ",
+    attr_raw("Parent"),
+    " END AS raw_parent,
+    CASE WHEN type = 'exon' THEN ",
+    attr_raw("exon_id"),
+    " END AS raw_exon_id,
+    CASE WHEN type = 'exon' THEN ",
+    attr_raw("exon_number"),
+    " END AS raw_exon_number,
+    CASE WHEN type = 'exon' THEN ",
+    attr_raw("rank"),
+    " END AS raw_rank,
+    CASE WHEN type NOT IN ('exon', 'CDS') THEN attributes END AS attributes
+  FROM read_csv(
+    {input_path},
+    delim = '\t', header = false, comment = '#',
+    auto_detect = false, quote = '', escape = '',
+    columns = {{
+      'seqid': 'VARCHAR', 'source': 'VARCHAR', 'type': 'VARCHAR',
+      'start_pos': 'INTEGER', 'end_pos': 'INTEGER', 'score': 'VARCHAR',
+      'strand': 'VARCHAR', 'phase': 'VARCHAR', 'attributes': 'VARCHAR'
+    }}
+  )
+  WHERE type NOT IN ",
+    sql_list(excluded_types),
+    "
+);
+
+CREATE TEMP TABLE seq_stats AS
+  SELECT seqid, max(end_pos)::INTEGER AS end_pos
+  FROM features
+  GROUP BY seqid;
+
+CREATE TEMP TABLE cds_stats AS
+  SELECT
+    transcript_id,
+    min(start_pos)::INTEGER AS cds_start,
+    max(end_pos)::INTEGER AS cds_end,
+    sum(end_pos - start_pos + 1)::INTEGER AS cds_length
+  FROM features
+  WHERE type = 'CDS' AND transcript_id IS NOT NULL
+  GROUP BY transcript_id;
+
+CREATE TEMP TABLE exon_rows AS
+  SELECT exon_id, transcript_id, exon_number, seqid, start_pos, end_pos, strand
+  FROM features
+  WHERE type = 'exon';
+
+CREATE TEMP TABLE parsed AS
 SELECT
   type, seqid, start_pos, end_pos, strand,
   ",
@@ -568,51 +694,11 @@ SELECT
     " AS dhs_type,
   ",
     attr_expr(c("cumulative_support")),
-    " AS cumulative_support,
-  ",
-    attr_expr(c("exon_id")),
-    " AS exon_id,
-  TRY_CAST(",
-    attr_expr(c("exon_number", "rank")),
-    " AS INTEGER) AS exon_number
-FROM read_csv(
-  {input_path},
-  delim = '\t', header = false, comment = '#',
-  auto_detect = false, quote = '', escape = '',
-  columns = {{
-    'seqid': 'VARCHAR', 'source': 'VARCHAR', 'type': 'VARCHAR',
-    'start_pos': 'INTEGER', 'end_pos': 'INTEGER', 'score': 'VARCHAR',
-    'strand': 'VARCHAR', 'phase': 'VARCHAR', 'attributes': 'VARCHAR'
-  }}
-)
-WHERE type NOT IN ('five_prime_UTR', 'three_prime_UTR', 'start_codon',
-                   'stop_codon', 'intron', 'region', 'chromosome', 'biological_region',
-                   'enhancer', 'silencer', 'match', 'cDNA_match');
+    " AS cumulative_support
+FROM features
+WHERE type NOT IN ('exon', 'CDS');
 
-CREATE TEMP TABLE cds_rows AS
-  SELECT
-    coalesce(transcript_id_attr, parent) AS transcript_id,
-    start_pos, end_pos
-  FROM parsed
-  WHERE type = 'CDS';
-
-CREATE TEMP TABLE cds_stats AS
-  SELECT
-    transcript_id,
-    min(start_pos)::INTEGER AS cds_start,
-    max(end_pos)::INTEGER AS cds_end,
-    sum(end_pos - start_pos + 1)::INTEGER AS cds_length
-  FROM cds_rows
-  WHERE transcript_id IS NOT NULL
-  GROUP BY transcript_id;
-
-CREATE TEMP TABLE exon_rows AS
-  SELECT
-    exon_id,
-    coalesce(transcript_id_attr, parent) AS transcript_id,
-    exon_number, seqid, start_pos, end_pos, strand
-  FROM parsed
-  WHERE type = 'exon';
+DROP TABLE features;
 
 CREATE TEMP TABLE tx_rows AS
   SELECT
@@ -726,9 +812,8 @@ COPY (
 ) TO {exons_file} (FORMAT parquet, COMPRESSION zstd);
 
 COPY (
-  SELECT seqid, 1::INTEGER AS start_pos, max(end_pos)::INTEGER AS end_pos
-  FROM parsed
-  GROUP BY seqid
+  SELECT seqid, 1::INTEGER AS start_pos, end_pos
+  FROM seq_stats
   ORDER BY seqid
 ) TO {seq_regions_file} (FORMAT parquet, COMPRESSION zstd);
 "
@@ -890,7 +975,7 @@ read_annotation_header <- function(path, chunk_size = 512L, max_lines = 1e6) {
 #'   `seq_regions` and a named list `metadata`.
 #'
 #' @examples
-#' gff <- system.file("extdata", "example.gff3", package = "isoformic")
+#' gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 #' annot <- prepare_annotation(gff, output_path = tempdir())
 #' names(annot)
 #' head(annot$genes)
@@ -938,7 +1023,7 @@ prepare_annotation <- function(
 #'   found in the annotation give a warning.
 #'
 #' @examples
-#' gff <- system.file("extdata", "example.gff3", package = "isoformic")
+#' gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 #' exons <- prepare_exon_annotation("RBPJ", gff, output_path = tempdir())
 #' head(exons)
 #'
@@ -949,15 +1034,54 @@ prepare_exon_annotation <- function(
   file_type = c("auto", "gff", "gtf"),
   output_path = NULL
 ) {
-  annot <- prepare_annotation(
-    file_path = file_path,
-    file_type = file_type,
-    output_path = output_path
+  file_type <- rlang::arg_match(file_type)
+  annot_dir <- if (is_annotation_dir(file_path)) {
+    file_path
+  } else {
+    prepare_isoformic_annotation(
+      input_path = file_path,
+      output_path = output_path,
+      file_type = file_type
+    )
+  }
+  exon_table_from_dir(annot_dir, gene_name)
+}
+
+#' Exon table of selected genes, read from an annotation directory
+#'
+#' Same result as `build_exon_table()` on the whole tables, but only the
+#' gene identifiers and names are read whole: the transcripts of the
+#' selected genes and their exons are selected in DuckDB.
+#' @keywords internal
+#' @noRd
+exon_table_from_dir <- function(annot_dir, gene_name) {
+  genes <- read_annotation_table(
+    annot_dir,
+    "genes",
+    columns = c("gene_id", "gene_name")
   )
+  if (is.null(gene_name)) {
+    transcripts <- read_annotation_table(annot_dir, "transcripts")
+    exons <- read_annotation_table(annot_dir, "exons")
+  } else {
+    gene_ids <- genes$gene_id[
+      genes$gene_name %in% gene_name | genes$gene_id %in% gene_name
+    ]
+    transcripts <- read_annotation_table(
+      annot_dir,
+      "transcripts",
+      filter = list(gene_id = gene_ids)
+    )
+    exons <- read_annotation_table(
+      annot_dir,
+      "exons",
+      filter = list(transcript_id = transcripts$transcript_id)
+    )
+  }
   build_exon_table(
-    genes = annot$genes,
-    transcripts = annot$transcripts,
-    exons = annot$exons,
+    genes = genes,
+    transcripts = transcripts,
+    exons = exons,
     gene_name = gene_name
   )
 }

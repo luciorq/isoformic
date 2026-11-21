@@ -51,7 +51,7 @@ testthat::test_that("the ESRP knockdown reproduces the expected isoform calls", 
   )
   conf <- de_confidence(iso, gene_name = "SCRIB")
   scrib <- conf[conf$transcript_name == "SCRIB-207", ]
-  testthat::expect_identical(as.character(scrib$confidence), "high")
+  testthat::expect_false(scrib$unstable)
   testthat::expect_lt(scrib$lfc_hi, -1)
   testthat::expect_lt(scrib$mean_inf_rv, 0.5)
   # SCRIB-201, the most expressed isoform, is poorly determined by the reads
@@ -71,9 +71,10 @@ testthat::test_that("the ESRP knockdown reproduces the expected isoform calls", 
   up <- cd44[cd44$transcript_name == "CD44-207", ]
   testthat::expect_gt(up$lfc_lo, 1)
   testthat::expect_gte(up$sign_agreement, 0.95)
-  # The reads cannot separate the CD44 transcripts: a certain direction,
+  # The reads cannot separate the CD44 transcripts: a stable direction,
   # but an uncertain isoform with almost no fragments of its own
-  testthat::expect_identical(as.character(up$confidence), "moderate")
+  testthat::expect_false(up$unstable)
+  testthat::expect_gte(up$mean_inf_rv, 0.5)
   unc_lung <- tx_uncertainty(iso_lung)
   cd44_207 <- unc_lung[unc_lung$transcript_name == "CD44-207", ]
   testthat::expect_true(cd44_207$uncertain)

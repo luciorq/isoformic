@@ -55,11 +55,11 @@ This article shows those counterparts on the tables of the [introduction](isofor
 library(isoformic)
 library(dplyr)
 
-extdata <- fs::path_package("isoformic", "extdata")
-abundance <- read_parquet(fs::path(extdata, "pe_abundance.parquet"))
-col_data <- read_parquet(fs::path(extdata, "pe_col_data.parquet"))
-det <- read_parquet(fs::path(extdata, "pe_det.parquet"))
-deg <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+data_dir <- "data/preeclampsia"
+abundance <- read_parquet(fs::path(data_dir, "pe_abundance.parquet"))
+col_data <- read_parquet(fs::path(data_dir, "pe_col_data.parquet"))
+det <- read_parquet(fs::path(data_dir, "pe_det.parquet"))
+deg <- read_parquet(fs::path(data_dir, "pe_deg.parquet"))
 annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 ```
 
@@ -111,7 +111,7 @@ plot_tx_expr(profile, gene_name = "RBPJ", group = "condition")
 
 ```{r}
 #| fig-height: 7
-gff <- fs::path(extdata, "example.gff3")
+gff <- fs::path_package("isoformic", "extdata", "example.gff3.gz")
 exons <- prepare_exon_annotation("RBPJ", gff, output_path = tempdir())
 head(exons)
 plot_genomic_context(exons, gene_name = "RBPJ")

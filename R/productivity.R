@@ -99,6 +99,27 @@
 #' statistic and are left out of the ranking, so that a change in the
 #' expression of the whole gene does not rank it.
 #'
+#' **Uncertainty of the fractions.** With inferential replicates,
+#' `productive_fraction()` computes the productive fraction of every gene and
+#' sample in each draw. The draws are counts; for another `assay` each draw
+#' is first put on the scale of that assay, multiplied by `assay / counts` of
+#' the same transcript and sample (for TPM, the inverse of the effective
+#' length times the scaling of the sample), so that the fractions of the
+#' draws and of the assay, and `min_expr`, are on one scale. Where the point
+#' count or value is zero (Gibbs draws often give reads to such cells) the
+#' factor is estimated: from the `length` assay when the assay follows it
+#' (TPM of [read_salmon()] and [read_oarfish()]), otherwise from a transcript
+#' effect plus a sample effect on the log scale fitted on the other cells,
+#' and for a transcript without any count from its annotated length.
+#' `productive_fraction_sd` is the sample standard deviation of a gene's
+#' fraction over the draws, around the mean of the draws, averaged over the
+#' samples kept; `delta_productive_fraction_sd` is the standard deviation
+#' over the draws of the change between the group means, and `delta_z` is
+#' `delta_productive_fraction` divided by it. In every draw, only the samples
+#' in which the assay gives the gene a fraction are used. Both measure the
+#' spread of the draws, not their distance to the point estimate: the mean of
+#' Gibbs draws can differ from the EM estimate of the assay.
+#'
 #' @param self An [IsoformicExperiment]. `run_productivity_enrichment()` also
 #'   takes the table of `productive_fraction()` for two or more groups, or of
 #'   `test_productive_fraction()` for `rank_by = "statistic"`, so that one
@@ -135,10 +156,14 @@
 #'   kept without `group`); genes below it are dropped. Needs a `"counts"`
 #'   assay whatever `assay` is. The default 0 keeps every gene. See Details.
 #' @param inf_reps Optional list of transcript matrices (inferential
-#'   replicates with the same dimnames as the assay); `NULL` uses
-#'   `x@metadata$inf_reps` when present and `FALSE` skips the replicates,
-#'   which leaves out the standard deviations and `delta_z` and is much
-#'   faster. `run_productivity_enrichment()` reads the replicates only for
+#'   replicates with the transcripts in rows and the samples of the assay in
+#'   columns, as counts, as [read_inferential_replicates()] returns them);
+#'   `NULL` uses `x@metadata$inf_reps` when present and `FALSE` skips the
+#'   replicates, which leaves out the standard deviations and `delta_z` and
+#'   is much faster. For an `assay` other than `"counts"` the draws are put on
+#'   its scale with the `"counts"` assay (see Details); an object without a
+#'   `"counts"` assay takes the draws to be on the scale of `assay`.
+#'   `run_productivity_enrichment()` reads the replicates only for
 #'   `rank_by = "delta_z"`.
 #' @param rank_by Statistic that ranks the genes in
 #'   `run_productivity_enrichment()`: `"delta"` (default), the change in
@@ -165,12 +190,15 @@
 #' @param min_size,max_size Gene set size limits passed to `fgsea`.
 #' @param ... Used only by `run_productivity_enrichment()`, which passes them
 #'   to `fgsea::fgseaMultilevel()`; the other functions do not use them
-#'   (reserved for methods). fgsea runs in the session unless `nproc` or
-#'   `BPPARAM` is given. On Unix-like systems these fork the session: the
-#'   workers share its memory, but tools that add up the resident memory of
-#'   the processes count it once per worker. Give the number of workers
-#'   (`nproc = 4`); the default of `BiocParallel` is all the cores of the
-#'   machine but two, whatever a job scheduler allocated.
+#'   (reserved for methods). Each `fgsea` call runs with
+#'   `BiocParallel::SerialParam()` unless `nproc` or `BPPARAM` is given;
+#'   prefer `workers` (see *Workers* in [run_enrichment()]).
+#' @param workers Number of worker processes that run the `fgsea` calls of
+#'   `run_productivity_enrichment()` (one per gene set collection) in
+#'   parallel: a whole number, or `"auto"` for the CPUs available to the
+#'   session. Defaults to the `isoformic.workers` option, or 1 (serial).
+#'   Needs the `mirai` package above 1; see *Workers* in [run_enrichment()],
+#'   also for the random seeds.
 #'
 #' @returns
 #' * `transcript_productivity()`: one row per transcript with
@@ -185,7 +213,8 @@
 #'   `gene_id`, `gene_name`, `mean_gene_expr`, `productive_fraction` (mean
 #'   over the samples kept), with `group` one `productive_fraction_<level>`
 #'   column per level and `delta_productive_fraction`, with inferential
-#'   replicates `productive_fraction_sd` and, with `group`,
+#'   replicates `productive_fraction_sd` (the standard deviation over the
+#'   draws, see Details) and, with `group`,
 #'   `delta_productive_fraction_sd` and `delta_z`, and with `reference` the
 #'   `reference_*` columns and `delta_vs_reference`. A genes x samples
 #'   matrix with `as_matrix = TRUE`.
@@ -763,8 +792,23 @@ S7::method(productive_fraction, IsoformicExperiment) <- function(
   pm <- productivity_matrix(self, assay, min_expr, include_altered)
   grp <- group_samples(self, group, colnames(pm$tx_mat), levels = levels)
   groups <- grp$groups
-  # Only the transcripts of coding genes and the samples kept are summed
+  # Genes with too few reads in some group are dropped from the result
+  expressed <- count_filtered_genes(
+    self,
+    pm$prod,
+    grp$samples,
+    groups,
+    min_gene_count
+  )
+  # Only the transcripts of the genes reported and the samples kept are
+  # summed, in the assay and in every draw
   coding <- pm$gene_ids %in% pm$coding_genes
+  if (!is.null(expressed)) {
+    coding <- coding & pm$gene_ids %in% expressed
+  }
+  if (!is.null(gene_name) && !isTRUE(as_matrix)) {
+    coding <- coding & pm$gene_ids %in% gene_ids_named(self, gene_name)
+  }
   tx_mat <- pm$tx_mat[coding, grp$samples, drop = FALSE]
   # The gene order of rowsum()
   gene_levels <- sort(
@@ -783,19 +827,7 @@ S7::method(productive_fraction, IsoformicExperiment) <- function(
     total
   # A total that is not finite gives no fraction
   frac[!is.finite(frac) | !is.finite(total)] <- NA_real_
-  # Genes with too few reads in some group are dropped from the result; the
-  # replicates below are still summed over all genes, row by row
-  expressed <- count_filtered_genes(
-    self,
-    pm$prod,
-    grp$samples,
-    groups,
-    min_gene_count
-  )
   if (isTRUE(as_matrix)) {
-    if (!is.null(expressed)) {
-      frac <- frac[rownames(frac) %in% expressed, , drop = FALSE]
-    }
     return(frac)
   }
   genes <- self@annot_data_genes[, c("gene_id", "gene_name")]
@@ -828,6 +860,15 @@ S7::method(productive_fraction, IsoformicExperiment) <- function(
     )
   }
   if (!is.null(reps)) {
+    # Fitted on every transcript of the object, so that the factors of a gene
+    # do not depend on the other genes asked for
+    scale <- draw_assay_scale(
+      self,
+      resolve_assay_name(self, assay),
+      rownames(tx_mat),
+      colnames(tx_mat),
+      fit_ids = rownames(pm$tx_mat)
+    )
     rep_sd <- replicate_fraction_sd(
       reps,
       frac = frac,
@@ -836,6 +877,7 @@ S7::method(productive_fraction, IsoformicExperiment) <- function(
       gene_levels = gene_levels,
       is_prod = is_prod,
       min_expr = min_expr,
+      scale = scale,
       groups = if (has_delta) groups
     )
     res$productive_fraction_sd <- rep_sd$sd
@@ -856,9 +898,6 @@ S7::method(productive_fraction, IsoformicExperiment) <- function(
         res$delta_productive_fraction_sd %in% 0
       res$delta_z[no_change] <- 0
     }
-  }
-  if (!is.null(expressed)) {
-    res <- res[res$gene_id %in% expressed, ]
   }
   if (has_delta) {
     res <- dplyr::arrange(
@@ -897,11 +936,16 @@ S7::method(productive_fraction, IsoformicExperiment) <- function(
 
 #' Standard deviations of the productive fractions over the replicates
 #'
-#' One draw at a time: only the running sums are kept, never the fractions
-#' of all the draws. `sd` is the mean over the samples of the standard
-#' deviation of each gene's fraction; `delta_sd` is the standard deviation of
-#' the change between the last and the first level of `groups` (`NULL`
-#' without `groups`).
+#' One draw at a time: only the running moments are kept, never the
+#' fractions of all the draws. The draws are put on the scale of the assay
+#' (`scale`, see `draw_assay_scale()`), and a draw fraction counts only where
+#' the assay gives the gene a fraction in that sample (`frac`), so that the
+#' spread describes the samples behind the reported values. `sd` is the mean
+#' over the samples of the sample standard deviation of each gene's fraction
+#' over the draws (around the mean of the draws, not around the point
+#' estimate); `delta_sd` is the standard deviation over the draws of the
+#' change between the last and the first level of `groups` (`NULL` without
+#' `groups`).
 #' @keywords internal
 #' @noRd
 replicate_fraction_sd <- function(
@@ -912,21 +956,26 @@ replicate_fraction_sd <- function(
   gene_levels,
   is_prod,
   min_expr,
+  scale = NULL,
   groups = NULL
 ) {
-  sq_dev <- matrix(0, nrow(frac), ncol(frac))
+  no_point <- is.na(frac)
+  cell_stats <- running_moments(length(frac))
   delta_stats <- running_moments(nrow(frac))
+  read_draw <- inf_reps_reader(reps)
   for (k in seq_along(reps)) {
     draw_frac <- draw_productive_fraction(
-      reps[[k]],
+      read_draw(k),
       tx_ids = rownames(tx_mat),
       sample_ids = colnames(tx_mat),
       gene_idx = gene_idx,
       gene_levels = gene_levels,
       is_prod = is_prod,
-      min_expr = min_expr
+      min_expr = min_expr,
+      scale = scale
     )
-    sq_dev <- sq_dev + (draw_frac - frac)^2
+    draw_frac[no_point] <- NA_real_
+    cell_stats <- running_moments_add(cell_stats, as.vector(draw_frac))
     if (!is.null(groups)) {
       delta_stats <- running_moments_add(
         delta_stats,
@@ -938,7 +987,8 @@ replicate_fraction_sd <- function(
       )
     }
   }
-  sd <- as.vector(rowMeans(sqrt(sq_dev / length(reps)), na.rm = TRUE))
+  cell_sd <- matrix(running_moments_sd(cell_stats), nrow(frac), ncol(frac))
+  sd <- as.vector(rowMeans(cell_sd, na.rm = TRUE))
   sd[is.nan(sd)] <- NA_real_
   list(
     sd = sd,
@@ -946,18 +996,188 @@ replicate_fraction_sd <- function(
   )
 }
 
+#' Factors that put count draws on the scale of an assay
+#'
+#' The inferential replicates are counts (Salmon `NumReads`, oarfish read
+#' counts). For another assay, each draw is multiplied by `assay / counts`
+#' of the same transcript and sample, the factor that turns the point count
+#' into the point value of the assay (for TPM, the scaling of the sample over
+#' the effective length). Where the count or the assay value is zero, the
+#' factor is estimated:
+#'
+#' 1. With a `length` assay that the factors follow (TPM: `assay * length /
+#'    counts` is one number per sample), from the length of the transcript
+#'    in that sample.
+#' 2. Otherwise as a transcript effect plus a sample effect on the log
+#'    scale: the sample effects are the medians over the transcripts seen in
+#'    every sample, the transcript effect the mean over its cells. A
+#'    transcript without any cell takes its effect from its annotated length
+#'    (`tx_length`, minus a fragment length fitted on the other transcripts)
+#'    when the effects follow the lengths, and the median transcript effect
+#'    when they do not.
+#'
+#' The terms shared by the transcripts (the sample terms and the fragment
+#' length) are fitted on at most 5000 evenly spaced transcripts of `fit_ids`
+#' (by default `tx_ids`), so that the factors of `tx_ids` do not depend on
+#' which of the `fit_ids` were asked for. Returns a `tx_ids` x `sample_ids`
+#' matrix, or `NULL` (the draws are used as they are) for the `"counts"`
+#' assay and for an object without a `"counts"` assay.
+#' @keywords internal
+#' @noRd
+draw_assay_scale <- function(
+  self,
+  assay,
+  tx_ids,
+  sample_ids,
+  fit_ids = tx_ids
+) {
+  nms <- assay_names(self)
+  if (identical(assay, "counts") || !"counts" %in% nms) {
+    return(NULL)
+  }
+  if (length(fit_ids) > 5000L) {
+    fit_ids <- fit_ids[round(seq(1, length(fit_ids), length.out = 5000L))]
+  }
+  as_double <- function(name, ids) {
+    m <- tx_assay(self, name)
+    m <- m[match(ids, rownames(m)), sample_ids, drop = FALSE]
+    storage.mode(m) <- "double"
+    m
+  }
+  log_ratio <- function(ids) {
+    v <- as_double(assay, ids)
+    n <- as_double("counts", ids)
+    out <- log(v / n)
+    out[!(n > 0 & v > 0 & is.finite(out))] <- NA_real_
+    dimnames(out) <- list(ids, sample_ids)
+    out
+  }
+  lr_tx <- log_ratio(tx_ids)
+  scale <- exp(lr_tx)
+  if (!anyNA(scale)) {
+    return(scale)
+  }
+  lr_fit <- log_ratio(fit_ids)
+  with_len <- "length" %in% nms && !identical(assay, "length")
+  if (with_len) {
+    per_len <- lr_fit + log(as_double("length", fit_ids))
+    per_len[!is.finite(per_len)] <- NA_real_
+    sample_k <- apply(per_len, 2L, stats::median, na.rm = TRUE)
+    resid <- abs(per_len - rep(sample_k, each = nrow(per_len)))
+    if (
+      all(is.finite(sample_k)) &&
+        isTRUE(stats::median(resid, na.rm = TRUE) < 0.01)
+    ) {
+      len <- as_double("length", tx_ids)
+      fill <- is.na(scale) & is.finite(len) & len > 0
+      scale[fill] <- (rep(exp(sample_k), each = nrow(scale)) / len)[fill]
+      if (!anyNA(scale)) {
+        return(scale)
+      }
+    }
+  }
+  # Additive fit on the log scale: sample effects from the transcripts seen
+  # in every sample, then each transcript effect from its own cells
+  sample_eff <- numeric(length(sample_ids))
+  complete <- rowSums(is.na(lr_fit)) == 0L
+  if (any(complete)) {
+    centred <- lr_fit[complete, , drop = FALSE] -
+      rowMeans(lr_fit[complete, , drop = FALSE])
+    sample_eff <- apply(centred, 2L, stats::median)
+  }
+  tx_effect <- function(lr) {
+    rowMeans(lr - rep(sample_eff, each = nrow(lr)), na.rm = TRUE)
+  }
+  tx_eff <- tx_effect(lr_tx)
+  unseen <- !is.finite(tx_eff)
+  if (any(unseen)) {
+    tx_eff[unseen] <- unseen_tx_effect(
+      self,
+      fit_ids,
+      tx_effect(lr_fit),
+      tx_ids[unseen]
+    )
+  }
+  fitted <- exp(outer(tx_eff, sample_eff, "+"))
+  fill <- is.na(scale)
+  scale[fill] <- fitted[fill]
+  scale
+}
+
+#' Transcript effects of `draw_assay_scale()` for transcripts without a cell
+#'
+#' `fit_eff` holds the effects of the transcripts `fit_ids` (`NaN` for the
+#' ones without a cell). The effect of each of `target_ids` comes from its
+#' annotated length when the known effects follow minus the log of the
+#' effective length, approximated as `tx_length - fragment` with at least a
+#' tenth of `tx_length` (`fragment` from 0 to 500 nt, fitted on the known
+#' effects); it is the median of the known effects otherwise.
+#' @keywords internal
+#' @noRd
+unseen_tx_effect <- function(self, fit_ids, fit_eff, target_ids) {
+  known <- is.finite(fit_eff)
+  typical <- if (any(known)) stats::median(fit_eff[known]) else 0
+  out <- rep(typical, length(target_ids))
+  rd <- row_data(self)
+  if (!"tx_length" %in% colnames(rd)) {
+    return(out)
+  }
+  length_of <- function(ids) {
+    as.double(rd$tx_length[match(ids, rd$transcript_id)])
+  }
+  fit_len <- length_of(fit_ids)
+  known <- known & is.finite(fit_len) & fit_len > 0
+  if (sum(known) < 10L) {
+    return(out)
+  }
+  fit_len <- fit_len[known]
+  fit_eff <- fit_eff[known]
+  eff_len <- function(len, fragment) pmax(len - fragment, len / 10)
+  spread <- function(x) stats::median(abs(x - stats::median(x)))
+  fragments <- seq(0, 500, by = 10)
+  scores <- vapply(
+    fragments,
+    function(f) spread(fit_eff + log(eff_len(fit_len, f))),
+    numeric(1L)
+  )
+  # Use the lengths only when they explain the transcript effects
+  if (min(scores) >= spread(fit_eff)) {
+    return(out)
+  }
+  best <- fragments[[which.min(scores)]]
+  offset <- stats::median(fit_eff + log(eff_len(fit_len, best)))
+  from_len <- offset - log(eff_len(length_of(target_ids), best))
+  out[is.finite(from_len)] <- from_len[is.finite(from_len)]
+  out
+}
+
+#' Gene IDs of genes given by name or ID
+#' @keywords internal
+#' @noRd
+gene_ids_named <- function(self, gene_name) {
+  genes <- self@annot_data_genes
+  unique(c(
+    genes$gene_id[genes$gene_name %in% gene_name],
+    gene_name[gene_name %in% genes$gene_id]
+  ))
+}
+
 #' Inferential replicates to use, `NULL` when there are none
 #'
-#' `inf_reps = FALSE` switches the stored replicates off. The draws are
-#' returned as they are stored: `draw_productive_fraction()` reads the rows
-#' and columns it needs from each of them, without a copy of the whole draw.
+#' `inf_reps = FALSE` switches the stored replicates off. The stored draws
+#' are returned through `object_inf_reps()` (not copied):
+#' `replicate_fraction_sd()` reads them one at a time through
+#' `inf_reps_reader()`, which applies the selection of a subset, and
+#' `draw_productive_fraction()` reads the rows and columns it needs from
+#' each of them. Zero-row draws (a subset that keeps only the moments) give
+#' `NULL`, as an object without replicates.
 #' @keywords internal
 #' @noRd
 resolve_inf_reps <- function(self, inf_reps) {
   if (isFALSE(inf_reps)) {
     return(NULL)
   }
-  reps <- inf_reps %||% self@metadata$inf_reps
+  reps <- inf_reps %||% object_inf_reps(self)
   if (is.null(reps)) {
     return(NULL)
   }
@@ -968,6 +1188,10 @@ resolve_inf_reps <- function(self, inf_reps) {
       ),
       class = "isoformic_invalid_inf_reps"
     )
+  }
+  if (!inf_reps_has_rows(reps)) {
+    # Zero-row draws (only the moments of a subset): no draws to resample
+    return(NULL)
   }
   reps
 }
@@ -995,7 +1219,9 @@ gene_sums <- function(mat, gene_idx, gene_levels) {
 #' Productive fraction per gene and sample of one inferential replicate
 #'
 #' Transcripts that the draw does not have count as zero ([add_uncertainty()]
-#' keeps the draws of the expressed transcripts only).
+#' keeps the draws of the expressed transcripts only). `scale` (rows
+#' `tx_ids`, columns `sample_ids`, from `draw_assay_scale()`) puts the draw
+#' on the scale of the assay before `min_expr` applies.
 #' @keywords internal
 #' @noRd
 draw_productive_fraction <- function(
@@ -1005,7 +1231,8 @@ draw_productive_fraction <- function(
   gene_idx,
   gene_levels,
   is_prod,
-  min_expr = 0
+  min_expr = 0,
+  scale = NULL
 ) {
   if (!is.matrix(draw)) {
     draw <- as.matrix(draw)
@@ -1028,6 +1255,9 @@ draw_productive_fraction <- function(
   if (!is.double(sub)) {
     # Integer sums overflow to NA
     storage.mode(sub) <- "double"
+  }
+  if (!is.null(scale)) {
+    sub <- sub * scale[found, , drop = FALSE]
   }
   if (isTRUE(min_expr > 0)) {
     sub[sub < min_expr] <- 0
@@ -1237,6 +1467,7 @@ run_productivity_enrichment <- S7::new_generic(
     min_expr = 0,
     min_gene_count = 0,
     inf_reps = NULL,
+    workers = getOption("isoformic.workers", 1L),
     ...
   ) {
     S7::S7_dispatch()
@@ -1256,6 +1487,7 @@ S7::method(run_productivity_enrichment, IsoformicExperiment) <- function(
   min_expr = 0,
   min_gene_count = 0,
   inf_reps = NULL,
+  workers = getOption("isoformic.workers", 1L),
   ...
 ) {
   rlang::check_installed("fgsea")
@@ -1307,6 +1539,7 @@ S7::method(run_productivity_enrichment, IsoformicExperiment) <- function(
       rank_by = rank_by,
       min_size = min_size,
       max_size = max_size,
+      workers = workers,
       ...
     )
     return(res)
@@ -1336,6 +1569,7 @@ S7::method(run_productivity_enrichment, IsoformicExperiment) <- function(
     rank_by = rank_by,
     min_size = min_size,
     max_size = max_size,
+    workers = workers,
     ...
   )
 }
@@ -1354,6 +1588,7 @@ S7::method(run_productivity_enrichment, S7::class_data.frame) <- function(
   min_expr = 0,
   min_gene_count = 0,
   inf_reps = NULL,
+  workers = getOption("isoformic.workers", 1L),
   ...
 ) {
   rlang::check_installed("fgsea")
@@ -1391,6 +1626,7 @@ S7::method(run_productivity_enrichment, S7::class_data.frame) <- function(
     rank_by = rank_by,
     min_size = min_size,
     max_size = max_size,
+    workers = workers,
     ...
   )
 }
@@ -1405,6 +1641,7 @@ productivity_enrichment <- function(
   rank_by,
   min_size,
   max_size,
+  workers = 1L,
   ...
 ) {
   rank_col <- switch(
@@ -1465,6 +1702,7 @@ productivity_enrichment <- function(
     rank_by = rank_by,
     min_size = min_size,
     max_size = max_size,
+    workers = workers,
     ...
   )
 }
@@ -1497,23 +1735,17 @@ S7::method(poison_exons, IsoformicExperiment) <- function(
   ...
 ) {
   prod <- transcript_productivity(self, gene_name = gene_name)
-  exons <- self@annot_data_exons
-  exons <- exons[
-    exons$transcript_id %in% prod$transcript_id,
-    c("transcript_id", "seqid", "start_pos", "end_pos", "strand")
-  ]
+  exons <- exons_of_transcripts(
+    self,
+    prod$transcript_id,
+    columns = c("transcript_id", "seqid", "start_pos", "end_pos", "strand")
+  )
   exons$productivity <- as.character(prod$productivity[match(
     exons$transcript_id,
     prod$transcript_id
   )])
   exons$gene_id <- prod$gene_id[match(exons$transcript_id, prod$transcript_id)]
-  summary <- exons |>
-    dplyr::summarise(
-      n_unproductive = sum(.data$productivity == "unproductive"),
-      n_other = sum(.data$productivity != "unproductive"),
-      transcript_ids = paste(sort(unique(.data$transcript_id)), collapse = ";"),
-      .by = c("gene_id", "seqid", "start_pos", "end_pos", "strand")
-    )
+  summary <- poison_exon_candidates(exons)
   gene_has_productive <- stats::setNames(
     stats::ave(
       prod$productivity %in% c("productive", "altered_productive"),
@@ -1529,11 +1761,7 @@ S7::method(poison_exons, IsoformicExperiment) <- function(
   names(productive_exons) <- c("gene_id", "p_start", "p_end")
   productive_exons <- dplyr::distinct(productive_exons)
   candidates <- summary |>
-    dplyr::filter(
-      .data$n_unproductive > 0L,
-      .data$n_other == 0L,
-      gene_has_productive[.data$gene_id]
-    )
+    dplyr::filter(gene_has_productive[.data$gene_id])
   overlapping <- candidates |>
     dplyr::inner_join(
       productive_exons,
@@ -1556,6 +1784,64 @@ S7::method(poison_exons, IsoformicExperiment) <- function(
     dplyr::select(-"n_other") |>
     dplyr::arrange(.data$gene_id, .data$start_pos)
   res
+}
+
+#' Exons used only by unproductive transcripts, one row per exon
+#'
+#' Exons are grouped by gene and coordinates, in the order in which they
+#' first appear. Only the groups whose transcripts are all unproductive are
+#' kept, and only those get the list of their transcripts. The counts come
+#' from one grouping of all rows, without a closure per group.
+#' @keywords internal
+#' @noRd
+poison_exon_candidates <- function(exons) {
+  cols <- c("gene_id", "seqid", "start_pos", "end_pos", "strand")
+  gid <- dplyr::group_indices(dplyr::group_by(
+    exons[, cols],
+    dplyr::across(dplyr::all_of(cols))
+  ))
+  n <- max(c(0L, gid))
+  unproductive <- exons$productivity == "unproductive"
+  n_unproductive <- tabulate(gid[unproductive %in% TRUE], n)
+  n_other <- tabulate(gid[unproductive %in% FALSE], n)
+  # A missing class makes the counts of the old summary missing
+  has_na <- tabulate(gid[is.na(unproductive)], n) > 0L
+  keep_group <- n_unproductive > 0L & n_other == 0L & !has_na
+  # Groups in order of first appearance, as summarise(.by = ) gives them
+  first <- which(!duplicated(gid))
+  first <- first[keep_group[gid[first]]]
+  res <- exons[first, cols]
+  res$n_unproductive <- n_unproductive[gid[first]]
+  res$n_other <- n_other[gid[first]]
+  rows <- keep_group[gid]
+  ids <- split(exons$transcript_id[rows], factor(gid[rows], gid[first]))
+  res$transcript_ids <- vapply(
+    ids,
+    function(x) paste(sort(unique(x)), collapse = ";"),
+    character(1L),
+    USE.NAMES = FALSE
+  )
+  res
+}
+
+#' Exons of some transcripts of an object
+#'
+#' From the annotation cache when the exon table is there, otherwise only the
+#' rows of the transcripts and the requested columns are read.
+#' @keywords internal
+#' @noRd
+exons_of_transcripts <- function(self, transcript_id, columns) {
+  annot_path <- prop_raw(self, "annot_path")
+  if (is.null(annot_path) || annot_table_cached(self, "exons")) {
+    exons <- self@annot_data_exons
+    return(exons[exons$transcript_id %in% transcript_id, columns])
+  }
+  read_annotation_table(
+    annot_path,
+    "exons",
+    columns = columns,
+    filter = list(transcript_id = transcript_id)
+  )
 }
 
 #' @rdname productivity

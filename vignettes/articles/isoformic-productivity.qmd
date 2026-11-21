@@ -58,16 +58,16 @@ It starts from the object built in the [introduction](isoformic-introduction.htm
 library(isoformic)
 library(dplyr)
 
-extdata <- fs::path_package("isoformic", "extdata")
+data_dir <- "data/preeclampsia"
 annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 iso <- IsoformicExperiment(
   experiment_name = "preeclampsia_placenta",
   annot_path = annot_dir,
-  assays = list(abundance = read_parquet(fs::path(extdata, "pe_abundance.parquet"))),
-  col_data = read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+  assays = list(abundance = read_parquet(fs::path(data_dir, "pe_abundance.parquet"))),
+  col_data = read_parquet(fs::path(data_dir, "pe_col_data.parquet"))
 )
-de_tx(iso) <- read_parquet(fs::path(extdata, "pe_det.parquet"))
-de_gene(iso) <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+de_tx(iso) <- read_parquet(fs::path(data_dir, "pe_det.parquet"))
+de_gene(iso) <- read_parquet(fs::path(data_dir, "pe_deg.parquet"))
 ```
 
 ## Structural features from the annotation
@@ -91,9 +91,11 @@ feats[, c("transcript_name", "orf_length", "utr3_length", "stop_to_last_junction
 
 `productive_fraction()` is the share of a gene's expression carried by productive isoforms, per condition, with its change.
 A gene whose total expression is flat while its productive fraction falls is regulated post-transcriptionally.
+The first call below uses only the annotation (`use_sequence = FALSE`).
+`productive_fraction()` has no such argument: like `transcript_productivity()` by default, it uses the transcript sequences whenever the annotation directory has them, as after the next section (the annotation directory is shared with the other articles, which may already have added them, so `pf` below can already come from the sequences).
 
 ```{r}
-prod <- transcript_productivity(iso)
+prod <- transcript_productivity(iso, use_sequence = FALSE)
 table(prod$productivity)
 pf <- productive_fraction(iso, group = "condition")
 head(pf)
@@ -104,12 +106,16 @@ head(pf)
 The annotation only describes the CDS it was given, and novel transcripts have none.
 `extract_transcript_sequences()` adds the spliced sequence of every transcript to an annotation directory, from a genome FASTA (which also covers novel transcripts of long-read or assembly annotations) or, as here, from the matching GENCODE transcript FASTA (the bundled `example_isoformic()` annotation already carries them).
 
+`extract_transcript_sequences()` does nothing, and says so, when the annotation directory already has the sequences (`overwrite = TRUE` writes them again).
+
 With sequences, `transcript_orfs()` projects the canonical start codon of each gene onto every isoform and translates it, so the ORF, its stop codon, upstream ORFs, the frame relative to the canonical protein and the NMD class are computed rather than read from the annotation, and `transcript_productivity()` reports `source = "sequence"`:
 
 ```{r}
 fasta_file <- download_reference(version = "50", file_type = "fasta")
 extract_transcript_sequences(annot_dir, transcript_fasta = fasta_file)
 has_sequences(iso)
+# The calls of the previous section, now from the sequences
+table(transcript_productivity(iso)$productivity)
 orfs <- transcript_orfs(iso, gene_name = "RBPJ")
 orfs[, c("transcript_name", "orf_source", "orf_length", "stop_codon", "nmd_class", "n_uorf", "frame_vs_canonical", "coding_probability")]
 prod <- transcript_productivity(iso, gene_name = "RBPJ")
@@ -150,6 +156,7 @@ head(test_productive_fraction(iso, group = "condition", assay = "abundance"))
 ```
 
 `productive_fraction()` also accepts an expression floor (`min_expr`), Salmon inferential replicates (`inf_reps`, or the draws stored in `iso@metadata$inf_reps`) for the uncertainty of each fraction, and a healthy-tissue `reference` from GTEx (below).
+The replicates are counts: they are put on the scale of `assay` (TPM by default) before the fractions are computed, and `productive_fraction_sd` is the standard deviation of each fraction over the replicates, averaged over the samples (see `?productivity`).
 `levels` chooses the groups and their order (the change is the last level minus the first); the samples of other groups are left out, as if the object had been subset to the samples kept.
 
 ## Poison exons and enrichment
@@ -162,7 +169,7 @@ Exons found only in unproductive isoforms (poison exons) are listed by `poison_e
 
 ```{r}
 #| warning: false
-genesets <- read_gmt(fs::path(extdata, "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"))
+genesets <- read_gmt(fs::path(data_dir, "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"))
 set.seed(42)
 prod_enrichment <- run_productivity_enrichment(iso, genesets, group = "condition")
 head(prod_enrichment[order(prod_enrichment$padj), c("pathway", "NES", "padj")])

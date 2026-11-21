@@ -26,6 +26,10 @@
 #   ISOFORMIC_ALPHAGENOME_GENCODE  GENCODE release (default: the package default)
 #   ISOFORMIC_ALPHAGENOME_N        genes per stratum (default 250)
 #   ISOFORMIC_ALPHAGENOME_SEED     sampling seed (default 1)
+#   ISOFORMIC_ALPHAGENOME_TARGETS  sub-directory of the work directory to
+#                                  write into (default "targets"; use another
+#                                  name to rebuild the targets with newer code
+#                                  and compare them with the scored ones)
 
 devtools::load_all(".", quiet = TRUE)
 
@@ -37,7 +41,8 @@ release <- Sys.getenv("ISOFORMIC_ALPHAGENOME_GENCODE", unset = "")
 release <- if (nzchar(release)) release else NULL
 n_stratum <- as.integer(Sys.getenv("ISOFORMIC_ALPHAGENOME_N", unset = "250"))
 seed <- as.integer(Sys.getenv("ISOFORMIC_ALPHAGENOME_SEED", unset = "1"))
-out_dir <- fs::dir_create(fs::path(work_dir, "targets"))
+target_sub <- Sys.getenv("ISOFORMIC_ALPHAGENOME_TARGETS", unset = "targets")
+out_dir <- fs::dir_create(fs::path(work_dir, target_sub))
 
 window <- 1048576L # AlphaGenome SEQUENCE_LENGTH_1MB
 max_gene_length <- 900000L
@@ -119,7 +124,7 @@ sel <- eligible |>
 # 4. Windows: 1 Mb centred on the gene, kept inside the chromosome -----------
 sizes <- read_parquet(fs::path(annot_dir, "annot_seq_regions.parquet")) |>
   dplyr::transmute(.data$seqid, chrom_length = .data$end_pos)
-stopifnot(all(chromosomes %in% sizes$seqid))
+stopifnot(chromosomes %in% sizes$seqid)
 sel <- dplyr::left_join(sel, sizes, by = "seqid")
 mid <- (sel$start_pos + sel$end_pos) %/% 2L
 w_start <- pmax(0L, mid - window %/% 2L)
@@ -138,8 +143,8 @@ gene_tbl <- sel |>
     .data$n_tx
   )
 stopifnot(
-  all(gene_tbl$window_start < gene_tbl$start_pos),
-  all(gene_tbl$window_end >= gene_tbl$end_pos)
+  gene_tbl$window_start < gene_tbl$start_pos,
+  gene_tbl$window_end >= gene_tbl$end_pos
 )
 
 # 5. Transcripts, labels and the calls of the rules ---------------------------
@@ -216,7 +221,7 @@ intron_tbl <- ex_tbl |>
     "intron_start",
     "intron_end"
   )
-stopifnot(all(intron_tbl$intron_end >= intron_tbl$intron_start))
+stopifnot(intron_tbl$intron_end >= intron_tbl$intron_start)
 
 # Donor: first intron base in the direction of transcription
 plus <- intron_tbl$strand == "+"

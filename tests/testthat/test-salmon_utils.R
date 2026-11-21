@@ -162,6 +162,10 @@ testthat::test_that("salmon_index builds a gentrome and decoys.txt from decoy_fa
     assign("gentrome_name", basename(gentrome), envir = captured)
     assign("gentrome_is_gz", is_gzip_file(gentrome), envir = captured)
     assign("gentrome", readLines(gentrome), envir = captured)
+    raw_con <- gzfile(gentrome, "rb")
+    raw_bytes <- readBin(raw_con, what = "raw", n = 1e6)
+    close(raw_con)
+    assign("gentrome_has_cr", any(raw_bytes == as.raw(0x0d)), envir = captured)
     assign("decoys", readLines(decoys), envir = captured)
     invisible(NULL)
   }
@@ -196,6 +200,96 @@ testthat::test_that("salmon_index builds a gentrome and decoys.txt from decoy_fa
   testthat::expect_identical(captured$gentrome, expected_gentrome)
   testthat::expect_identical(captured$gentrome_name, "gentrome.fa")
   testthat::expect_false(captured$gentrome_is_gz)
+
+  # Gzipped transcripts, plain genome: the transcripts are decompressed
+  tx_gz <- file.path(tmp, "transcripts.fa.gz")
+  tx_con <- gzfile(tx_gz, "wb")
+  writeLines(readLines(tx_fasta), tx_con)
+  close(tx_con)
+  salmon_index(fasta_path = tx_gz, decoy_fasta = decoy_plain)
+  testthat::expect_identical(captured$gentrome, expected_gentrome)
+  testthat::expect_false(captured$gentrome_is_gz)
+
+  # xz, bzip2 and CRLF genomes are decompressed and written line by line
+  # (appending their raw bytes would corrupt the gentrome)
+  decoy_xz <- file.path(tmp, "genome.fa.xz")
+  xz_con <- xzfile(decoy_xz, "wb")
+  writeLines(readLines(decoy_plain), xz_con)
+  close(xz_con)
+  decoy_bz2 <- file.path(tmp, "genome.fa.bz2")
+  bz_con <- bzfile(decoy_bz2, "wb")
+  writeLines(readLines(decoy_plain), bz_con)
+  close(bz_con)
+  decoy_crlf <- file.path(tmp, "genome_crlf.fa")
+  writeBin(
+    charToRaw(paste0(paste(readLines(decoy_plain), collapse = "\r\n"), "\r\n")),
+    decoy_crlf
+  )
+  for (decoy in c(decoy_xz, decoy_bz2, decoy_crlf)) {
+    salmon_index(fasta_path = tx_fasta, decoy_fasta = decoy)
+    testthat::expect_identical(captured$gentrome, expected_gentrome)
+    testthat::expect_identical(captured$decoys, c("chr1", "chrM"))
+    testthat::expect_identical(captured$gentrome_name, "gentrome.fa")
+    testthat::expect_false(captured$gentrome_is_gz)
+    testthat::expect_false(captured$gentrome_has_cr)
+  }
+
+  # A gzipped CRLF genome is also written line by line, into a gzip gentrome
+  decoy_crlf_gz <- file.path(tmp, "genome_crlf.fa.gz")
+  crlf_con <- gzfile(decoy_crlf_gz, "wb")
+  writeBin(readBin(decoy_crlf, what = "raw", n = 1e6), crlf_con)
+  close(crlf_con)
+  salmon_index(fasta_path = tx_fasta, decoy_fasta = decoy_crlf_gz)
+  testthat::expect_identical(captured$gentrome, expected_gentrome)
+  testthat::expect_identical(captured$decoys, c("chr1", "chrM"))
+  testthat::expect_identical(captured$gentrome_name, "gentrome.fa.gz")
+  testthat::expect_true(captured$gentrome_is_gz)
+  testthat::expect_false(captured$gentrome_has_cr)
+
+  # CRLF line endings that start after the first 64 KiB are found too, in
+  # a plain and in a gzipped genome
+  long_seq <- rep(strrep("ACGT", 25L), 1000L)
+  late_lines <- c(">chr1", long_seq, ">chrM", "TTTT")
+  decoy_late <- file.path(tmp, "genome_late_crlf.fa")
+  writeBin(
+    c(
+      charToRaw(paste0(paste(late_lines[1:1001], collapse = "\n"), "\n")),
+      charToRaw(paste0(paste(late_lines[-(1:1001)], collapse = "\r\n"), "\r\n"))
+    ),
+    decoy_late
+  )
+  testthat::expect_gt(file.size(decoy_late), 65536)
+  decoy_late_gz <- file.path(tmp, "genome_late_crlf.fa.gz")
+  late_con <- gzfile(decoy_late_gz, "wb")
+  writeBin(readBin(decoy_late, what = "raw", n = 1e7), late_con)
+  close(late_con)
+  testthat::expect_false(is_plain_fasta_file(decoy_late))
+  testthat::expect_false(is_plain_fasta_file(decoy_late_gz))
+  # The carriage return is found when it is not in the first chunk
+  testthat::expect_false(is_plain_fasta_file(decoy_late, chunk_size = 4096L))
+  testthat::expect_true(is_plain_fasta_file(decoy_plain, chunk_size = 4L))
+  expected_late <- c(
+    ">tx1|gene1|",
+    "ACGTACGT",
+    ">tx2|gene2|",
+    "GGGGCCCC",
+    late_lines
+  )
+  for (decoy in c(decoy_late, decoy_late_gz)) {
+    salmon_index(fasta_path = tx_fasta, decoy_fasta = decoy)
+    testthat::expect_identical(captured$gentrome, expected_late)
+    testthat::expect_identical(captured$decoys, c("chr1", "chrM"))
+    testthat::expect_false(captured$gentrome_has_cr)
+  }
+  testthat::expect_identical(captured$gentrome_name, "gentrome.fa.gz")
+
+  # A decoy named like a transcript is an error
+  decoy_clash <- file.path(tmp, "clash.fa")
+  writeLines(c(">tx2", "NNNN"), decoy_clash)
+  testthat::expect_error(
+    salmon_index(fasta_path = tx_fasta, decoy_fasta = decoy_clash),
+    class = "isoformic_gentrome_error"
+  )
 
   # The temporary files are removed once the index is built
   testthat::expect_false(file.exists(
@@ -244,4 +338,22 @@ testthat::test_that("salmon_index validates decoy_fasta before running Salmon", 
     class = "isoformic_gentrome_error"
   )
   testthat::expect_false(called$run)
+})
+
+testthat::test_that("create_salmon_env passes the package spec unnamed", {
+  testthat::skip_if_not_installed("condathis")
+  created <- new.env(parent = emptyenv())
+  created$args <- NULL
+  testthat::local_mocked_bindings(
+    create_env = function(...) {
+      created$args <- list(...)
+      invisible(NULL)
+    },
+    .package = "condathis"
+  )
+  create_salmon_env(env_name = "salmon-test", version = "1.2.3")
+  # The `packages` argument of condathis::create_env() is deprecated
+  testthat::expect_false("packages" %in% names(created$args))
+  testthat::expect_identical(created$args[[1L]], "bioconda::salmon==1.2.3")
+  testthat::expect_identical(created$args$env_name, "salmon-test")
 })

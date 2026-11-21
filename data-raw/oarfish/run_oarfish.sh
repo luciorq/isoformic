@@ -23,3 +23,6 @@ done
 mkdir -p inst/extdata/oarfish
 cp "$work"/out/*.quant "$work"/out/*.ambig_info.tsv "$work"/out/*.meta_info.json \
   "$work"/out/*.infreps.pq inst/extdata/oarfish/
+# Oarfish records its arguments in meta_info.json: keep the paths relative
+# to WORKDIR so that no local path is shipped
+sed -i "s#${work%/}/##g" inst/extdata/oarfish/*.meta_info.json

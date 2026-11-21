@@ -33,10 +33,17 @@ replicates minus one), with the prior in the \code{prior} attribute.
 Reads that map to several isoforms make the counts of an isoform more
 variable than a Poisson count, by an amount that differs between
 transcripts. Baldoni et al. (2024) estimate this overdispersion for every
-transcript from the Salmon replicates and divide it out of the counts, so
-that tests built for counts (\code{edgeR}, \code{limma}) keep their error rate
-without a model of their own for the read ambiguity. The scaled counts are
-not integers.
+transcript from the Salmon replicates and divide it out of the counts,
+with the aim that tests built for counts (\code{edgeR}, \code{limma}) keep their
+error rate without a model of their own for the read ambiguity. The scaled
+counts are not integers. In a genome-wide null of control placentas (see
+the article "Is quantification uncertainty worth checking?") dividing the
+counts removed the small-sample concentration of nominal false calls in
+uncertain isoforms (3 and 5 samples per group), but it did not lower the
+false discoveries at q < 0.05 (on average 1.21 against 0.20 per 3 v 3
+split, and 0.80 against 0.095 per 7 v 7 split, most of them from one
+split). With known changes added at 7 samples per group it found fewer of
+them (21,349 against 31,886 true calls), so it costs power.
 \itemize{
 \item \code{inferential_overdispersion()} computes the overdispersion of every
 transcript from the replicates stored in the object, with the estimator
@@ -61,9 +68,9 @@ by the \code{Overdispersion} column of \code{catchSalmon()} in Baldoni et al.
 holds replicates.
 }
 
-The overdispersion complements the confidence classes of
-\code{\link[=de_confidence]{de_confidence()}}: it changes the test, while the classes describe how far
-each call can be trusted.
+The overdispersion complements the stability columns of
+\code{\link[=de_confidence]{de_confidence()}}: it changes the test, while those columns describe the
+quantification behind each call.
 }
 \examples{
 extdata <- system.file("extdata", package = "isoformic")

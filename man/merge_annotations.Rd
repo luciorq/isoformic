@@ -42,12 +42,18 @@ names of a haplotype-resolved \link{IsoformicExperiment} (rename the sequences
 of the per-haplotype transcript FASTA files the same way before building
 the Salmon index).
 
+The tables are copied by DuckDB from the Parquet files of each haplotype
+to the merged files, so they are not read into R: merging two annotations
+of a whole human release with their transcript sequences takes seconds
+and less than 2 GB of memory. The sequences are copied by one DuckDB
+thread, which keeps their memory to a few hundred megabytes.
+
 The \code{source_gene_id} / \code{source_transcript_id} columns (GRCh38 identifiers
 kept by Liftoff/CAT) are left untouched, which is what
 \code{\link[=haplotype_summary]{haplotype_summary()}} uses to compare haplotypes of the same gene.
 }
 \examples{
-gff <- system.file("extdata", "example.gff3", package = "isoformic")
+gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 merged <- merge_annotations(
   c(hap1 = gff, hap2 = gff),
   output_path = tempdir(),

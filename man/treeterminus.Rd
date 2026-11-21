@@ -75,12 +75,12 @@ draws of the transcripts below the node are summed), replaces every
 transcript whose own variance is at least \code{cutoff} by its lowest ancestor
 below \code{cutoff}, and returns the groups, which do not overlap (when two
 chosen nodes are nested, the larger one is kept). The result goes to
-\code{add_uncertainty(groups = )}, so that the confidence classes and
+\code{add_uncertainty(groups = )}, so that \code{ambiguous} and
 \code{collapse_groups} work at the resolution the data support.
 }
 
 Transcripts whose whole path to the root stays above the cutoff are
-unresolved: by default they are left as they are (\code{unresolved = "transcript"}), where the confidence classes still flag them as uncertain;
+unresolved: by default they are left as they are (\code{unresolved = "transcript"}), where \code{uncertain} still flags them;
 \code{unresolved = "root"} merges every tree that has one into a single group.
 }
 \examples{

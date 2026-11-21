@@ -9,8 +9,8 @@
 # Part B measures, on three GSE129540 samples quantified with 100 Gibbs draws
 # (and with 30 draws, quants_terminus/), how stable the replicates make each
 # isoform: the inferential relative variance with 100 draws, whether two
-# independent sets of 30 draws put the isoform on different sides of the 0.5
-# cutoff, how much the variance estimate moves between them, whether its
+# disjoint sets of 30 draws (1-30 and 31-60) of the same 100-draw run put the
+# isoform on different sides of the 0.5 cutoff, how much the variance estimate moves between them, whether its
 # TreeTerminus tree changes between 30 and 100 draws, and its unique fragments.
 #
 # Part C summarises both into small tables for the article
@@ -134,6 +134,8 @@ if (file.exists(cache)) {
   gc <- new.env(parent = emptyenv())
   gc$id <- character()
   gc$value <- numeric()
+  # jarl-ignore internal_function: stream_fasta() is not exported; the script is part of the package sources
+  # jarl-ignore undesirable_operator: stream_fasta() is not exported; the script is part of the package sources
   isoformic:::stream_fasta(
     fasta,
     keep = function(name) TRUE,
@@ -356,6 +358,14 @@ binned <- list(
   ),
   mane = factor(iso$mane, levels = c(FALSE, TRUE), labels = c("no", "yes"))
 )
+# MANE crossed with the bins of reads, to compare MANE and other isoforms at
+# the same depth
+binned$reads_by_mane <- interaction(
+  binned$reads,
+  binned$mane,
+  sep = " / ",
+  lex.order = TRUE
+)
 feature_bins <- dplyr::bind_rows(lapply(names(binned), function(f) {
   d <- iso
   d$level <- binned[[f]]
@@ -365,6 +375,7 @@ feature_bins <- dplyr::bind_rows(lapply(names(binned), function(f) {
     dplyr::group_by(type = as.character(.data$type), .data$level) |>
     dplyr::summarise(
       isoforms = dplyr::n(),
+      median_reads = stats::median(.data$reads),
       median_inf_rv = stats::median(.data$inf_rv),
       median_rv_disagreement = stats::median(.data$rv_disagreement),
       cutoff_flip = mean(.data$cutoff_flip),
@@ -379,7 +390,13 @@ feature_bins <- dplyr::bind_rows(lapply(names(binned), function(f) {
 })) |>
   dplyr::relocate("feature", "type", "level", "level_order") |>
   dplyr::mutate(dplyr::across(
-    c("median_inf_rv", "median_rv_disagreement", "cutoff_flip", "tree_changed"),
+    c(
+      "median_reads",
+      "median_inf_rv",
+      "median_rv_disagreement",
+      "cutoff_flip",
+      "tree_changed"
+    ),
     ~ signif(.x, 3)
   ))
 

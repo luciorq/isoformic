@@ -100,6 +100,14 @@ cran_mirror := 'https://cloud.r-project.org'
   \builtin set -euo pipefail;
   Rscript data-raw/zenodo_deposit.R {{ARGS}};
 
+# Memory Benchmark Of The Inferential Replicates On A Genome-Wide Annotation
+@benchmark-memory:
+  #!/usr/bin/env bash
+  \builtin set -euo pipefail;
+  # Needs ISOFORMIC_BENCHMARK_QUANTS and ISOFORMIC_BENCHMARK_OUT; see the
+  # + header of data-raw/benchmark_memory.R for the other variables.
+  ISOFORMIC_FULL=true Rscript data-raw/benchmark_memory.R;
+
 # Render Articles Locally With Quarto
 @render-articles:
   #!/usr/bin/env bash

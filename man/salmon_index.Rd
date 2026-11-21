@@ -32,7 +32,8 @@ salmon_index(
 (default is \code{FALSE}); the transcript names are then truncated at the
 first \code{|} so that they match the annotation.}
 
-\item{decoy_fasta}{Optional path to a FASTA file, plain or gzipped, with
+\item{decoy_fasta}{Optional path to a FASTA file, plain or compressed
+with gzip, xz or bzip2, with
 the decoy sequences (default is \code{NULL}, an index without decoys). Usually
 the genome assembly the transcripts come from (for GENCODE, the
 \code{GRCh38.primary_assembly.genome.fa.gz} of the same release). A full human
@@ -65,8 +66,10 @@ with the names of the decoy sequences (the first word of each FASTA
 header), passes them to \verb{salmon index} as \code{--transcripts} and \code{--decoys},
 and removes them afterwards. Reads that align better to a decoy than to a
 transcript are then discarded instead of being assigned to a transcript.
-The \code{gentrome} has the compression of \code{decoy_fasta} (the decoy file is
+The \code{gentrome} is gzipped when \code{decoy_fasta} is (the decoy file is
 appended byte by byte, and concatenated gzip streams are valid gzip), so a
 gzipped genome is not decompressed to disk; the transcript FASTA, plain or
-gzipped, is re-encoded to match.
+gzipped, is re-encoded to match. A decoy compressed with xz or bzip2 is
+decompressed into a plain \code{gentrome}. Decoy names that are also
+transcript names are an error.
 }

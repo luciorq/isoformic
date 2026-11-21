@@ -96,16 +96,83 @@ S7::method(transcript_features, S7::class_character) <- function(
   end_window = 50,
   ...
 ) {
-  annot <- prepare_annotation(self)
-  transcripts <- annot$transcripts |>
-    dplyr::left_join(annot$genes[, c("gene_id", "gene_name")], by = "gene_id")
+  # A GFF3/GTF file is prepared first, as in prepare_annotation()
+  annot_dir <- if (is_annotation_dir(self)) {
+    self
+  } else {
+    prepare_isoformic_annotation(input_path = self)
+  }
+  annot <- annotation_of_genes(annot_dir, gene_name)
   res <- compute_transcript_features(
-    transcripts,
-    annot$exons,
+    annot$transcripts,
+    annot$exons(),
     nmd_rule,
     end_window
   )
   filter_genes(res, gene_name)
+}
+
+#' Transcripts and exons of selected genes of an annotation directory
+#'
+#' The features and ORFs of a transcript depend only on the transcripts of
+#' its gene (the canonical isoform is chosen within the gene), so a call
+#' restricted to some genes reads only their transcripts and exons, selected
+#' in DuckDB, instead of the whole annotation. The genes are matched as in
+#' `filter_genes()`: by gene name or gene ID. When no gene matches, the
+#' transcripts of the first gene of the annotation are returned, so that the
+#' result filtered afterwards is an empty table with the usual columns.
+#'
+#' @returns A list with `transcripts` (with `gene_name` from the genes
+#'   table), `annotation` (the same transcripts without `gene_name`) and
+#'   `exons`, a function reading the exons of those transcripts.
+#' @keywords internal
+#' @noRd
+annotation_of_genes <- function(annot_dir, gene_name = NULL) {
+  genes <- read_annotation_table(
+    annot_dir,
+    "genes",
+    columns = c("gene_id", "gene_name")
+  )
+  if (is.null(gene_name) || anyNA(gene_name)) {
+    transcripts <- read_annotation_table(annot_dir, "transcripts")
+    exons <- function() read_annotation_table(annot_dir, "exons")
+  } else {
+    gene_name <- as.character(gene_name)
+    wanted <- unique(c(
+      gene_name,
+      genes$gene_id[genes$gene_name %in% gene_name]
+    ))
+    transcripts <- read_annotation_table(
+      annot_dir,
+      "transcripts",
+      filter = list(gene_id = wanted)
+    )
+    if (!nrow(transcripts)) {
+      first <- read_parquet(
+        annot_file_path(annot_dir, "transcripts"),
+        columns = "gene_id",
+        n_max = 1L
+      )
+      transcripts <- read_annotation_table(
+        annot_dir,
+        "transcripts",
+        filter = list(gene_id = utils::head(first$gene_id, 1L))
+      )
+    }
+    ids <- transcripts$transcript_id
+    exons <- function() {
+      read_annotation_table(
+        annot_dir,
+        "exons",
+        filter = list(transcript_id = ids)
+      )
+    }
+  }
+  list(
+    transcripts = dplyr::left_join(transcripts, genes, by = "gene_id"),
+    annotation = transcripts,
+    exons = exons
+  )
 }
 
 #' @rdname transcript_features
@@ -342,7 +409,12 @@ exon_cum_table <- function(exons, tx) {
 #'
 #' @keywords internal
 #' @noRd
-genomic_to_transcript_pos <- function(exon_tbl, transcript_id, pos) {
+genomic_to_transcript_pos <- function(
+  exon_tbl,
+  transcript_id,
+  pos,
+  con = NULL
+) {
   out <- rep(NA_real_, length(transcript_id))
   pos_tbl <- data.frame(
     idx = seq_along(transcript_id),
@@ -354,11 +426,9 @@ genomic_to_transcript_pos <- function(exon_tbl, transcript_id, pos) {
   if (!nrow(pos_tbl)) {
     return(out)
   }
-  con <- duckdb_connect()
-  duckdb::duckdb_register(con, "pos", pos_tbl)
-  duckdb::duckdb_register(con, "ex", as.data.frame(exon_tbl))
-  res <- DBI::dbGetQuery(
+  res <- query_registered(
     con,
+    list(pos = pos_tbl, ex = as.data.frame(exon_tbl)),
     "SELECT p.idx,
             min(e.cum_before
                 + CASE WHEN e.strand = '-' THEN e.end_pos - p.pos ELSE p.pos - e.start_pos END
@@ -374,7 +444,12 @@ genomic_to_transcript_pos <- function(exon_tbl, transcript_id, pos) {
 #' Convert transcript coordinates (1-based from the TSS) to genomic positions
 #' @keywords internal
 #' @noRd
-transcript_to_genomic_coord <- function(exon_tbl, transcript_id, pos) {
+transcript_to_genomic_coord <- function(
+  exon_tbl,
+  transcript_id,
+  pos,
+  con = NULL
+) {
   out <- rep(NA_real_, length(transcript_id))
   pos_tbl <- data.frame(
     idx = seq_along(transcript_id),
@@ -386,11 +461,9 @@ transcript_to_genomic_coord <- function(exon_tbl, transcript_id, pos) {
   if (!nrow(pos_tbl)) {
     return(out)
   }
-  con <- duckdb_connect()
-  duckdb::duckdb_register(con, "pos", pos_tbl)
-  duckdb::duckdb_register(con, "ex", as.data.frame(exon_tbl))
-  res <- DBI::dbGetQuery(
+  res <- query_registered(
     con,
+    list(pos = pos_tbl, ex = as.data.frame(exon_tbl)),
     "SELECT p.idx,
             min(CASE WHEN e.strand = '-'
                      THEN e.end_pos - (p.pos - e.cum_before - 1)
@@ -446,113 +519,136 @@ end_groups <- function(gene_id, pos, window) {
 
 #' Splicing events of each transcript relative to its gene's canonical isoform
 #'
-#' Uses a DuckDB overlap join between transcript exons and canonical exons.
+#' Overlap join in DuckDB between the exons of each transcript and the exons
+#' of the canonical isoform of its gene. The keys are integers (the row of
+#' the transcript in `tx`, and the row of its canonical transcript), and the
+#' rank of each exon, the exon count and the span of each transcript are
+#' computed in R, so DuckDB hashes no strings and runs no window function.
+#' The overlap join runs once: novel exons (transcript exons without an
+#' overlapping canonical exon) and skipped exons (canonical exons inside the
+#' transcript span without an overlapping transcript exon) are anti joins
+#' with its result.
 #'
 #' @keywords internal
 #' @noRd
 compute_splicing_events <- function(tx, exons, canonical_id) {
-  empty <- tibble::tibble(
-    transcript_id = tx$transcript_id,
-    n_skipped_exons = 0L,
-    n_novel_exons = 0L,
-    n_retained_introns = 0L,
-    n_alt_5ss = 0L,
-    n_alt_3ss = 0L,
-    alt_first_exon = FALSE,
-    alt_last_exon = FALSE
+  counts <- c(
+    "n_skipped_exons",
+    "n_novel_exons",
+    "n_retained_introns",
+    "n_alt_5ss",
+    "n_alt_3ss"
   )
-  if (!nrow(exons)) {
-    return(empty)
+  flags <- c("alt_first_exon", "alt_last_exon")
+  out <- tibble::tibble(transcript_id = tx$transcript_id)
+  for (col in counts) {
+    out[[col]] <- rep(0L, nrow(tx))
   }
-  ex <- data.frame(
-    transcript_id = exons$transcript_id,
-    gene_id = tx$gene_id[match(exons$transcript_id, tx$transcript_id)],
-    start_pos = exons$start_pos,
-    end_pos = exons$end_pos,
-    strand = tx$strand[match(exons$transcript_id, tx$transcript_id)],
-    stringsAsFactors = FALSE
+  for (col in flags) {
+    out[[col]] <- rep(FALSE, nrow(tx))
+  }
+  if (!nrow(exons)) {
+    return(out)
+  }
+  # Integer keys: the first row of each transcript ID in `tx`, as a string
+  # join on transcript_id would match it
+  tid <- match(exons$transcript_id, tx$transcript_id, incomparables = NA)
+  canon_tid <- match(
+    unname(canonical_id),
+    tx$transcript_id,
+    incomparables = NA
   )
-  canon <- data.frame(
-    gene_id = names(canonical_id),
-    canonical_transcript_id = unname(canonical_id),
-    stringsAsFactors = FALSE
-  )
-  con <- duckdb_connect()
-  duckdb::duckdb_register(con, "ex", ex)
-  duckdb::duckdb_register(con, "canon", canon)
-  res <- DBI::dbGetQuery(
-    con,
-    "WITH cex AS (
-       SELECT e.gene_id, e.transcript_id, e.start_pos, e.end_pos, e.strand,
-              row_number() OVER (PARTITION BY e.transcript_id ORDER BY e.start_pos) AS rk,
-              count(*) OVER (PARTITION BY e.transcript_id) AS n
-       FROM ex e JOIN canon c ON c.canonical_transcript_id = e.transcript_id
-     ),
-     tex AS (
-       SELECT e.*, c.canonical_transcript_id,
-              row_number() OVER (PARTITION BY e.transcript_id ORDER BY e.start_pos) AS rk,
-              count(*) OVER (PARTITION BY e.transcript_id) AS n,
-              min(e.start_pos) OVER (PARTITION BY e.transcript_id) AS tx_start,
-              max(e.end_pos) OVER (PARTITION BY e.transcript_id) AS tx_end
-       FROM ex e JOIN canon c USING (gene_id)
-       WHERE e.transcript_id <> c.canonical_transcript_id
-     ),
-     -- transcript exons overlapping canonical exons
-     ov AS (
-       SELECT t.transcript_id, t.rk AS t_rk, t.n AS t_n, t.start_pos AS t_start, t.end_pos AS t_end,
-              c.rk AS c_rk, c.n AS c_n, c.start_pos AS c_start, c.end_pos AS c_end, t.strand
+  gene_canon <- canon_tid[match(
+    tx$gene_id[tid],
+    names(canonical_id),
+    incomparables = NA
+  )]
+  is_cex <- !is.na(tid) & tid %in% canon_tid[!is.na(canon_tid)]
+  is_tex <- !is.na(tid) & !is.na(gene_canon) & tid != gene_canon
+  strand <- match(tx$strand[tid], c("+", "-"))
+  strand <- c(1L, -1L)[strand]
+  strand[is.na(strand)] <- 0L
+  # Exons of the selected rows sorted by transcript and start, with the rank
+  # of each exon from the 5'-most one, the exon count and the span of the
+  # transcript
+  exon_rank <- function(keep) {
+    rows <- which(keep)
+    rows <- rows[order(tid[rows], exons$start_pos[rows])]
+    id <- tid[rows]
+    start <- exons$start_pos[rows]
+    end <- exons$end_pos[rows]
+    first <- match(id, id)
+    by_end <- order(id, -end)
+    last_end <- end[by_end][!duplicated(id[by_end])]
+    data.frame(
+      row = rows,
+      tid = id,
+      rk = seq_along(id) - first + 1L,
+      n = tabulate(id, nbins = nrow(tx))[id],
+      start_pos = start,
+      end_pos = end,
+      tx_start = start[first],
+      tx_end = last_end[match(id, unique(id[by_end]))]
+    )
+  }
+  cex <- exon_rank(is_cex)[, c("tid", "rk", "n", "start_pos", "end_pos")]
+  tex <- exon_rank(is_tex)
+  tex$ctid <- gene_canon[tex$row]
+  tex$strand <- strand[tex$row]
+  tex$row <- NULL
+  res <- query_registered(
+    con = NULL,
+    tables = list(tex = tex, cex = cex),
+    sql = "WITH ov AS MATERIALIZED (
+       -- transcript exons overlapping canonical exons
+       SELECT t.tid, t.rk AS t_rk, t.n AS t_n, t.start_pos AS t_start,
+              t.end_pos AS t_end, c.rk AS c_rk, c.n AS c_n,
+              c.start_pos AS c_start, c.end_pos AS c_end, t.strand
        FROM tex t JOIN cex c
-         ON c.transcript_id = t.canonical_transcript_id
+         ON c.tid = t.ctid
         AND t.start_pos <= c.end_pos AND t.end_pos >= c.start_pos
      ),
      novel AS (
-       SELECT t.transcript_id,
-              count(*) FILTER (WHERE c.transcript_id IS NULL) AS n_novel_exons
-       FROM tex t LEFT JOIN cex c
-         ON c.transcript_id = t.canonical_transcript_id
-        AND t.start_pos <= c.end_pos AND t.end_pos >= c.start_pos
-       GROUP BY t.transcript_id
+       SELECT t.tid, count(*) AS n_novel_exons
+       FROM tex t ANTI JOIN ov o ON o.tid = t.tid AND o.t_rk = t.rk
+       GROUP BY t.tid
      ),
      span AS (
-       SELECT DISTINCT transcript_id, canonical_transcript_id, tx_start, tx_end FROM tex
-     ),
-     inner_canon AS (
-       SELECT s.transcript_id, c.rk, c.start_pos, c.end_pos
-       FROM span s JOIN cex c ON c.transcript_id = s.canonical_transcript_id
-       WHERE c.start_pos >= s.tx_start AND c.end_pos <= s.tx_end
+       SELECT DISTINCT tid, ctid, tx_start, tx_end FROM tex
      ),
      skipped AS (
-       SELECT i.transcript_id,
-              count(DISTINCT i.rk) FILTER (WHERE e.transcript_id IS NULL) AS n_skipped_exons
-       FROM inner_canon i LEFT JOIN tex e
-         ON e.transcript_id = i.transcript_id
-        AND e.start_pos <= i.end_pos AND e.end_pos >= i.start_pos
-       GROUP BY i.transcript_id
+       -- canonical exons inside the transcript span that it does not overlap
+       SELECT s.tid, count(DISTINCT c.rk) AS n_skipped_exons
+       FROM span s JOIN cex c
+         ON c.tid = s.ctid
+        AND c.start_pos >= s.tx_start AND c.end_pos <= s.tx_end
+       ANTI JOIN ov o ON o.tid = s.tid AND o.c_rk = c.rk
+       GROUP BY s.tid
      ),
      retained AS (
        -- a transcript exon spanning two consecutive canonical exons
-       SELECT o1.transcript_id, count(DISTINCT o1.c_rk) AS n_retained_introns
+       SELECT o1.tid, count(DISTINCT o1.c_rk) AS n_retained_introns
        FROM ov o1 JOIN ov o2
-         ON o1.transcript_id = o2.transcript_id AND o1.t_rk = o2.t_rk AND o2.c_rk = o1.c_rk + 1
-       GROUP BY o1.transcript_id
+         ON o1.tid = o2.tid AND o1.t_rk = o2.t_rk AND o2.c_rk = o1.c_rk + 1
+       GROUP BY o1.tid
      ),
      alt AS (
-       SELECT transcript_id,
-         sum(CASE WHEN (strand = '+' AND t_rk > 1 AND t_start <> c_start)
-                    OR (strand = '-' AND t_rk < t_n AND t_end <> c_end)
+       SELECT tid,
+         sum(CASE WHEN (strand = 1 AND t_rk > 1 AND t_start <> c_start)
+                    OR (strand = -1 AND t_rk < t_n AND t_end <> c_end)
                   THEN 1 ELSE 0 END) AS n_alt_3ss,
-         sum(CASE WHEN (strand = '+' AND t_rk < t_n AND t_end <> c_end)
-                    OR (strand = '-' AND t_rk > 1 AND t_start <> c_start)
+         sum(CASE WHEN (strand = 1 AND t_rk < t_n AND t_end <> c_end)
+                    OR (strand = -1 AND t_rk > 1 AND t_start <> c_start)
                   THEN 1 ELSE 0 END) AS n_alt_5ss,
-         max(CASE WHEN (strand = '+' AND t_rk = 1 AND c_rk = 1)
-                    OR (strand = '-' AND t_rk = t_n AND c_rk = c_n)
+         max(CASE WHEN (strand = 1 AND t_rk = 1 AND c_rk = 1)
+                    OR (strand = -1 AND t_rk = t_n AND c_rk = c_n)
                   THEN 1 ELSE 0 END) AS first_shared,
-         max(CASE WHEN (strand = '+' AND t_rk = t_n AND c_rk = c_n)
-                    OR (strand = '-' AND t_rk = 1 AND c_rk = 1)
+         max(CASE WHEN (strand = 1 AND t_rk = t_n AND c_rk = c_n)
+                    OR (strand = -1 AND t_rk = 1 AND c_rk = 1)
                   THEN 1 ELSE 0 END) AS last_shared
-       FROM ov GROUP BY transcript_id
+       FROM ov GROUP BY tid
      )
-     SELECT t.transcript_id,
+     SELECT t.tid,
             coalesce(s.n_skipped_exons, 0)::INTEGER AS n_skipped_exons,
             coalesce(nv.n_novel_exons, 0)::INTEGER AS n_novel_exons,
             coalesce(r.n_retained_introns, 0)::INTEGER AS n_retained_introns,
@@ -560,26 +656,18 @@ compute_splicing_events <- function(tx, exons, canonical_id) {
             coalesce(a.n_alt_3ss, 0)::INTEGER AS n_alt_3ss,
             coalesce(a.first_shared, 0) = 0 AS alt_first_exon,
             coalesce(a.last_shared, 0) = 0 AS alt_last_exon
-     FROM (SELECT DISTINCT transcript_id FROM tex) t
-     LEFT JOIN skipped s USING (transcript_id)
-     LEFT JOIN novel nv USING (transcript_id)
-     LEFT JOIN retained r USING (transcript_id)
-     LEFT JOIN alt a USING (transcript_id)"
+     FROM (SELECT DISTINCT tid FROM tex) t
+     LEFT JOIN skipped s USING (tid)
+     LEFT JOIN novel nv USING (tid)
+     LEFT JOIN retained r USING (tid)
+     LEFT JOIN alt a USING (tid)"
   )
-  res <- tibble::as_tibble(res)
-  out <- dplyr::left_join(empty[, "transcript_id"], res, by = "transcript_id")
-  is_canon <- out$transcript_id %in% unname(canonical_id)
-  for (col in c(
-    "n_skipped_exons",
-    "n_novel_exons",
-    "n_retained_introns",
-    "n_alt_5ss",
-    "n_alt_3ss"
-  )) {
-    out[[col]][is.na(out[[col]]) | is_canon] <- 0L
-  }
-  for (col in c("alt_first_exon", "alt_last_exon")) {
-    out[[col]][is.na(out[[col]]) | is_canon] <- FALSE
+  # Rows with a duplicated transcript ID get the events of its first row;
+  # canonical transcripts keep no events
+  hit <- match(match(tx$transcript_id, tx$transcript_id), res$tid)
+  keep <- !is.na(hit) & !(tx$transcript_id %in% unname(canonical_id))
+  for (col in c(counts, flags)) {
+    out[[col]][keep] <- res[[col]][hit[keep]]
   }
   out
 }
@@ -617,7 +705,7 @@ compute_splicing_events <- function(tx, exons, canonical_id) {
 #' @returns The annotation directory path, invisibly.
 #'
 #' @examples
-#' gff <- system.file("extdata", "example.gff3", package = "isoformic")
+#' gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 #' annot <- prepare_isoformic_annotation(gff, output_path = tempdir(), annot_name = "evidence_demo")
 #' tx <- read_parquet(file.path(annot, "annot_data_transcripts.parquet"))
 #' evidence <- data.frame(
@@ -811,7 +899,8 @@ genomic_to_transcript_coord <- function(
   exon_tbl,
   transcript_id,
   first_pos,
-  last_pos
+  last_pos,
+  con = NULL
 ) {
   pos_tbl <- data.frame(
     transcript_id = c(transcript_id, transcript_id),
@@ -827,11 +916,9 @@ genomic_to_transcript_coord <- function(
   if (!nrow(pos_tbl)) {
     return(out)
   }
-  con <- duckdb_connect()
-  duckdb::duckdb_register(con, "pos", pos_tbl)
-  duckdb::duckdb_register(con, "ex", exon_tbl)
-  res <- DBI::dbGetQuery(
+  res <- query_registered(
     con,
+    list(pos = pos_tbl, ex = exon_tbl),
     "SELECT p.transcript_id, p.which,
             min(e.cum_before
                 + CASE WHEN e.strand = '-' THEN e.end_pos - p.pos ELSE p.pos - e.start_pos END

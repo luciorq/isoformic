@@ -40,8 +40,19 @@
 #' [add_uncertainty()]) it adds `dominant_inf_rv`, the inferential relative
 #' variance of the dominant isoform, and `dominant_ambiguous`, whether it
 #' cannot be told apart from a sibling isoform. `isoform_switches()` adds
-#' `n_det_confident`, the number of significant isoforms with high
-#' confidence, once [de_confidence()] results are stored.
+#' `n_det_unstable`, the number of significant isoforms whose fold-change
+#' direction the inferential replicates do not agree on (`unstable` in
+#' [de_confidence()]), once those results are stored.
+#'
+#' `drop_unstable = TRUE` leaves these calls out; calls whose direction was
+#' not assessed (below `min_count`) are kept. When ambiguous isoforms were
+#' summed (`add_uncertainty(group = , collapse_groups = TRUE)`), each member
+#' of a group takes the direction of the group: the significant members of
+#' an unstable group are counted in `n_det_unstable` and left out. It is a sensitivity analysis.
+#' In a placenta cohort it would have removed about 3% of the calls that
+#' replicated and about 10% of those that did not. It does not remove false
+#' calls caused by biological variability: most false calls have a stable
+#' direction.
 #'
 #' @param self An [IsoformicExperiment].
 #' @param assay Name of the transcript assay to use (default `"abundance"`,
@@ -60,8 +71,11 @@
 #'   `NULL` takes all the levels of `group`.
 #' @param gene_name Optional character vector of gene names or IDs to
 #'   restrict the result to.
-#' @param confident_only Logical. Count only the significant isoforms with
-#'   high confidence (see [de_confidence()]) in `isoform_switches()`.
+#' @param drop_unstable Logical. In `isoform_switches()`, leave out the
+#'   significant isoforms with an unstable direction (`unstable` in
+#'   [de_confidence()]).
+#' @param confident_only Defunct: the confidence class it filtered on was
+#'   removed. Use `drop_unstable`, by name.
 #' @param ... Not used; reserved for methods.
 #'
 #' @returns A matrix for `isoform_fraction()`, tibbles otherwise.
@@ -581,7 +595,13 @@ group_factor <- function(
 isoform_switches <- S7::new_generic(
   "isoform_switches",
   "self",
-  function(self, gene_name = NULL, confident_only = FALSE, ...) {
+  function(
+    self,
+    gene_name = NULL,
+    confident_only = NULL,
+    drop_unstable = FALSE,
+    ...
+  ) {
     S7::S7_dispatch()
   }
 )
@@ -589,33 +609,55 @@ isoform_switches <- S7::new_generic(
 S7::method(isoform_switches, IsoformicExperiment) <- function(
   self,
   gene_name = NULL,
-  confident_only = FALSE,
+  confident_only = NULL,
+  drop_unstable = FALSE,
   ...
 ) {
+  # `confident_only` keeps its place, third, so that an old positional call
+  # fails loudly instead of meaning `drop_unstable`
+  if (!is.null(confident_only)) {
+    cli::cli_abort(
+      message = c(
+        x = "{.arg confident_only} is defunct: the confidence class was removed.",
+        i = "Use {.code drop_unstable = TRUE} to leave out the calls whose direction the replicates do not agree on."
+      ),
+      class = "isoformic_defunct_argument"
+    )
+  }
+  if (!rlang::is_bool(drop_unstable)) {
+    cli::cli_abort(
+      message = c(
+        x = "{.arg drop_unstable} must be {.code TRUE} or {.code FALSE}."
+      ),
+      class = "isoformic_invalid_argument"
+    )
+  }
   det <- de_tx(self)
   tx <- self@annot_data_transcripts
   idx <- match(det$transcript_id, tx$transcript_id)
   gene_id <- tx$gene_id[idx]
   tx_type <- tx$transcript_type[idx]
   sig <- det$det_sig == "yes"
-  conf <- self@dea[["confidence"]]
-  conf_high <- NULL
+  conf <- stored_confidence(self)
+  unstable_tx <- NULL
   if (!is.null(conf)) {
-    conf <- conf[conf$feature_type == "transcript", ]
-    conf_high <- conf$confidence[match(det$transcript_id, conf$feature_id)] %in%
-      "high"
+    # Through the members, so that a transcript summed into a collapsed group
+    # takes the direction of the group
+    members <- feature_members(conf)
+    pos <- match(det$transcript_id, members$transcript_id)
+    unstable_tx <- conf$unstable[members$row[pos]] %in% TRUE
   }
-  if (isTRUE(confident_only)) {
-    if (is.null(conf_high)) {
+  if (drop_unstable) {
+    if (is.null(unstable_tx)) {
       cli::cli_abort(
         message = c(
-          x = "{.arg confident_only} needs the confidence of the differential expression calls.",
-          i = "Compute it with {.code add_uncertainty(x, paths = , group = )} or {.fn de_confidence}."
+          x = "{.arg drop_unstable} needs the stability of the fold-changes over the inferential replicates.",
+          i = "Compute it with {.code add_uncertainty(x, paths = , group = )}."
         ),
         class = "isoformic_no_uncertainty"
       )
     }
-    sig <- sig & conf_high
+    sig <- sig & !unstable_tx
   }
 
   n_tested <- rowsum(rep(1L, length(gene_id)), gene_id)
@@ -637,10 +679,13 @@ S7::method(isoform_switches, IsoformicExperiment) <- function(
     det_sig_types = sig_types$types,
     max_abs_log2FC = abs_lfc[max_idx]
   )
-  if (!is.null(conf_high)) {
-    n_conf <- rowsum(as.integer(det$det_sig == "yes" & conf_high), gene_id)
-    res$n_det_confident <- as.vector(n_conf)
-    res <- dplyr::relocate(res, "n_det_confident", .after = "n_det_sig")
+  if (!is.null(unstable_tx)) {
+    n_unstable <- rowsum(
+      as.integer(det$det_sig == "yes" & unstable_tx),
+      gene_id
+    )
+    res$n_det_unstable <- as.vector(n_unstable)
+    res <- dplyr::relocate(res, "n_det_unstable", .after = "n_det_sig")
   }
   res <- dplyr::filter(res, .data$n_det_sig > 0L)
 

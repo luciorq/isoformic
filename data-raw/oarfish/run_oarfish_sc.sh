@@ -23,3 +23,6 @@ zcat inst/extdata/example_transcripts.fa.gz >"$work/sc/transcripts.fa"
 "$env/bin/oarfish" --single-cell --alignments "$work/sc/cells.bam" -o "$work/sc/out/out" -j 4
 mkdir -p inst/extdata/oarfish_sc
 cp "$work"/sc/out/out.* "$work/sc/cells.tsv" inst/extdata/oarfish_sc/
+# Oarfish records its arguments in meta_info.json: keep the paths relative
+# to WORKDIR so that no local path is shipped
+sed -i "s#${work%/}/##g" inst/extdata/oarfish_sc/out.meta_info.json

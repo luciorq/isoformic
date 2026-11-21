@@ -31,8 +31,16 @@ salmon_quant(
 
 \item{num_gibbs}{Number of Gibbs samples (inferential replicates) drawn per
 sample (default is 30). They quantify how well each transcript abundance is
-determined by the reads and are used by \code{\link[=add_uncertainty]{add_uncertainty()}} and by \code{swish};
-30 is enough for those summaries, and more only costs time and disk space.
+determined by the reads and are used by \code{\link[=add_uncertainty]{add_uncertainty()}} and by \code{swish}.
+The genome-wide evaluation of the uncertainty evidence article used 30 and
+did not test more draws for its calls. For isoforms near a cutoff (few
+unique fragments or reads, retained introns, lncRNAs), more draws (for
+example 100) are expected to make the \code{uncertain} flag more stable, since
+InfRV from more draws has a smaller sampling error, but this was not
+tested; they cost time and disk space. TreeTerminus trees of lncRNAs often
+differed between a 30-draw run and a separate 100-draw run, a comparison
+that does not separate the number of draws from run-to-run randomness (see
+the quantification stability article).
 Set it to \code{0} to skip them.}
 
 \item{min_score_fraction}{Minimum score fraction for alignments

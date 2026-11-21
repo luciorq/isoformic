@@ -61,7 +61,7 @@ offset_check <- ag_sites |>
     .by = c("output", "right_end", "offset", "expected")
   ) |>
   dplyr::slice_max(.data$value, n = 1L, by = c("output", "right_end"))
-stopifnot(all(offset_check$offset == offset_check$expected))
+stopifnot(offset_check$offset == offset_check$expected)
 site_scores <- ag_sites |>
   dplyr::filter(.data$offset == .data$expected) |>
   dplyr::summarise(

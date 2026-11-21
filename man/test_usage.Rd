@@ -40,15 +40,24 @@ installed.}
 \item{assay}{Counts assay to test (default \code{"counts"}).}
 
 \item{scale}{Logical, divide the counts by the overdispersion of the
-replicates. \code{NULL} (default) does it when the object has replicates. In
-a read-split experiment (technical replicates of the same libraries, see
-the uncertainty article) this removed most false positives of \code{"diffsplice"}
-and \code{"DEXSeq"} and made their calls reproducible, so keep it on.}
+replicates. \code{NULL} (default) does it when the object has replicates.
+Between technical halves of the same libraries (read-split experiment,
+see the uncertainty article) it removed most false positives of
+\code{"diffsplice"} and \code{"DEXSeq"}, and their calls kept their direction in
+the other half. In a biological null of control placentas (see the
+uncertainty evidence article) the gain was smaller and depended on the
+method: \code{"diffsplice"} gained mainly at 5 samples per group, \code{"satuRn"}
+showed no detectable difference, and \code{"DEXSeq"} made fewer but still
+many false calls either way.}
 
 \item{min_count, min_prop}{Filters described above.}
 
-\item{workers}{Number of workers for \code{satuRn} and \code{DEXSeq} (default 1;
-parallel on Unix-like systems).}
+\item{workers}{Number of workers for \code{satuRn} and \code{DEXSeq}: a whole
+number of at least 1 or \code{"auto"} for \code{parallelly::availableCores()},
+checked as in \code{\link[=run_enrichment]{run_enrichment()}} (default 1). Above 1 they run on
+\code{BiocParallel::MulticoreParam()} forked workers on Unix-like systems
+(serial elsewhere); this argument does not read the \code{isoformic.workers}
+option, which sets the \code{mirai} daemons of the enrichment functions.}
 
 \item{gene_name}{Gene names or IDs to keep in the result. The filter is
 applied after the test.}

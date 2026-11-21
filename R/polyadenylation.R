@@ -29,7 +29,8 @@
 #'   (`AATAAA`, `ATTAAA` or one of the weaker variants) found in the last
 #'   `signal_window` nt of the transcript sequence, and its distance to the
 #'   3' end (canonical signals sit 10-30 nt upstream); `NA` without
-#'   sequences.
+#'   sequences, and when no hexamer lies in that window (common, because
+#'   annotated 3' ends are often not the exact cleavage site).
 #' * With `polya_atlas`, the nearest atlas site within `window` bp of the
 #'   3' end: `pas_site_id`, `pas_class`, `pas_tpm`, `pas_distance`,
 #'   `pas_supported`. The atlas is the frozen PolyASite 2.0 table
@@ -96,8 +97,15 @@
 #'   the change in weighted 3' UTR length.
 #' @param ... Not used by `polya_sites()`, `apa_usage()` and `test_apa()`;
 #'   reserved for methods. `run_apa_enrichment()` passes them to
-#'   `fgsea::fgseaMultilevel()`, which runs in the session unless `nproc` or
-#'   `BPPARAM` is given (see [run_enrichment()]).
+#'   `fgsea::fgseaMultilevel()`, which runs with
+#'   `BiocParallel::SerialParam()` unless `nproc` or `BPPARAM` is given;
+#'   prefer `workers` (see *Workers* in [run_enrichment()]).
+#' @param workers Number of worker processes that run the `fgsea` calls of
+#'   `run_apa_enrichment()` (one per gene set collection) in parallel: a
+#'   whole number, or `"auto"` for the CPUs available to the session.
+#'   Defaults to the `isoformic.workers` option, or 1 (serial). Needs the
+#'   `mirai` package above 1; see *Workers* in [run_enrichment()], also for
+#'   the random seeds.
 #'
 #' @returns Tibbles with one row per transcript (`polya_sites()`) or per gene
 #'   (`apa_usage()`, `test_apa()`); a matrix for `as_matrix = TRUE`.
@@ -112,12 +120,14 @@
 #' iso <- example_isoformic()
 #' pa <- polya_sites(iso, gene_name = "RBPJ")
 #' pa[, c("transcript_name", "tes_rank", "apa_type", "utr3_length", "polya_signal")]
-#' head(apa_usage(iso, group = "condition"))
+#' usage <- apa_usage(iso, group = "condition")
+#' head(usage)
 #' head(test_apa(iso, group = "condition"))
 #'
+#' # Rank genes from the usage table computed above
 #' if (requireNamespace("fgsea", quietly = TRUE)) {
 #'   gmt <- system.file("extdata", "reactome_subset.gmt", package = "isoformic")
-#'   head(run_apa_enrichment(iso, read_gmt(gmt), group = "condition", min_size = 2))
+#'   head(run_apa_enrichment(usage, read_gmt(gmt), min_size = 2))
 #' }
 #'
 #' @name polyadenylation
@@ -166,20 +176,35 @@ S7::method(polya_sites, IsoformicExperiment) <- function(
   signal_window = 50L,
   ...
 ) {
-  feats <- transcript_features(self)
-  orfs <- if (has_sequences(self)) transcript_orfs(self) else NULL
-  seqs <- if (has_sequences(self)) {
-    transcript_sequences(self, transcript_id = feats$transcript_id)
-  } else {
-    NULL
-  }
-  res <- compute_polya_sites(
-    feats = feats,
-    exons = self@annot_data_exons,
-    orfs = orfs,
-    seqs = seqs,
-    signal_window = signal_window
+  # Cached before the atlas and the gene filter, so that apa_usage(),
+  # test_apa() and run_apa_enrichment() reuse it
+  signature <- paste(
+    annot_full_signature(self),
+    annot_signature(self@annot_path, "sequences"),
+    rlang::hash(row_names(self)),
+    signal_window
   )
+  res <- object_cache_fetch(self, "polya_sites", signature, function() {
+    feats <- transcript_features(self)
+    with_seqs <- has_sequences(self)
+    orfs <- if (with_seqs) transcript_orfs(self) else NULL
+    # Only the last signal_window nt of each sequence are used
+    tails <- if (with_seqs) {
+      read_sequence_tails(
+        self@annot_path,
+        transcript_id = feats$transcript_id,
+        width = signal_window
+      )
+    } else {
+      NULL
+    }
+    compute_polya_sites(
+      feats = feats,
+      exons = self@annot_data_exons,
+      orfs = orfs,
+      tails = tails
+    )
+  })
   atlas <- resolve_polya_atlas(polya_atlas)
   if (!is.null(atlas)) {
     res <- join_polya_atlas(res, atlas, window = window)
@@ -189,7 +214,7 @@ S7::method(polya_sites, IsoformicExperiment) <- function(
 
 #' @keywords internal
 #' @noRd
-compute_polya_sites <- function(feats, exons, orfs, seqs, signal_window = 50L) {
+compute_polya_sites <- function(feats, exons, orfs, tails) {
   n <- nrow(feats)
   minus <- feats$strand == "-"
   seqid <- exons$seqid[match(feats$transcript_id, exons$transcript_id)]
@@ -236,9 +261,8 @@ compute_polya_sites <- function(feats, exons, orfs, seqs, signal_window = 50L) {
   apa_type[is.na(can_tes_group)] <- NA_character_
   signal <- rep(NA_character_, n)
   signal_distance <- rep(NA_integer_, n)
-  if (!is.null(seqs)) {
-    s <- seqs$sequence[match(feats$transcript_id, seqs$transcript_id)]
-    tail_seq <- substring(s, pmax(1L, nchar(s) - signal_window + 1L), nchar(s))
+  if (!is.null(tails)) {
+    tail_seq <- tails$tail[match(feats$transcript_id, tails$transcript_id)]
     found <- find_polya_signal(tail_seq)
     signal <- found$signal
     signal_distance <- found$distance
@@ -313,7 +337,9 @@ tes_in_canonical_intron <- function(feats, exons) {
 #'
 #' Hexamers are searched in order of strength; the match closest to the 3'
 #' end of the strongest hexamer present is reported with its distance (nt
-#' between the signal start and the transcript end).
+#' between the signal start and the transcript end). Overlapping occurrences
+#' count: the greedy `^.*` followed by `\K` gives the start of the last one
+#' without building a match list per sequence.
 #'
 #' @keywords internal
 #' @noRd
@@ -326,12 +352,12 @@ find_polya_signal <- function(tail_seq) {
     if (!any(todo)) {
       break
     }
-    pos <- gregexpr(hex, tail_seq[todo], fixed = TRUE)
-    last <- vapply(pos, function(m) max(as.integer(m)), integer(1L))
+    x <- tail_seq[todo]
+    last <- as.integer(regexpr(paste0("^.*\\K", hex), x, perl = TRUE))
     hit <- last > 0L
     idx <- which(todo)[hit]
     signal[idx] <- hex
-    distance[idx] <- nchar(tail_seq[idx]) - last[hit]
+    distance[idx] <- nchar(x[hit]) - last[hit]
     todo[idx] <- FALSE
   }
   list(signal = signal, distance = distance)
@@ -624,6 +650,7 @@ run_apa_enrichment <- S7::new_generic(
     max_size = 500,
     rank_by = c("delta", "utr3_length"),
     min_expr = 0,
+    workers = getOption("isoformic.workers", 1L),
     ...
   ) {
     S7::S7_dispatch()
@@ -640,6 +667,7 @@ S7::method(run_apa_enrichment, IsoformicExperiment) <- function(
   max_size = 500,
   rank_by = c("delta", "utr3_length"),
   min_expr = 0,
+  workers = getOption("isoformic.workers", 1L),
   ...
 ) {
   rlang::check_installed("fgsea")
@@ -675,6 +703,7 @@ S7::method(run_apa_enrichment, IsoformicExperiment) <- function(
     rank_by = rank_by,
     min_size = min_size,
     max_size = max_size,
+    workers = workers,
     ...
   )
 }
@@ -690,6 +719,7 @@ S7::method(run_apa_enrichment, S7::class_data.frame) <- function(
   max_size = 500,
   rank_by = c("delta", "utr3_length"),
   min_expr = 0,
+  workers = getOption("isoformic.workers", 1L),
   ...
 ) {
   rlang::check_installed("fgsea")
@@ -702,6 +732,7 @@ S7::method(run_apa_enrichment, S7::class_data.frame) <- function(
     rank_by = rank_by,
     min_size = min_size,
     max_size = max_size,
+    workers = workers,
     ...
   )
 }
@@ -717,6 +748,7 @@ apa_enrichment <- function(
   rank_by,
   min_size,
   max_size,
+  workers = 1L,
   ...
 ) {
   measure <- switch(
@@ -743,6 +775,7 @@ apa_enrichment <- function(
     rank_by = rank_by,
     min_size = min_size,
     max_size = max_size,
+    workers = workers,
     ...
   )
 }

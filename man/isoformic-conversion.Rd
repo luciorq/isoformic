@@ -65,7 +65,8 @@ annot <- system.file("extdata", "example_experiment", "annotation", package = "i
 iso2 <- as_isoformic(txi, annot_path = annot, col_data = col_data(iso))
 iso2
 
-if (requireNamespace("SummarizedExperiment", quietly = TRUE)) {
+# Loading the SummarizedExperiment namespace takes several seconds
+if (interactive() && requireNamespace("SummarizedExperiment", quietly = TRUE)) {
   se <- as_summarized_experiment(iso, level = "gene")
   se
 }

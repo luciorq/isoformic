@@ -129,7 +129,10 @@ testthat::test_that("build_frozen_appris converts the APPRIS score table", {
     )
   )
   writeLines(c(header, rows), fs::path(src, "appris_data.appris.txt"))
-  path <- build_frozen_appris(output_path = dir, sources_dir = src)
+  path <- suppressMessages(build_frozen_appris(
+    output_path = dir,
+    sources_dir = src
+  ))
   res <- read_parquet(path)
   testthat::expect_equal(nrow(res), 2L)
   testthat::expect_identical(
@@ -181,7 +184,10 @@ testthat::test_that("build_frozen_appris_domains parses the SPADE GTF", {
     con
   )
   close(con)
-  path <- build_frozen_appris_domains(output_path = dir, sources_dir = src)
+  path <- suppressMessages(build_frozen_appris_domains(
+    output_path = dir,
+    sources_dir = src
+  ))
   res <- read_parquet(path)
   testthat::expect_equal(nrow(res), 2L)
   testthat::expect_identical(res$seqid, c("chr1", "chrX"))
@@ -241,7 +247,10 @@ testthat::test_that("build_frozen_riboseq_orfs merges phase 1 and phase 2 BED fi
   )
   writeLines(phase1, fs::path(src, "Ribo-seq_ORFs.bed"))
   writeLines(phase2, fs::path(src, "Ribo-seq_ORFs.comprehensive.bed"))
-  path <- build_frozen_riboseq_orfs(output_path = dir, sources_dir = src)
+  path <- suppressMessages(build_frozen_riboseq_orfs(
+    output_path = dir,
+    sources_dir = src
+  ))
   res <- read_parquet(path)
   testthat::expect_equal(nrow(res), 2L)
   testthat::expect_equal(res$phase, c(1L, 2L))
@@ -298,7 +307,10 @@ testthat::test_that("build_frozen_polyasite parses the atlas BED", {
     con
   )
   close(con)
-  path <- build_frozen_polyasite(output_path = dir, sources_dir = src)
+  path <- suppressMessages(build_frozen_polyasite(
+    output_path = dir,
+    sources_dir = src
+  ))
   res <- read_parquet(path)
   testthat::expect_identical(res$seqid, c("chr1", "chr1"))
   testthat::expect_equal(res$cleavage_pos, c(16450L, 29536L))
@@ -353,7 +365,10 @@ testthat::test_that("build_frozen_gtex computes median TPM per tissue", {
     ),
     fs::path(src, "GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt")
   )
-  path <- build_frozen_gtex(output_path = dir, sources_dir = src)
+  path <- suppressMessages(build_frozen_gtex(
+    output_path = dir,
+    sources_dir = src
+  ))
   res <- read_parquet(path)
   testthat::expect_equal(nrow(res), 4L)
   liver <- res[res$tissue == "Liver" & res$transcript_id == "ENST00000000001", ]
@@ -387,7 +402,10 @@ testthat::test_that("build_frozen_nmd_exons reads the supplementary table", {
     gene_name = "TRIM3"
   )
   writexl::write_xlsx(tbl, fs::path(src, "13059_2021_2439_MOESM2_ESM.xlsx"))
-  path <- build_frozen_nmd_exons(output_path = dir, sources_dir = src)
+  path <- suppressMessages(build_frozen_nmd_exons(
+    output_path = dir,
+    sources_dir = src
+  ))
   res <- read_parquet(path)
   testthat::expect_equal(res$start_pos, 6473084L)
   testthat::expect_identical(res$nmd_transcript_ids, "ENST00000359518")

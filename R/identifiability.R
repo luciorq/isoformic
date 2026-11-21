@@ -114,29 +114,25 @@ equivalence_identifiability <- function(
   n_identifiable <- NULL
   n_read <- 0L
   for (dir in dirs$dir) {
-    ec <- read_eq_classes(dir)
-    if (is.null(ec)) {
-      next
-    }
-    if (isTRUE(ignore_after_bar)) {
-      ec$transcripts <- sub("\\|.*$", "", ec$transcripts)
-    }
-    if (is.null(ids)) {
-      ids <- ec$transcripts
-      n_resolved <- integer(length(ids))
-      n_identifiable <- integer(length(ids))
-    }
-    status <- identifiable_from_classes(
-      tid = ec$members$tid,
-      cls = ec$members$class,
-      n_tx = length(ec$transcripts),
+    one <- eq_sample_identifiability(
+      dir,
+      ignore_after_bar = ignore_after_bar,
       max_dense = max_dense,
       max_iterations = max_iterations
     )
-    at <- match(ec$transcripts, ids)
-    ok <- !is.na(status) & !is.na(at)
+    if (is.null(one)) {
+      next
+    }
+    if (is.null(ids)) {
+      ids <- one$transcripts
+      n_resolved <- integer(length(ids))
+      n_identifiable <- integer(length(ids))
+    }
+    at <- match(one$transcripts, ids)
+    ok <- !is.na(one$status) & !is.na(at)
     n_resolved[at[ok]] <- n_resolved[at[ok]] + 1L
-    n_identifiable[at[ok]] <- n_identifiable[at[ok]] + as.integer(status[ok])
+    n_identifiable[at[ok]] <- n_identifiable[at[ok]] +
+      as.integer(one$status[ok])
     n_read <- n_read + 1L
   }
   if (n_read == 0L) {
@@ -160,6 +156,39 @@ equivalence_identifiability <- function(
     res <- res[res$transcript_id %in% transcripts, ]
   }
   res
+}
+
+#' Identifiability of the transcripts of one Salmon output directory
+#'
+#' A function of its own, so that the class members of a sample are freed
+#' before the next sample is read.
+#' @returns `NULL` without equivalence classes, or a list with the
+#'   `transcripts` of the header and their `status` (see
+#'   `identifiable_from_classes()`).
+#' @keywords internal
+#' @noRd
+eq_sample_identifiability <- function(
+  dir,
+  ignore_after_bar,
+  max_dense,
+  max_iterations
+) {
+  ec <- read_eq_class_members(dir)
+  if (is.null(ec)) {
+    return(NULL)
+  }
+  tx <- ec$transcripts
+  if (isTRUE(ignore_after_bar)) {
+    tx <- sub("\\|.*$", "", tx)
+  }
+  status <- identifiable_from_classes(
+    tid = ec$members$tid,
+    cls = ec$members$class,
+    n_tx = length(tx),
+    max_dense = max_dense,
+    max_iterations = max_iterations
+  )
+  list(transcripts = tx, status = status)
 }
 
 #' Identifiability of every transcript of one sample

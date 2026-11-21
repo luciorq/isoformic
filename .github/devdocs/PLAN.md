@@ -32,7 +32,8 @@ the next starts.
   when a backend is missing.
 - Validate on real output of the tool being read (Terminus, Oarfish), not on
   a format guessed from documentation.
-- Heavy files live in `/data/gamma/luciorq/workspaces/temp/isoformic-knockdown/`.
+- Heavy files live in the work directory named by `ISOFORMIC_KNOCKDOWN_DIR`
+  (a data disk, outside the repo).
 - Nothing is committed or uploaded without being asked.
 
 ## A. Differential transcript usage
@@ -202,68 +203,90 @@ Acceptance: identical consensus to the shell run.
 
 ## Backlog
 
-- [ ] Evaluate shared-memory parallelism with `mirai`, `mizu` and `mori`, and
-      whether to adopt one. Today fgsea runs serially unless the user passes
-      `nproc` or `BPPARAM`, and those fork the session with BiocParallel.
-      Forked workers share the session's pages, but tools that sum resident
-      memory (Slurm accounting without `UsePss`, `top`) count the session once
-      per worker. This was the likely source of a reported 160 GB peak.
-      Starting point: several fgsea runs, one per contrast and gene set
-      collection, from one `productive_fraction()` table
-      (`run_productivity_enrichment()`, `run_enrichment()`). Compare wall time,
-      physical memory (PSS, cgroup peak) and summed RSS against the serial
-      default and `MulticoreParam`. Check that worker counts follow the
-      scheduler's allocation, not the node's core count, and what each package
-      adds to `Imports` or `Suggests` and to `pixi.toml`.
-- [ ] Persist the inferential replicates. `write_isoformic()` drops
-      `metadata$inf_reps`. The documented route, `inferential_replicates_table()`
-      and `write_parquet()`, is a long table of one row per transcript, sample
-      and draw. At 30k transcripts x 12 samples x 20 draws the audit of
-      2026-11-12 measured 3.5x the draws for the table, 14x for reading it back
-      and 13x for `as_inferential_replicates()`. At 295k x 100 samples x 100
-      draws it would have 2.95e9 rows, more than a data frame can hold.
-      Proposal: one wide Parquet file per draw under `<path>/inf_reps/`
-      (`draw_0001.parquet`, ...), written and read with
-      `write_assay_dir()`/`read_assay_dir()`, and the replicate type in
-      `metadata.parquet`. The same layout round-tripped `identical()` in the
-      audit. A second step could let `draws_view()` read draw k from disk on
-      demand.
-- [ ] Draws as a view in subsets. Since `40ed686`, `x[i, j]` gives every subset
-      its own copy of the kept draws (1.3 GB per 6-sample contrast at 295k x 12
-      x 100). Proposal: keep `metadata$inf_reps` shared, record the selected
-      transcripts and samples, and read every draw through one accessor that
-      applies the selection. The consumers are `resolve_inf_reps()`,
-      `draws_view()` and `R/usage.R`. Trade-off: the parent's draws stay alive
-      while any subset exists. Passing `levels =` avoids the copy today.
-- [ ] DuckDB limits. `duckdb_connect()` uses DuckDB's defaults: all cores, and
-      80% of the RAM the kernel reports, which on a Slurm node is the node's
-      RAM, not the job's. Under `ulimit -v` the default configuration failed to
-      connect, and `threads = 2` worked. Proposal: options
-      `isoformic.duckdb_threads` and `isoformic.duckdb_memory_limit` passed in
-      the connection config. Defaults could come from `SLURM_CPUS_PER_TASK` /
-      `SLURM_MEM_PER_NODE` or cgroup limits; check first what the duckdb
-      version shipped by conda-forge (1.5.x) already detects. Update
-      `R/isoformic-options.R`, including the count of options.
-- [ ] `clear_cache(self)` in `add_uncertainty()`. The audit argues that no
-      cached value depends on `dea`, `metadata` or `col_data`, the parts that
-      `add_uncertainty()` changes, so the call only forces a recomputation of
-      `transcript_features()` (49 s at 295k) and `transcript_productivity()`.
-      This was not verified. Before removing it, check every
-      `object_cache_fetch()` signature and run `test-uncertainty.R` and
-      `test-productivity.R`.
-- [ ] Finish the memory audit of 2026-11-12. Its auditors for `R/uncertainty.R`,
-      usage and enrichment (`R/usage.R`, `R/dea.R`, diversity, profiles,
-      polyadenylation), the annotation side (`R/annotation.R`, `R/orfs.R`,
-      `R/sequences.R`, `R/splice-sites.R`, `R/transcript-features.R`) and
-      productivity correctness (old against new `productive_fraction()`
-      results) did not report. The partial benchmark is in
-      `/tmp/claude-1000/-home-luciorq-projects-isoformic/94895e23-efb5-4e32-9cd2-8c7ba05aad7c/scratchpad/audit/bench-current/logs/results.csv`
-      (temporary; real GENCODE v49, 12 samples, 25 draws). Rerun on GENCODE 50.
-- [ ] Gated memory benchmark (`data-raw/benchmark_memory.R`, a `just` recipe).
-      It reports the peak above the start, as a multiple of the size of the
-      draws, for `read_inferential_replicates()`, `add_uncertainty(paths = )`,
-      `productive_fraction()` and `x[, j]`. No test catches a regression like
-      the per-draw copies of the old `productive_fraction()`.
+- [x] Shared-memory parallelism (`mirai`, `mizu`, `mori`). Done: evaluated in
+      `eval-parallelism/NOTES.md`; `mirai` adopted for the fgsea calls of the
+      three enrichment functions (`workers`, option `isoformic.workers`,
+      `R/parallel.R`), mizu and mori not adopted (not on conda-forge, no gain
+      on small inputs). The W2 (large-input loop) cells and the full
+      benchmark under the heavy-job lock ran in round 2 (see the Log): on W2
+      only forking paid off and `mori` sharing saved nothing, so loops over
+      the draws stay serial. Daemons are kept for the session and replaced
+      when they die (`ensure_workers()`, `isoformic_workers()`). Still open:
+      the `workers` path is 22% slower and uses 0.43 GB more PSS than the
+      prototype `mirai` strategy at 4 workers on W1 (profile `run_tasks()`
+      before more functions take `workers`); the 30 s connection grace
+      period is internal; daemons are always kept (no option to stop them
+      after a call); a real Ctrl-C during a wait was not tested in a
+      terminal.
+- [x] Persist the inferential replicates. Done: `write_isoformic()` writes
+      the draws to `inf_reps/` (one wide Parquet file per draw, moments in
+      `inf_reps/moments/`) and `read_isoformic()` restores them `identical()`,
+      one draw at a time. Still open: `draws_view()` reading draw k from disk
+      on demand.
+- [x] Draws as a view in subsets. Done: `x[i, j]` keeps the parent's draws
+      with a `selection` attribute; every consumer reads through
+      `inf_reps_reader()` / `inf_reps_moments()`, tested identical to the old
+      copy (`test-draws-view.R`).
+- [x] DuckDB limits. Done: options `isoformic.duckdb_threads` and
+      `isoformic.duckdb_memory_limit` (`duckdb_limits_config()`), with
+      defaults from Slurm and the affinity mask, capped by cgroup v2 limits.
+      Still open: `ulimit -v` and cgroup v1 quotas are not detected.
+- [x] `clear_cache(self)` in `add_uncertainty()`. Done: removed after
+      checking the seven `object_cache_fetch()` signatures; a test counts the
+      recomputations.
+- [x] Memory audit of 2026-11-12. Done: the uncertainty, usage and
+      enrichment, annotation and productivity auditors ran on GENCODE 50 and
+      their fixes landed (see the Log of 2026-11-18); `productive_fraction()`
+      matches the old code. Round 2 measured `read_isoformic()`: reading
+      `inf_reps/` adds about 0.1x the draws beyond what the object keeps, so
+      its 3.0x is the object and its draws, not an excess. Still open:
+      `productive_fraction()` stays the largest step (5.2x the draws with a
+      stored ORF table, 6.8x before round 2; 18x when the call also computes
+      the ORFs of the whole annotation, which alone peak at 6.1 GB in 4
+      minutes).
+- [x] Gated memory benchmark (`data-raw/benchmark_memory.R`,
+      `just benchmark-memory`, `pixi run benchmark-memory`). Done: one R
+      process per step, peak above start as a multiple of the draws; GENCODE
+      50 baseline and after runs kept on the data disk, outside the repo.
+      Round 2 added the genome-wide annotation steps and the
+      `ISOFORMIC_BENCHMARK_PKG`, `_ANNOT`, `_GFF` and `_STEPS` variables
+      (before/after runs in `data-raw/README.md`). Still open: no test
+      catches a regression; compare a new run with the baseline after
+      changes to the draws or annotation code.
+- [ ] Round 2 leftovers (2026-11-20 reports):
+      - `transcript_orfs()` with a stored ORF table reads the whole table
+        (about 400 MB for a few genes): filter it by `transcript_id`, once
+        the signature check no longer reads its first row.
+      - `transcript_sequences()` for a few ids peaks at about 740 MB because
+        `annot_data_sequences.parquet` has the default row-group size; a
+        smaller `ROW_GROUP_SIZE` in `extract_transcript_sequences()` changes
+        the files on disk.
+      - `genomic_to_transcript_coord()`, `genomic_to_transcript_pos()`,
+        `transcript_to_genomic_coord()` and `exon_cum_table()` still join or
+        sort on string `transcript_id`; `compute_transcript_features()`
+        peaks at 2.1 GB and takes about 34 s on GENCODE 50.
+      - On a fresh object `transcript_productivity()` loads the whole exon
+        table through `transcript_features()`, so `poison_exons()` reads
+        fewer exons only when productivity is cached.
+      - `splice_site_strength()` genome-wide: 39 s by transcript, and
+        `by = "intron"` 3 s slower than before (training reads the canonical
+        exons on its own); not profiled further.
+      - Without a `length` assay (bundled `example_isoformic()` and knockdown
+        objects) the draw scale of zero-count cells is estimated (median
+        relative error of `productive_fraction_sd` 0.5%, 99th percentile 9%
+        on chr1); a `length` assay in the bundled data would make it exact.
+      - `productive_fraction(as_matrix = TRUE)` ignores `gene_name`, and
+        `test_productive_fraction()` applies `gene_name` and
+        `min_gene_count` at the end; the Gibbs mean against EM bias could be
+        its own column.
+      - `read_inferential_replicates()` peaks at 2.2x the draws (1.4x kept);
+        lower needs per-draw sums, which are not `identical()`.
+      - `merge_annotations(overwrite = TRUE)` leaves stale files of an
+        earlier merge (sequences, splice sites, ORFs); the exons `COPY`
+        (1.8 GB with 4 threads) is now its peak.
+      - The uncertainty evidence prevalence scripts use `delta_z`; rebuild
+        their outputs after the `productive_fraction_sd` change (677 instead
+        of 679 genes at `abs(delta_z) >= 1.96` on chr1).
 
 ## Log
 
@@ -426,3 +449,114 @@ Acceptance: identical consensus to the shell run.
   transcripts gets its own object cache; `?IsoformicExperiment` advises
   `levels =` over subsetting. The coding potential model was retrained on
   GENCODE 50 (A8). The open items are in the Backlog above.
+- 2026-11-18: memory and parallelism backlog closed (items above); the
+  machine runs every job under a memory cap since an out-of-memory reboot.
+  Changes: draws persisted in `inf_reps/` (write and read one draw at a
+  time, `gc_pacer()` collects after about 2 million cells); `x[i, j]` keeps
+  a view of the draws; options `isoformic.duckdb_threads` and
+  `isoformic.duckdb_memory_limit`; `workers` on the three enrichment
+  functions (mirai daemons, option `isoformic.workers`; `mirai` and
+  `parallelly` in Suggests and `pixi.toml`); `clear_cache()` dropped from
+  `add_uncertainty()`; `download_reference()` uses a cached file before
+  listing the server and falls back to one after a failed listing; audit
+  fixes (`equivalence_support()` in DuckDB, `add_uncertainty(group = )`
+  vectorised, `polya_sites()` reads only the signal window and is cached,
+  ORF and coding potential scores about 2x faster, `run_enrichment()`
+  size limits on genes, overlapping poly(A) signals). Measured:
+  - Benchmark (GENCODE 50, 25 placenta samples, 30 draws, draws 0.44 GB;
+    peak above start, baseline -> after): `read_inferential_replicates()`
+    1290 -> 1351 MB; `add_uncertainty(paths = )` 4217 -> 1964 MB;
+    `productive_fraction()` 3548 -> 3253 MB; `x[, j]` 362 -> 72 MB;
+    `write_isoformic()` 202 -> 1 MB (now with the draws, 0.52 GB on disk);
+    `read_isoformic()` 762 -> 1368 MB (it now reads the draws back);
+    `inferential_overdispersion()` 631 -> 533 MB; the 3 + 3 subset: 289 MB
+    for the overdispersion and 1 MB to write (0.27 GB on disk).
+  - Draws on disk at 295,000 x 12 x 25 (0.66 GB): write peak 0.14 GB
+    (0.21x), read 1.12 GB (1.7x, the object it returns), round trip
+    identical; at 654,828 x 12 x 25 (1.46 GB): 0.26 GB and 2.42 GB. The old
+    long table was 3.5x (write) and 14x plus 13x (read). On 159k x 12 x 25
+    draws `x[, 1:6]` adds 0.04 GB instead of 0.19 GB.
+  - `productive_fraction()` of the new code against the old one on chr1 to
+    chr4 (5,153 genes), chr1, the bundled and the mini data: equal to
+    6e-14; the only difference is `delta_z` 0 instead of `NA` for genes
+    whose change and its deviation are both 0, as NEWS documents.
+  - Enrichment workers (18 fgsea runs from `productive_fraction()` tables,
+    295k transcripts, 4 CPUs, medians of 3): one call of 18 tasks 14.4 s
+    serial, 10.2 s with 2 workers (1.4x), 7.7 s with 4 (1.9x); six calls of
+    3 tasks 14.0 s serial but 20 to 23 s with per-call daemons, 8.5 s with
+    daemons kept across calls. PSS 1.00 GB serial, +0.3 GB per daemon;
+    summed RSS within 5% of PSS (forked `MulticoreParam` summed 1.9x its
+    PSS). With 2 or more workers results are identical for any count;
+    against serial `ES`, `size` and `leadingEdge` are identical and
+    p-values differ (largest 0.12, same sets at `padj < 0.05`).
+  - DuckDB 1.5.5 follows the cgroup v2 CPU quota and memory cap but not
+    `taskset` (16 threads on 2 CPUs); the new defaults fix that and add
+    about 1 ms per connection.
+  - Source tarball 2.66 MB (R CMD check: installed size OK, only the new
+    submission NOTE); `inst/extdata` went from 16.6 MB to 2.6 MB, with the
+    placenta tables and the Reactome GMT moved to
+    `vignettes/articles/data/preeclampsia/` (not in the tarball).
+- 2026-11-18, round 2 (run 2026-11-19 to 2026-11-20): the unfixed findings of
+  the memory audit and the open parallelism items. Every change gives
+  `identical()` results to the code before it unless noted, and the full
+  suite passes (FAIL 0, WARN 0, 2 full-mode skips). Changes:
+  - `productive_fraction()`: `productive_fraction_sd` is the SD of the
+    draws around their mean, per sample, averaged, on the scale of `assay`
+    (`draw_assay_scale()`), so `delta_z` compares TPM with TPM; `gene_name`
+    and `min_gene_count` filter before the sums. chr1 placenta (62k
+    transcripts, 25 samples, 30 draws): against draws divided by the true
+    effective length, largest difference 9.3e-6; old sd / new sd median 2.2
+    (abundance) and 1.9 (counts); genes with `abs(delta_z) >= 1.96` 813 ->
+    697 of 2,064 (abundance), 679 -> 677 (counts). One gene: 0.64 s, 411 MB
+    -> 0.14 s, 61 MB; full table with abundance 1.7 -> 2.1-2.4 s.
+  - Annotation reads (`read_parquet_matching()`, `read_annotation_table(
+    filter = )`): GENCODE 50, `transcript_sequences()` of 1,000 ids 2,825 MB,
+    8.5 s -> 738 MB, 0.5 s; `prepare_exon_annotation()` of 6 genes 1,066 MB
+    -> 39 MB; `transcript_features(dir, gene_name = )` 3,042 MB, 42 s -> 33
+    MB, 0.5 s; `transcript_orfs(dir, gene_name = )` without stored ORFs 6.1
+    GB, 253 s -> 0.7 GB, 1.2 s.
+  - `splice_site_strength()` (matrices cached per directory, gene
+    restriction, table by transcript cached in the object) and
+    `poison_exons()`: genome-wide by transcript 115 s, 2.2 GB -> 39 s, 1.3
+    GB; one gene 115 s -> 9.5 s, next gene 0.3 s; `poison_exons()` of 177k
+    transcripts 30 s, 1.2 GB -> 3.9 s, 0.56 GB.
+  - `compute_splicing_events()` on integer keys with one overlap join:
+    2.5 GB -> 1.4 GB (default threads), 0.98 GB with 4 threads;
+    `compute_transcript_features()` 3.3 -> 2.1 GB, same 34 s.
+  - `prepare_isoformic_annotation()` (narrow features table, wide pass on
+    genes and transcripts): GENCODE 50 with patches and haplotypes, GFF3
+    90 s, 4.95 GB -> 29 s, 2.15 GB; GTF 105 s, 5.1 GB -> 41 s, 3.15 GB.
+    `merge_annotations()` in DuckDB `COPY` (sequences with one thread):
+    two GENCODE 50 directories with sequences 54 s, 4.65 GB -> 9.5 s,
+    1.81 GB. Tables identical on GENCODE 50 and 17 small edge-case files.
+  - `read_inferential_replicates()`: `.rowSums()` in place, collection per
+    sample; 12 placenta samples, 25 draws: 1.32 GB (3.0x) -> 0.96 GB
+    (2.2x). `read_isoformic()` unchanged (no real excess, see Backlog).
+    `write_salmon_gentrome()` checks the whole decoy for CRLF, not 64 KiB.
+  - `workers`: daemons kept for the session with a health check (dead
+    daemons replaced, a call whose daemons all die fails after 30 s);
+    `isoformic_workers(n)` exported. W1 (18 fgsea runs, 4 CPUs, median of
+    3): loop of small calls 12.7 s serial, 11.3 s with 2 (1.13x), 7.9 s
+    with 4 (1.62x; per-call daemons were 0.61x and 0.70x); one call 13.1,
+    9.2 (1.43x), 6.5 s (2.02x); about 0.3 GB PSS per daemon.
+  - Parallelism benchmark (`eval-parallelism/NOTES.md`, 90 runs under the
+    heavy-job lock): W1 at N = 4 `mizu_mori` 5.41 s (2.50x) to `snow`
+    6.76 s, serial 13.51 s; fgsea `nproc = 4` 0.66x. W2 (loop over the
+    draws): `mc` 2.47x at 0.42 GB PSS per worker, out-of-process backends
+    0.9-1.0 GB per worker and 0.5x-1.57x; `run_tasks()` 0.65x with 9 GB
+    PSS; subsetting a `mori`-shared matrix copies it.
+  - Memory benchmark (`benchmark_memory.R`, GENCODE 50, 12 placenta
+    samples, 25 draws, one copy of the draws 0.441 GB; peak above start,
+    code before round 2 -> after, same run conditions):
+    `read_inferential_replicates()` 1.33 -> 0.99 GB;
+    `add_uncertainty(paths = )` 2.02 -> 1.93 GB; `productive_fraction()`
+    with stored ORFs 3.02 -> 2.27 GB (6.8x -> 5.2x), 54 -> 51 s;
+    `prepare_annotation` 5.19 -> 2.40 GB, 37 -> 20 s;
+    `transcript_features` 3.64 -> 2.48 GB; `splice_site_strength`
+    2.17 -> 1.44 GB, 113 -> 38 s; the gene call 2.21 -> 0.58 GB,
+    106 -> 7 s; `poison_exons` 3.72 -> 2.91 GB, 153 -> 63 s;
+    `transcript_sequences` of six genes 2.76 -> 0.84 GB, 7.7 -> 0.3 s;
+    `read_isoformic()` 1.32 -> 1.33 GB. Steps below 0.3 GB moved within
+    noise. With a fresh annotation copy `productive_fraction()` also
+    computes the ORFs genome-wide (8.1 GB, 278 s; the ORF computation alone
+    6.1 GB, 235 s, the same before and after).

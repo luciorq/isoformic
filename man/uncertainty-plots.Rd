@@ -5,11 +5,8 @@
 \alias{plot_de_confidence}
 \alias{plot_isoform_correlation}
 \alias{plot_inf_rv}
-\alias{confidence_palette}
 \title{Plot the uncertainty of isoform-level results}
 \usage{
-confidence_palette()
-
 plot_de_confidence(self, gene_name, ncol = 1L, ...)
 
 plot_isoform_correlation(self, gene_name, ncol = 1L, ...)
@@ -18,7 +15,7 @@ plot_inf_rv(self, top_types = 6L, ...)
 }
 \arguments{
 \item{self}{An \link{IsoformicExperiment} with uncertainty tables (see
-\code{\link[=add_uncertainty]{add_uncertainty()}}); \code{plot_de_confidence()} also needs the confidence
+\code{\link[=add_uncertainty]{add_uncertainty()}}); \code{plot_de_confidence()} also needs the fold-change
 table of \code{add_uncertainty(group = )}.}
 
 \item{gene_name}{Gene names or IDs to plot.}
@@ -30,18 +27,21 @@ table of \code{add_uncertainty(group = )}.}
 \item{top_types}{Number of the most frequent transcript types to show.}
 }
 \value{
-A \code{ggplot} object, or a named character vector for
-\code{confidence_palette()}.
+A \code{ggplot} object.
 }
 \description{
 \itemize{
 \item \code{plot_de_confidence(x, gene_name)} shows, for the isoforms of the given
 genes, the median log2 fold-change over the inferential replicates with
-its 95\% interval, coloured by the confidence class that
-\code{add_uncertainty(group = )} stored (see \code{\link[=de_confidence]{de_confidence()}}; grey for
+its 95\% interval, coloured by whether the direction of the fold-change
+is stable over the replicates (\code{unstable} in the table that
+\code{add_uncertainty(group = )} stored, see \code{\link[=de_confidence]{de_confidence()}}; grey for
 isoforms not assessed) and with the shape marking the calls of the
-primary differential expression test. An interval that crosses zero or a
-\code{moderate} or \code{low} class tells the reader not to trust the call.
+primary differential expression test. An unstable direction marks a
+call whose sign the quantification does not determine; in a placenta
+cohort such calls replicated less often. A stable direction does not
+make a call right: in control-versus-control comparisons of that
+cohort, 93\% of the false calls had a stable direction.
 \item \code{plot_isoform_correlation(x, gene_name)} draws the correlation between
 the replicates of every pair of isoforms of a gene. Strongly negative
 cells (outlined when ambiguous) mark isoforms whose reads cannot be told
@@ -49,7 +49,6 @@ apart.
 \item \code{plot_inf_rv(x)} shows the distribution of the inferential relative
 variance (log scale) of the assessed transcripts per transcript type,
 with the cutoff used to call isoforms uncertain.
-\item \code{confidence_palette()} gives the colours of the confidence classes.
 }
 }
 \seealso{

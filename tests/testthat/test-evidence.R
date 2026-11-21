@@ -1,9 +1,9 @@
 evidence_experiment <- function(envir = parent.frame()) {
   annot <- mini_annotation("mini_cds.gff3", envir = envir)
-  extract_transcript_sequences(
+  suppressMessages(extract_transcript_sequences(
     annot,
     genome_fasta = mini_genome_fasta(envir = envir)
-  )
+  ))
   mat <- matrix(
     c(10, 5, 2, 1, 3, 10, 4, 3, 2, 3, 2, 1, 8, 6, 3, 1, 2, 9, 7, 3),
     nrow = 5,
@@ -82,7 +82,7 @@ testthat::test_that("Ribo-seq ORFs are matched by exon-block compatibility and l
   testthat::expect_identical(uorf, c("tA1", "tA2", "tA3", "tA4"))
   skip <- sort(pairs$transcript_id[pairs$orf_id == "skip"])
   testthat::expect_identical(skip, c("tA1", "tA3", "tA4"))
-  add_riboseq_orfs(iso, riboseq_table())
+  suppressMessages(add_riboseq_orfs(iso, riboseq_table()))
   rd <- row_data(iso)
   rd <- rd[match(c("tA1", "tA2", "tA3", "tA4", "tB1"), rd$transcript_id), ]
   testthat::expect_identical(
@@ -97,7 +97,7 @@ testthat::test_that("Ribo-seq ORFs are matched by exon-block compatibility and l
   testthat::expect_match(p$reason[p$transcript_id == "tA1"], "Ribo-seq")
   # Without sequences the annotated CDS defines the main ORF
   annot2 <- mini_annotation("mini_cds.gff3")
-  add_riboseq_orfs(annot2, riboseq_table())
+  suppressMessages(add_riboseq_orfs(annot2, riboseq_table()))
   tx2 <- read_parquet(fs::path(annot2, "annot_data_transcripts.parquet"))
   testthat::expect_true(tx2$riboseq_main_orf[tx2$transcript_id == "tA1"])
   testthat::expect_error(
@@ -118,7 +118,7 @@ testthat::test_that("add_nmd_exons flags transcripts with validated NMD exons", 
     gene_id = "gA",
     gene_name = "GENEA"
   )
-  add_nmd_exons(iso, nmd)
+  suppressMessages(add_nmd_exons(iso, nmd))
   rd <- row_data(iso)
   testthat::expect_true(rd$nmd_validated_exon[rd$transcript_id == "tA3"])
   testthat::expect_true(is.na(rd$nmd_validated_exon[rd$transcript_id == "tA1"]))

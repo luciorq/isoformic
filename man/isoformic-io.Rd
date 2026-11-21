@@ -52,20 +52,50 @@ Parquet files and \code{read_isoformic()} restores it. The layout is:
   dea/det.parquet, dea/deg.parquet, dea/cutoffs.parquet
   dea/uncertainty.parquet, dea/ambiguity.parquet, dea/confidence.parquet
   gsea/<name>.parquet       list columns joined with ";"
+  inf_reps/draw_0001.parquet, ...  one draw: transcript_id + samples
+  inf_reps/moments/mean.parquet, var.parquet  replicate moments
   annotation/               copy of the annotation directory (optional)
 }\if{html}{\out{</div>}}
 
 Each file is written only when the object holds that part. Entries of
-\code{metadata} that are not single values are dropped with a warning. The
-inferential replicates (\code{self@metadata$inf_reps}) are not written: they
-are large and are read again from the quantification output; the
-uncertainty tables derived from them (see \code{\link[=add_uncertainty]{add_uncertainty()}}) are.
+\code{metadata} that are not single values are dropped with a warning.
+
+The inferential replicates (\code{self@metadata$inf_reps}, see
+\code{\link[=read_inferential_replicates]{read_inferential_replicates()}} and \code{\link[=add_uncertainty]{add_uncertainty()}}) are written to
+\verb{inf_reps/}: one Parquet file per draw (\code{draw_0001.parquet}, ...) with
+\code{transcript_id} and one column per sample, and, when the replicates have
+a \code{moments} attribute, its \code{mean} and \code{var} matrices in
+\verb{inf_reps/moments/}. Their number, their type (the \code{samp_type}
+attribute) and the number of draws behind the moments are recorded in
+\code{metadata.parquet} under the keys \code{inf_reps_n_draws},
+\code{inf_reps_samp_type} and \code{inf_reps_moments_n}; when replicates are
+written, these keys replace entries of \code{metadata} with those names, with
+a warning. One draw is written, and read, at a time, so memory holds the
+replicates and a single draw on top of them. The replicates of a subset
+(\code{x[i, j]} shares the draws of \code{x} and records a \code{selection}, see
+\link{IsoformicExperiment}) are written as the selected transcripts and
+samples only, and the moments as the selected samples. \code{read_isoformic()}
+restores the list of matrices with its \code{samp_type} and \code{moments}
+attributes, as they were (including the storage mode of the matrices and
+of \code{n}); for a subset, as plain matrices of the selected draws, without
+the \code{selection}. Only
+these are kept: names of the draws, other attributes of the list or of
+the matrices and names of their dimnames are dropped, with a warning.
+Replicates that are not numeric matrices with transcript and sample
+names are not written, with a warning. Directories written by earlier
+versions have no \verb{inf_reps/} and are read without replicates. Use
+\code{add_uncertainty(keep_draws = FALSE)}, or remove \code{metadata$inf_reps}, to
+save an object without its replicates.
 
 With \code{copy_annotation = TRUE} the annotation directory is copied inside
 the experiment directory so that the result is self-contained and
 portable. The cached ORF table (\code{annot_data_orfs.parquet}) is left out
 of the copy and computed again when needed. An annotation that lies
-inside the directory being replaced is always copied. Otherwise
+inside the directory being replaced is always copied, and so is an
+annotation directory under \code{\link[=tempdir]{tempdir()}} (such as the private copy made by
+\code{\link[=example_isoformic]{example_isoformic()}}) when \code{path} is not under \code{\link[=tempdir]{tempdir()}} itself: the
+temporary directory is removed when the R session ends. A message says
+so. Otherwise
 \code{annot_path} is stored as an absolute path and must still exist when the
 object is read back (it can be overridden with the \code{annot_path} argument
 of \code{read_isoformic()}). Without that argument, \code{read_isoformic()} uses

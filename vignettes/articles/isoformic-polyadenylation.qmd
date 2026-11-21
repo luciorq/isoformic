@@ -50,14 +50,14 @@ if (!full_run) {
 A change of 3' end does not change the protein but changes the 3' UTR, its miRNA and RNA-binding protein sites, and sometimes the last exon.
 This article ranks the 3' ends of every gene, classifies each isoform by the kind of alternative polyadenylation (APA) it represents, quantifies the usage of the distal site, tests its shift between conditions and tests gene sets for a shift of their genes.
 
-It starts from the object built in the [introduction](isoformic-introduction.html), with the transcript sequences added in the [productivity article](isoformic-productivity.html) (they are optional here; without them the poly(A) signal columns are `NA`):
+It starts from the object built in the [introduction](isoformic-introduction.html) and adds the transcript sequences, as in the [productivity article](isoformic-productivity.html) (they are optional here; without them the poly(A) signal columns are `NA`, and with them a signal is `NA` when no signal hexamer lies within `signal_window` nucleotides, 50 by default, of the annotated 3' end; this is common, because annotated ends are often not the exact cleavage site):
 
 ```{r}
 #| message: false
 library(isoformic)
 library(dplyr)
 
-extdata <- fs::path_package("isoformic", "extdata")
+data_dir <- "data/preeclampsia"
 annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 extract_transcript_sequences(
   annot_dir,
@@ -66,8 +66,8 @@ extract_transcript_sequences(
 iso <- IsoformicExperiment(
   experiment_name = "preeclampsia_placenta",
   annot_path = annot_dir,
-  assays = list(abundance = read_parquet(fs::path(extdata, "pe_abundance.parquet"))),
-  col_data = read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+  assays = list(abundance = read_parquet(fs::path(data_dir, "pe_abundance.parquet"))),
+  col_data = read_parquet(fs::path(data_dir, "pe_col_data.parquet"))
 )
 ```
 
@@ -113,7 +113,7 @@ It also takes the table of `apa_usage()` for two or more groups, so that one tab
 
 ```{r}
 #| warning: false
-genesets <- read_gmt(fs::path(extdata, "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"))
+genesets <- read_gmt(fs::path(data_dir, "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"))
 usage <- apa_usage(iso, group = "condition")
 set.seed(42)
 apa_enrichment <- run_apa_enrichment(usage, genesets)

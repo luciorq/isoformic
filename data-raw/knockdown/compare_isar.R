@@ -102,8 +102,6 @@ iso <- add_uncertainty(
   group = "condition",
   levels = c("control", "knockdown")
 )
-conf <- de_confidence(iso)
-unc <- tx_uncertainty(iso)
 frac <- isoform_fraction(iso)
 d_if <- rowMeans(frac[, design$condition == "knockdown", drop = FALSE]) -
   rowMeans(frac[, design$condition == "control", drop = FALSE])
@@ -149,6 +147,9 @@ tested_sets <- list(
   `isoformic DEXSeq, raw counts` = unscaled$transcript_id,
   `isoformic DEXSeq, uncertainty divided out` = scaled$transcript_id
 )
+# `unstable` is the direction stability of the isoform's expression
+# fold-change (de_confidence()), not of its usage change: for usage calls it
+# mostly marks isoforms whose expression does not change.
 conf <- de_confidence(iso)
 unc <- tx_uncertainty(iso)
 props <- function(ids) {
@@ -157,8 +158,7 @@ props <- function(ids) {
   tibble::tibble(
     uncertain = sum(u$uncertain %in% TRUE),
     ambiguous = sum(!is.na(u$ambiguity_group)),
-    unstable = sum(cf$sign_agreement < 0.95, na.rm = TRUE),
-    high_confidence = sum(cf$confidence %in% "high")
+    unstable = sum(cf$unstable %in% TRUE)
   )
 }
 summary_table <- dplyr::bind_rows(lapply(names(call_sets), function(nm) {

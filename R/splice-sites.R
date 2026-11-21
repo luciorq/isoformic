@@ -34,6 +34,13 @@
 #' the background taken from the base composition of the training windows
 #' and half a pseudocount per base. Positive means closer to the consensus.
 #'
+#' The matrices are trained once per annotation directory and kept for the
+#' session. With `gene_name`, only the introns of those genes are read and
+#' scored, with the same matrices, so a transcript gets the same scores as in
+#' the genome-wide table. On an [IsoformicExperiment], the table by
+#' transcript is cached in the object, and later calls with `gene_name` take
+#' their rows from it.
+#'
 #' Limits. The matrices assume that positions are independent, so they are
 #' weaker than MaxEntScan or a sequence model, and they describe the major
 #' (GT-AG) spliceosome: U12 introns and other non-canonical sites get low
@@ -71,7 +78,7 @@
 #' Computational Biology* 11(2-3), 377-394.
 #'
 #' @examples
-#' gff <- system.file("extdata", "example.gff3", package = "isoformic")
+#' gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 #' annot <- prepare_isoformic_annotation(
 #'   gff,
 #'   output_path = tempdir(),
@@ -141,9 +148,39 @@ S7::method(splice_site_strength, IsoformicExperiment) <- function(
   ...
 ) {
   by <- rlang::arg_match(by)
-  res <- compute_splice_site_strength(self@annot_path, by)
-  res <- res[res$transcript_id %in% row_names(self), ]
-  filter_genes(res, gene_name)
+  transcripts <- row_names(self)
+  compute <- function(genes) {
+    res <- compute_splice_site_strength(
+      self@annot_path,
+      by,
+      transcripts = transcripts,
+      gene_name = genes
+    )
+    res[res$transcript_id %in% transcripts, ]
+  }
+  if (identical(by, "transcript")) {
+    # One row per transcript of the object: cached, and reused for a gene
+    # once it is there. A gene alone, with nothing cached, reads and scores
+    # only the introns of that gene.
+    signature <- paste(
+      annot_full_signature(self),
+      annot_signature(self@annot_path, "splice_sites"),
+      rlang::hash(transcripts)
+    )
+    res <- object_cache_peek(self, "splice_site_strength", signature)
+    if (is.null(res) && is.null(gene_name)) {
+      res <- object_cache_fetch(
+        self,
+        "splice_site_strength",
+        signature,
+        function() compute(NULL)
+      )
+    }
+    if (!is.null(res)) {
+      return(filter_genes(res, gene_name))
+    }
+  }
+  filter_genes(compute(gene_name), gene_name)
 }
 
 S7::method(splice_site_strength, S7::class_character) <- function(
@@ -154,7 +191,11 @@ S7::method(splice_site_strength, S7::class_character) <- function(
 ) {
   by <- rlang::arg_match(by)
   filter_genes(
-    compute_splice_site_strength(annotation_dir_of(self), by),
+    compute_splice_site_strength(
+      annotation_dir_of(self),
+      by,
+      gene_name = gene_name
+    ),
     gene_name
   )
 }
@@ -351,36 +392,141 @@ train_splice_matrices <- function(sites, training, min_training = 100L) {
   )
 }
 
-#' Scores per intron or per transcript for an annotation directory
+#' Splice-site matrices of an annotation directory (cached)
+#'
+#' Trained once per splice-site table and kept in the annotation cache, keyed
+#' by the directory and invalidated when the splice sites, the exons or the
+#' transcripts change.
 #' @keywords internal
 #' @noRd
-compute_splice_site_strength <- function(annot_dir, by) {
-  w <- splice_window()
-  sites <- read_annotation_table(annot_dir, "splice_sites")
-  exons <- read_annotation_table(
-    annot_dir,
-    "exons",
-    columns = c("transcript_id", "seqid", "start_pos", "end_pos", "strand")
+splice_site_model <- function(annot_dir) {
+  signature <- paste(
+    annot_signature(annot_dir, "splice_sites"),
+    annot_signature(annot_dir, "exons"),
+    annot_signature(annot_dir, "transcripts")
   )
-  tx <- read_annotation_table(annot_dir, "transcripts")
+  cache_fetch(
+    annotation_cache,
+    paste0("splice_pwm::", annot_dir),
+    signature,
+    function() train_splice_site_model(annot_dir)
+  )
+}
+
+#' Train the splice-site matrices on the introns of the canonical transcripts
+#'
+#' Only the exons of the canonical transcripts are read.
+#' @keywords internal
+#' @noRd
+train_splice_site_model <- function(annot_dir) {
+  sites <- read_annotation_table(
+    annot_dir,
+    "splice_sites",
+    columns = c(splice_site_key(), "donor_seq", "acceptor_seq")
+  )
+  tx_file <- annot_file_path(annot_dir, "transcripts")
+  canonical_tx <- character()
+  if ("is_canonical" %in% colnames(read_parquet(tx_file, n_max = 0L))) {
+    tx <- read_annotation_table(
+      annot_dir,
+      "transcripts",
+      columns = c("transcript_id", "is_canonical")
+    )
+    canonical_tx <- tx$transcript_id[tx$is_canonical %in% TRUE]
+  }
+  training <- rep(FALSE, nrow(sites))
+  if (length(canonical_tx)) {
+    canonical_introns <- transcript_introns(read_annotation_table(
+      annot_dir,
+      "exons",
+      columns = c("transcript_id", "seqid", "start_pos", "end_pos", "strand"),
+      filter = list(transcript_id = canonical_tx)
+    ))
+    training <- intron_key(sites) %in% intron_key(canonical_introns)
+  }
+  train_splice_matrices(sites, training)
+}
+
+#' Columns that identify an intron
+#' @keywords internal
+#' @noRd
+splice_site_key <- function() {
+  c("seqid", "strand", "intron_start", "intron_end")
+}
+
+#' Text key of an intron, for matching introns to splice sites
+#' @keywords internal
+#' @noRd
+intron_key <- function(t) {
+  paste(t$seqid, t$strand, t$intron_start, t$intron_end, sep = ":")
+}
+
+#' Scores per intron or per transcript for an annotation directory
+#'
+#' `transcripts` (transcript IDs) and `gene_name` (gene names or IDs) restrict
+#' the transcripts reported; only their exons and the splice sites of their
+#' introns are read and scored. The matrices are always those of the whole
+#' annotation (`splice_site_model()`), so a transcript gets the same scores
+#' whatever the restriction.
+#' @keywords internal
+#' @noRd
+compute_splice_site_strength <- function(
+  annot_dir,
+  by,
+  transcripts = NULL,
+  gene_name = NULL
+) {
+  w <- splice_window()
+  model <- splice_site_model(annot_dir)
   genes <- read_annotation_table(
     annot_dir,
     "genes",
     columns = c("gene_id", "gene_name")
   )
-  introns <- transcript_introns(exons)
-  key <- function(t) {
-    paste(t$seqid, t$strand, t$intron_start, t$intron_end, sep = ":")
-  }
-  site_key <- key(sites)
-  canonical_tx <- if ("is_canonical" %in% colnames(tx)) {
-    tx$transcript_id[tx$is_canonical %in% TRUE]
+  tx_cols <- c("transcript_id", "gene_id")
+  by_gene <- !is.null(gene_name) && !anyNA(gene_name)
+  tx <- if (by_gene) {
+    gene_name <- as.character(gene_name)
+    wanted <- unique(c(
+      gene_name,
+      genes$gene_id[genes$gene_name %in% gene_name]
+    ))
+    read_annotation_table(
+      annot_dir,
+      "transcripts",
+      columns = tx_cols,
+      filter = list(gene_id = wanted)
+    )
   } else {
-    character()
+    read_annotation_table(annot_dir, "transcripts", columns = tx_cols)
   }
-  training <- site_key %in%
-    key(introns[introns$transcript_id %in% canonical_tx, ])
-  model <- train_splice_matrices(sites, training)
+  exon_cols <- c("transcript_id", "seqid", "start_pos", "end_pos", "strand")
+  wanted_tx <- if (by_gene) tx$transcript_id else transcripts
+  if (by_gene && !is.null(transcripts)) {
+    wanted_tx <- intersect(wanted_tx, transcripts)
+  }
+  if (is.null(wanted_tx)) {
+    exons <- read_annotation_table(annot_dir, "exons", columns = exon_cols)
+  } else {
+    exons <- read_annotation_table(
+      annot_dir,
+      "exons",
+      columns = exon_cols,
+      filter = list(transcript_id = wanted_tx)
+    )
+  }
+  introns <- transcript_introns(exons)
+  rm(exons)
+  sites_file <- annot_file_path(annot_dir, "splice_sites")
+  sites <- if (is.null(wanted_tx)) {
+    read_annotation_table(annot_dir, "splice_sites")
+  } else {
+    read_parquet_matching(
+      sites_file,
+      key = splice_site_key(),
+      values = introns[, splice_site_key()]
+    )
+  }
   sites$donor_score <- score_pwm(sites$donor_seq, model$donor)
   sites$acceptor_score <- score_pwm(sites$acceptor_seq, model$acceptor)
   sites$canonical_dinucleotides <- substr(
@@ -391,7 +537,7 @@ compute_splice_site_strength <- function(annot_dir, by) {
     "GT" &
     substr(sites$acceptor_seq, w$acceptor_intron - 1L, w$acceptor_intron) ==
       "AG"
-  idx <- match(key(introns), site_key)
+  idx <- match(intron_key(introns), intron_key(sites))
   introns <- dplyr::bind_cols(
     introns,
     sites[
@@ -405,8 +551,9 @@ compute_splice_site_strength <- function(annot_dir, by) {
       )
     ]
   )
-  gene_of <- tx$gene_id[match(introns$transcript_id, tx$transcript_id)]
+  rm(sites)
   if (identical(by, "intron")) {
+    gene_of <- tx$gene_id[match(introns$transcript_id, tx$transcript_id)]
     res <- tibble::add_column(
       introns,
       gene_id = gene_of,
@@ -414,19 +561,10 @@ compute_splice_site_strength <- function(annot_dir, by) {
       .after = "transcript_id"
     )
   } else {
-    scored <- !is.na(introns$donor_score) & !is.na(introns$acceptor_score)
-    per_tx <- introns |>
-      dplyr::mutate(scored = scored) |>
-      dplyr::summarise(
-        n_introns = dplyr::n(),
-        n_scored = sum(.data$scored),
-        weakest_donor = min_or_na(.data$donor_score),
-        weakest_acceptor = min_or_na(.data$acceptor_score),
-        mean_donor = mean(.data$donor_score, na.rm = TRUE),
-        mean_acceptor = mean(.data$acceptor_score, na.rm = TRUE),
-        n_noncanonical = sum(!.data$canonical_dinucleotides, na.rm = TRUE),
-        .by = "transcript_id"
-      )
+    per_tx <- splice_strength_by_transcript(introns)
+    if (!is.null(transcripts)) {
+      tx <- tx[tx$transcript_id %in% transcripts, ]
+    }
     res <- tibble::tibble(
       transcript_id = tx$transcript_id,
       gene_id = tx$gene_id,
@@ -436,15 +574,66 @@ compute_splice_site_strength <- function(annot_dir, by) {
     res$n_introns[is.na(res$n_introns)] <- 0L
     res$n_scored[is.na(res$n_scored)] <- 0L
     res$n_noncanonical[is.na(res$n_noncanonical)] <- 0L
-    res$mean_donor[is.nan(res$mean_donor)] <- NA_real_
-    res$mean_acceptor[is.nan(res$mean_acceptor)] <- NA_real_
   }
   attr(res, "n_training") <- model$n_training
   attr(res, "training_set") <- model$training_set
   res
 }
 
-min_or_na <- function(x) {
-  x <- x[!is.na(x)]
-  if (length(x)) min(x) else NA_real_
+#' Per-transcript summary of the intron scores, without a closure per group
+#'
+#' Counts with `tabulate()`, minima from one ordering of all introns, and
+#' means with `mean()` (the same long-double sum as before) only for the
+#' transcripts with two or more scored introns.
+#' @keywords internal
+#' @noRd
+splice_strength_by_transcript <- function(introns) {
+  ids <- unique(introns$transcript_id)
+  n <- length(ids)
+  g <- match(introns$transcript_id, ids)
+  scored <- !is.na(introns$donor_score) & !is.na(introns$acceptor_score)
+  tibble::tibble(
+    transcript_id = ids,
+    n_introns = tabulate(g, n),
+    n_scored = tabulate(g[scored], n),
+    weakest_donor = group_min(introns$donor_score, g, n),
+    weakest_acceptor = group_min(introns$acceptor_score, g, n),
+    mean_donor = group_mean(introns$donor_score, g, n),
+    mean_acceptor = group_mean(introns$acceptor_score, g, n),
+    n_noncanonical = tabulate(g[introns$canonical_dinucleotides %in% FALSE], n)
+  )
+}
+
+#' Minimum of the non-missing values of each group; `NA` when there are none
+#' @keywords internal
+#' @noRd
+group_min <- function(x, g, n) {
+  out <- rep(NA_real_, n)
+  keep <- !is.na(x)
+  gk <- g[keep]
+  xk <- x[keep]
+  o <- order(gk, xk, method = "radix")
+  first <- o[!duplicated(gk[o])]
+  out[gk[first]] <- xk[first]
+  out
+}
+
+#' Mean of the non-missing values of each group; `NA` when there are none
+#' @keywords internal
+#' @noRd
+group_mean <- function(x, g, n) {
+  out <- rep(NA_real_, n)
+  keep <- !is.na(x)
+  gk <- g[keep]
+  xk <- x[keep]
+  size <- tabulate(gk, n)
+  # One value: the mean is the value
+  single <- size[gk] == 1L
+  out[gk[single]] <- xk[single]
+  multi <- !single
+  if (any(multi)) {
+    means <- vapply(split(xk[multi], gk[multi]), mean, numeric(1L))
+    out[as.integer(names(means))] <- unname(means)
+  }
+  out
 }

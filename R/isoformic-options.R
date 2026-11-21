@@ -1,10 +1,11 @@
 #' Options and environment variables used by isoformic
 #'
 #' @description
-#' isoformic has two package options, `isoformic.frozen_mirrors` and
-#' `isoformic.orf_cache`, and is otherwise configured through base R
-#' options, the environment variables that locate the user cache and the
-#' settings of the packages it builds on.
+#' isoformic has five package options, `isoformic.duckdb_memory_limit`,
+#' `isoformic.duckdb_threads`, `isoformic.frozen_mirrors`,
+#' `isoformic.orf_cache` and `isoformic.workers`, and is otherwise
+#' configured through base R options, the environment variables that locate
+#' the user cache and the settings of the packages it builds on.
 #' This page lists every setting the package reads or is affected by, what
 #' it changes and where it is used. Settings are read at call time, so they
 #' can be changed with [options()] / [Sys.setenv()] in a session, scoped
@@ -13,6 +14,28 @@
 #'
 #' @section Package options:
 #' \describe{
+#'   \item{`isoformic.duckdb_threads`}{Number of threads of the DuckDB
+#'     connections that read and write Parquet and run the annotation and
+#'     uncertainty queries: a single positive whole number, such as `4`.
+#'     Default: unset. When `SLURM_CPUS_PER_TASK` is set or the affinity
+#'     mask of the R process excludes some CPUs (`taskset`, schedulers that
+#'     pin cores), isoformic uses the smallest of `SLURM_CPUS_PER_TASK`, the
+#'     CPUs of the mask and the cgroup CPU quota. Otherwise DuckDB uses all
+#'     the CPUs of the machine, or the cgroup CPU quota when there is one.}
+#'   \item{`isoformic.duckdb_memory_limit`}{Memory limit of each DuckDB
+#'     connection: a single string with a size and a unit, such as `"8GB"`
+#'     or `"512MiB"` (units KB, MB, GB, TB, KiB, MiB, GiB, TiB), of at
+#'     least 1 MiB. A query above it spills to disk when it can and fails
+#'     otherwise. Default: unset. isoformic then sets 80% of
+#'     `SLURM_MEM_PER_NODE`, or of `SLURM_MEM_PER_CPU` times
+#'     `SLURM_CPUS_PER_TASK` (or 1), when one is set, or 80% of the cgroup
+#'     memory limit when that is smaller, and at least 64 MiB; otherwise
+#'     DuckDB uses 80% of the RAM, or of the cgroup memory limit when there
+#'     is one. Set it explicitly under `ulimit -v`, which DuckDB does not
+#'     see. Both DuckDB options are read when a connection opens a database. A
+#'     database file that is already open in the session (by a connection
+#'     that is still open) is shared and keeps the settings it was opened
+#'     with.}
 #'   \item{`isoformic.frozen_mirrors`}{Character vector of base URLs tried
 #'     first by [fetch_frozen_data()] (and every function that loads a frozen
 #'     dataset, such as [add_appris()] or `polya_sites(polya_atlas =
@@ -29,6 +52,15 @@
 #'     reading and writing `annot_data_orfs.parquet`, the table of the ORFs
 #'     computed so far that it keeps in the annotation directory. The ORFs
 #'     are then computed in every session. Default: unset (`TRUE`).}
+#'   \item{`isoformic.workers`}{Default of the `workers` argument of
+#'     [run_enrichment()], [run_productivity_enrichment()] and
+#'     [run_apa_enrichment()]: the number of `mirai` daemons that run their
+#'     `fgsea` calls in parallel, a whole number of at least 1, or `"auto"`
+#'     for `parallelly::availableCores()`. The count is capped at the number
+#'     of `fgsea` calls. Default: unset (1, serial, the results of earlier
+#'     versions). Above 1 every `fgsea` call gets its own seed, so the
+#'     sampled p-values differ slightly from a serial run but not between
+#'     worker counts; see *Workers* in [run_enrichment()].}
 #' }
 #'
 #' @section Base R options:
@@ -50,13 +82,18 @@
 #'     progress is silenced (`quiet = TRUE` in [utils::download.file()]) and
 #'     missing optional packages (for example `fgsea`, `condathis`,
 #'     `readxl`, `Matrix`, `SummarizedExperiment`, or `edgeR`, `limma`,
-#'     `satuRn`, `DEXSeq` and `BiocParallel` for [test_usage()]) raise an
+#'     `satuRn`, `DEXSeq` and `BiocParallel` for [test_usage()], `mirai`
+#'     for `workers` above 1 in the enrichment functions) raise an
 #'     error instead of an installation prompt.}
 #'   \item{`cli.num_colors`, `cli.unicode`, `cli.default_handler`,
-#'     `cli.width`, `cli.progress_show_after`}{Rendering of every message,
-#'     warning and error, which the package emits through the `cli` package.
-#'     `cli.unicode = FALSE` and `cli.num_colors = 1` produce plain ASCII
-#'     output for logs; see `?cli::cli-config`.}
+#'     `cli.width`, `cli.progress_show_after`, `crayon.enabled`,
+#'     `crayon.colors`}{Rendering of every message, warning and error, which
+#'     the package emits through the `cli` package (`cli` also honours the
+#'     older `crayon.*` options). `cli.unicode = FALSE` and
+#'     `cli.num_colors = 1` produce plain ASCII output for logs;
+#'     `crayon.enabled = FALSE` turns off ANSI colours, and `just test` and
+#'     `just test-full` set it together with `cli.unicode = FALSE`; see
+#'     `?cli::cli-config`.}
 #' }
 #'
 #' @section Environment variables:
@@ -83,26 +120,64 @@
 #'     that the download functions run first when `curl` is installed.}
 #'   \item{`CURL_CA_BUNDLE`, `SSL_CERT_FILE`}{Certificate bundle used by the
 #'     `libcurl` download method, needed behind TLS-intercepting proxies.}
+#'   \item{`SLURM_CPUS_PER_TASK`, `SLURM_MEM_PER_NODE`,
+#'     `SLURM_MEM_PER_CPU`}{Set by Slurm inside a job. When the
+#'     `isoformic.duckdb_threads` and `isoformic.duckdb_memory_limit`
+#'     options are unset, they bound the threads and set the memory limit of
+#'     the DuckDB connections (memory in megabytes, as Slurm writes it; `0`
+#'     is ignored), so that DuckDB sizes itself to the job and not to the
+#'     node.}
+#'   \item{`OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS`, `MKL_NUM_THREADS`,
+#'     `VECLIB_MAXIMUM_THREADS`, `R_DATATABLE_NUM_THREADS`, `R_LIBS`}{Set,
+#'     for the daemons only, when the enrichment functions start `mirai`
+#'     daemons (`workers` above 1, or [isoformic_workers()]): the thread
+#'     variables to 1, so that each daemon uses one core, and `R_LIBS` to the
+#'     session's [.libPaths()], so that the daemons find the packages of the
+#'     session. The session's own values are not changed.}
 #' }
 #'
 #' @section Settings of other packages:
 #' \describe{
 #'   \item{DuckDB}{Every Parquet read and write ([read_parquet()],
 #'     [write_parquet()], [read_tabular()]) and the heavy joins run in a
-#'     short-lived in-memory DuckDB connection with the DuckDB defaults:
-#'     all CPU cores (`threads`) and 80% of the RAM as `memory_limit`. The
-#'     package does not expose these; they are DuckDB session settings and
-#'     the connections are not shared with user code. Besides the storage
-#'     locations below, the package only turns off the DuckDB progress bar
+#'     short-lived in-memory DuckDB connection, which is not shared with
+#'     user code. Its `threads` and `memory_limit` come from the
+#'     `isoformic.duckdb_threads` and `isoformic.duckdb_memory_limit`
+#'     options or the Slurm and affinity defaults described above, and
+#'     otherwise from DuckDB. Besides these and the storage locations below,
+#'     the package only turns off the DuckDB progress bar
 #'     (`enable_progress_bar`). Extensions, secrets and the files of a
 #'     query that spills to disk go to `isoformic-duckdb/` under
 #'     [tempdir()], unless the `duckdb.home`
 #'     option or the `DUCKDB_R_HOME` environment variable is set: DuckDB
 #'     then uses its own locations under that directory.}
-#'   \item{BiocParallel}{The `fgsea` calls of the enrichment functions run
+#'   \item{BiocParallel}{Each `fgsea` call of the enrichment functions runs
 #'     with `BiocParallel::SerialParam()` unless `BPPARAM` or `nproc` is
 #'     passed through `...`, so a backend set with `BiocParallel::register()`
-#'     is not used. [test_usage()] uses its `workers` argument instead.}
+#'     is not used; the calls run in parallel through `workers` instead.
+#'     The `workers` argument of [test_usage()] is different: it builds a
+#'     `BiocParallel::MulticoreParam()` on Unix-like systems.}
+#'   \item{mirai}{With `workers` above 1 the enrichment functions run on
+#'     the daemons of the `mirai` compute profile `"isoformic"`. When that
+#'     profile has no daemons, they start them (with one thread each) and
+#'     keep them for the session, resizing them to the `workers` of later
+#'     calls and replacing those that died; [isoformic_workers()] starts a
+#'     fixed number ahead or stops them, and they are stopped when the session ends or isoformic is
+#'     unloaded. Daemons that the user started on the profile
+#'     (`mirai::daemons(n, .compute = "isoformic")`) are used as they are
+#'     and left running; each call puts the session's library paths first
+#'     on the daemon while it runs, but they keep their own thread settings.
+#'     Starting daemons with `mirai::daemons()` draws from the session's
+#'     random number stream (isoformic's own start does not). Needs `mirai`
+#'     2.3.0 or later. Daemons of other profiles, including the default
+#'     one, are not used or changed.}
+#'   \item{parallelly}{`workers = "auto"` (or the `isoformic.workers`
+#'     option) calls `parallelly::availableCores()`, which reads the
+#'     `mc.cores` option, the `MC_CORES`, `SLURM_CPUS_PER_TASK` and other
+#'     scheduler environment variables, the CPU affinity mask and the cgroup
+#'     CPU quota, and its own `parallelly.availableCores.*` options and
+#'     `R_PARALLELLY_*` variables (see `?parallelly::availableCores`).
+#'     Without parallelly, `"auto"` is one worker.}
 #'   \item{`condathis.micromamba_path`, `CONDATHIS_MICROMAMBA_PATH`,
 #'     `CONDA_PREFIX`, `R_USER_DATA_DIR`, `XDG_DATA_HOME`}{Read by the
 #'     `condathis` package, which [salmon_index()], [salmon_quant()] and
@@ -120,10 +195,15 @@
 #' \describe{
 #'   \item{`ISOFORMIC_FULL`}{`"true"` runs the tests and articles that
 #'     download references or run external tools (`just test-full`,
-#'     `just render-articles-full`). Unset by default: the tests, examples
-#'     and site then use only the data bundled with the package.}
+#'     `just render-articles-full`, `just benchmark-memory`). Unset by
+#'     default: the tests, examples and site then use only the data bundled
+#'     with the package.}
 #'   \item{`TESTTHAT_CPUS`}{Number of parallel testthat workers used by
-#'     `just test`.}
+#'     `just test`; it only matters when parallel mode is on.}
+#'   \item{`TESTTHAT_PARALLEL`}{`"true"` or `"false"`; overrides
+#'     `Config/testthat/parallel: true` in `DESCRIPTION`.
+#'     `TESTTHAT_PARALLEL=false` runs the test files serially in one
+#'     process.}
 #'   \item{`NOT_CRAN`}{Set to `"true"` by `devtools::test()`; tests that need
 #'     optional packages use `testthat::skip_if_not_installed()`, and only
 #'     the tests gated by `ISOFORMIC_FULL` download data.}
@@ -155,4 +235,6 @@
 #' )
 #' @name isoformic-options
 #' @aliases isoformic_options isoformic.frozen_mirrors isoformic.orf_cache
+#' @aliases isoformic.duckdb_threads isoformic.duckdb_memory_limit
+#' @aliases isoformic.workers
 NULL

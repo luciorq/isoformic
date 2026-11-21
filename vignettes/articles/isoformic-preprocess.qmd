@@ -1,7 +1,7 @@
 ---
 title: "From Salmon quantifications to an IsoformicExperiment"
 date: 2025-10-02
-date-modified: 2026-11-12
+date-modified: 2026-11-20
 date-format: long
 author:
   - name: Lucio Rezende Queiroz
@@ -82,7 +82,7 @@ salmon_quant(
 ```
 
 `salmon_quant()` draws 30 Gibbs samples per sample by default (`num_gibbs = 0` skips them).
-Besides `swish`, they quantify how well the reads determine each isoform, which isoforms cannot be told apart and how confident each differential expression call is; `read_salmon(inferential = TRUE)` reads them and the [uncertainty article](isoformic-uncertainty.html) explains how to use and report them.
+Besides `swish`, they quantify how well the reads determine each isoform, which isoforms cannot be told apart and how stable the direction of each differential expression call is over the replicates; `read_salmon(inferential = TRUE)` reads them and the [uncertainty article](isoformic-uncertainty.html) explains how to use and report them.
 
 For a decoy-aware index (recommended by the Salmon authors), pass the genome FASTA as `decoy_fasta`, for GENCODE the `GRCh38.primary_assembly.genome.fa.gz` of the same release: `salmon_index()` writes the `gentrome` FASTA (transcripts followed by the genome) and `decoys.txt` (the genome sequence names) in a temporary directory, runs `salmon index --decoys decoys.txt` and removes them.
 The genome makes the index much larger and slower to build, and needs free disk space in `tempdir()` for a copy of the genome while it runs.

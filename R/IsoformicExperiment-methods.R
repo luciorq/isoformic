@@ -380,6 +380,11 @@ exon_table <- S7::new_generic(
 
 S7::method(exon_table, IsoformicExperiment) <- function(self, gene_name, ...) {
   rlang::check_required(gene_name)
+  annot_path <- prop_raw(self, "annot_path")
+  # Without the exons in memory, read only those of the selected genes
+  if (!is.null(annot_path) && !annot_table_cached(self, "exons")) {
+    return(exon_table_from_dir(annot_path, gene_name))
+  }
   build_exon_table(
     genes = self@annot_data_genes,
     transcripts = self@annot_data_transcripts,
@@ -405,7 +410,7 @@ S7::method(clear_cache, IsoformicExperiment) <- function(
   annotation = FALSE,
   ...
 ) {
-  cache <- attr(self, ".cache", exact = TRUE)
+  cache <- prop_raw(self, ".cache")
   rm(list = ls(cache, all.names = TRUE), envir = cache)
   if (isTRUE(annotation)) {
     rm(list = ls(annotation_cache, all.names = TRUE), envir = annotation_cache)

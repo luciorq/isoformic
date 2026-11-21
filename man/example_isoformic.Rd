@@ -14,7 +14,7 @@ temporary copy of the bundled one.
 Loads a small \link{IsoformicExperiment} bundled with the package: transcript
 abundances (TPM) and demonstration counts (TPM x 20, rounded) for the
 isoforms of 69 genes from a preeclampsia placenta RNA-seq study (25
-samples), GENCODE v33 annotation and transcript sequences for those
+samples), GENCODE v50 annotation and transcript sequences for those
 genes, and transcript- and gene-level differential expression results.
 It is used throughout the documentation and is suitable for trying every
 method of the class in well under a second.
@@ -28,9 +28,9 @@ annotation directory, such as \code{\link[=extract_transcript_sequences]{extract
 \code{\link[=add_nmd_exons]{add_nmd_exons()}}, therefore change only that private copy: the installed
 package is never modified, two calls never see each other's changes, and
 the copy is removed with the temporary directory when the R session ends.
-To keep an annotated object beyond the session, save it with
-\code{write_isoformic(iso, path, copy_annotation = TRUE)}, which stores the
-annotation inside the experiment directory.
+\code{\link[=write_isoformic]{write_isoformic()}} copies such a temporary annotation into an experiment
+directory outside \code{\link[=tempdir]{tempdir()}}, so an object saved there can be read again
+in a later session.
 }
 \examples{
 iso <- example_isoformic()

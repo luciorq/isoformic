@@ -1,0 +1,172 @@
+study: isoformic uncertainty evidence (placenta null, replication, knockdown)
+written: 2026-11-17 21:06:20 EST
+snapshot:
+  git_ref: HEAD
+  git_sha: 4a6e98318252353cee308f7dd5d3f7950081b103
+  tar_path: ${ISOFORMIC_UE_OUT}/pkg_snapshot/4a6e98318252353cee308f7dd5d3f7950081b103.tar
+  tar_sha256: ed07c2a51cdd40971a05350ac519f7f736eb061164e1464b6a3601d7352e0b2f
+  path: ${ISOFORMIC_UE_OUT}/pkg_snapshot/4a6e98318252353cee308f7dd5d3f7950081b103
+  uncommitted_changes_in_R_at_snapshot: 0
+  note: 'git archive of the commit: uncommitted edits are not in the snapshot'
+seeds:
+  base: 20261117
+  rule: seed of a unit = base + 1000 * package_index + unit_index
+  package_index:
+    S0: 0
+    A: 1
+    B: 2
+    C: 3
+    D: 4
+    prior: 5
+  placenta_split_sampling: 20261117
+  sex_kmeans: 20261118
+  validation_subsets: 20261119
+data:
+  placenta_quants: ${ISOFORMIC_V50_DIR}/human/placenta/quants
+  gtf: ${ISOFORMIC_V50_DIR}/human/ref/gencode.v50.chr_patch_hapl_scaff.annotation.gtf.gz
+  preeclampsia:
+  - SRR11498039
+  - SRR11498040
+  - SRR11498041
+  - SRR11498042
+  - SRR11498043
+  - SRR11498044
+  - SRR11498045
+  - SRR11498046
+  control:
+  - SRR11498063
+  - SRR11498064
+  - SRR11498065
+  - SRR11498066
+  - SRR11498067
+  - SRR11498068
+  - SRR11498069
+  - SRR11498070
+  - SRR11498071
+  - SRR11498072
+  - SRR11498073
+  - SRR11498074
+  - SRR11498075
+  - SRR11498076
+  - SRR11498077
+  - SRR11498078
+  - SRR11498079
+  technical_pairs:
+    p27:
+    - SRR11498064
+    - SRR11498065
+    p38:
+    - SRR11498076
+    - SRR11498077
+  control_units: '17 controls minus the shallower member (fewer mapped fragments)
+    of each A/B pair = 15 units; sensitivity: the other member'
+  null_samples: control units only; the 8 preeclampsia samples define U and the strata
+    and are never tested in the null
+haplotype_folding:
+  primary: sum counts and every draw of patch/haplotype copies onto the primary-chromosome
+    transcript of the same gene_name and transcript_name; Salmon duplicate clusters
+    retained on a non-primary copy are renamed to the primary member
+  sensitivity: unfolded store; non-primary transcripts dropped
+universe:
+  name: U
+  defined_from: preeclampsia samples only (8)
+  contigs: primary chromosomes chr1-22, chrX, chrY, chrM
+  cpm_floor: 1.0
+  cpm_library_size: sum of folded NumReads of the sample
+  min_samples: 3
+  rule: folded CPM >= 1 in >= 3 of the 8 preeclampsia samples
+strata:
+  infrv: mean over the 8 PE samples of per-sample InfRV (fishpond form, pc 5, shift
+    0.01) of the folded 30 draws; tertiles on U (low, mid, high) plus uncertain =
+    InfRV >= 0.5
+  infrv_uncertain_cutoff: 0.5
+  identifiability: equivalence_identifiability() on the 8 PE samples; non_identifiable
+    = !identifiable (not identifiable in at least one PE sample with fragments)
+  unique_fraction: equivalence_support() on the 8 PE samples; zero_unique = unique_fraction
+    == 0
+  isoforms_per_gene: 'annotated transcripts of the gene on primary chromosomes after
+    folding: 1, 2-4, 5-9, 10+'
+  expression_decile: deciles of mean PE CPM on U
+  gene_level:
+  - max isoform mean InfRV in the gene (on U)
+  - any non-identifiable isoform in U
+  robustness: same strata from draws 1-15 only
+methods:
+  M1: edgeR QL (glmQLFit/glmQLFTest), transcript counts, no uncertainty
+  M2: edgeR QL on counts divided by the RTA overdispersion of the split samples (Baldoni
+    2024)
+  M3: limma-voom, transcript counts
+  M4: limma-voom, divided counts
+  M5: DESeq2 Wald, transcript counts (pilot splits only, stop rule)
+  M6: 'fishpond swish on the 30 draws (not at 3 vs 3: 20 permutations)'
+  M7: M1 calls kept only when de_confidence class == high
+  M8: diffSplice (edgeR) usage, raw counts
+  M9: diffSplice (edgeR) usage, divided counts
+  M10: satuRn and DEXSeq usage (pilot splits only, stop rule)
+  M11: edgeR QL, gene counts (sum of isoforms), the gene-level comparator
+thresholds:
+  q:
+  - 0.05
+  - 0.1
+  p:
+  - 0.01
+  - 0.001
+  sign_agreement_unstable: 0.95
+  de_confidence: isoformic snapshot defaults
+splits:
+  null_sizes:
+  - 3
+  - 5
+  - 7
+  null_splits_per_size: 100
+  pilot_splits: 5
+  pilot_fallback_splits_per_size: 50
+  pilot_fallback_rule: use 50 per size if the pilot projects > 24 h total under the
+    lock
+  swish_sizes:
+  - 5
+  - 7
+  deseq2_dexseq_satuRn_splits: 10
+  replication_half_splits: 30
+  replication_directions: 2
+  replication_directed_total: 60
+  jackknife: leave one control unit out; Monte Carlo correction of the split-sampling
+    variance; 28-per-unit check
+primary:
+  flag: de_confidence class != high
+  replication_metric: a discovery replicates when the held-out half has the same sign
+    and one-sided p < 0.05
+  replication_bootstrap: 'two-level: half-splits, then transcripts within splits'
+  controls:
+  - placebo flag (random flag of the same size per split)
+  - count-matched flag (same mean-count distribution)
+  - permutation baseline of the labels
+decision_rules:
+  R_A: 'Ignoring uncertainty inflates false isoform calls: the M1 top-InfRV-tertile
+    adjusted rate ratio (quasi-Poisson with expression decile and isoform class; CMH
+    as a check) has a jackknife 95% CI excluding 1, AND M2 or M6 reduces it with a
+    CI excluding 0, AND M11 (gene level) shows no comparable excess.'
+  R_B: 'Flags predict non-replication: the adjusted OR of the primary flag has a 95%
+    CI excluding 1 in the placenta half-splits, AND the flag beats the count-matched
+    flag.'
+  negative_results: A failed rule is reported as a headline, including the Baldoni
+    2024 pattern (raw counts calibrated, gain only in power), an adjusted OR near
+    1, and an InfRV >= 0.5 flag that is too broad.
+story_genes:
+  isoform_level: FLT1
+  gene_level:
+  - ENG
+  - LEP
+  fragile_rule: 'among genes with an M1 q < 0.05 isoform in the full PE vs control
+    comparison, the gene with the most such isoforms whose calls all have the primary
+    flag and replicate in < 50% of directed half-splits (ties: smallest min q)'
+  robust_rule: among genes with M11 q < 0.05, the gene whose top isoform has class
+    high and replicates in >= 90% of directed half-splits, with the smallest M11 q
+stop_rules:
+  dexseq_minutes_per_split: 20.0
+  deseq2_minutes_per_split: 5.0
+  measured_by: pilot
+compute:
+  lock: ${ISOFORMIC_UE_LOCK}
+  lock_rule: '> 8 GB RAM, or > 4 cores for > 10 min'
+  threads_outside_lock: 4

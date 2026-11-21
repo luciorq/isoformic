@@ -84,7 +84,6 @@ and \code{exon_right}.
 \examples{
 iso <- example_isoformic()
 plot_genomic_context(iso, gene_name = "RBPJ")
-plot_genomic_context(iso, gene_name = "EGFR", assay = NULL, highlight_de = FALSE)
 
 # Table-based
 plot_genomic_context(exon_table(iso, "PNCK"))

@@ -7,8 +7,8 @@
 #' *inferential* uncertainty that is unrelated to biological variability.
 #' Salmon measures it by drawing replicates from the posterior (Gibbs
 #' sampling, `--numGibbsSamples`) and by writing the equivalence classes
-#' (`--dumpEq`). These functions turn that information into columns that can
-#' be filtered on and reported.
+#' (`--dumpEq`). These functions turn that information into columns that
+#' describe each isoform and each call, to be reported next to the results.
 #'
 #' Every isoform gets four kinds of evidence:
 #'
@@ -32,16 +32,12 @@
 #'   replicates that agree on its direction and `frac_draws_sig` the share in
 #'   which the isoform is called differentially expressed.
 #'
-#' `de_confidence()` combines the last three into one class per isoform:
-#' `high` when the fold-change is stable (`sign_agreement >= min_agreement`),
-#' the isoform is not `uncertain` and has no ambiguous sibling; `moderate`
-#' when exactly one of these fails; `low` when two or more fail. After
-#' `add_uncertainty(identifiability = TRUE)` a fourth condition counts: the
-#' equivalence classes must identify the isoform (`identifiable`). The class
-#' says how far a call on the isoform can be trusted, so read it for the
-#' isoforms flagged by the primary test (`n_det_sig`, `confident_de`): an
-#' isoform without a real change is `moderate` or `low` simply because its
-#' fold-change is not stable.
+#' `de_confidence()` repeats the contrast on every replicate. `unstable`
+#' flags a fold-change whose direction fewer than `min_agreement` (95%) of
+#' the replicates agree on, and `unstable_de` a call of the primary test with
+#' such a direction. The other columns describe the quantification of the
+#' isoform, and `flags` lists those that apply. None of them is a verdict on
+#' a call: report them next to it.
 #'
 #' * `add_uncertainty(x, paths)` reads the replicates, equivalence classes and
 #'   run metadata from the Salmon output directories (or Oarfish output
@@ -52,8 +48,8 @@
 #' * `tx_uncertainty(x)`: per-transcript table, for the transcripts whose
 #'   draws are in the object (the expressed ones).
 #' * `isoform_ambiguity(x)`: per-pair table of replicate correlations.
-#' * `de_confidence(x, group)`: per-feature table of fold-change stability
-#'   and confidence class, recomputed from the replicates; with
+#' * `de_confidence(x, group)`: per-feature table of fold-change stability,
+#'   recomputed from the replicates; with
 #'   `collapse_groups = TRUE`, ambiguous isoforms are summed into one feature
 #'   before testing. Without `group` it returns the table that
 #'   `add_uncertainty(group = )` stored.
@@ -62,28 +58,60 @@
 #' * `uncertainty_methods(x)`: a ready-to-edit paragraph that states the
 #'   settings used.
 #'
-#' The replicates themselves are kept in memory only (in
-#' `x@metadata$inf_reps`, a list with one transcript x sample matrix per
-#' replicate) and are not written by [write_isoformic()]; the tables derived
-#' from them are. To keep the replicates, write
-#' `inferential_replicates_table(x@metadata$inf_reps)` with [write_parquet()]
-#' and restore them with [as_inferential_replicates()] (see
-#' [read_inferential_replicates()]). `x[i, j]` keeps the replicates of the
-#' kept transcripts and samples; to contrast two groups of a larger object,
-#' pass `levels` instead of subsetting. With a `counts` assay, draws are read
-#' only for the transcripts with a mean count of at least `min_count`; the
-#' others are treated as unexpressed.
+#' The replicates themselves are kept in `x@metadata$inf_reps`, a list with
+#' one transcript x sample matrix per replicate. [write_isoformic()] writes
+#' them, one Parquet file per replicate, with the tables derived from them,
+#' and [read_isoformic()] restores them; with `keep_draws = FALSE` only the
+#' tables are kept and written. `x[i, j]` keeps the replicates of the
+#' kept transcripts and samples as a view: it shares the draws of `x` and
+#' records the selection, so the draws of `x` stay in memory while the subset
+#' exists (see the Subsetting section of [IsoformicExperiment]); to contrast
+#' two groups of a larger object, pass `levels` instead of subsetting. Draws are read only for the
+#' transcripts of `x`; with a `counts` assay, only for those with a mean
+#' count of at least `min_count`, and the others are treated as unexpressed.
 #'
 #' @details
-#' The thresholds are heuristics, not universal constants: `inf_rv_cutoff`
-#' (0.5), `cor_cutoff` (-0.5) and `min_agreement` (0.95) are conservative
-#' starting points. With 30 draws, sampling noise alone puts the inferential
-#' relative variance of a well-determined, highly expressed transcript near
-#' 0.1, so cutoffs much below 0.5 flag noise; poorly determined isoforms
-#' typically reach values of several units. Report the numbers next to the
-#' classes, and rerun with other cutoffs if the data call for it. The replicates measure the
+#' What the evidence supports. In a genome-wide evaluation on a placenta
+#' cohort (GENCODE 50, 30 Gibbs draws; see the article "Is quantification
+#' uncertainty worth checking?"), calls with an unstable direction
+#' replicated less often in held-out halves of the cohort than the other
+#' calls (35% against 64% pooled; odds ratio 0.36, 95% interval 0.31 to 0.41
+#' with genes resampled as clusters, adjusted for count, test statistic,
+#' number of isoforms of the gene and transcript type; the interval is for
+#' that cohort and does not include the choice of samples). Their raw
+#' replication rate was lower in all 60 directed comparisons (30 half-splits
+#' of the same samples, each used in both directions); against flags of the
+#' same size made of the lowest-count or lowest-|z| calls, the gap was larger
+#' in all 60. The flag marked 6% of the calls and only about 10% of the
+#' calls that failed to replicate, so a stable direction is not evidence that a call is right: in comparisons of
+#' control samples, 93% of the false calls had a stable direction. The flag
+#' was a secondary measure of that evaluation, chosen as the headline after
+#' the results; its threshold of 0.95 was fixed in advance and no other was
+#' tried, and other primary tests (DESeq2, swish) and long-read bootstraps
+#' were not evaluated. Ambiguity predicted replication little (odds ratio
+#' 0.87); isoforms not identifiable from the equivalence classes, or in the
+#' top third of InfRV, replicated somewhat less (0.56 and 0.63). An InfRV of
+#' at least 0.5 marked 87% of the expressed isoforms.
+#'
+#' The thresholds are heuristics, not universal constants.
+#' `min_agreement = 0.95` is the threshold of that evaluation. It is a share
+#' of the replicates: with fewer than 20 replicates no replicate may
+#' disagree, with 30 one may, and with 100 five may.
+#' `inf_rv_cutoff = 0.5` marks inferential relative variance above the
+#' sampling noise of about 30 draws: with 30 draws, sampling noise alone puts
+#' the value of a well-determined, highly expressed transcript near 0.1,
+#' while poorly determined isoforms typically reach several units. It
+#' describes the isoform and is not used to judge calls. `cor_cutoff` (-0.5)
+#' defines the ambiguity groups and the features of `collapse_groups`. Rerun
+#' with other cutoffs if the data call for it. The replicates measure the
 #' uncertainty of the quantification only; they do not replace biological
 #' replicates and cannot make a noisy contrast significant.
+#'
+#' `lfc_lo`-`lfc_hi` is the spread of the screening statistic over the
+#' replicates, not a confidence interval for the point estimate of the
+#' primary test; for low counts that estimate can lie outside it. The sign
+#' agreement is measured against the sign of the median fold-change over the
+#' replicates (`lfc_median`), not against `det_log2FC`.
 #'
 #' What is not measured. The replicates describe how much an estimate moves
 #' under the quantification model. They do not find the transcripts whose
@@ -105,9 +133,13 @@
 #' when the total is below 60.
 #'
 #' Fold-changes are computed on counts scaled to a common library size, as
-#' `log2(mean_b + pseudocount) - log2(mean_a + pseudocount)` with a pseudocount
-#' of 5 (the `swish` convention), and the per-replicate test is a Welch
-#' t-test on the log scale with Benjamini-Hochberg adjustment across features.
+#' the difference between the groups of the mean of
+#' `log2(scaled count + pseudocount)`, with a pseudocount of 5 (the `swish`
+#' convention): a log ratio of geometric means, on the scale of the
+#' per-replicate test, a Welch t-test on that log scale with
+#' Benjamini-Hochberg adjustment across features. It is not the log ratio of
+#' the arithmetic group means, and the two can differ in sign when one
+#' sample dominates a group.
 #' This is a screening statistic for stability, not a replacement for the
 #' primary test (`swish`, `DESeq2`, ...), whose results are shown next to it.
 #' When the sample table (`col_data`) has a `library_size` column, with the
@@ -130,7 +162,9 @@
 #'   assessed (and, with a `counts` assay, for its replicates to be read).
 #' @param inf_rv_cutoff Inferential relative variance from which an isoform is
 #'   called uncertain. In `de_confidence()`, `NULL` uses the value the tables
-#'   were computed with.
+#'   were computed with; without `group`, a value recomputes the
+#'   "uncertain quantification" flag of the stored table. It describes the
+#'   isoform and is not used to judge calls.
 #' @param cor_cutoff Mean replicate correlation at or below which two isoforms
 #'   of a gene are called ambiguous: a number, or `"adaptive"` to derive it
 #'   from the data as `mmcollapse` does (minus the 97.5th percentile of the
@@ -138,8 +172,10 @@
 #'   correlations as noise). The value used is stored and stated by
 #'   `uncertainty_methods()`.
 #' @param min_agreement Share of replicates that must agree on the direction
-#'   of a fold-change for it to be called stable. `NULL` uses the stored
-#'   value.
+#'   of a fold-change; below it the fold-change is flagged `unstable`. In
+#'   `de_confidence()`, `NULL` uses the stored value; without `group`, a value
+#'   recomputes `unstable`, `flags` and `unstable_de` of the stored table
+#'   from its `sign_agreement`, without the replicates.
 #' @param pseudocount Pseudocount of the log2 fold-change (5, as in `swish`).
 #' @param equivalence Logical, read the equivalence classes when present, or
 #'   the table returned by [equivalence_support()], to attach read support when
@@ -148,21 +184,21 @@
 #'   equivalence classes can tell apart ([equivalence_identifiability()];
 #'   minutes per sample, needs `paths` and, for human samples, the `Matrix`
 #'   package), or the table that function returned. `de_confidence()` then
-#'   counts a non-identifiable transcript as one more reason against the
-#'   call.
+#'   reports `identifiable`.
 #' @param run_qc Logical, add the run metadata of Salmon or Oarfish (see
 #'   [salmon_run_qc()]) to `col_data()`, with the column names prefixed by
 #'   `salmon_` or `oarfish_`.
 #' @param keep_draws Logical, keep the replicates in the object (needed to
 #'   recompute the tables, for `de_confidence(group = )`,
 #'   [inferential_overdispersion()] and the uncertainty of
-#'   [productive_fraction()]).
+#'   [productive_fraction()]). Kept replicates are also written by
+#'   [write_isoformic()].
 #' @param groups External groups of transcripts that the reads cannot tell
 #'   apart, replacing the groups built from the correlation of the replicates:
 #'   a table with `transcript_id` and `group_id`, or the path to Terminus output
 #'   (see [read_terminus_groups()]), or the cut of TreeTerminus trees (see
-#'   [cut_transcript_trees()]). The confidence classes and
-#'   `collapse_groups` then follow these groups; the pairs of
+#'   [cut_transcript_trees()]). `ambiguous` and `collapse_groups` then
+#'   follow these groups; the pairs of
 #'   [isoform_ambiguity()] keep describing the correlation.
 #' @param collapse_groups Logical, sum ambiguous isoforms into one feature
 #'   before testing the contrast.
@@ -199,19 +235,39 @@
 #'   `lfc_lo`, `lfc_hi`, `lfc_sd`), `sign_agreement`, `frac_draws_effect`
 #'   (share of replicates that agree on the direction with an absolute
 #'   fold-change of at least the cutoff of [de_cutoffs()]), `frac_draws_sig`,
-#'   `mean_inf_rv`, `ambiguous`, `identifiable` (only when the
-#'   identifiability was computed; `NA` for groups), `confidence` (an ordered
-#'   factor), `reason`, the existing differential expression result
-#'   (`det_log2FC`, `det_qvalue`, `n_det_sig`) and `confident_de`, which is
-#'   `TRUE` when a significant isoform has `high` confidence.
+#'   `mean_inf_rv` (`NA` for a feature that is not assessed, which is then
+#'   never flagged as uncertain), `ambiguous`, `identifiable` (only when the
+#'   identifiability was computed; `NA` for groups), `flags` (the
+#'   descriptive flags that apply, separated by `"; "`: "unstable
+#'   direction", "uncertain quantification", "ambiguous with a sibling
+#'   isoform", "not identifiable from the equivalence classes"; `NA` when
+#'   none applies), the current differential expression result
+#'   (`det_log2FC`, `det_qvalue`, `n_det_sig`, the number of significant
+#'   members; read from [de_tx()] each time, so they follow `de_tx<-` and
+#'   [de_cutoffs()]) and `unstable_de`, `TRUE` for a feature with a
+#'   significant member and an unstable direction (`NA` without stored
+#'   results). `unstable` (after `sign_agreement`) is
+#'   `sign_agreement < min_agreement`, `NA` for a feature that is not
+#'   assessed. The sign agreement is measured against the median sign over
+#'   the replicates, not against `det_log2FC`.
 #' * `uncertainty_report()`: a list with `settings` (a list of the cutoffs),
 #'   and the tibbles `replicates` (`replicate_type`, `n_draws`,
 #'   `resampling_df`, the degrees of freedom over the study, and
 #'   `median_overdispersion`, `NA` unless the draws are in the object and
 #'   close to 1 for long reads), `run` (the run metadata in `col_data()`), `transcripts` (by
-#'   transcript type), `genes`, `de` (significant isoforms by confidence
-#'   class) and `switches` (isoform switches, all and confident only). `run`,
-#'   `de` and `switches` are `NULL` when their input is missing.
+#'   transcript type, with `median_inf_rv`, `q25_inf_rv` and `q75_inf_rv`),
+#'   `genes`, `de` (significant features per flag; the flags describe the
+#'   calls and are not a verdict: one row per flag, `unstable` first, with
+#'   `flag`, `rule`, `n_significant`, `n_assessed`, `n_flagged` and
+#'   `pct_flagged`; a collapsed group with a significant member counts once,
+#'   and is never `ambiguous`, since its members were summed) and `switches`
+#'   (genes with isoform switches, all and without unstable directions:
+#'   `n_genes`, `n_opposite_direction` and `n_det_not_deg`). `run` and `de`
+#'   are `NULL` when their input is missing; `switches` needs only the
+#'   transcript-level table ([de_tx()]) and is `NULL` without it, its
+#'   "without unstable directions" row is `NA` without the fold-change
+#'   stability of `add_uncertainty(group = )`, and its `n_det_not_deg` is
+#'   `NA` without a gene-level table ([de_gene()]).
 #' * `uncertainty_methods()`: a character string.
 #'
 #' @references
@@ -330,6 +386,8 @@ S7::method(add_uncertainty, IsoformicExperiment) <- function(
   groups = NULL,
   ...
 ) {
+  check_threshold(min_agreement, upper = 1)
+  check_threshold(inf_rv_cutoff)
   if (is.null(group)) {
     # `levels` without `group` is an error
     group_samples(self, NULL, character(), levels = levels)
@@ -352,7 +410,10 @@ S7::method(add_uncertainty, IsoformicExperiment) <- function(
     }
     dirs <- dirs[match(samples, dirs$sample_id), ]
     named <- stats::setNames(dirs$dir, dirs$sample_id)
-    keep_tx <- NULL
+    # The draws hold only rows of the object, so that the tables built here,
+    # the tables recomputed later from the stored draws and the draws that
+    # write_isoformic() writes all cover the same transcripts.
+    keep_tx <- row_names(self)
     if ("counts" %in% assay_names(self)) {
       counts <- tx_assay(self, "counts")
       keep_tx <- rownames(counts)[rowMeans(counts) >= min_count]
@@ -398,7 +459,7 @@ S7::method(add_uncertainty, IsoformicExperiment) <- function(
       self@col_data <- dplyr::left_join(col_data, qc, by = "sample_id")
     }
   } else {
-    reps <- self@metadata$inf_reps
+    reps <- object_inf_reps(self)
     equiv <- if (is.data.frame(equivalence)) {
       equivalence
     } else {
@@ -467,7 +528,9 @@ S7::method(add_uncertainty, IsoformicExperiment) <- function(
   }
   self@dea <- dea
   self@metadata <- metadata
-  clear_cache(self)
+  # The object cache is kept: no cached table depends on `dea`, `metadata`
+  # or `col_data`, the parts changed here (every key's signature covers only
+  # the annotation, the assays, the transcripts and its own arguments).
   if (!is.null(group)) {
     conf <- compute_de_confidence(
       self,
@@ -594,17 +657,27 @@ S7::method(de_confidence, IsoformicExperiment) <- function(
   min_agreement = NULL,
   ...
 ) {
+  check_threshold(min_agreement, upper = 1, allow_null = TRUE)
+  check_threshold(inf_rv_cutoff, allow_null = TRUE)
   if (is.null(group)) {
     group_samples(self, NULL, character(), levels = levels)
-    res <- self@dea[["confidence"]]
+    res <- stored_confidence(self)
     if (is.null(res)) {
       cli::cli_abort(
         message = c(
-          x = "The object has no stored differential expression confidence.",
+          x = "The object has no stored fold-change stability table.",
           i = "Compute it with {.code de_confidence(x, group = )} or {.code add_uncertainty(x, group = )}."
         ),
         class = "isoformic_no_uncertainty"
       )
+    }
+    if (!is.null(min_agreement) || !is.null(inf_rv_cutoff)) {
+      # New thresholds apply to the stored sign agreement and InfRV; no
+      # replicate is needed
+      settings <- uncertainty_settings(self)
+      settings$min_agreement <- min_agreement %||% settings$min_agreement
+      settings$inf_rv_cutoff <- inf_rv_cutoff %||% settings$inf_rv_cutoff
+      res <- rethreshold_confidence(res, settings)
     }
     return(filter_genes(res, gene_name))
   }
@@ -632,7 +705,7 @@ S7::method(de_confidence, IsoformicExperiment) <- function(
 #' @keywords internal
 #' @noRd
 object_samples <- function(self) {
-  assays <- attr(self, "assays", exact = TRUE)
+  assays <- prop_raw(self, "assays")
   if (!length(assays)) {
     cli::cli_abort(
       message = c(x = "The object has no assays."),
@@ -660,6 +733,197 @@ uncertainty_settings <- function(self) {
     pseudocount = defaults$pseudocount,
     shift = defaults$shift
   )
+}
+
+#' Significant calls with an unstable direction
+#'
+#' `NA` without stored differential expression results; a significant call
+#' whose direction was not assessed is `FALSE`.
+#' @keywords internal
+#' @noRd
+unstable_calls <- function(n_det_sig, unstable) {
+  ifelse(is.na(n_det_sig), NA, n_det_sig > 0L & unstable %in% TRUE)
+}
+
+#' Stored fold-change table of `add_uncertainty(group = )`, upgraded
+#'
+#' Tables written by earlier development versions carry the removed
+#' confidence class; they are upgraded in memory, silently.
+#' @keywords internal
+#' @noRd
+stored_confidence <- function(self) {
+  conf <- self@dea[["confidence"]]
+  if (is.null(conf)) {
+    return(NULL)
+  }
+  if (!"unstable" %in% colnames(conf)) {
+    conf <- upgrade_confidence_table(
+      conf,
+      uncertainty_settings(self)$min_agreement
+    )
+  }
+  # The calls follow the current results and cutoffs (after `de_tx<-` or
+  # `de_cutoffs<-`), not the ones of add_uncertainty(group = )
+  confidence_de_calls(conf, self)
+}
+
+#' Differential expression calls of the features of a fold-change table
+#'
+#' Fills `det_log2FC`, `det_qvalue` (transcripts only), `n_det_sig` (the
+#' significant members of each feature) and `unstable_de` from the current
+#' results of `de_tx()`; all are `NA` without stored results.
+#' @keywords internal
+#' @noRd
+confidence_de_calls <- function(conf, self) {
+  n <- nrow(conf)
+  conf$det_log2FC <- rep(NA_real_, n)
+  conf$det_qvalue <- rep(NA_real_, n)
+  conf$n_det_sig <- rep(NA_integer_, n)
+  if (!is.null(self@dea[["det"]])) {
+    flagged <- de_tx(self)
+    members <- feature_members(conf)
+    sig_tx <- flagged$transcript_id[flagged$det_sig %in% "yes"]
+    hit <- members$transcript_id %in% sig_tx
+    conf$n_det_sig <- tabulate(members$row[hit], n)
+    single <- conf$feature_type == "transcript"
+    idx <- match(conf$feature_id[single], flagged$transcript_id)
+    conf$det_log2FC[single] <- flagged$log2FC[idx]
+    if ("qvalue" %in% colnames(flagged)) {
+      conf$det_qvalue[single] <- flagged$qvalue[idx]
+    }
+  }
+  conf$unstable_de <- unstable_calls(conf$n_det_sig, conf$unstable)
+  conf
+}
+
+#' Member transcripts of the features of a fold-change table
+#'
+#' One row per feature and distinct member: `row` (the row of `conf`) and
+#' `transcript_id`. A collapsed group has one row per member.
+#' @keywords internal
+#' @noRd
+feature_members <- function(conf) {
+  ids <- conf[["transcript_ids"]] %||% conf$feature_id
+  members <- strsplit(ids, ";", fixed = TRUE)
+  res <- data.frame(
+    row = rep(seq_len(nrow(conf)), lengths(members)),
+    transcript_id = unlist(members, use.names = FALSE)
+  )
+  res[!duplicated(res), , drop = FALSE]
+}
+
+#' Descriptive flags of the features of a fold-change table
+#'
+#' One string per feature, the flags that apply separated by `"; "`, `NA`
+#' when none does. `NA` inputs do not flag.
+#' @keywords internal
+#' @noRd
+confidence_flags <- function(unstable, uncertain, ambiguous, not_identifiable) {
+  labels <- c(
+    "unstable direction",
+    "uncertain quantification",
+    "ambiguous with a sibling isoform",
+    "not identifiable from the equivalence classes"
+  )
+  hit <- cbind(
+    unstable %in% TRUE,
+    uncertain %in% TRUE,
+    ambiguous %in% TRUE,
+    not_identifiable %in% TRUE
+  )
+  vapply(
+    seq_len(nrow(hit)),
+    function(i) {
+      why <- labels[hit[i, ]]
+      if (length(why)) paste(why, collapse = "; ") else NA_character_
+    },
+    character(1L)
+  )
+}
+
+#' Apply other thresholds to a stored fold-change table
+#'
+#' Recomputes `unstable`, `flags` and `unstable_de` from the stored
+#' `sign_agreement` and `mean_inf_rv`.
+#' @keywords internal
+#' @noRd
+rethreshold_confidence <- function(conf, settings) {
+  conf$unstable <- conf$sign_agreement < settings$min_agreement
+  not_identifiable <- if ("identifiable" %in% colnames(conf)) {
+    conf$identifiable %in% FALSE
+  } else {
+    rep(FALSE, nrow(conf))
+  }
+  # Tables stored before the InfRV of features that were not assessed was
+  # set to NA still hold it; a missing sign agreement marks those features
+  conf$flags <- confidence_flags(
+    conf$unstable,
+    !is.na(conf$sign_agreement) & conf$mean_inf_rv >= settings$inf_rv_cutoff,
+    conf$ambiguous,
+    not_identifiable
+  )
+  conf$unstable_de <- unstable_calls(conf$n_det_sig, conf$unstable)
+  conf
+}
+
+#' Upgrade a fold-change table with the removed confidence class
+#'
+#' Adds `unstable`, `flags` and `unstable_de`, all derived from stored
+#' columns, and drops `confidence`, `confident_de` and `reason`. Features
+#' that were not assessed (no `sign_agreement`) lose their InfRV and the
+#' uncertain flag, as in the current tables. The class may
+#' be stored as an ordered factor, a factor or a character.
+#' @keywords internal
+#' @noRd
+upgrade_confidence_table <- function(conf, min_agreement) {
+  if (is.null(conf) || "unstable" %in% colnames(conf)) {
+    return(conf)
+  }
+  unstable <- conf$sign_agreement < min_agreement
+  # Features below `min_count` were not assessed: as in
+  # compute_de_confidence(), they have no InfRV and cannot carry the
+  # uncertain flag, which older versions could set for them
+  unassessed <- is.na(conf$sign_agreement)
+  if ("mean_inf_rv" %in% colnames(conf)) {
+    conf$mean_inf_rv[unassessed] <- NA_real_
+  }
+  reason <- as.character(conf[["reason"]] %||% rep(NA_character_, nrow(conf)))
+  conf$flags <- vapply(
+    seq_len(nrow(conf)),
+    function(i) {
+      old <- if (is.na(reason[i])) {
+        character()
+      } else {
+        strsplit(reason[i], "; ", fixed = TRUE)[[1L]]
+      }
+      why <- c(
+        if (unstable[i] %in% TRUE) "unstable direction",
+        setdiff(
+          old,
+          c(
+            "unstable fold-change",
+            if (unassessed[i]) "uncertain quantification"
+          )
+        )
+      )
+      if (length(why)) paste(why, collapse = "; ") else NA_character_
+    },
+    character(1L)
+  )
+  conf$unstable <- unstable
+  n_det_sig <- conf[["n_det_sig"]] %||% rep(NA_integer_, nrow(conf))
+  conf$unstable_de <- unstable_calls(n_det_sig, unstable)
+  conf <- conf[,
+    setdiff(colnames(conf), c("confidence", "confident_de", "reason")),
+    drop = FALSE
+  ]
+  conf <- dplyr::relocate(conf, "unstable", .after = "sign_agreement")
+  flag_anchor <- intersect(c("identifiable", "ambiguous"), colnames(conf))
+  if (length(flag_anchor)) {
+    conf <- dplyr::relocate(conf, "flags", .after = flag_anchor[[1L]])
+  }
+  conf <- dplyr::relocate(conf, "unstable_de", .after = dplyr::last_col())
+  tibble::as_tibble(conf)
 }
 
 #' Equivalence support already stored in the uncertainty table
@@ -722,11 +986,14 @@ join_identifiability <- function(equiv, identifiability) {
 #' knows) and the samples of the object, with the rows and columns of each
 #' replicate that hold them. Its consumers read one replicate
 #' (`draw_slice()`) or one sample (`draws_sample()`) at a time, so the dense
-#' array of all the replicates is never built.
+#' array of all the replicates is never built. The `selection` of the
+#' replicates of a subset (see `subset_inf_reps()`) limits the transcripts
+#' to the selected ones, in their order, and the rows and columns index the
+#' shared draws, which are not copied.
 #' @keywords internal
 #' @noRd
 draws_view <- function(self, inf_reps = NULL) {
-  reps <- inf_reps %||% self@metadata$inf_reps
+  reps <- inf_reps %||% object_inf_reps(self)
   if (is.null(reps) || !length(reps)) {
     cli::cli_abort(
       message = c(
@@ -736,13 +1003,33 @@ draws_view <- function(self, inf_reps = NULL) {
       class = "isoformic_no_inferential_replicates"
     )
   }
+  if (!inf_reps_has_rows(reps)) {
+    # Zero-row draws (a subset of transcripts without draws keeps only the
+    # moments): there are no draws to read
+    cli::cli_abort(
+      message = c(
+        x = "The object has no inferential replicates of its transcripts.",
+        i = paste0(
+          "Only their moments are stored; recompute the replicates with ",
+          "{.code add_uncertainty(x, paths = )}."
+        )
+      ),
+      class = "isoformic_no_inferential_replicates"
+    )
+  }
   samp_type <- attr(reps, "samp_type")
+  selection <- inf_reps_selection(reps)
   reps <- lapply(as.list(reps), function(m) {
     if (is.matrix(m)) m else as.matrix(m)
   })
   first <- reps[[1L]]
   samples <- object_samples(self)
-  if (is.null(rownames(first)) || !all(samples %in% colnames(first))) {
+  # The transcripts and samples of the first draw once its selection is
+  # applied. The selected IDs are a subset of the IDs of every draw, so the
+  # positions are matched in the draws themselves.
+  first_dn <- inf_reps_draw_index(first, selection)$dimnames %||%
+    dimnames(first)
+  if (is.null(first_dn[[1L]]) || !all(samples %in% first_dn[[2L]])) {
     cli::cli_abort(
       message = c(
         x = paste0(
@@ -754,7 +1041,7 @@ draws_view <- function(self, inf_reps = NULL) {
     )
   }
   tx_known <- self@annot_data_transcripts$transcript_id
-  ids <- rownames(first)[rownames(first) %in% tx_known]
+  ids <- first_dn[[1L]][first_dn[[1L]] %in% tx_known]
   if (!length(ids)) {
     cli::cli_abort(
       message = c(
@@ -1135,7 +1422,11 @@ build_uncertainty <- function(
   mean_cv <- unname(rowMeans(cv, na.rm = TRUE))
   mean_cv[is.nan(mean_cv)] <- NA_real_
   mean_rv <- unname(rowMeans(rv))
-  max_rv <- unname(apply(rv, 1L, max))
+  max_rv <- if (ncol(rv)) {
+    unname(do.call(pmax, unname(as.data.frame(rv))))
+  } else {
+    unname(apply(rv, 1L, max))
+  }
   mean_rv[!assessed] <- NA_real_
   max_rv[!assessed] <- NA_real_
   mean_cv[!assessed] <- NA_real_
@@ -1286,6 +1577,65 @@ row_quantiles <- function(m, probs) {
   matrix(q, nrow = length(probs), dimnames = list(NULL, rownames(m)))
 }
 
+#' Median, type-7 quantiles and standard deviation of every row of a matrix
+#'
+#' The rows without `NA` are sorted together with one [order()] call, and
+#' the statistics are read from the columns of the sorted matrix with the
+#' formulas of [stats::median()], [stats::quantile()] (type 7) and
+#' [stats::sd()]. Rows with `NA` keep the per-row functions, so their median
+#' and standard deviation are `NA` and their quantiles drop the `NA`.
+#'
+#' @returns A list with `median` and `sd` (vectors along the rows) and
+#'   `quantiles` (a matrix with one row per element of `probs`).
+#' @keywords internal
+#' @noRd
+row_stats <- function(m, probs) {
+  n <- nrow(m)
+  d <- ncol(m)
+  med <- rep(NA_real_, n)
+  sds <- rep(NA_real_, n)
+  q <- matrix(NA_real_, nrow = length(probs), ncol = n)
+  complete <- rowSums(is.na(m)) == 0L
+  if (any(complete) && d > 0L) {
+    x <- m[complete, , drop = FALSE]
+    k <- nrow(x)
+    s <- matrix(x[order(row(x), x)], nrow = k, ncol = d, byrow = TRUE)
+    half <- (d + 1L) %/% 2L
+    med[complete] <- if (d %% 2L == 1L) {
+      s[, half]
+    } else {
+      (s[, half] + s[, half + 1L]) / 2
+    }
+    for (j in seq_along(probs)) {
+      index <- 1 + (d - 1) * probs[[j]]
+      lo <- floor(index)
+      hi <- ceiling(index)
+      qs <- s[, lo]
+      h <- index - lo
+      if (h > 0) {
+        upper <- s[, hi]
+        move <- upper != qs
+        qs[move] <- (1 - h) * qs[move] + h * upper[move]
+      }
+      q[j, complete] <- qs
+    }
+    rm(s)
+    if (d > 1L) {
+      centred <- x - rowMeans(x)
+      sds[complete] <- sqrt(rowSums(centred * centred) / (d - 1L))
+    }
+  }
+  partial <- which(!complete)
+  if (length(partial)) {
+    rest <- m[partial, , drop = FALSE]
+    med[partial] <- apply(rest, 1L, stats::median)
+    q[, partial] <- row_quantiles(rest, probs)
+    sds[partial] <- apply(rest, 1L, stats::sd)
+  }
+  dimnames(q) <- list(NULL, rownames(m))
+  list(median = med, quantiles = q, sd = sds)
+}
+
 #' Welch t statistics of a matrix of log values between two groups
 #' @keywords internal
 #' @noRd
@@ -1351,6 +1701,19 @@ compute_de_confidence <- function(
     function(k) unname(draw_slice(arr, k))
   }
   mom <- slice_moments(feature_slice, d, list(features, samples))
+  # A missing value in a replicate leaves the mean of its feature missing;
+  # Salmon and Oarfish never write one, so the replicates were altered
+  missing_draws <- features[rowSums(is.na(mom$mean)) > 0L]
+  if (length(missing_draws)) {
+    shown <- utils::head(missing_draws, 5L)
+    cli::cli_abort(
+      message = c(
+        x = "The replicates of {length(missing_draws)} feature{?s} have missing values: {.val {shown}}.",
+        i = "Read the replicates again, or leave these transcripts out with {.code x[i, ]}."
+      ),
+      class = "isoformic_missing_draws"
+    )
+  }
   mean_count <- unname(rowMeans(mom$mean))
   rv <- inferential_rv(
     mom,
@@ -1391,13 +1754,13 @@ compute_de_confidence <- function(
       padj < cutoffs$pvalue &
       abs(w$lfc) >= cutoffs$log2fc
   }
-  med <- unname(apply(lfc, 1L, stats::median))
-  q <- row_quantiles(lfc, c(0.025, 0.975))
+  stats_lfc <- row_stats(lfc, c(0.025, 0.975))
+  med <- stats_lfc$median
+  q <- stats_lfc$quantiles
   agreement <- unname(rowMeans(sign(lfc) == sign(med)))
   effect <- unname(rowMeans(
     sign(lfc) == sign(med) & abs(lfc) >= cutoffs$log2fc
   ))
-  stable <- agreement >= settings$min_agreement
   member_tx <- split(ids, factor(feature_id, levels = features))
   is_group <- unname(
     lengths(member_tx) > 1L & isTRUE(collapse_groups)
@@ -1410,6 +1773,9 @@ compute_de_confidence <- function(
   ]
   # Collapsed groups are not transcript IDs, so they are never matched here
   ambiguous <- features %in% ids[!is.na(amb_group)] & !is_group
+  # Like tx_uncertainty(), the InfRV of a feature below `min_count` is not
+  # assessed, so it is never flagged as uncertain
+  mean_rv[!assessed] <- NA_real_
   uncertain <- mean_rv >= settings$inf_rv_cutoff
   # Structural identifiability, when add_uncertainty() computed it. A group
   # is not assessed: summing its members is the remedy
@@ -1421,25 +1787,12 @@ compute_de_confidence <- function(
   }
   identifiable[is_group] <- NA
   not_identifiable <- identifiable %in% FALSE
-  n_fail <- as.integer(!stable) +
-    as.integer(uncertain) +
-    as.integer(ambiguous) +
-    as.integer(not_identifiable)
-  confidence <- c("high", "moderate", "low")[pmin(n_fail, 2L) + 1L]
-  confidence[!assessed] <- NA_character_
-  reason <- vapply(
-    seq_along(features),
-    function(i) {
-      why <- c(
-        if (!stable[i]) "unstable fold-change",
-        if (uncertain[i]) "uncertain quantification",
-        if (ambiguous[i]) "ambiguous with a sibling isoform",
-        if (not_identifiable[i]) "not identifiable from the equivalence classes"
-      )
-      if (length(why)) paste(why, collapse = "; ") else NA_character_
-    },
-    character(1L)
-  )
+  # The direction is not assessed below `min_count`: `unstable` is NA there.
+  # The other columns only describe the quantification; none of them is
+  # combined with `unstable` into a verdict on the call.
+  agreement[!assessed] <- NA_real_
+  unstable <- agreement < settings$min_agreement
+  flags <- confidence_flags(unstable, uncertain, ambiguous, not_identifiable)
   tx <- self@annot_data_transcripts
   first_tx <- vapply(member_tx, function(x) x[[1L]], character(1L))
   res <- tibble::tibble(
@@ -1461,18 +1814,14 @@ compute_de_confidence <- function(
     lfc_median = med,
     lfc_lo = q[1L, ],
     lfc_hi = q[2L, ],
-    lfc_sd = unname(apply(lfc, 1L, stats::sd)),
+    lfc_sd = stats_lfc$sd,
     sign_agreement = agreement,
+    unstable = unstable,
     frac_draws_effect = effect,
     frac_draws_sig = unname(rowMeans(sig)),
     mean_inf_rv = mean_rv,
     ambiguous = ambiguous,
-    confidence = factor(
-      confidence,
-      levels = c("high", "moderate", "low"),
-      ordered = TRUE
-    ),
-    reason = reason
+    flags = flags
   )
   if (has_ident) {
     res <- tibble::add_column(
@@ -1500,31 +1849,7 @@ compute_de_confidence <- function(
   ] <-
     NA_real_
   # Existing differential expression results next to the stability
-  det <- self@dea[["det"]]
-  res$det_log2FC <- NA_real_
-  res$det_qvalue <- NA_real_
-  res$n_det_sig <- NA_integer_
-  if (!is.null(det)) {
-    flagged <- de_tx(self)
-    is_sig <- flagged$det_sig == "yes"
-    pos <- match(flagged$transcript_id, ids)
-    ok <- !is.na(pos) & is_sig
-    res$n_det_sig <- tabulate(
-      match(feature_id[pos[ok]], features),
-      length(features)
-    )
-    single <- res$feature_type == "transcript"
-    idx <- match(res$feature_id[single], flagged$transcript_id)
-    res$det_log2FC[single] <- flagged$log2FC[idx]
-    if ("qvalue" %in% colnames(flagged)) {
-      res$det_qvalue[single] <- flagged$qvalue[idx]
-    }
-  }
-  res$confident_de <- ifelse(
-    is.na(res$n_det_sig),
-    NA,
-    res$n_det_sig > 0L & res$confidence %in% "high"
-  )
+  res <- confidence_de_calls(res, self)
   res <- res[order(-abs(res$lfc_median), na.last = TRUE), ]
   list(table = res, levels = lv)
 }
@@ -1564,6 +1889,18 @@ S7::method(uncertainty_report, IsoformicExperiment) <- function(self, ...) {
       n_uncertain = sum(.data$uncertain, na.rm = TRUE),
       pct_uncertain = 100 * mean(.data$uncertain, na.rm = TRUE),
       median_inf_rv = stats::median(.data$mean_inf_rv, na.rm = TRUE),
+      q25_inf_rv = stats::quantile(
+        .data$mean_inf_rv,
+        0.25,
+        names = FALSE,
+        na.rm = TRUE
+      ),
+      q75_inf_rv = stats::quantile(
+        .data$mean_inf_rv,
+        0.75,
+        names = FALSE,
+        na.rm = TRUE
+      ),
       n_ambiguous = sum(!is.na(.data$ambiguity_group)),
       median_unique_fraction = if ("unique_fraction" %in% colnames(assessed)) {
         stats::median(.data$unique_fraction, na.rm = TRUE)
@@ -1593,64 +1930,43 @@ S7::method(uncertainty_report, IsoformicExperiment) <- function(self, ...) {
       dplyr::desc(.data$n_ambiguous_groups),
       dplyr::desc(.data$n_uncertain)
     )
-  conf <- self@dea[["confidence"]]
+  conf <- stored_confidence(self)
   de <- NULL
   switches <- NULL
   if (!is.null(conf) && !all(is.na(conf$n_det_sig))) {
-    sig <- conf[conf$feature_type == "transcript" & conf$n_det_sig %in% 1L, ]
-    de <- tibble::tibble(
-      confidence = factor(
-        c("high", "moderate", "low"),
-        levels = c("high", "moderate", "low"),
-        ordered = TRUE
-      ),
-      n_significant = vapply(
-        c("high", "moderate", "low"),
-        function(x) sum(sig$confidence %in% x),
-        integer(1L),
-        USE.NAMES = FALSE
-      ),
-      n_unstable = vapply(
-        c("high", "moderate", "low"),
-        function(x) {
-          sum(
-            sig$confidence %in% x & sig$sign_agreement < settings$min_agreement
-          )
-        },
-        integer(1L),
-        USE.NAMES = FALSE
-      ),
-      n_uncertain = vapply(
-        c("high", "moderate", "low"),
-        function(x) {
-          sum(sig$confidence %in% x & sig$mean_inf_rv >= settings$inf_rv_cutoff)
-        },
-        integer(1L),
-        USE.NAMES = FALSE
-      ),
-      n_ambiguous = vapply(
-        c("high", "moderate", "low"),
-        function(x) sum(sig$confidence %in% x & sig$ambiguous),
-        integer(1L),
-        USE.NAMES = FALSE
-      )
-    )
-    if (!is.null(self@dea[["det"]]) && !is.null(self@dea[["deg"]])) {
-      all_sw <- isoform_switches(self)
-      conf_sw <- isoform_switches(self, confident_only = TRUE)
-      switches <- tibble::tibble(
-        set = c("all significant isoforms", "confident isoforms only"),
-        n_genes = c(nrow(all_sw), nrow(conf_sw)),
-        n_opposite_direction = c(
-          sum(all_sw$switch_type == "opposite_direction"),
-          sum(conf_sw$switch_type == "opposite_direction")
-        ),
-        n_det_not_deg = c(
-          sum(all_sw$switch_type == "det_not_deg"),
-          sum(conf_sw$switch_type == "det_not_deg")
-        )
-      )
+    de <- flag_counts(conf, settings, self@metadata)
+  }
+  if (!is.null(self@dea[["det"]])) {
+    all_sw <- isoform_switches(self)
+    # Without the stored fold-change stability the second row is NA
+    kept_sw <- if (is.null(conf)) {
+      NULL
+    } else {
+      isoform_switches(self, drop_unstable = TRUE)
     }
+    n_type <- function(sw, type) {
+      if (is.null(sw)) NA_integer_ else sum(sw$switch_type == type)
+    }
+    # Without a gene-level table every gene whose isoforms do not move in
+    # opposite directions falls back to det_not_deg, so that count would
+    # not mean "significant isoforms without a significant gene"
+    n_det_not_deg <- if (is.null(self@dea[["deg"]])) {
+      c(NA_integer_, NA_integer_)
+    } else {
+      c(n_type(all_sw, "det_not_deg"), n_type(kept_sw, "det_not_deg"))
+    }
+    switches <- tibble::tibble(
+      set = c("all significant isoforms", "without unstable directions"),
+      n_genes = c(
+        nrow(all_sw),
+        if (is.null(kept_sw)) NA_integer_ else nrow(kept_sw)
+      ),
+      n_opposite_direction = c(
+        n_type(all_sw, "opposite_direction"),
+        n_type(kept_sw, "opposite_direction")
+      ),
+      n_det_not_deg = n_det_not_deg
+    )
   }
   meta <- self@metadata
   overdispersion <- NA_real_
@@ -1674,6 +1990,87 @@ S7::method(uncertainty_report, IsoformicExperiment) <- function(self, ...) {
     genes = by_gene,
     de = de,
     switches = switches
+  )
+}
+
+#' Significant isoforms per descriptive flag, for uncertainty_report()
+#'
+#' One row per flag, `unstable` first; each flag is counted on its own and
+#' never combined with the others.
+#' @keywords internal
+#' @noRd
+flag_counts <- function(conf, settings, meta) {
+  # Significant features: transcripts, and collapsed groups with a
+  # significant member, each counted once
+  sig <- conf[(conf$n_det_sig > 0L) %in% TRUE, ]
+  source <- meta$uncertainty_ambiguity_source %||% "correlation"
+  cor_rule <- if (identical(source, "treeterminus")) {
+    paste0(
+      "in a TreeTerminus node (InfRV cutoff ",
+      meta$uncertainty_tree_cutoff %||% settings$inf_rv_cutoff,
+      ")"
+    )
+  } else if (identical(source, "terminus")) {
+    "in a Terminus group"
+  } else if (identical(source, "external")) {
+    "in an external group"
+  } else if (identical(meta$uncertainty_cor_cutoff_rule, "adaptive")) {
+    paste0(
+      "correlation with a sibling <= ",
+      signif(settings$cor_cutoff, 3),
+      " (adaptive)"
+    )
+  } else {
+    paste0("correlation with a sibling <= ", signif(settings$cor_cutoff, 3))
+  }
+  rows <- list(
+    list(
+      flag = "unstable",
+      rule = paste0("sign_agreement < ", settings$min_agreement),
+      input = sig$sign_agreement,
+      value = sig$unstable
+    ),
+    list(
+      flag = "uncertain",
+      rule = paste0("mean_inf_rv >= ", settings$inf_rv_cutoff),
+      input = ifelse(is.na(sig$sign_agreement), NA_real_, sig$mean_inf_rv),
+      value = sig$mean_inf_rv >= settings$inf_rv_cutoff
+    ),
+    list(
+      flag = "ambiguous",
+      rule = cor_rule,
+      input = sig$ambiguous,
+      value = sig$ambiguous
+    )
+  )
+  if ("identifiable" %in% colnames(sig)) {
+    rows <- c(
+      rows,
+      list(list(
+        flag = "not_identifiable",
+        rule = "identifiable == FALSE",
+        input = sig$identifiable,
+        value = !sig$identifiable
+      ))
+    )
+  }
+  n_assessed <- vapply(rows, function(r) sum(!is.na(r$input)), integer(1L))
+  n_flagged <- vapply(
+    rows,
+    function(r) sum(!is.na(r$input) & r$value %in% TRUE),
+    integer(1L)
+  )
+  tibble::tibble(
+    flag = vapply(rows, function(r) r$flag, character(1L)),
+    rule = vapply(rows, function(r) r$rule, character(1L)),
+    n_significant = nrow(sig),
+    n_assessed = n_assessed,
+    n_flagged = n_flagged,
+    pct_flagged = ifelse(
+      n_assessed > 0L,
+      100 * n_flagged / n_assessed,
+      NA_real_
+    )
   )
 }
 
@@ -1778,26 +2175,22 @@ S7::method(uncertainty_methods, IsoformicExperiment) <- function(self, ...) {
     },
     paste0(
       "The log2 fold-change of each isoform was recomputed on every replicate ",
-      "(counts scaled to a common library size, pseudocount 5), and a ",
-      "fold-change was called stable when at least ",
+      "(counts scaled to a common library size, pseudocount 5) and the share ",
+      "of replicates that agreed on its direction was recorded (sign ",
+      "agreement); a fold-change that fewer than ",
       format(100 * settings$min_agreement),
-      "% of the replicates agreed on its direction."
+      "% of the replicates agreed on was flagged as having an unstable ",
+      "direction."
     ),
-    paste0(
-      "Differentially expressed isoforms were assigned high confidence when ",
-      "the fold-change was stable, the quantification was not uncertain",
-      if ("identifiable" %in% colnames(self@dea[["uncertainty"]])) {
-        paste0(
-          ", no sibling isoform was ambiguous and the equivalence classes of ",
-          "every sample identified the isoform (its abundance is fixed by ",
-          "the class counts; Zheng et al. 2022)"
-        )
-      } else {
-        " and no sibling isoform was ambiguous"
-      },
-      ", moderate confidence when one of ",
-      "these conditions failed and low confidence when two or more failed."
-    ),
+    if ("identifiable" %in% colnames(self@dea[["uncertainty"]])) {
+      paste0(
+        "Whether each isoform was structurally identifiable from the ",
+        "equivalence classes of every sample (its abundance fixed once every ",
+        "class total is fixed, a check on class membership related to, but ",
+        "not the same as, the range-of-optima non-identifiability of Zheng et ",
+        "al. 2022) was reported for each call."
+      )
+    },
     paste0(
       "Only transcripts with a mean estimated count of at least ",
       settings$min_count,
@@ -1827,10 +2220,17 @@ S7::method(uncertainty_methods, IsoformicExperiment) <- function(self, ...) {
 #' Reads that map to several isoforms make the counts of an isoform more
 #' variable than a Poisson count, by an amount that differs between
 #' transcripts. Baldoni et al. (2024) estimate this overdispersion for every
-#' transcript from the Salmon replicates and divide it out of the counts, so
-#' that tests built for counts (`edgeR`, `limma`) keep their error rate
-#' without a model of their own for the read ambiguity. The scaled counts are
-#' not integers.
+#' transcript from the Salmon replicates and divide it out of the counts,
+#' with the aim that tests built for counts (`edgeR`, `limma`) keep their
+#' error rate without a model of their own for the read ambiguity. The scaled
+#' counts are not integers. In a genome-wide null of control placentas (see
+#' the article "Is quantification uncertainty worth checking?") dividing the
+#' counts removed the small-sample concentration of nominal false calls in
+#' uncertain isoforms (3 and 5 samples per group), but it did not lower the
+#' false discoveries at q < 0.05 (on average 1.21 against 0.20 per 3 v 3
+#' split, and 0.80 against 0.095 per 7 v 7 split, most of them from one
+#' split). With known changes added at 7 samples per group it found fewer of
+#' them (21,349 against 31,886 true calls), so it costs power.
 #'
 #' * `inferential_overdispersion()` computes the overdispersion of every
 #'   transcript from the replicates stored in the object, with the estimator
@@ -1854,9 +2254,9 @@ S7::method(uncertainty_methods, IsoformicExperiment) <- function(self, ...) {
 #'   2024). [test_usage()] divides the counts in the same way when the object
 #'   holds replicates.
 #'
-#' The overdispersion complements the confidence classes of
-#' [de_confidence()]: it changes the test, while the classes describe how far
-#' each call can be trusted.
+#' The overdispersion complements the stability columns of
+#' [de_confidence()]: it changes the test, while those columns describe the
+#' quantification behind each call.
 #'
 #' @param self An [IsoformicExperiment] with inferential replicates (see
 #'   [add_uncertainty()]).
@@ -1918,13 +2318,9 @@ S7::method(inferential_overdispersion, IsoformicExperiment) <- function(
   ...
 ) {
   od <- object_overdispersion(self, prior_df = prior_df)
-  # The transcripts of the object: those of its assays, or of its replicates
-  assays <- attr(self, "assays", exact = TRUE)
-  tx <- if (length(assays)) {
-    rownames(assays[[1L]])
-  } else {
-    draws_ids(draws_view(self))
-  }
+  # The transcripts of the object: those of its assays (which
+  # object_overdispersion() requires)
+  tx <- rownames(prop_raw(self, "assays")[[1L]])
   keep <- od$transcript_id %in%
     tx &
     od$transcript_id %in% self@annot_data_transcripts$transcript_id
@@ -1942,8 +2338,8 @@ S7::method(inferential_overdispersion, IsoformicExperiment) <- function(
 #' @keywords internal
 #' @noRd
 object_overdispersion <- function(self, samples = NULL, prior_df = 3) {
-  reps <- self@metadata$inf_reps
-  mom <- attr(reps, "moments", exact = TRUE)
+  reps <- object_inf_reps(self)
+  mom <- inf_reps_moments(reps)
   samples <- samples %||% object_samples(self)
   if (
     !is.null(mom) &&
@@ -2024,7 +2420,7 @@ S7::method(scale_counts, IsoformicExperiment) <- function(
 ) {
   check_string(assay)
   check_string(name)
-  assays <- attr(self, "assays", exact = TRUE)
+  assays <- prop_raw(self, "assays")
   if (!assay %in% names(assays)) {
     cli::cli_abort(
       message = c(

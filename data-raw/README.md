@@ -1,7 +1,8 @@
 # Data processing: reproduce and update
 
-Everything under `inst/extdata/` (except the Reactome GMT file and the
-coding model inputs downloaded by its script) and every frozen evidence
+Everything under `inst/extdata/` (except the coding model inputs downloaded
+by its script), the data of the articles under `vignettes/articles/data/`
+(except the complete Reactome GMT file) and every frozen evidence
 dataset is built by code in this directory or in `R/frozen-data.R`. All
 examples use GENCODE release 50 (human) and M39 (mouse); the shell scripts
 take the release from `GENCODE_RELEASE`. Run the scripts from the
@@ -11,16 +12,19 @@ is offline.
 
 | Script | Produces | Sources |
 |---|---|---|
-| `placenta/`, `prepare_extdata.R` | `inst/extdata/example_experiment/` (with transcript sequences), `example.gff3`, `example_transcripts.fa.gz`, `mini_quants/`, `mini_draws.parquet`, `mini_annotation/`, `pe_*.parquet`, `reactome_subset.gmt` | Salmon output of PRJNA622166 (below), GENCODE v50 GFF3 and transcript FASTA, `inst/extdata/c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt` |
+| `placenta/`, `prepare_extdata.R` | `inst/extdata/example_experiment/` (with transcript sequences), `example.gff3.gz`, `example_transcripts.fa.gz`, `mini_quants/`, `mini_draws.parquet`, `mini_annotation/`, `reactome_subset.gmt`; `vignettes/articles/data/preeclampsia/pe_*.parquet` | Salmon output of PRJNA622166 (below), GENCODE v50 GFF3 and transcript FASTA, `vignettes/articles/data/preeclampsia/c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt` (MSigDB 2023.1) |
 | `build_coding_model.R` | `inst/extdata/coding_model/hexamer_logodds.parquet`, `coding_model_coefficients.parquet` | GENCODE v50 GFF3, `pc_transcripts.fa.gz` and `transcripts.fa.gz` |
 | `build_frozen_data.R` | Parquet files of the frozen datasets in `get_isoformic_cache("frozen")` | see `frozen_datasets()` |
 | `build_knockdown_example.R`, `knockdown/` | `inst/extdata/knockdown/`, `knockdown_annotation/` | Salmon output of GSE129540 and GSE75489 (below) |
 | `oarfish/` | `inst/extdata/oarfish/`, `oarfish_sc/` | simulated reads (below) |
 | `case_studies/` | `vignettes/articles/data/<study>/` | NCBI SRA reads (`fetch_sra.sh`, `quantify_*.sh`; usage in the header of `build_case_studies.R`) |
+| `uncertainty_evidence/` | `vignettes/articles/data/uncertainty_evidence/` (the `evidence_numbers`, `flt1_isoforms`, `replication_flags` and `story_genes` Parquet tables of `isoformic-uncertainty-evidence.qmd`, copied by `91_bundle_article_data.R` from the tables that `90_article_tables.R` writes; the larger outputs stay outside the repository) | Salmon output of PRJNA622166, PRJNA984605, GSE129540 and GSE75489 from NCBI SRA; pre-registration in `prereg.yaml` and `prereg_amendments.yaml` (run order in `data-raw/uncertainty_evidence/README.md`) |
 | `alphagenome/` | nothing in the package | AlphaGenome pilot (`.github/devdocs/ALPHAGENOME-BENCHMARK.md`) |
+| `benchmark_memory.R`, `benchmark_rules.R` | nothing in the package | memory benchmark of the draws and genome-wide annotation code paths (`just benchmark-memory`, full mode) and benchmark of the productivity sequence rules (see Benchmarks below; headers give the variables) |
 
 `.gitignore` keeps the scripts (`*.R`, `*.sh`, `*.py`), the sample sheets
-(`*.tsv`), this file and the pixi files of `alphagenome/` in git, and ignores
+(`*.tsv`), this file, the pixi files of `alphagenome/` and the README and
+pre-registration YAML files of `uncertainty_evidence/` in git, and ignores
 everything else under `data-raw/` (downloads, work files, environments).
 
 ## Bundled example data
@@ -44,10 +48,12 @@ these are the mini quantifications.
 `prepare_extdata.R` then runs `swish` (fishpond) on the transcripts and on
 the genes (draws summed over the transcripts of each gene) of the complete
 quantifications and writes `pe_*.parquet` (TPM, results of every tested
-transcript and gene, sample table). The example experiment keeps the
+transcript and gene, sample table) to `vignettes/articles/data/preeclampsia/`:
+only the articles read them, and at about 12 MB they would put the package
+over the 5 MB size limit of CRAN. The example experiment keeps the
 showcase genes and the 60 genes with the lowest q-value, with the TPM and the
 Salmon counts as assays and the transcript sequences in its annotation;
-`example.gff3` and `example_transcripts.fa.gz` hold three of its genes so
+`example.gff3.gz` and `example_transcripts.fa.gz` hold three of its genes so
 that the annotation and sequence examples run offline. The mini
 quantifications are copied without their draws, which go to
 `mini_draws.parquet` (read it with `as_inferential_replicates()`), and with
@@ -185,6 +191,33 @@ Identifiers are stored without version (`strip_id_version()`, Ensembl and
 RefSeq patterns only) and chromosome names with the `chr` prefix; the join
 functions add or remove the prefix to match the annotation.
 
+## Benchmarks
+
+Neither script changes the package; run them on a shared machine under a
+memory cap, and record their output outside the repository.
+
+- `benchmark_memory.R` (`just benchmark-memory`, `pixi run benchmark-memory`)
+  runs each step in its own R process and writes `benchmark_memory.parquet`
+  (peak RSS above the start of the step, time, and the peak as a multiple
+  of one copy of the draws) plus one Parquet file per step. The draws steps
+  read Salmon output with Gibbs draws (`ISOFORMIC_BENCHMARK_QUANTS`), the
+  annotation steps use GENCODE (`ISOFORMIC_FULL=true`). To compare a change,
+  run it once on the old code (`ISOFORMIC_BENCHMARK_PKG` pointing at a copy
+  of the package before the change) and once on the new one, with the same
+  samples and draws (`ISOFORMIC_BENCHMARK_SAMPLES`, `_DRAWS`) and each with
+  its own copy of the annotation directory (`ISOFORMIC_BENCHMARK_ANNOT`).
+  `ISOFORMIC_BENCHMARK_STEPS` reruns a subset of the steps. A fresh copy of
+  an annotation directory has no valid ORF table, so the first
+  `productive_fraction` step also computes the ORFs of the whole annotation
+  (about 4 minutes and 6 GB on GENCODE 50): rerun that step to measure it
+  with the ORFs stored. Steps that peak below about 0.3 GB vary from run to
+  run by as much as they differ between versions.
+- `benchmark_rules.R` writes an RDS file with the agreement of the sequence
+  rules of `transcript_productivity()` with the GENCODE biotypes over a full
+  annotation; the table "Benchmark of the sequence rules" in
+  `.github/devdocs/ARCHITECTURE.md` comes from it. Rerun it when the rules,
+  the ORF code or the coding potential model change.
+
 ## ESRP knockdown examples
 
 `inst/extdata/knockdown/<series>/` and `inst/extdata/knockdown_annotation/`
@@ -228,7 +261,7 @@ tables to `inst/extdata/knockdown/read_split/`. They need the work directory of
 | Script | Needs | Writes |
 |---|---|---|
 | `knockdown/split_halves.sh WORKDIR` | `sub/` reads | `quants_half/` (12 Salmon runs on half of the reads) |
-| `knockdown/validate_uncertainty.R` | `quants_half/` | `null_calls`, `null_stable`, `replication_class`, `replication_rv` |
+| `knockdown/validate_uncertainty.R` | `quants_half/` | `null_calls`, `null_stable`, `replication_flag`, `replication_rv` |
 | `knockdown/benchmark_usage.R` | `quants_half/` | `usage_null`, `usage_replication` |
 | `knockdown/compare_isar.R` | `quants_sub/`, the GENCODE v50 `chr_patch_hapl_scaff` GTF, IsoformSwitchAnalyzeR | `isar_comparison` |
 | `knockdown/compare_terminus.R` | Terminus run on all six samples (below) | `terminus_comparison` |

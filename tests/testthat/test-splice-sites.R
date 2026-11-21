@@ -5,7 +5,10 @@ testthat::test_that("splice-site windows are cut in the direction of transcripti
     splice_site_strength(annot),
     class = "isoformic_no_splice_sites"
   )
-  extract_transcript_sequences(annot, genome_fasta = mini_genome_fasta())
+  suppressMessages(extract_transcript_sequences(
+    annot,
+    genome_fasta = mini_genome_fasta()
+  ))
   testthat::expect_true(has_splice_sites(annot))
   sites <- read_parquet(fs::path(annot, "annot_data_splice_sites.parquet"))
   genome <- mini_genome_seq()
@@ -34,7 +37,10 @@ testthat::test_that("splice-site windows are cut in the direction of transcripti
 
 testthat::test_that("extract_splice_sites adds the windows without the sequences", {
   annot <- mini_annotation("mini_cds.gff3")
-  out <- extract_splice_sites(annot, genome_fasta = mini_genome_fasta())
+  out <- suppressMessages(extract_splice_sites(
+    annot,
+    genome_fasta = mini_genome_fasta()
+  ))
   testthat::expect_true(fs::file_exists(out))
   testthat::expect_false(has_sequences(annot))
   testthat::expect_message(
@@ -78,8 +84,11 @@ testthat::test_that("position weight matrices score the consensus highest", {
 
 testthat::test_that("splice_site_strength reports the weakest site of a transcript", {
   annot <- mini_annotation("mini_cds.gff3")
-  extract_splice_sites(annot, genome_fasta = mini_genome_fasta())
-  by_intron <- splice_site_strength(annot, by = "intron")
+  suppressMessages(extract_splice_sites(
+    annot,
+    genome_fasta = mini_genome_fasta()
+  ))
+  by_intron <- suppressMessages(splice_site_strength(annot, by = "intron"))
   # 3 + 2 + 4 + 2 + 1 introns
   testthat::expect_equal(nrow(by_intron), 12L)
   testthat::expect_identical(attr(by_intron, "training_set"), "all")
@@ -122,4 +131,101 @@ testthat::test_that("transcripts without introns have no score", {
   # Adjacent exons leave no intron
   testthat::expect_equal(nrow(transcript_introns(exons)), 0L)
   testthat::expect_equal(nrow(unique_introns(exons[1L, ])), 0L)
+})
+
+testthat::test_that("splice_site_strength for some genes matches the whole annotation", {
+  annot <- mini_annotation("mini_cds.gff3")
+  suppressMessages(extract_splice_sites(
+    annot,
+    genome_fasta = mini_genome_fasta()
+  ))
+  for (by in c("transcript", "intron")) {
+    all <- splice_site_strength(annot, by = by)
+    one <- splice_site_strength(annot, gene_name = "GENEA", by = by)
+    testthat::expect_identical(one, filter_genes(all, "GENEA"))
+    testthat::expect_identical(attr(one, "n_training"), attr(all, "n_training"))
+  }
+  # Gene IDs work as well as names; an unknown gene gives no rows
+  id <- unique(splice_site_strength(annot, gene_name = "GENEB")$gene_id)
+  testthat::expect_identical(
+    splice_site_strength(annot, gene_name = id)$transcript_id,
+    "tB1"
+  )
+  testthat::expect_equal(
+    nrow(splice_site_strength(annot, gene_name = "NOPE")),
+    0L
+  )
+  # The object reports its own transcripts, from the cache once computed
+  mat <- matrix(
+    1,
+    nrow = 3,
+    ncol = 2,
+    dimnames = list(c("tA1", "tA3", "tB1"), c("s1", "s2"))
+  )
+  iso <- IsoformicExperiment(
+    experiment_name = "splice",
+    annot_path = annot,
+    assays = list(abundance = mat),
+    col_data = data.frame(sample_id = c("s1", "s2"))
+  )
+  all_tx <- splice_site_strength(annot)
+  gene_first <- splice_site_strength(iso, gene_name = "GENEA")
+  testthat::expect_identical(
+    gene_first$transcript_id,
+    c("tA1", "tA3")
+  )
+  by_obj <- splice_site_strength(iso)
+  testthat::expect_identical(
+    by_obj,
+    all_tx[all_tx$transcript_id %in% rownames(mat), ]
+  )
+  testthat::expect_identical(
+    splice_site_strength(iso, gene_name = "GENEA"),
+    gene_first
+  )
+  by_intron <- splice_site_strength(iso, by = "intron")
+  all_intron <- splice_site_strength(annot, by = "intron")
+  testthat::expect_identical(
+    by_intron,
+    all_intron[all_intron$transcript_id %in% rownames(mat), ]
+  )
+})
+
+testthat::test_that("the per-transcript summary matches a grouped summary", {
+  withr::local_seed(1)
+  n <- 500L
+  introns <- tibble::tibble(
+    transcript_id = sample(paste0("t", 1:80), n, replace = TRUE),
+    donor_score = ifelse(stats::runif(n) < 0.2, NA, stats::rnorm(n)),
+    acceptor_score = ifelse(stats::runif(n) < 0.2, NA, stats::rnorm(n)),
+    canonical_dinucleotides = sample(c(TRUE, FALSE, NA), n, replace = TRUE)
+  )
+  # A transcript without any scored intron
+  introns <- dplyr::bind_rows(
+    introns,
+    tibble::tibble(
+      transcript_id = "t_unscored",
+      donor_score = NA_real_,
+      acceptor_score = NA_real_,
+      canonical_dinucleotides = NA
+    )
+  )
+  min_or_na <- function(x) {
+    x <- x[!is.na(x)]
+    if (length(x)) min(x) else NA_real_
+  }
+  ref <- introns |>
+    dplyr::summarise(
+      n_introns = dplyr::n(),
+      n_scored = sum(!is.na(.data$donor_score) & !is.na(.data$acceptor_score)),
+      weakest_donor = min_or_na(.data$donor_score),
+      weakest_acceptor = min_or_na(.data$acceptor_score),
+      mean_donor = mean(.data$donor_score, na.rm = TRUE),
+      mean_acceptor = mean(.data$acceptor_score, na.rm = TRUE),
+      n_noncanonical = sum(!.data$canonical_dinucleotides, na.rm = TRUE),
+      .by = "transcript_id"
+    )
+  ref$mean_donor[is.nan(ref$mean_donor)] <- NA_real_
+  ref$mean_acceptor[is.nan(ref$mean_acceptor)] <- NA_real_
+  testthat::expect_identical(splice_strength_by_transcript(introns), ref)
 })

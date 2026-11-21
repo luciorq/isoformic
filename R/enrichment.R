@@ -36,7 +36,7 @@
 #' * `"lfc_z"`: the median fold-change over the inferential replicates
 #'   divided by its standard deviation (`lfc_median / lfc_sd` of
 #'   [de_confidence()]), so that a fold-change the quantification cannot
-#'   determine ranks low. It needs the confidence table that
+#'   determine ranks low. It needs the fold-change table that
 #'   `add_uncertainty(x, group = )` stores, or these two columns in a data
 #'   frame (the table of [de_confidence()] works). The ranking has the
 #'   contrast of that table, the last level of `add_uncertainty()` against
@@ -56,6 +56,70 @@
 #' `plot_enrichment()` splits its panels. Every gene set and every collection
 #' needs a name.
 #'
+#' @section Workers:
+#' Each collection and transcript category is one `fgsea` call. With
+#' `workers` above 1 (or the `isoformic.workers` option), these calls run in
+#' parallel on that many `mirai` daemons (at most one per call), which need
+#' the `mirai` package. `workers = "auto"` uses
+#' `parallelly::availableCores()`, which follows the CPUs a job scheduler
+#' (Slurm, the CPU affinity mask, a cgroup quota) allocated; without
+#' `parallelly` it runs serially.
+#'
+#' The daemons are fresh R processes that receive only the ranking of their
+#' call and the gene sets cut down to the IDs of that ranking (which gives
+#' the same result), never the session's objects, so their memory does not
+#' grow with the session. The session serializes all calls at once when it
+#' sends them, which costs it about the size of each ranking and of the gene
+#' sets cut down to it, once per call.
+#'
+#' The first call with `workers` above 1 starts the daemons (one per
+#' `fgsea` call, up to `workers`), with the session's library paths and one
+#' BLAS and OpenMP thread each, and keeps them for the session: later calls
+#' reuse them, so a loop of small calls (one contrast and a few collections
+#' each) does not pay their start-up and their loading of `fgsea` every
+#' time. A call that needs more daemons launches the missing ones; a call
+#' with a smaller `workers` than the daemons running starts them again for
+#' that call (one per `fgsea` call, up to its `workers`), so that no call
+#' runs more `fgsea` calls at once than its `workers`. Daemons that died
+#' between calls (killed for their memory, for example) are replaced by the
+#' next call; when all of them die during a call, it fails after 30 seconds
+#' without a connected daemon instead of waiting forever, and the next call
+#' starts them again. An idle daemon holds the memory of its R process and of
+#' `fgsea` (about 0.3 GB once it has run a call). Stop the daemons with
+#' [`isoformic_workers(0)`][isoformic_workers()]; they are also stopped when
+#' the session ends or isoformic is unloaded, and an interrupted call cancels
+#' its `fgsea` calls on them. [`isoformic_workers(n)`][isoformic_workers()]
+#' starts `n` daemons ahead
+#' (stopping those running), with the same settings,
+#' which every call then uses as they are (replacing those that died), and
+#' so do daemons started with `mirai::daemons(n, .compute = "isoformic")`
+#' (`workers` then only decides whether to use them; they keep their own
+#' thread settings, but every call puts the session's library paths first
+#' while it runs; a call fails when none of them is connected, because
+#' isoformic does not restart them).
+#'
+#' Warnings of `fgsea` (ties in the ranking, imprecise p-values) raised on a
+#' worker are raised again in the session when all calls have returned, once
+#' per distinct message and call, naming the collection and the category.
+#'
+#' `fgsea` estimates p-values by sampling. With one worker the calls use the
+#' session's random number stream, in order, as in earlier versions, so
+#' `set.seed()` before the call reproduces them. With more than one worker
+#' every call gets its own seed, drawn from the session's stream before the
+#' calls start: the result is the same for any number of workers above one,
+#' and whether or not the daemons were already running (and reproducible
+#' with `set.seed()`), but its sampled p-values differ slightly from those
+#' of a serial run. Starting daemons with `mirai::daemons()` draws from the
+#' session's stream, so daemons started that way after `set.seed()` change
+#' the p-values of the calls that follow; start them before `set.seed()`,
+#' or with [isoformic_workers()], which leaves the stream where it was. A
+#' single call always runs in the session.
+#'
+#' `BiocParallel::MulticoreParam()` (and `nproc` on Unix-like systems) forks
+#' the session: the forked workers share its memory, but tools that add up
+#' the resident memory of processes (`top`, Slurm accounting without
+#' `UsePss`) count the whole session once per worker.
+#'
 #' @param self An [IsoformicExperiment] or a transcript-level DE table.
 #' @param genesets_list Named list of character vectors (gene symbols), as
 #'   returned by [read_gmt()], or a named list of such lists (see
@@ -71,14 +135,21 @@
 #'   Defaults to [default_enrichment_types()], which picks
 #'   `processed_transcript` or `protein_coding_CDS_not_defined` depending
 #'   on the annotation version.
-#' @param min_size,max_size Minimum and maximum gene set size passed to
-#'   `fgsea`.
-#' @param ... Passed on to `fgsea::fgseaMultilevel()`. fgsea runs in the
-#'   session unless `nproc` or `BPPARAM` is given. On Unix-like systems these
-#'   fork the session: the workers share its memory, but tools that add up
-#'   the resident memory of the processes count it once per worker. Give the
-#'   number of workers (`nproc = 4`); the default of `BiocParallel` is all
-#'   the cores of the machine but two, whatever a job scheduler allocated.
+#' @param min_size,max_size Minimum and maximum gene set size: sets with
+#'   fewer or more genes are not tested. `run_enrichment()` counts, in each
+#'   transcript category, the genes of the set that have at least one ranked
+#'   transcript of that category (the `size` column of the result counts
+#'   transcripts); the gene-level enrichments count the ranked genes of the
+#'   set.
+#' @param workers Number of worker processes that run the `fgsea` calls
+#'   (one per collection and transcript category) in parallel: a whole
+#'   number, or `"auto"` for the CPUs available to the session (see
+#'   *Workers*). Defaults to the `isoformic.workers` option, or 1 (serial).
+#' @param ... Passed on to `fgsea::fgseaMultilevel()`. Each `fgsea` call runs
+#'   with `BiocParallel::SerialParam()` unless `nproc` or `BPPARAM` is given.
+#'   Prefer `workers`: `nproc` parallelises inside one call, which was slower
+#'   than a serial run in our benchmarks, and on Unix-like systems it forks
+#'   the session (see *Workers*).
 #' @param path Path to a GMT file.
 #' @param enrichment_df Result of `run_enrichment()`.
 #' @param n Number of top pathways (by adjusted p-value) to show.
@@ -99,6 +170,8 @@
 #'   collection when there is a `collection` column.
 #'   `default_enrichment_types()` returns a named list of transcript types
 #'   per category.
+#'
+#' @seealso [isoformic_workers()] to start or stop the daemons ahead.
 #'
 #' @examples
 #' iso <- example_isoformic()
@@ -130,6 +203,7 @@ run_enrichment <- S7::new_generic(
     min_size = 15,
     max_size = 500,
     rank_by = c("log2FC", "signed_p", "lfc_z"),
+    workers = getOption("isoformic.workers", 1L),
     ...
   ) {
     S7::S7_dispatch()
@@ -145,13 +219,15 @@ S7::method(run_enrichment, IsoformicExperiment) <- function(
   min_size = 15,
   max_size = 500,
   rank_by = c("log2FC", "signed_p", "lfc_z"),
+  workers = getOption("isoformic.workers", 1L),
   ...
 ) {
   rlang::check_required(genesets_list)
   rank_by <- rlang::arg_match(rank_by)
   det <- de_tx(self)
   annot <- tx_annot(self)
-  det <- dplyr::left_join(
+  # The annotation wins over columns of the same name in the stored results
+  det <- join_annotation(
     det,
     annot[, c(
       "transcript_id",
@@ -166,7 +242,7 @@ S7::method(run_enrichment, IsoformicExperiment) <- function(
     if (is.null(conf)) {
       cli::cli_abort(
         message = c(
-          x = "{.code rank_by = \"lfc_z\"} needs the confidence of the fold-changes.",
+          x = "{.code rank_by = \"lfc_z\"} needs the fold-change table of {.code add_uncertainty(group = )}.",
           i = "Store it with {.code add_uncertainty(x, group = )}."
         ),
         class = "isoformic_no_inferential_replicates"
@@ -176,7 +252,7 @@ S7::method(run_enrichment, IsoformicExperiment) <- function(
     idx <- match(det$transcript_id, conf$feature_id)
     det$lfc_median <- conf$lfc_median[idx]
     det$lfc_sd <- conf$lfc_sd[idx]
-    # The confidence has the contrast of `add_uncertainty(group = , levels = )`,
+    # The fold-change table has the contrast of `add_uncertainty(group = , levels = )`,
     # which may not be the one of the stored results
     same_sign <- sign(det$lfc_median) == sign(det$log2FC)
     same_sign <- same_sign[
@@ -186,7 +262,8 @@ S7::method(run_enrichment, IsoformicExperiment) <- function(
       cli::cli_warn(
         message = c(
           "!" = paste0(
-            "Most fold-changes of the confidence table have the sign ",
+            "Most fold-changes of the fold-change table of ",
+            "{.code add_uncertainty(group = )} have the sign ",
             "opposite to the stored differential expression results."
           ),
           i = paste0(
@@ -211,6 +288,7 @@ S7::method(run_enrichment, IsoformicExperiment) <- function(
     min_size = min_size,
     max_size = max_size,
     rank_by = rank_by,
+    workers = workers,
     ...
   )
 }
@@ -225,6 +303,7 @@ S7::method(run_enrichment, S7::class_data.frame) <- function(
   min_size = 15,
   max_size = 500,
   rank_by = c("log2FC", "signed_p", "lfc_z"),
+  workers = getOption("isoformic.workers", 1L),
   ...
 ) {
   rlang::check_required(genesets_list)
@@ -272,6 +351,7 @@ S7::method(run_enrichment, S7::class_data.frame) <- function(
     min_size = min_size,
     max_size = max_size,
     rank_by = rank_by,
+    workers = workers,
     ...
   )
 }
@@ -369,22 +449,98 @@ geneset_collections <- function(genesets_list) {
   )
 }
 
-#' Run `run(collection)` for every collection and stack the results
+#' Stack the results of every collection
 #'
-#' The `collection` column is added only when several collections were given.
+#' `results` has one table per collection of `geneset_collections()`. The
+#' `collection` column is added only when several collections were given.
 #' @keywords internal
 #' @noRd
-enrich_collections <- function(genesets_list, run) {
-  collections <- geneset_collections(genesets_list)
+stack_collections <- function(collections, results) {
   if (is.null(names(collections))) {
-    return(run(collections[[1L]]))
+    return(results[[1L]])
   }
   res <- lapply(seq_along(collections), function(i) {
-    out <- run(collections[[i]])
+    out <- results[[i]]
     out$collection <- rep(names(collections)[[i]], nrow(out))
     out
   })
   dplyr::bind_rows(res)
+}
+
+#' Run the fgsea tasks of an enrichment, serially or on workers
+#'
+#' Each task is a list of `pathways` and `stats`; the other arguments of
+#' `fgsea::fgseaMultilevel()` are common to all tasks.
+#' @keywords internal
+#' @noRd
+run_fgsea_tasks <- function(tasks, labels, min_size, max_size, workers, ...) {
+  res <- run_tasks(
+    tasks,
+    fun = fgsea_multilevel,
+    args = list(minSize = min_size, maxSize = max_size, eps = 0, ...),
+    workers = workers,
+    labels = labels
+  )
+  lapply(res, function(r) tibble::as_tibble(as.data.frame(r)))
+}
+
+#' Gene sets cut down to the IDs of a ranking
+#'
+#' `fgsea` matches every set against the names of the ranking and drops the
+#' other members before it tests, so the result is the same; the sets keep
+#' their names and order, and a set with no member left is kept empty.
+#' @keywords internal
+#' @noRd
+sets_in_ranking <- function(sets, ids) {
+  if (!length(sets)) {
+    return(sets)
+  }
+  members <- unlist(sets, use.names = FALSE)
+  set_index <- rep.int(seq_along(sets), lengths(sets))
+  keep <- members %in% ids
+  out <- split(
+    members[keep],
+    factor(set_index[keep], levels = seq_along(sets))
+  )
+  names(out) <- names(sets)
+  out
+}
+
+#' Which transcript sets have a number of genes within the size limits
+#'
+#' Counts, for each term, the distinct genes with at least one transcript in
+#' `ids` (the ranking of one category).
+#'
+#' @param sets_long Data frame with `term`, `gene_name` and `map_id` columns,
+#'   one row per transcript of a set.
+#' @returns A logical vector along `terms`.
+#' @keywords internal
+#' @noRd
+sets_with_gene_count <- function(
+  sets_long,
+  map_id,
+  ids,
+  terms,
+  min_size,
+  max_size
+) {
+  ranked <- sets_long[[map_id]] %in% ids
+  term <- match(sets_long$term[ranked], terms)
+  gene <- sets_long$gene_name[ranked]
+  first <- !duplicated(cbind(term, match(gene, gene)))
+  n_genes <- tabulate(term[first], nbins = length(terms))
+  n_genes >= min_size & n_genes <= max_size
+}
+
+#' The label of a task, for error messages
+#' @keywords internal
+#' @noRd
+collection_label <- function(collections, i) {
+  if (is.null(names(collections))) {
+    "the gene set collection"
+  } else {
+    paste0("collection \"", names(collections)[[i]], "\"")
+  }
 }
 
 #' A `fgsea` result without rows
@@ -474,6 +630,7 @@ run_fgsea_by_type <- function(
   min_size,
   max_size,
   rank_by = "log2FC",
+  workers = 1L,
   ...
 ) {
   rlang::check_installed("fgsea")
@@ -490,7 +647,30 @@ run_fgsea_by_type <- function(
   }
   det <- det[!is.na(det$rank_stat) & !is.na(det[[rank_id]]), ]
   gene_map <- dplyr::distinct(tx_to_gene[, c(map_id, "gene_name")])
-  res <- enrich_collections(genesets_list, function(sets) {
+  collections <- geneset_collections(genesets_list)
+  # One ranking per transcript category with at least two transcripts
+  ranks_by_type <- lapply(names(tx_types), function(type_name) {
+    sub <- det[det$transcript_type %in% tx_types[[type_name]], ]
+    if (nrow(sub) < 2L) {
+      return(NULL)
+    }
+    ranks <- stats::setNames(sub$rank_stat, sub[[rank_id]])
+    ranks <- ranks[!duplicated(names(ranks))]
+    sort(ranks)
+  })
+  names(ranks_by_type) <- names(tx_types)
+  types <- names(tx_types)[!vapply(ranks_by_type, is.null, logical(1L))]
+  # The requested count, not capped at the number of tasks: kept daemons
+  # are sized on it (see run_tasks())
+  workers <- resolve_workers(workers, Inf)
+  on_workers <- min(workers, length(collections) * length(types)) > 1L
+  # Tasks in the order of the serial loop: collections, then categories
+  tasks <- list()
+  task_collection <- integer()
+  task_type <- character()
+  labels <- character()
+  for (i in seq_along(collections)) {
+    sets <- collections[[i]]
     # Expand gene-symbol sets to transcript IDs once (vectorised join)
     sets_long <- tibble::tibble(
       term = rep(names(sets), lengths(sets)),
@@ -502,32 +682,64 @@ run_fgsea_by_type <- function(
         relationship = "many-to-many"
       )
     tx_sets <- split(sets_long[[map_id]], sets_long$term)
-    results <- lapply(names(tx_types), function(type_name) {
-      sub <- det[det$transcript_type %in% tx_types[[type_name]], ]
-      if (nrow(sub) < 2L) {
-        return(NULL)
-      }
-      ranks <- stats::setNames(sub$rank_stat, sub[[rank_id]])
-      ranks <- ranks[!duplicated(names(ranks))]
-      ranks <- sort(ranks)
-      res <- fgsea_multilevel(
-        pathways = tx_sets,
-        stats = ranks,
-        minSize = min_size,
-        maxSize = max_size,
-        eps = 0,
-        ...
+    for (type_name in types) {
+      # The size limits count the genes of a set that have a ranked
+      # transcript of the category, not its transcripts
+      in_size <- sets_with_gene_count(
+        sets_long,
+        map_id = map_id,
+        ids = names(ranks_by_type[[type_name]]),
+        terms = names(tx_sets),
+        min_size = min_size,
+        max_size = max_size
       )
-      res <- tibble::as_tibble(as.data.frame(res))
+      # On workers, only the transcripts of the ranking: fgsea drops the
+      # others, and every task is serialized at dispatch, so it carries the
+      # category's share only.
+      pathways <- if (on_workers) {
+        sets_in_ranking(tx_sets[in_size], names(ranks_by_type[[type_name]]))
+      } else {
+        tx_sets[in_size]
+      }
+      tasks[[length(tasks) + 1L]] <- list(
+        pathways = pathways,
+        stats = ranks_by_type[[type_name]]
+      )
+      task_collection <- c(task_collection, i)
+      task_type <- c(task_type, type_name)
+      labels <- c(
+        labels,
+        paste0(
+          collection_label(collections, i),
+          ", transcript category \"",
+          type_name,
+          "\""
+        )
+      )
+    }
+  }
+  # The sets are already filtered on their gene counts
+  fgsea_res <- run_fgsea_tasks(
+    tasks,
+    labels = labels,
+    min_size = 1,
+    max_size = Inf,
+    workers = workers,
+    ...
+  )
+  results <- lapply(seq_along(collections), function(i) {
+    out <- lapply(which(task_collection == i), function(k) {
+      res <- fgsea_res[[k]]
       if (!is.null(pval_cutoff)) {
         res <- res[!is.na(res$pval) & res$pval <= pval_cutoff, ]
       }
-      res$experiment <- rep(type_name, nrow(res))
+      res$experiment <- rep(task_type[[k]], nrow(res))
       res
     })
-    results <- dplyr::bind_rows(results)
-    if (ncol(results)) results else empty_fgsea()
+    out <- dplyr::bind_rows(out)
+    if (ncol(out)) out else empty_fgsea()
   })
+  res <- stack_collections(collections, results)
   res$rank_by <- rep(rank_by, nrow(res))
   dplyr::relocate(res, dplyr::any_of("collection"), .after = "rank_by")
 }
@@ -545,23 +757,36 @@ gene_rank_enrichment <- function(
   rank_by,
   min_size,
   max_size,
+  workers = 1L,
   ...
 ) {
   table <- table[!is.na(table[[rank_col]]) & !is.na(table$gene_name), ]
   table <- table[order(-abs(table[[rank_col]])), ]
   table <- table[!duplicated(table$gene_name), ]
   ranks <- sort(stats::setNames(table[[rank_col]], table$gene_name))
-  res <- enrich_collections(genesets_list, function(sets) {
-    res <- fgsea_multilevel(
-      pathways = sets,
-      stats = ranks,
-      minSize = min_size,
-      maxSize = max_size,
-      eps = 0,
-      ...
-    )
-    tibble::as_tibble(as.data.frame(res))
+  collections <- geneset_collections(genesets_list)
+  workers <- resolve_workers(workers, Inf)
+  on_workers <- min(workers, length(collections)) > 1L
+  tasks <- lapply(collections, function(sets) {
+    if (on_workers) {
+      sets <- sets_in_ranking(sets, names(ranks))
+    }
+    list(pathways = sets, stats = ranks)
   })
+  names(tasks) <- NULL
+  results <- run_fgsea_tasks(
+    tasks,
+    labels = vapply(
+      seq_along(collections),
+      function(i) collection_label(collections, i),
+      character(1L)
+    ),
+    min_size = min_size,
+    max_size = max_size,
+    workers = workers,
+    ...
+  )
+  res <- stack_collections(collections, results)
   res$experiment <- rep(experiment, nrow(res))
   res$rank_by <- rep(rank_by, nrow(res))
   dplyr::relocate(res, dplyr::any_of("collection"), .after = "rank_by")

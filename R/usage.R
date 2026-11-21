@@ -59,13 +59,22 @@
 #'   installed.
 #' @param assay Counts assay to test (default `"counts"`).
 #' @param scale Logical, divide the counts by the overdispersion of the
-#'   replicates. `NULL` (default) does it when the object has replicates. In
-#'   a read-split experiment (technical replicates of the same libraries, see
-#'   the uncertainty article) this removed most false positives of `"diffsplice"`
-#'   and `"DEXSeq"` and made their calls reproducible, so keep it on.
+#'   replicates. `NULL` (default) does it when the object has replicates.
+#'   Between technical halves of the same libraries (read-split experiment,
+#'   see the uncertainty article) it removed most false positives of
+#'   `"diffsplice"` and `"DEXSeq"`, and their calls kept their direction in
+#'   the other half. In a biological null of control placentas (see the
+#'   uncertainty evidence article) the gain was smaller and depended on the
+#'   method: `"diffsplice"` gained mainly at 5 samples per group, `"satuRn"`
+#'   showed no detectable difference, and `"DEXSeq"` made fewer but still
+#'   many false calls either way.
 #' @param min_count,min_prop Filters described above.
-#' @param workers Number of workers for `satuRn` and `DEXSeq` (default 1;
-#'   parallel on Unix-like systems).
+#' @param workers Number of workers for `satuRn` and `DEXSeq`: a whole
+#'   number of at least 1 or `"auto"` for `parallelly::availableCores()`,
+#'   checked as in [run_enrichment()] (default 1). Above 1 they run on
+#'   `BiocParallel::MulticoreParam()` forked workers on Unix-like systems
+#'   (serial elsewhere); this argument does not read the `isoformic.workers`
+#'   option, which sets the `mirai` daemons of the enrichment functions.
 #' @param gene_name Gene names or IDs to keep in the result. The filter is
 #'   applied after the test.
 #' @param ... Not used; reserved for methods.
@@ -139,8 +148,9 @@ S7::method(test_usage, IsoformicExperiment) <- function(
 ) {
   rlang::check_required(group)
   method <- rlang::arg_match(method, c("diffsplice", "satuRn", "DEXSeq"))
+  workers <- resolve_workers(workers, Inf, option_hint = FALSE)
   check_usage_backend(method)
-  assays <- attr(self, "assays", exact = TRUE)
+  assays <- prop_raw(self, "assays")
   if (!assay %in% names(assays)) {
     cli::cli_abort(
       message = c(
@@ -360,10 +370,15 @@ omnibus_usage <- function(res) {
 adjust_usage <- function(res) {
   res$qvalue <- stats::p.adjust(res$pvalue, method = "BH")
   genes <- tibble::tibble(gene_id = unique(res$gene_id))
-  genes$gene_pvalue <- vapply(
-    genes$gene_id,
-    function(g) simes_pvalue(res$pvalue[res$gene_id == g]),
-    numeric(1L)
+  # One pass over the rows; a missing gene ID gets no gene p-value
+  by_gene <- split(
+    res$pvalue,
+    factor(res$gene_id, levels = genes$gene_id[!is.na(genes$gene_id)])
+  )
+  gene_pvalue <- vapply(by_gene, simes_pvalue, numeric(1L), USE.NAMES = FALSE)
+  genes$gene_pvalue <- stats::setNames(
+    gene_pvalue[match(genes$gene_id, names(by_gene))],
+    genes$gene_id
   )
   genes$gene_qvalue <- stats::p.adjust(genes$gene_pvalue, method = "BH")
   dplyr::left_join(res, genes, by = "gene_id")
@@ -519,7 +534,11 @@ usage_dexseq_fit <- function(
     groupID = gene_of
   )))
   dx <- DEXSeq::estimateSizeFactors(dx)
-  dx <- DEXSeq::estimateDispersions(dx, quiet = TRUE, BPPARAM = bp)
+  # `quiet = TRUE` does not silence the DESeq2 note sent when the parametric
+  # dispersion trend fails and a local fit is substituted
+  dx <- suppressMessages(
+    DEXSeq::estimateDispersions(dx, quiet = TRUE, BPPARAM = bp)
+  )
   dx <- DEXSeq::testForDEU(dx, reducedModel = ~ sample + exon, BPPARAM = bp)
   if (isTRUE(fold_change)) {
     dx <- DEXSeq::estimateExonFoldChanges(

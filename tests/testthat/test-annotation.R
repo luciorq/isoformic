@@ -114,6 +114,70 @@ testthat::test_that("prepare_exon_annotation and build_exon_table select genes",
   )
 })
 
+testthat::test_that("read_annotation_table selects rows in DuckDB as %in% does", {
+  annot_dir <- mini_annotation("mini_cds.gff3")
+  tx <- read_annotation_table(annot_dir, "transcripts")
+  wanted <- c(rev(unique(tx$gene_id)), tx$gene_id[1L], "NOPE")
+  testthat::expect_identical(
+    read_annotation_table(
+      annot_dir,
+      "transcripts",
+      filter = list(gene_id = wanted)
+    ),
+    tx[tx$gene_id %in% wanted, ]
+  )
+  one <- tx$gene_id[nrow(tx)]
+  testthat::expect_identical(
+    read_annotation_table(
+      annot_dir,
+      "transcripts",
+      columns = c("transcript_id", "gene_id"),
+      filter = list(gene_id = one)
+    ),
+    tx[tx$gene_id %in% one, c("transcript_id", "gene_id")]
+  )
+  testthat::expect_identical(
+    read_annotation_table(
+      annot_dir,
+      "transcripts",
+      filter = list(gene_id = character())
+    ),
+    tx[0L, ]
+  )
+  testthat::expect_error(
+    read_annotation_table(annot_dir, "transcripts", filter = list("x")),
+    class = "isoformic_invalid_argument"
+  )
+})
+
+testthat::test_that("prepare_exon_annotation and exon_table read only the selected genes", {
+  annot_dir <- mini_annotation("mini_cds.gff3")
+  full <- prepare_annotation(annot_dir)
+  for (genes in list("GENEA", c("GENEB", "GENEA"), full$genes$gene_id[2L])) {
+    testthat::expect_identical(
+      prepare_exon_annotation(genes, annot_dir),
+      build_exon_table(full$genes, full$transcripts, full$exons, genes)
+    )
+  }
+  testthat::expect_warning(
+    none <- prepare_exon_annotation("NOPE", annot_dir),
+    "not found"
+  )
+  testthat::expect_identical(
+    none,
+    suppressWarnings(
+      build_exon_table(full$genes, full$transcripts, full$exons, "NOPE")
+    )
+  )
+  iso <- example_isoformic()
+  clear_cache(iso, annotation = TRUE)
+  from_dir <- exon_table(iso, c("RBPJ", "EGFR"))
+  testthat::expect_false(annot_table_cached(iso, "exons"))
+  invisible(iso@annot_data_exons)
+  testthat::expect_true(annot_table_cached(iso, "exons"))
+  testthat::expect_identical(exon_table(iso, c("RBPJ", "EGFR")), from_dir)
+})
+
 testthat::test_that("make_tx_to_gene parses FASTA headers and annotation directories", {
   lines <- c(
     ">ENST00000001.1|ENSG00000001.1|OTTHUMG00000001.1|OTTHUMT00000001.1|GENEA-201|GENEA|1000|protein_coding|",
@@ -447,6 +511,190 @@ testthat::test_that("merge_annotations builds a haplotype-resolved annotation", 
   testthat::expect_error(
     merge_annotations(c(a = gff)),
     class = "isoformic_invalid_haplotypes"
+  )
+})
+
+testthat::test_that("exon and CDS attributes are parsed with placeholders and prefixes", {
+  gff <- withr::local_tempfile(fileext = ".gff3")
+  writeLines(
+    c(
+      "##gff-version 3",
+      "chr1\tX\tgene\t100\t900\t.\t+\t.\tID=gene:g1;gene_id=g1;gene_type=protein_coding",
+      "chr1\tX\tmRNA\t100\t900\t.\t+\t.\tID=transcript:t1;Parent=gene:g1",
+      "chr1\tX\texon\t100\t200\t.\t+\t.\tParent=transcript:t1;exon_id=NA;rank=1",
+      "chr1\tX\texon\t300\t400\t.\t+\t.\tParent=transcript:t1;exon_id=e2;exon_number=.;rank=2",
+      "chr1\tX\texon\t800\t900\t.\t+\t.\tParent=transcript:t1;exon_id=__na;exon_number=3",
+      "chr1\tX\tCDS\t150\t200\t.\t+\t0\tParent=transcript:t1",
+      "chr1\tX\tCDS\t300\t400\t.\t+\t1\tParent=transcript:t1;exon_id=e2",
+      "chr1\tX\tfive_prime_UTR\t100\t149\t.\t+\t.\tParent=transcript:t1",
+      "chr2\tX\tgene\t10\t50\t.\t-\t.\tID=g2;Name=GENE2"
+    ),
+    gff
+  )
+  annot <- prepare_annotation(suppressMessages(prepare_isoformic_annotation(
+    gff,
+    output_path = withr::local_tempdir()
+  )))
+  testthat::expect_equal(annot$exons$transcript_id, rep("t1", 3L))
+  testthat::expect_equal(annot$exons$exon_id, c(NA, "e2", NA))
+  testthat::expect_equal(annot$exons$exon_number, 1:3)
+  tx <- annot$transcripts
+  testthat::expect_equal(tx$transcript_id, "t1")
+  testthat::expect_equal(tx$gene_id, "g1")
+  testthat::expect_equal(tx$transcript_type, "protein_coding")
+  testthat::expect_equal(c(tx$cds_start, tx$cds_end), c(150L, 400L))
+  testthat::expect_equal(tx$cds_length, 51L + 101L)
+  testthat::expect_equal(c(tx$n_exons, tx$tx_length), c(3L, 101L * 3L))
+  testthat::expect_equal(annot$genes$gene_id, c("g1", "g2"))
+  testthat::expect_equal(annot$genes$gene_name, c("g1", "GENE2"))
+  testthat::expect_equal(annot$seq_regions$end_pos, c(900L, 50L))
+})
+
+testthat::test_that("GTF UTR rows give gene attributes and sequence regions", {
+  gtf <- withr::local_tempfile(fileext = ".gtf")
+  writeLines(
+    c(
+      paste0(
+        "chrA\tST\ttranscript\t100\t500\t.\t+\t.\t",
+        "gene_id \"G1\"; transcript_id \"T1\";"
+      ),
+      paste0(
+        "chrA\tST\texon\t100\t500\t.\t+\t.\t",
+        "gene_id \"G1\"; transcript_id \"T1\"; exon_number \"1\";"
+      ),
+      paste0(
+        "chrA\tST\tUTR\t100\t150\t.\t+\t.\t",
+        "gene_id \"G1\"; transcript_id \"T1\"; gene_name \"GN1\"; ",
+        "gene_type \"lncRNA\";"
+      ),
+      paste0(
+        "chrZ\tST\tUTR\t10\t20\t.\t+\t.\t",
+        "gene_id \"G9\"; transcript_id \"T9\";"
+      )
+    ),
+    gtf
+  )
+  annot <- prepare_annotation(suppressMessages(prepare_isoformic_annotation(
+    gtf,
+    output_path = withr::local_tempdir()
+  )))
+  testthat::expect_equal(annot$genes$gene_id, "G1")
+  testthat::expect_equal(annot$genes$gene_name, "GN1")
+  testthat::expect_equal(annot$genes$gene_type, "lncRNA")
+  testthat::expect_equal(annot$transcripts$transcript_type, "lncRNA")
+  testthat::expect_equal(annot$seq_regions$seqid, c("chrA", "chrZ"))
+})
+
+testthat::test_that("merge_annotations keeps every row and column, in order", {
+  out <- withr::local_tempdir()
+  gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
+  fasta <- system.file(
+    "extdata",
+    "example_transcripts.fa.gz",
+    package = "isoformic"
+  )
+  dir1 <- suppressMessages(prepare_isoformic_annotation(
+    gff,
+    output_path = out,
+    annot_name = "hap_a"
+  ))
+  suppressMessages(extract_transcript_sequences(dir1, transcript_fasta = fasta))
+  dir2 <- suppressMessages(prepare_isoformic_annotation(
+    testthat::test_path("testdata", "mini_liftoff.gff3"),
+    output_path = out,
+    annot_name = "hap_b",
+    haplotype = "old_label"
+  ))
+  # A table written by an older version, without some columns
+  tx2 <- read_parquet(annot_file_path(dir2, "transcripts"))
+  write_parquet(
+    tx2[, setdiff(colnames(tx2), c("tie_score", "haplotype"))],
+    annot_file_path(dir2, "transcripts")
+  )
+  dir3 <- fs::path(out, "hap_c")
+  fs::dir_copy(dir1, dir3)
+
+  expected <- function(dirs, suffix) {
+    tables <- c("genes", "transcripts", "exons", "seq_regions", "sequences")
+    parts <- lapply(names(dirs), function(hap) {
+      sfx <- if (suffix) paste0("_", hap) else ""
+      lapply(stats::setNames(nm = tables), function(type) {
+        file <- annot_file_path(dirs[[hap]], type)
+        if (!fs::file_exists(file)) {
+          return(NULL)
+        }
+        x <- read_parquet(file)
+        if (!identical(type, "sequences")) {
+          x$haplotype <- hap
+        }
+        for (col in intersect(c("gene_id", "transcript_id"), colnames(x))) {
+          x[[col]] <- paste0(x[[col]], sfx)
+        }
+        if ("exon_id" %in% colnames(x)) {
+          x$exon_id <- ifelse(is.na(x$exon_id), NA, paste0(x$exon_id, sfx))
+        }
+        x
+      })
+    })
+    lapply(stats::setNames(nm = tables), function(type) {
+      dplyr::bind_rows(lapply(parts, function(p) p[[type]]))
+    })
+  }
+
+  dirs <- c(hap1 = dir1, hap2 = dir2)
+  merged <- suppressMessages(merge_annotations(
+    dirs,
+    output_path = out,
+    annot_name = "merged"
+  ))
+  want <- expected(dirs, suffix = TRUE)
+  for (type in c("genes", "transcripts", "exons", "seq_regions")) {
+    testthat::expect_identical(
+      read_parquet(annot_file_path(merged, type)),
+      want[[type]]
+    )
+  }
+  testthat::expect_true("tie_score" %in% colnames(want$transcripts))
+  # Sequences are merged only when every haplotype has them
+  testthat::expect_false(has_sequences(merged))
+
+  dirs <- c(hap1 = dir1, hap2 = as.character(dir3))
+  merged <- suppressMessages(merge_annotations(
+    dirs,
+    output_path = out,
+    annot_name = "merged_seq",
+    id_suffix = FALSE
+  ))
+  want <- expected(dirs, suffix = FALSE)
+  for (type in c("genes", "transcripts", "exons", "seq_regions", "sequences")) {
+    testthat::expect_identical(
+      read_parquet(annot_file_path(merged, type)),
+      want[[type]]
+    )
+  }
+  meta <- kv_to_list(read_annotation_table(merged, "metadata"))
+  testthat::expect_equal(meta$id_suffix, "FALSE")
+  testthat::expect_equal(meta$hap2.annot_name, "hap_a")
+
+  # The sequences are copied with one thread; the connection gets its
+  # number of threads back
+  con <- duckdb_connect()
+  DBI::dbExecute(con, "SET threads = 3")
+  merge_annotation_table(
+    con,
+    files = as.character(annot_file_path(dirs, "sequences")),
+    haplotypes = names(dirs),
+    suffixes = NULL,
+    type = "sequences",
+    output_file = file.path(out, "sequences.parquet")
+  )
+  testthat::expect_identical(
+    read_parquet(file.path(out, "sequences.parquet")),
+    want$sequences
+  )
+  testthat::expect_equal(
+    DBI::dbGetQuery(con, "SELECT current_setting('threads') AS n")$n,
+    3
   )
 })
 

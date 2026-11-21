@@ -70,7 +70,9 @@ assessed (and, with a \code{counts} assay, for its replicates to be read).}
 
 \item{inf_rv_cutoff}{Inferential relative variance from which an isoform is
 called uncertain. In \code{de_confidence()}, \code{NULL} uses the value the tables
-were computed with.}
+were computed with; without \code{group}, a value recomputes the
+"uncertain quantification" flag of the stored table. It describes the
+isoform and is not used to judge calls.}
 
 \item{cor_cutoff}{Mean replicate correlation at or below which two isoforms
 of a gene are called ambiguous: a number, or \code{"adaptive"} to derive it
@@ -80,8 +82,10 @@ correlations as noise). The value used is stored and stated by
 \code{uncertainty_methods()}.}
 
 \item{min_agreement}{Share of replicates that must agree on the direction
-of a fold-change for it to be called stable. \code{NULL} uses the stored
-value.}
+of a fold-change; below it the fold-change is flagged \code{unstable}. In
+\code{de_confidence()}, \code{NULL} uses the stored value; without \code{group}, a value
+recomputes \code{unstable}, \code{flags} and \code{unstable_de} of the stored table
+from its \code{sign_agreement}, without the replicates.}
 
 \item{equivalence}{Logical, read the equivalence classes when present, or
 the table returned by \code{\link[=equivalence_support]{equivalence_support()}}, to attach read support when
@@ -91,8 +95,7 @@ the draws are supplied without \code{paths}.}
 equivalence classes can tell apart (\code{\link[=equivalence_identifiability]{equivalence_identifiability()}};
 minutes per sample, needs \code{paths} and, for human samples, the \code{Matrix}
 package), or the table that function returned. \code{de_confidence()} then
-counts a non-identifiable transcript as one more reason against the
-call.}
+reports \code{identifiable}.}
 
 \item{run_qc}{Logical, add the run metadata of Salmon or Oarfish (see
 \code{\link[=salmon_run_qc]{salmon_run_qc()}}) to \code{col_data()}, with the column names prefixed by
@@ -101,7 +104,8 @@ call.}
 \item{keep_draws}{Logical, keep the replicates in the object (needed to
 recompute the tables, for \code{de_confidence(group = )},
 \code{\link[=inferential_overdispersion]{inferential_overdispersion()}} and the uncertainty of
-\code{\link[=productive_fraction]{productive_fraction()}}).}
+\code{\link[=productive_fraction]{productive_fraction()}}). Kept replicates are also written by
+\code{\link[=write_isoformic]{write_isoformic()}}.}
 
 \item{collapse_groups}{Logical, sum ambiguous isoforms into one feature
 before testing the contrast.}
@@ -110,8 +114,8 @@ before testing the contrast.}
 apart, replacing the groups built from the correlation of the replicates:
 a table with \code{transcript_id} and \code{group_id}, or the path to Terminus output
 (see \code{\link[=read_terminus_groups]{read_terminus_groups()}}), or the cut of TreeTerminus trees (see
-\code{\link[=cut_transcript_trees]{cut_transcript_trees()}}). The confidence classes and
-\code{collapse_groups} then follow these groups; the pairs of
+\code{\link[=cut_transcript_trees]{cut_transcript_trees()}}). \code{ambiguous} and \code{collapse_groups} then
+follow these groups; the pairs of
 \code{\link[=isoform_ambiguity]{isoform_ambiguity()}} keep describing the correlation.}
 
 \item{...}{Not used; reserved for methods.}
@@ -153,19 +157,39 @@ absolute median fold-change: \code{feature_id}, \code{feature_type}
 \code{lfc_lo}, \code{lfc_hi}, \code{lfc_sd}), \code{sign_agreement}, \code{frac_draws_effect}
 (share of replicates that agree on the direction with an absolute
 fold-change of at least the cutoff of \code{\link[=de_cutoffs]{de_cutoffs()}}), \code{frac_draws_sig},
-\code{mean_inf_rv}, \code{ambiguous}, \code{identifiable} (only when the
-identifiability was computed; \code{NA} for groups), \code{confidence} (an ordered
-factor), \code{reason}, the existing differential expression result
-(\code{det_log2FC}, \code{det_qvalue}, \code{n_det_sig}) and \code{confident_de}, which is
-\code{TRUE} when a significant isoform has \code{high} confidence.
+\code{mean_inf_rv} (\code{NA} for a feature that is not assessed, which is then
+never flagged as uncertain), \code{ambiguous}, \code{identifiable} (only when the
+identifiability was computed; \code{NA} for groups), \code{flags} (the
+descriptive flags that apply, separated by \code{"; "}: "unstable
+direction", "uncertain quantification", "ambiguous with a sibling
+isoform", "not identifiable from the equivalence classes"; \code{NA} when
+none applies), the current differential expression result
+(\code{det_log2FC}, \code{det_qvalue}, \code{n_det_sig}, the number of significant
+members; read from \code{\link[=de_tx]{de_tx()}} each time, so they follow \verb{de_tx<-} and
+\code{\link[=de_cutoffs]{de_cutoffs()}}) and \code{unstable_de}, \code{TRUE} for a feature with a
+significant member and an unstable direction (\code{NA} without stored
+results). \code{unstable} (after \code{sign_agreement}) is
+\code{sign_agreement < min_agreement}, \code{NA} for a feature that is not
+assessed. The sign agreement is measured against the median sign over
+the replicates, not against \code{det_log2FC}.
 \item \code{uncertainty_report()}: a list with \code{settings} (a list of the cutoffs),
 and the tibbles \code{replicates} (\code{replicate_type}, \code{n_draws},
 \code{resampling_df}, the degrees of freedom over the study, and
 \code{median_overdispersion}, \code{NA} unless the draws are in the object and
 close to 1 for long reads), \code{run} (the run metadata in \code{col_data()}), \code{transcripts} (by
-transcript type), \code{genes}, \code{de} (significant isoforms by confidence
-class) and \code{switches} (isoform switches, all and confident only). \code{run},
-\code{de} and \code{switches} are \code{NULL} when their input is missing.
+transcript type, with \code{median_inf_rv}, \code{q25_inf_rv} and \code{q75_inf_rv}),
+\code{genes}, \code{de} (significant features per flag; the flags describe the
+calls and are not a verdict: one row per flag, \code{unstable} first, with
+\code{flag}, \code{rule}, \code{n_significant}, \code{n_assessed}, \code{n_flagged} and
+\code{pct_flagged}; a collapsed group with a significant member counts once,
+and is never \code{ambiguous}, since its members were summed) and \code{switches}
+(genes with isoform switches, all and without unstable directions:
+\code{n_genes}, \code{n_opposite_direction} and \code{n_det_not_deg}). \code{run} and \code{de}
+are \code{NULL} when their input is missing; \code{switches} needs only the
+transcript-level table (\code{\link[=de_tx]{de_tx()}}) and is \code{NULL} without it, its
+"without unstable directions" row is \code{NA} without the fold-change
+stability of \code{add_uncertainty(group = )}, and its \code{n_det_not_deg} is
+\code{NA} without a gene-level table (\code{\link[=de_gene]{de_gene()}}).
 \item \code{uncertainty_methods()}: a character string.
 }
 }
@@ -176,8 +200,8 @@ them in more than one way, so the estimate of each isoform carries an
 \emph{inferential} uncertainty that is unrelated to biological variability.
 Salmon measures it by drawing replicates from the posterior (Gibbs
 sampling, \code{--numGibbsSamples}) and by writing the equivalence classes
-(\code{--dumpEq}). These functions turn that information into columns that can
-be filtered on and reported.
+(\code{--dumpEq}). These functions turn that information into columns that
+describe each isoform and each call, to be reported next to the results.
 
 Every isoform gets four kinds of evidence:
 \itemize{
@@ -202,16 +226,12 @@ replicates that agree on its direction and \code{frac_draws_sig} the share in
 which the isoform is called differentially expressed.
 }
 
-\code{de_confidence()} combines the last three into one class per isoform:
-\code{high} when the fold-change is stable (\code{sign_agreement >= min_agreement}),
-the isoform is not \code{uncertain} and has no ambiguous sibling; \code{moderate}
-when exactly one of these fails; \code{low} when two or more fail. After
-\code{add_uncertainty(identifiability = TRUE)} a fourth condition counts: the
-equivalence classes must identify the isoform (\code{identifiable}). The class
-says how far a call on the isoform can be trusted, so read it for the
-isoforms flagged by the primary test (\code{n_det_sig}, \code{confident_de}): an
-isoform without a real change is \code{moderate} or \code{low} simply because its
-fold-change is not stable.
+\code{de_confidence()} repeats the contrast on every replicate. \code{unstable}
+flags a fold-change whose direction fewer than \code{min_agreement} (95\%) of
+the replicates agree on, and \code{unstable_de} a call of the primary test with
+such a direction. The other columns describe the quantification of the
+isoform, and \code{flags} lists those that apply. None of them is a verdict on
+a call: report them next to it.
 \itemize{
 \item \code{add_uncertainty(x, paths)} reads the replicates, equivalence classes and
 run metadata from the Salmon output directories (or Oarfish output
@@ -222,8 +242,8 @@ stores the fold-change stability of that contrast.
 \item \code{tx_uncertainty(x)}: per-transcript table, for the transcripts whose
 draws are in the object (the expressed ones).
 \item \code{isoform_ambiguity(x)}: per-pair table of replicate correlations.
-\item \code{de_confidence(x, group)}: per-feature table of fold-change stability
-and confidence class, recomputed from the replicates; with
+\item \code{de_confidence(x, group)}: per-feature table of fold-change stability,
+recomputed from the replicates; with
 \code{collapse_groups = TRUE}, ambiguous isoforms are summed into one feature
 before testing. Without \code{group} it returns the table that
 \code{add_uncertainty(group = )} stored.
@@ -233,28 +253,60 @@ results section.
 settings used.
 }
 
-The replicates themselves are kept in memory only (in
-\code{x@metadata$inf_reps}, a list with one transcript x sample matrix per
-replicate) and are not written by \code{\link[=write_isoformic]{write_isoformic()}}; the tables derived
-from them are. To keep the replicates, write
-\code{inferential_replicates_table(x@metadata$inf_reps)} with \code{\link[=write_parquet]{write_parquet()}}
-and restore them with \code{\link[=as_inferential_replicates]{as_inferential_replicates()}} (see
-\code{\link[=read_inferential_replicates]{read_inferential_replicates()}}). \code{x[i, j]} keeps the replicates of the
-kept transcripts and samples; to contrast two groups of a larger object,
-pass \code{levels} instead of subsetting. With a \code{counts} assay, draws are read
-only for the transcripts with a mean count of at least \code{min_count}; the
-others are treated as unexpressed.
+The replicates themselves are kept in \code{x@metadata$inf_reps}, a list with
+one transcript x sample matrix per replicate. \code{\link[=write_isoformic]{write_isoformic()}} writes
+them, one Parquet file per replicate, with the tables derived from them,
+and \code{\link[=read_isoformic]{read_isoformic()}} restores them; with \code{keep_draws = FALSE} only the
+tables are kept and written. \code{x[i, j]} keeps the replicates of the
+kept transcripts and samples as a view: it shares the draws of \code{x} and
+records the selection, so the draws of \code{x} stay in memory while the subset
+exists (see the Subsetting section of \link{IsoformicExperiment}); to contrast
+two groups of a larger object, pass \code{levels} instead of subsetting. Draws are read only for the
+transcripts of \code{x}; with a \code{counts} assay, only for those with a mean
+count of at least \code{min_count}, and the others are treated as unexpressed.
 }
 \details{
-The thresholds are heuristics, not universal constants: \code{inf_rv_cutoff}
-(0.5), \code{cor_cutoff} (-0.5) and \code{min_agreement} (0.95) are conservative
-starting points. With 30 draws, sampling noise alone puts the inferential
-relative variance of a well-determined, highly expressed transcript near
-0.1, so cutoffs much below 0.5 flag noise; poorly determined isoforms
-typically reach values of several units. Report the numbers next to the
-classes, and rerun with other cutoffs if the data call for it. The replicates measure the
+What the evidence supports. In a genome-wide evaluation on a placenta
+cohort (GENCODE 50, 30 Gibbs draws; see the article "Is quantification
+uncertainty worth checking?"), calls with an unstable direction
+replicated less often in held-out halves of the cohort than the other
+calls (35\% against 64\% pooled; odds ratio 0.36, 95\% interval 0.31 to 0.41
+with genes resampled as clusters, adjusted for count, test statistic,
+number of isoforms of the gene and transcript type; the interval is for
+that cohort and does not include the choice of samples). Their raw
+replication rate was lower in all 60 directed comparisons (30 half-splits
+of the same samples, each used in both directions); against flags of the
+same size made of the lowest-count or lowest-|z| calls, the gap was larger
+in all 60. The flag marked 6\% of the calls and only about 10\% of the
+calls that failed to replicate, so a stable direction is not evidence that a call is right: in comparisons of
+control samples, 93\% of the false calls had a stable direction. The flag
+was a secondary measure of that evaluation, chosen as the headline after
+the results; its threshold of 0.95 was fixed in advance and no other was
+tried, and other primary tests (DESeq2, swish) and long-read bootstraps
+were not evaluated. Ambiguity predicted replication little (odds ratio
+0.87); isoforms not identifiable from the equivalence classes, or in the
+top third of InfRV, replicated somewhat less (0.56 and 0.63). An InfRV of
+at least 0.5 marked 87\% of the expressed isoforms.
+
+The thresholds are heuristics, not universal constants.
+\code{min_agreement = 0.95} is the threshold of that evaluation. It is a share
+of the replicates: with fewer than 20 replicates no replicate may
+disagree, with 30 one may, and with 100 five may.
+\code{inf_rv_cutoff = 0.5} marks inferential relative variance above the
+sampling noise of about 30 draws: with 30 draws, sampling noise alone puts
+the value of a well-determined, highly expressed transcript near 0.1,
+while poorly determined isoforms typically reach several units. It
+describes the isoform and is not used to judge calls. \code{cor_cutoff} (-0.5)
+defines the ambiguity groups and the features of \code{collapse_groups}. Rerun
+with other cutoffs if the data call for it. The replicates measure the
 uncertainty of the quantification only; they do not replace biological
 replicates and cannot make a noisy contrast significant.
+
+\code{lfc_lo}-\code{lfc_hi} is the spread of the screening statistic over the
+replicates, not a confidence interval for the point estimate of the
+primary test; for low counts that estimate can lie outside it. The sign
+agreement is measured against the sign of the median fold-change over the
+replicates (\code{lfc_median}), not against \code{det_log2FC}.
 
 What is not measured. The replicates describe how much an estimate moves
 under the quantification model. They do not find the transcripts whose
@@ -276,9 +328,13 @@ low counts better than bootstrap replicates. \code{add_uncertainty()} says so
 when the total is below 60.
 
 Fold-changes are computed on counts scaled to a common library size, as
-\code{log2(mean_b + pseudocount) - log2(mean_a + pseudocount)} with a pseudocount
-of 5 (the \code{swish} convention), and the per-replicate test is a Welch
-t-test on the log scale with Benjamini-Hochberg adjustment across features.
+the difference between the groups of the mean of
+\verb{log2(scaled count + pseudocount)}, with a pseudocount of 5 (the \code{swish}
+convention): a log ratio of geometric means, on the scale of the
+per-replicate test, a Welch t-test on that log scale with
+Benjamini-Hochberg adjustment across features. It is not the log ratio of
+the arithmetic group means, and the two can differ in sign when one
+sample dominates a group.
 This is a screening statistic for stability, not a replacement for the
 primary test (\code{swish}, \code{DESeq2}, ...), whose results are shown next to it.
 When the sample table (\code{col_data}) has a \code{library_size} column, with the

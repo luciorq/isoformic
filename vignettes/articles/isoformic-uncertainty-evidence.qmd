@@ -1,0 +1,1148 @@
+---
+title: "Is quantification uncertainty worth checking? Genome-wide evidence"
+date: 2026-11-18
+date-modified: 2026-11-20
+date-format: long
+author:
+  - name: Lucio Rezende Queiroz
+format:
+  html:
+    toc: true
+bibliography: library.bib
+vignette: |
+  %\VignetteIndexEntry{Is quantification uncertainty worth checking? Genome-wide evidence}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: "#>"
+    fig-width: 8
+    fig-height: 5
+---
+
+<!--
+Every number in the text is computed inline from the small tables in
+data/uncertainty_evidence/ (relative to this article). They are copies of the
+tables that data-raw/uncertainty_evidence/90_article_tables.R writes from the
+outputs of the other scripts in that directory, with evidence_numbers.parquet
+pruned to the keys used here by
+data-raw/uncertainty_evidence/91_bundle_article_data.R. Typed numbers are
+definitions only (thresholds such as p < 0.01 or 0.95, design sizes such as
+7 v 7). get_row() stops when a key is missing, so a renamed result cannot
+silently drop a number from the text.
+-->
+
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = FALSE)
+library(isoformic)
+library(ggplot2)
+
+data_dir <- "data/uncertainty_evidence"
+ev <- read_parquet(file.path(data_dir, "evidence_numbers.parquet"))
+flt1 <- read_parquet(file.path(data_dir, "flt1_isoforms.parquet"))
+rep_flags <- read_parquet(file.path(data_dir, "replication_flags.parquet"))
+story <- read_parquet(file.path(data_dir, "story_genes.parquet"))
+
+get_row <- function(key) {
+  r <- ev[ev$key == key, ]
+  if (nrow(r) != 1L) {
+    stop("evidence key not found or not unique: ", key)
+  }
+  r
+}
+val <- function(key) get_row(key)$estimate
+num <- function(x, digits = 2) {
+  formatC(x, digits = digits, format = "f", big.mark = ",")
+}
+int <- function(x) formatC(round(x), format = "d", big.mark = ",")
+# fraction -> percent
+pct <- function(x, digits = 1) paste0(num(100 * x, digits), "%")
+# value already in percent
+pc <- function(x, digits = 1) paste0(num(x, digits), "%")
+# the interval of a key, "lo to hi"
+ci_range <- function(key, digits = 2, f = num) {
+  r <- get_row(key)
+  sprintf("%s to %s", f(r$ci_lo, digits), f(r$ci_hi, digits))
+}
+# estimate with its 95% CI
+ci <- function(key, digits = 2, f = num) {
+  sprintf("%s (95%% CI %s)", f(val(key), digits), ci_range(key, digits, f))
+}
+# adjusted rate ratio, top against bottom third of InfRV, pre-registered model
+rr <- function(d, m) paste0("A.adj_rr.", d, ".", m, ".prereg.top")
+rr_raw <- function(d, m) paste0("A.adj_rr_rawjk.", d, ".", m, ".prereg.top")
+fl <- function(name) flt1[flt1$transcript_name == name, ]
+cl <- function(k) paste0("B.cluster.cluster.", k)
+pl <- function(flag) rep_flags[rep_flags$dataset == "placenta half-splits" & rep_flags$flag == flag, ]
+```
+
+Salmon and other quantifiers do not return one count per isoform.
+They return a most likely count and a measure of how far that count could move,
+here `r int(val("S0.n_draws"))` Gibbs draws per sample.
+The [uncertainty article](isoformic-uncertainty.html) shows how `isoformic` turns the draws into
+per-isoform summaries and a check of the direction of every call
+(at the time of this evaluation it also gave every call a confidence class, since removed; see the end of [What we recommend](#what-we-recommend)).
+That article works on a small panel of genes from two knockdown series in cell lines.
+This one asks whether any of it changes the results of a genome-wide analysis of a real cohort.
+The evaluation was planned in writing before any test was run,
+and it reports what did not work as well as what did.
+The plan fixed two decision rules, R-A and R-B (below); one failed and one passed only narrowly.
+The result this article leads with, the sign agreement flag, was not one of them.
+Only its threshold (0.95, the package default) was fixed in the plan;
+the flag was one of several secondary flags that the analysis scripts defined before the replication was run,
+and it was made the headline after the results were known.
+The plan and its amendments are files in the package repository, not entries in an external registry,
+and they were committed to it together with the results.
+So the repository history does not show that the plan came first;
+that rests on the time stamp written inside the plan, which also records the hash of the frozen package code it was run on.
+
+**In short**
+
+- **One check pays off: the sign of the fold-change across the draws.**
+  In a real preeclampsia against control comparison, split in halves of the cohort
+  (`r int(val("design.n_pe") / 2)` preeclampsia samples against 7 or 8 control units in each discovery half),
+  `r pc(val("B.flags.flag_unstable.pct_flagged"))` of the transcript calls of the discovery halves (q < 0.10) have a fold-change
+  whose sign changes in more than 5% of the draws (`sign_agreement` below 0.95);
+  in the full cohort the share is `r pc(val("B.prevalence.F1.pct_sign_agree_lt_0.95"))`
+  of the `r int(get_row("B.prevalence.F1.pct_sign_agree_lt_0.95")$n)` transcript calls at q < 0.05,
+  since the halves, with fewer samples and a looser threshold, make more borderline calls.
+  Those calls of the discovery halves replicate in the held-out half in
+  `r pct(val("B.flags.flag_unstable.rate_flagged"))` of cases, against
+  `r pct(val("B.flags.flag_unstable.rate_unflagged"))` for the other calls
+  (adjusted odds ratio `r num(val(cl("gene.unstable_or")))`,
+  95% CI `r ci_range(cl("gene.unstable_or"))` with genes resampled as clusters;
+  the interval holds for this cohort and does not include the variation from the choice of samples).
+  Setting them aside costs `r pc(val("B.5_ppv_cost_flag_unstable.replicated_calls_removed_pct"))`
+  of the calls that do replicate.
+  The check is narrow: it marks only `r pct(val("B.5_ppv_cost_flag_unstable.sensitivity_nonreplication"), 0)` of the calls that fail to replicate,
+  and it is not a general screen for false positives. It sees only the uncertainty of the quantification,
+  and in the null comparison below `r pct(val("A.m9class.7v7.share_calls_stable"), 0)` of the false calls
+  had a fold-change whose sign was stable over the draws (7 v 7).
+  This was a secondary analysis, not one of the plan's decision rules.
+- **With few samples, uncertain isoforms collect more than their share of the nominal false positives.**
+  With 3 or 5 samples per group, false calls at nominal p < 0.01 were
+  `r num(val(rr("3v3", "M1")), 1)` and `r num(val(rr("5v5", "M1")), 1)` times as frequent
+  in the most uncertain third of isoforms as in the best-determined third.
+  At q < 0.05 false calls were rare
+  (`r num(val("A.mean_calls_q05.3v3.M1.own.all"))` per 3 v 3 split and `r num(val("A.mean_calls_q05.5v5.M1.own.all"))` per 5 v 5 split).
+  With 7 per group no excess was detected (`r num(val(rr("7v7", "M1")))`; raw jackknife `r ci_range(rr_raw("7v7", "M1"))`, which still allows an excess of up to `r num(get_row(rr_raw("7v7", "M1"))$ci_hi)`, close to the `r num(val(rr("5v5", "M1")))` seen at 5 v 5, and overlaps the raw 5 v 5 interval, `r ci_range(rr_raw("5v5", "M1"))`),
+  so the pre-registered rule R-A, judged at 7 per group, **failed**
+  (the plan named no group size; the analysis used its largest design, as described below).
+- **The former default confidence class is a weak filter, and the InfRV cut-off of 0.5 is too broad to be one.**
+  The class (the package's default summary at the time) marks `r pc(val("B.flags.flag_primary.pct_flagged"), 0)` of the calls
+  and separates replicating calls only modestly within cells of equal count and |z|
+  (a gap of `r num(val("B.flags.flag_primary.matched_deficit"), 3)` in replication rate),
+  so a filter on it would remove `r pc(val("B.5_ppv_cost_flag_primary.replicated_calls_removed_pct"), 0)` of the calls that replicate;
+  the InfRV cut-off of 0.5 marks
+  `r pct(val("S0.uncertain.TRUE") / val("S0.U.all"), 0)` of the expressed isoforms, so it was not tested as a flag in the placenta
+  (in the read halves it marks about 90% of the calls, and several of its odds ratios are near separation).
+- **Dividing the counts by the overdispersion is not free, and its effect on real data is unclear.**
+  In the null with 3 or 5 samples per group it removes the concentration of nominal false calls in uncertain isoforms
+  (there is none to remove with 7 per group), but not the false calls themselves, and with known changes added it finds fewer of those changes.
+  In the real comparison it made more calls than point counts on the transcripts both tested
+  (about as many when each applied its own expression filter);
+  these data cannot say whether the extra calls are true.
+
+## What the draws are, and what each flag means
+
+A read that is compatible with several isoforms of a gene has to be shared out between them.
+The quantifier finds the most likely split (the *point estimate*),
+but other splits explain the reads almost as well.
+Gibbs sampling draws plausible splits from that range:
+each *draw* is a complete set of counts that the reads could have produced.
+If an isoform has a similar count in every draw, the reads determine it;
+if its count swings between draws, they do not.
+The draws describe only this assignment uncertainty, not biological variability between samples.
+
+The evaluation tests these summaries of the draws (all computed by `add_uncertainty()` and `de_confidence()`):
+
+| Flag | What it says | Definition here |
+|---|---|---|
+| sign agreement below 0.95 | the direction of this call depends on how the reads are assigned | the fold-change of the contrast, repeated on each draw, has the sign of its median in fewer than 95% of the draws |
+| top third of InfRV | the abundance of the isoform is poorly determined | inferential relative variance [@swish] in the highest third of the expressed isoforms |
+| uncertain | the same, with a fixed cut-off | InfRV of at least 0.5 (the package default) |
+| not identifiable | the reads cannot separate the isoform from another one, whatever the depth | its abundance is not fixed by the totals of the equivalence classes, in at least one sample |
+| no unique reads | no read is compatible with this isoform alone | from the equivalence classes |
+| ambiguous partner | another isoform of the gene takes reads from it | draws negatively correlated (at most -0.5) with a sibling |
+| confidence class not `high` | the package's default summary at the time (since removed) | `high` needs sign agreement of at least 0.95, not uncertain, and no ambiguous partner |
+
+*Divided counts* go one step further: the overdispersion that the read assignment adds to each
+isoform is estimated from the draws, and the counts are divided by it before the test
+[@baldoni2024], so that uncertain isoforms count for less.
+
+## Data and design
+
+**Placenta.** The main cohort is the placenta RNA-seq of @yang2020placenta
+(GEO [GSE148241](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE148241),
+BioProject [PRJNA622166](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA622166)):
+`r int(val("design.n_pe"))` preeclampsia and `r int(val("design.n_control"))` control samples,
+quantified with Salmon [@salmon] on GENCODE 50 [@gencode] with `r int(val("S0.n_draws"))` Gibbs draws per sample.
+Two pairs of control samples are labelled as pairs (A and B) in GEO;
+they are probably twin placentas and so not independent, and one member of each pair was kept,
+leaving `r int(val("design.n_control_units"))` control units.
+The analysis uses the `r int(val("S0.U.all"))` transcripts of `r int(val("S0.genes_U.all"))` genes
+expressed in the preeclampsia samples.
+The InfRV thirds (cut points `r num(val("S0.cut.infrv_tertile.low_mid"))` and
+`r num(val("S0.cut.infrv_tertile.mid_high"))`) were also measured in the preeclampsia samples only,
+so they do not depend on the control samples that the null splits use.
+
+**Mouse.** The `r int(get_row("C.batch.batch1_short_fragments.frag_min")$n + get_row("C.batch.batch2.frag_min")$n)`
+control males of a mouse brain study [@degroat2024]
+(BioProject [PRJNA984605](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA984605)),
+quantified on GENCODE vM39, give a second null in another species.
+
+**Knockdown read halves.** The two knockdown series of the uncertainty article,
+[GSE129540](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE129540) [@munkley2019] and
+[GSE75489](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE75489) [@yang2016],
+were split into random halves of the reads of each library and quantified again.
+As a sensitivity check, GSE129540 was also analysed on the consecutive halves of the uncertainty article
+(the first and second 6 million read pairs of each library; the rows "consecutive" in the table of the read halves below).
+Here the calls of both kinds of halves are made at q < 0.10 in both directions (half A checked in half B, and B in A) and pooled,
+so they number more than the 110 edgeR calls at FDR < 0.05 in half 1 reported in that article.
+
+Two tests were written down before the results were known
+(`data-raw/uncertainty_evidence/prereg.yaml` in the package repository);
+a third, the mouse null, was added afterwards by analogy with the first (amendment A19):
+
+1. **A null comparison.** Control placentas were split at random into two groups
+   (3 v 3, 5 v 5 and 7 v 7, at least `r int(val("design.null_splits_per_size"))` splits per size).
+   Nothing differs between the groups, so every call is false.
+   Rule R-A asked that edgeR on the point counts make more false calls in the top third of InfRV
+   than in the bottom third, that an uncertainty-aware method remove that excess,
+   and that gene-level tests show no such excess.
+   The plan named no group size for the rule.
+   The analysis judged it at 7 v 7, the largest design and the one given the most splits
+   (`r int(get_row(rr("7v7", "M1"))$n)`, each leaving out one control unit), set in an amendment made after a pilot.
+   The pilot ran 3 null splits per size through every method to time them.
+   It printed only timings and two validation checks (the swish control with 2 against 30 copies of the counts,
+   and the confidence class of the scripts against the package), but it also wrote the null results of those 9 splits,
+   which were kept as part of the full run; nothing records whether they were looked at before the amendment.
+   That 7 v 7 decides the rule was written only in the analysis scripts and is recorded as a post hoc amendment.
+2. **Held-out replication.** The real comparison was split into halves
+   `r int(val("design.half_splits"))` times, each used in both directions
+   (`r int(val("design.directed_pairs"))` directed pairs).
+   A call made on one half (q < 0.10, a threshold set in the analysis scripts, not in the plan)
+   *replicates* when the other half has the same sign at one-sided p < 0.05.
+   Each flag is computed from the discovery half only,
+   except "no unique reads", which uses all preeclampsia samples.
+   Rule R-B asked that the default flag (class not `high`) predict non-replication,
+   and do so better than a count-matched flag, which the plan described as having the same mean-count distribution.
+   The analysis implemented that control as a flag of the same size made of the lowest-count calls of each pair,
+   which is a different control; the departure was recorded only after the results.
+   The plan listed two more controls, a placebo flag of the same size and a permutation baseline of the labels.
+   The placebo was implemented as the default flag shuffled within cells of equal count and |z|,
+   and the permutation baseline turned out not to be a null (both are reported below);
+   neither change was recorded before the results.
+   The plan registered only this one flag. Sign agreement, InfRV, identifiability, unique reads and
+   ambiguous partners were secondary flags of the same analysis.
+3. **The mouse null (not pre-registered)**, split 5 v 5 in all
+   `r int(val("C.n_splits_batch_balanced") + val("C.n_splits_batch_aligned"))` possible ways.
+   It applies the pre-registered R-A rule and model to a dataset that the plan does not name;
+   its dataset, animals and split design were chosen without being registered,
+   so it is an external check, not a pre-registered test.
+
+The tests used edgeR quasi-likelihood [@edgerql] on point counts and on divided counts,
+`swish` on the draws [@swish], and, for transcript usage, edgeR `diffSplice`, `satuRn` [@saturn] and `DEXSeq` [@dexseq].
+The null also ran limma-voom on both kinds of counts (7 v 7 only), the DESeq2 Wald test on point counts
+(`r int(get_row("A.mean_calls_q05.7v7.M5.own.all")$n)` splits at 7 v 7), a Wilcoxon test and gene-level edgeR;
+the main text follows edgeR, and the [supplementary tables](#every-method-in-the-null) give every method.
+Changes to the plan are recorded as amendments;
+those made after the results were seen are marked as post hoc here and in
+`data-raw/uncertainty_evidence/prereg_amendments.yaml`.
+
+**Intervals.** All are 95% intervals, by part:
+in the placenta null, a jackknife that leaves out one control unit
+(with a Monte Carlo correction where it is valid; where the correction removes most of the variance, the uncorrected "raw" interval is given as well and is the conservative one);
+in the mouse, the exact jackknife over all splits for each animal left out;
+in the replication, the two-level bootstrap of the plan, called the *planned bootstrap* below:
+half-splits, then the genes of each directed pair, with all the calls of a gene moving together
+(the plan said transcripts within splits; resampling genes keeps the correlated calls of a gene together,
+so its intervals should be no narrower than those of the plan, and the change is recorded as amendment A15).
+The splits share samples, so intervals from a plain bootstrap over splits would be far too narrow.
+
+## The result that holds: sign agreement predicts replication
+
+```{r}
+#| label: fig-replication
+#| fig-cap: "Held-out replication of the transcript calls in the placenta half-splits, for the calls with and without each flag (pooled over the 60 directed pairs). The label gives the share of calls that the flag marks. A useful flag marks few calls whose replication is much lower. The two controls mark as many calls as the former default class: the lowest-count calls of each pair (the control R-B was judged on, as implemented), and the calls of lowest replication predicted from count and test statistic (post hoc)."
+flag_label <- c(
+  flag_unstable = "sign agreement < 0.95",
+  flag_non_identifiable = "not identifiable",
+  flag_infrv_top_tertile = "top third of InfRV",
+  flag_zero_unique = "no unique reads",
+  flag_ambiguous = "ambiguous partner",
+  flag_primary = "class not high (former default)",
+  flag_c4 = "control: lowest-count calls",
+  flag_c4b = "control: count and |z| (post hoc)"
+)
+p <- rep_flags[rep_flags$dataset == "placenta half-splits" & rep_flags$flag %in% names(flag_label), ]
+p <- p[match(names(flag_label), p$flag), ]
+lab <- paste0(flag_label[p$flag], " (", num(p$pct_flagged, 1), "%)")
+fig_rep <- rbind(
+  data.frame(label = lab, group = "flagged", rate = p$rate_flagged),
+  data.frame(label = lab, group = "not flagged", rate = p$rate_unflagged)
+)
+fig_rep$label <- factor(fig_rep$label, levels = rev(lab))
+ggplot(fig_rep, aes(x = rate, y = label)) +
+  geom_line(aes(group = label), colour = "grey70") +
+  geom_point(aes(colour = group), size = 3) +
+  scale_x_continuous(labels = function(x) paste0(100 * x, "%")) +
+  scale_colour_manual(values = c(flagged = "#C44E52", `not flagged` = "#4C72B0")) +
+  labs(x = "Calls that replicate in the held-out half", y = NULL, colour = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+Over the `r int(val("design.directed_pairs"))` directed half-splits, edgeR on the discovery halves made
+`r int(val("B.cluster.recur.calls"))` transcript calls, and
+`r pct(val("B.2_secondary_outcomes.replication_rate"))` of them replicated.
+The calls with sign agreement below 0.95:
+
+| | |
+|---|---|
+| Share of calls flagged | `r pc(val("B.flags.flag_unstable.pct_flagged"))` |
+| Replicate, flagged against not flagged | `r pct(val("B.flags.flag_unstable.rate_flagged"))` against `r pct(val("B.flags.flag_unstable.rate_unflagged"))` |
+| Difference within cells of equal count and test statistic (post hoc) | `r num(val("B.flags.flag_unstable.matched_deficit"), 3)`; 95% CI `r ci_range("B.flags.flag_unstable.matched_deficit", 3)` (planned bootstrap, too narrow; see below) |
+| Adjusted odds ratio of replication | `r num(val("B.flags.flag_unstable.adjusted_or"))`; 95% CI `r ci_range(cl("gene.unstable_or"))` (genes as clusters), `r ci_range("B.flags.flag_unstable.adjusted_or")` (planned bootstrap) |
+| Flagged calls that fail to replicate | `r pct(val("B.5_ppv_cost_flag_unstable.PPV_nonreplication"), 0)` (all calls: `r pct(1 - val("B.2_secondary_outcomes.replication_rate"), 0)`) |
+| Share of all failures it catches | `r pct(val("B.5_ppv_cost_flag_unstable.sensitivity_nonreplication"), 0)` |
+| Replicating calls it would remove | `r pc(val("B.5_ppv_cost_flag_unstable.replicated_calls_removed_pct"))` |
+
+The odds ratio is adjusted for the count, the test statistic (|z|), the number of isoforms of the gene and the transcript type.
+The flag is narrow, so it catches few of the calls that fail; what it marks, though, mostly fails, at a small cost.
+
+**How robust is it?**
+
+- **It is not just low power.** Flagged calls have fewer reads (median about
+  `r int(2^val("B.posthoc.power.median_log2_count.flag_unstable") - 0.5)` against
+  `r int(2^val("B.posthoc.power.median_log2_count.not_flag_unstable") - 0.5)` mean reads), and replication depends on power.
+  But the difference survives matching on count and |z| (table above),
+  flexible splines on both (odds ratio `r num(val("B.posthoc.power.flag_unstable.replicated.or_splines"))`, post hoc),
+  and fixed effects for each directed pair (`r num(val("B.cluster.pair_fe.flag_unstable.replicated.adjusted_or"))`, post hoc).
+  At the same size, it also beats flags made of the lowest-count calls, the lowest-|z| calls
+  and the calls with the lowest replication predicted from count and |z| (post hoc):
+  a replication gap of `r num(val("B.posthoc.same_size.flag_unstable.deficit"), 3)` against
+  `r num(val("B.posthoc.same_size.lowest_count.deficit"), 3)`, `r num(val("B.posthoc.same_size.lowest_absz.deficit"), 3)`
+  and `r num(val("B.posthoc.same_size.lowest_predicted_count_absz.deficit"), 3)`,
+  `r pct(val("B.posthoc.same_size.flag_unstable.sensitivity_nonreplication"))` of the failures caught against
+  `r pct(val("B.posthoc.same_size.lowest_count.sensitivity_nonreplication"))`, `r pct(val("B.posthoc.same_size.lowest_absz.sensitivity_nonreplication"))`
+  and `r pct(val("B.posthoc.same_size.lowest_predicted_count_absz.sensitivity_nonreplication"))`,
+  and a larger gap in `r int(val("B.posthoc.same_size.lowest_count.pairs_unstable_larger_deficit"))`,
+  `r int(val("B.posthoc.same_size.lowest_absz.pairs_unstable_larger_deficit"))`
+  and `r int(val("B.posthoc.same_size.lowest_predicted_count_absz.pairs_unstable_larger_deficit"))`
+  of the `r int(val("B.cluster.pairs.n"))` directed pairs.
+- **It holds in every directed pair (raw rates).** Flagged calls replicate less in
+  `r int(val("B.cluster.pairs.unstable.n_flagged_lower"))` of the `r int(val("B.cluster.pairs.n"))` directed pairs
+  (flagged `r pct(val("B.cluster.pairs.unstable.rate_flagged_min"))` to `r pct(val("B.cluster.pairs.unstable.rate_flagged_max"))`,
+  not flagged `r pct(val("B.cluster.pairs.unstable.rate_unflagged_min"))` to `r pct(val("B.cluster.pairs.unstable.rate_unflagged_max"))`).
+- **The rates are specific to this design.** The `r pct(val("B.flags.flag_unstable.rate_flagged"))` and
+  `r pct(val("B.flags.flag_unstable.rate_unflagged"))` above are pooled over the pairs.
+  The pairs differ a lot: a discovery half made `r int(val("B.cluster.pairs.calls_min"))` to
+  `r int(val("B.cluster.pairs.calls_max"))` calls, and the more calls a half made, the fewer replicated
+  (correlation `r num(val("B.cluster.pairs.cor_calls_rate"))` over pairs).
+  Pooling weights the large, low-replication pairs most; with every pair weighted equally the rates are
+  `r pct(val("B.cluster.pairs.unstable.rate_flagged_mean"))` against `r pct(val("B.cluster.pairs.unstable.rate_unflagged_mean"))`.
+  Read them as rates of this half-split design, not as probabilities that a call is true.
+- **The same transcripts recur.** The `r int(val("B.cluster.recur.unstable.calls"))` flagged calls come from
+  `r int(val("B.cluster.recur.unstable.transcripts"))` transcripts in `r int(val("B.cluster.recur.unstable.genes"))` genes,
+  because all half-splits draw on the same `r int(val("design.n_pe") + val("design.n_control_units"))` samples.
+  The planned bootstrap resampled genes separately in each pair and so gives intervals that are too narrow
+  (`r ci_range("B.flags.flag_unstable.adjusted_or")`);
+  resampling each gene once over all pairs gives `r ci_range(cl("gene.unstable_or"))`,
+  and crossing that with the half-splits `r ci_range(cl("split_x_gene.unstable_or"))` (post hoc).
+  Either way the odds ratio stays far below 1.
+  Neither scheme resamples the samples themselves, so both intervals hold for this cohort of
+  `r int(val("design.n_pe") + val("design.n_control_units"))` samples;
+  the rates of single pairs (above) show how much one split of it can differ from another.
+- **The direction itself replicates less.** With "same sign in the held-out half" as the outcome (post hoc),
+  which needs less power than p < 0.05, the odds ratio is
+  `r num(val("B.signconc.flag_unstable.adjusted_or"))` (95% CI `r ci_range(cl("gene.unstable_or_signconc"))`, genes as clusters):
+  `r pct(val("B.signconc.flag_unstable.sign_concordance_flagged"))` of flagged calls keep their sign, against
+  `r pct(val("B.signconc.flag_unstable.sign_concordance_unflagged"))`.
+  This outcome is not free of power either: among unflagged calls it rises from
+  `r num(val("B.posthoc.power.unflagged.sign_concordant.by_d_absz_decile.1"), 3)` to
+  `r num(val("B.posthoc.power.unflagged.sign_concordant.by_d_absz_decile.10"), 3)` from the lowest to the highest decile of |z|.
+- **Technical read halves agree.** In the two knockdown series, calls made on one random half of the reads
+  were checked in the other half. The odds ratio of the same flag is
+  `r ci("R.random.GSE129540.M1.flag_unstable.adjusted_or", 3)` for GSE129540 and
+  `r ci("R.random.GSE75489.M1.flag_unstable.adjusted_or", 3)` for GSE75489.
+  This is a favourable consistency check, not an independent replication:
+  the two halves share the libraries and all their biology and differ only by the sampling and assignment noise
+  that the draws model. The calls are few (`r int(val("R.random.GSE129540.M1.flag_unstable.n_calls"))` and
+  `r int(val("R.random.GSE75489.M1.flag_unstable.n_calls"))`), the flag marks far more of them than in the placenta
+  (`r pc(val("R.random.GSE129540.M1.flag_unstable.pct_flagged"), 0)` and `r pc(val("R.random.GSE75489.M1.flag_unstable.pct_flagged"), 0)`),
+  and in GSE75489 only `r int(val("B.cluster.rhalf.random_GSE75489_M1_AB.n_calls_q10"))` and
+  `r int(val("B.cluster.rhalf.random_GSE75489_M1_BA.n_calls_q10"))` transcripts passed q < 0.10,
+  so the test fell back on the 500 lowest p-values in each direction, most of them not significant
+  (a fallback written into the analysis scripts, like the q < 0.10 threshold; the read halves are not in the plan).
+  Sign agreement is not special there: with the same adjustment as in the placenta,
+  every flag of the read halves has an odds ratio well below 1, several of them lower than sign agreement (table below).
+  The read halves therefore support the general point that the draws carry information about which calls repeat,
+  not sign agreement in particular.
+
+```{r}
+#| label: tbl-rhalf-flags
+rh_label <- c(
+  flag_unstable = "sign agreement < 0.95",
+  flag_infrv_tertile = "top third of InfRV",
+  flag_uncertain = "uncertain (InfRV >= 0.5)",
+  flag_ambiguous = "ambiguous partner"
+)
+rh <- rep_flags[startsWith(rep_flags$dataset, "read halves") & rep_flags$flag %in% names(rh_label), ]
+rh <- rh[order(rh$dataset, match(rh$flag, names(rh_label))), ]
+# odds ratios that are near separation are printed as an upper bound
+or_fmt <- function(x) ifelse(x < 0.001, "< 0.001", num(x, 3))
+knitr::kable(
+  data.frame(
+    Series = sub("read halves ", "", rh$dataset),
+    Flag = rh_label[rh$flag],
+    Calls = int(rh$n_calls),
+    `Share flagged` = paste0(num(rh$pct_flagged, 0), "%"),
+    `Replicate, flagged against not flagged` = paste(pct(rh$rate_flagged, 0), "against", pct(rh$rate_unflagged, 0)),
+    `Adjusted odds ratio (95% CI)` = sprintf("%s (%s to %s)", or_fmt(rh$adjusted_or), or_fmt(rh$or_lo), or_fmt(rh$or_hi)),
+    check.names = FALSE
+  ),
+  row.names = FALSE
+)
+```
+
+```{r}
+#| label: rhalf-numbers
+rh_cell <- function(d, f) rh[rh$dataset == paste("read halves", d) & rh$flag == f, ]
+```
+
+The InfRV and "uncertain" flags mark most of the calls in the read halves, so several of their odds ratios are near separation and unstable.
+The ambiguous partner marks few calls, and its raw replication rates hardly differ from those of the other calls,
+but once count and |z| are accounted for its odds ratio is `r num(rh_cell("GSE75489 random", "flag_ambiguous")$adjusted_or)` in GSE75489
+and `r num(rh_cell("GSE129540 random", "flag_ambiguous")$adjusted_or)` in GSE129540 (random halves),
+against `r num(pl("flag_ambiguous")$adjusted_or)` in the placenta.
+Which flag predicts best depends on the data; only the placenta half-splits, a biological comparison, put sign agreement first, by odds ratio and by replication gap.
+
+```{r}
+#| label: non-identifiable-numbers
+# Share of the failures and of the replicating calls that the flag marks,
+# from its share of calls and its replication rates
+ni_p <- val("B.flags.flag_non_identifiable.pct_flagged") / 100
+ni_f <- val("B.flags.flag_non_identifiable.rate_flagged")
+ni_u <- val("B.flags.flag_non_identifiable.rate_unflagged")
+```
+
+In the placenta, other flags carry less.
+Non-identifiable calls (`r pc(val("B.flags.flag_non_identifiable.pct_flagged"))` of the calls) replicate in
+`r pct(val("B.flags.flag_non_identifiable.rate_flagged"))` against `r pct(val("B.flags.flag_non_identifiable.rate_unflagged"))`
+(odds ratio `r num(val("B.flags.flag_non_identifiable.adjusted_or"))`, 95% CI `r ci_range("B.flags.flag_non_identifiable.adjusted_or")` from the planned bootstrap).
+It is a broader but weaker descriptor than sign agreement:
+it covers `r pct(ni_p * (1 - ni_f) / (ni_p * (1 - ni_f) + (1 - ni_p) * (1 - ni_u)), 0)` of the calls that fail to replicate
+(against `r pct(val("B.5_ppv_cost_flag_unstable.sensitivity_nonreplication"), 0)` for an unstable direction),
+but also `r pct(ni_p * ni_f / (ni_p * ni_f + (1 - ni_p) * ni_u), 0)` of those that replicate,
+so it can be reported next to `sign_agreement` as a description, not used as a filter.
+The top third of InfRV and the absence of unique reads have odds ratios of
+`r num(val("B.flags.flag_infrv_top_tertile.adjusted_or"))` and `r num(val("B.flags.flag_zero_unique.adjusted_or"))`,
+and an ambiguous partner predicts little (`r num(val("B.flags.flag_ambiguous.adjusted_or"))`).
+
+## What did not work
+
+### The pre-registered null rule fails at 7 v 7
+
+```{r}
+#| label: fig-null-rr
+#| fig-height: 5.5
+#| fig-cap: "Rate of false calls (p < 0.01) in the top third of InfRV against the bottom third, adjusted for expression decile and number of isoforms in the gene (the pre-registered model). Above 1, uncertain isoforms collect more false calls. Placenta: control placentas only, by group size; mouse: control males, 5 v 5, all splits and the splits balanced for a library batch. Bars: 95% jackknife intervals; for the placenta the uncorrected (raw) jackknife, the conservative one."
+methods <- c(M1 = "edgeR, point counts", M2 = "edgeR, divided counts", M6 = "swish, draws")
+rows <- list()
+for (d in c("3v3", "5v5", "7v7")) {
+  for (m in names(methods)) {
+    # swish (M6) was not run at 3 v 3
+    if (!any(ev$key == rr_raw(d, m))) {
+      next
+    }
+    r <- get_row(rr_raw(d, m))
+    rows[[length(rows) + 1L]] <- data.frame(
+      dataset = "placenta", design = d, method = methods[[m]],
+      estimate = r$estimate, lo = r$ci_lo, hi = r$ci_hi
+    )
+  }
+}
+for (s in c("", "_batch_balanced")) {
+  for (m in names(methods)) {
+    r <- get_row(paste0("C.", m, ".adjusted_rate_ratio_high_low", s))
+    rows[[length(rows) + 1L]] <- data.frame(
+      dataset = "mouse", design = if (s == "") "5v5, all" else "5v5, balanced",
+      method = methods[[m]], estimate = r$estimate, lo = r$ci_lo, hi = r$ci_hi
+    )
+  }
+}
+fig_rr <- do.call(rbind, rows)
+fig_rr$design <- factor(fig_rr$design, levels = rev(c("3v3", "5v5", "7v7", "5v5, all", "5v5, balanced")))
+fig_rr$method <- factor(fig_rr$method, levels = methods)
+ggplot(fig_rr, aes(x = estimate, y = design, colour = method)) +
+  geom_vline(xintercept = 1, linetype = "dashed", colour = "grey50") +
+  geom_pointrange(aes(xmin = lo, xmax = hi), position = position_dodge(width = 0.6)) +
+  scale_x_log10() +
+  scale_colour_manual(values = c("#4C72B0", "#DD8452", "#55A868")) +
+  facet_grid(dataset ~ ., scales = "free_y", space = "free_y") +
+  labs(x = "Rate ratio, top against bottom third of InfRV (log scale)", y = NULL, colour = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+At 7 v 7, the size at which the analysis judged the rule, false calls of edgeR on point counts were **not detectably**
+more frequent in uncertain isoforms: the adjusted rate ratio is `r num(val(rr("7v7", "M1")))`
+(95% CI with the raw jackknife `r ci_range(rr_raw("7v7", "M1"))`; the Monte Carlo corrected `r ci_range(rr("7v7", "M1"))` keeps only about `r pct((log(get_row(rr("7v7", "M1"))$ci_hi / get_row(rr("7v7", "M1"))$ci_lo) / log(get_row(rr_raw("7v7", "M1"))$ci_hi / get_row(rr_raw("7v7", "M1"))$ci_lo))^2, 0)` of the jackknife variance, a remainder within the noise of the Monte Carlo estimate, so it is not reliable), so R-A fails.
+Its other criteria cannot rescue it: there is no excess to remove
+(the ratio of divided to point counts is `r num(val("A.rr_ratio.7v7.prereg.M2_vs_M1"))`, 95% CI `r ci_range("A.rr_ratio.7v7.prereg.M2_vs_M1")`).
+Point counts were calibrated at this size:
+`r num(val("A.mean_calls_q05.7v7.M1.own.all"), 3)` false calls per split at q < 0.05,
+and an observed share at p < 0.01 of `r num(val("A.inflation_p01.7v7.M1.own.all"))` times the expected one
+(95% CI `r ci_range("A.inflation_p01.7v7.M1.own.all")`).
+That holds for edgeR's quasi-likelihood test, not for every test of the same counts:
+the DESeq2 Wald test made `r num(val("A.mean_calls_q05.7v7.M5.own.all"), 1)` false calls per split at q < 0.05
+on `r int(get_row("A.mean_calls_q05.7v7.M5.own.all")$n)` of the 7 v 7 splits
+(raw jackknife interval `r ci_range("A.mean_calls_q05.7v7.M5.own.all", 1)`;
+observed over expected share at p < 0.01 `r num(val("A.inflation_p01.7v7.M5.own.all"))`,
+95% CI `r ci_range("A.inflation_p01.7v7.M5.own.all")`),
+while limma-voom made `r num(val("A.mean_calls_q05.7v7.M3.own.all"), 3)`
+([supplementary tables](#every-method-in-the-null)).
+A sensitivity model that also adjusts for identifiability (not pre-registered) gives
+`r num(val("A.adj_rr.7v7.M1.ident.top"))`, the same conclusion.
+
+**With fewer samples per group the excess appears** (secondary results: the plan listed these sizes, but the analysis did not judge R-A on them).
+The adjusted rate ratio is `r num(val(rr("5v5", "M1")))` at 5 v 5
+(raw jackknife `r ci_range(rr_raw("5v5", "M1"))`) and `r ci(rr("3v3", "M1"))` at 3 v 3.
+The false calls are not more numerous overall
+(at 3 v 3 the observed share at p < 0.01 is `r num(val("A.inflation_p01.3v3.M1.own.all"))` times the expected one,
+95% CI `r ci_range("A.inflation_p01.3v3.M1.own.all")`);
+they fall more often on uncertain isoforms
+(`r num(val("A.inflation_p01.3v3.M1.own.tertile_high"))` in the top third against
+`r num(val("A.inflation_p01.3v3.M1.own.tertile_low"))` in the bottom third).
+It is not explained by differences in mapping rate between the groups
+(at 3 v 3 the ratio is `r num(val("A.tertile_rr_by_mapping.3v3.M1.low"))` in splits with a small difference in mapping rate and
+`r num(val("A.tertile_rr_by_mapping.3v3.M1.high"))` with a large one).
+
+**The mouse null agrees with the small-sample placenta result, with caveats.**
+Mouse controls at 5 v 5 give `r ci("C.RA.all.m1_adj_rr")`, in the same direction as the placenta at the same size
+(`r num(val(rr("5v5", "M1")))`);
+divided counts and `swish` reduce it, and gene-level tests show no excess
+(`r num(val("C.RA.all.m11_adj_rr"))`, 95% CI `r ci_range("C.RA.all.m11_adj_rr")`).
+Read with the pre-registered R-A rule, it passes only with an exact jackknife over all splits per animal and a reading of the gene-level criterion that the plan did not spell out (amendment A8).
+The mouse design itself was not pre-registered (amendment A19), so this is supporting evidence, not a confirmatory test.
+The mouse controls also turned out to hold two library batches
+(mean fragment lengths `r num(val("C.batch.batch1_short_fragments.frag_min"), 0)` to
+`r num(val("C.batch.batch1_short_fragments.frag_max"), 0)` bp against
+`r num(val("C.batch.batch2.frag_min"), 0)` to `r num(val("C.batch.batch2.frag_max"), 0)` bp):
+of the `r int(val("C.n_splits_batch_aligned"))` splits that line up with the batch,
+`r n_al <- round(val("C.n_splits_batch_aligned") * val("C.M1.splits_with_any_call_q05_U_batch_aligned")); if (n_al == 1) "only one" else int(n_al)` made false calls on point counts at q < 0.05:
+the split that puts the `r int(get_row("C.batch.batch1_short_fragments.frag_min")$n)` animals of the short-fragment batch in one group,
+with `r int(val("C.M1.false_calls_q05_U_per_split_batch_aligned") * val("C.n_splits_batch_aligned"))` calls.
+The other `r int(val("C.n_splits_batch_aligned") * (1 - val("C.M1.splits_with_any_call_q05_U_batch_aligned")))` made none,
+and the `r int(val("C.n_splits_batch_balanced"))` balanced splits made `r num(val("C.M1.false_calls_q05_U_per_split_batch_balanced"))` per split.
+On the balanced splits alone the ratio is `r ci("C.RA.batch_balanced.m1_adj_rr")`.
+
+### The former default confidence class is a weak filter
+
+The pre-registered flag, class other than `high`, marks `r pc(val("B.flags.flag_primary.pct_flagged"))` of the calls.
+They replicate somewhat less (`r pct(val("B.flags.flag_primary.rate_flagged"))` against
+`r pct(val("B.flags.flag_primary.rate_unflagged"))`; odds ratio `r num(val("B.flags.flag_primary.adjusted_or"))`,
+95% CI `r ci_range("B.flags.flag_primary.adjusted_or")`, or `r ci_range(cl("gene.primary_or"))` with genes as clusters).
+Rule R-B also asked it to beat a count-matched flag.
+As implemented, that control is a flag of the same size made of the lowest-count calls of each pair,
+not the flag with the same count distribution that the plan described (a post hoc amendment records the difference).
+The class beat it by `r num(val("B.3_C4_count_matched.deficit_primary_minus_deficit_C4"), 3)` in replication rate,
+95% CI `r ci_range("B.3_C4_count_matched.deficit_primary_minus_deficit_C4", 3)` under the planned bootstrap,
+so **R-B passes formally, but the pass is fragile**:
+with genes resampled as clusters across the half-splits (post hoc) the interval is
+`r ci_range(cl("gene.primary_minus_c4"), 3)`, and it includes 0.
+A same-size flag built from count and |z| alone (post hoc) separates much better than the class:
+its gap in replication is `r num(val("B.flags.flag_c4b.deficit"), 3)` against
+`r num(val("B.flags.flag_primary.deficit"), 3)`.
+Closer to the control the plan described, the class keeps a gap within cells of equal count and |z|
+(gap `r num(val("B.flags.flag_primary.matched_deficit"), 3)`, 95% CI `r ci_range("B.flags.flag_primary.matched_deficit", 3)`, planned bootstrap; the matched gap itself is post hoc),
+while the class shuffled within those cells, which has nearly the same count distribution by construction, has a gap of
+`r num(val("B.2_placebo_flag.deficit_placebo_mean"), 3)` (`r ci_range("B.2_placebo_flag.deficit_placebo_mean", 3)` over the shuffles).
+That shuffle is how the analysis implemented the plan's placebo flag, which the plan described only as a random flag of the same size in each split.
+The plan's last control, a permutation baseline of the labels, turned out not to be a null.
+It relabelled the samples of the discovery half 100 times, but a discovery half holds only
+`r int(val("design.n_pe") / 2)` preeclampsia samples, so every permutation kept part of the real contrast or reversed it.
+Under the permuted labels the calls replicated in `r pct(val("B.2_C1_permutation.replication_rate_label_permuted"))` of cases
+(against `r pct(val("B.2_C1_permutation.replication_rate_observed"))` with the true labels),
+and the class separated them by `r num(val("B.2_C1_permutation.deficit_primary_label_permuted"), 3)`,
+no less than with the true labels (`r num(val("B.flags.flag_primary.deficit"), 3)`;
+difference `r num(val("B.2_C1_permutation.excess_deficit_over_C1"), 3)`, 95% CI `r ci_range("B.2_C1_permutation.excess_deficit_over_C1", 3)` under the planned bootstrap).
+That gap shrank as more samples were relabelled, from `r num(val("B.2_C1_by_n_relabelled.deficit_n_relabelled_2"), 3)` with 2
+to `r num(val("B.2_C1_by_n_relabelled.deficit_n_relabelled_8"), 3)` with 8, so it follows the real contrast left in the permutations.
+Read literally, this control would say that the class separates calls no better under the true labels than under permuted ones;
+because the permutations are not nulls, it cannot be used either for or against the class, and the analysis did not use it.
+These comparisons were not the rule as run, and they do not change the verdict on R-B.
+Used as a filter, the class would remove `r pc(val("B.5_ppv_cost_flag_primary.replicated_calls_removed_pct"), 0)`
+of the calls that replicate.
+
+In the null the class did not help to pick out the false calls.
+The `high` class holds `r pct(val("A.m9class.7v7.share_tested_high"))` of the tested transcripts but
+`r pct(val("A.m9class.7v7.share_calls_high"))` of the false calls at p < 0.01 (7 v 7; enrichment `r num(val("A.m9class.7v7.enrichment_calls_in_high"))`,
+95% CI `r ci_range("A.m9class.7v7.enrichment_calls_in_high")`).
+This excess is not an inversion of the class: it is what any summary of the direction over the draws shows once calls are selected by their p-value.
+A call at p < 0.01 has a large fold-change, so its sign is stable over the draws whether the call is true or false,
+while most tested transcripts have a fold-change near 0 and an unstable sign.
+A stable direction alone holds `r pct(val("A.m9class.7v7.share_tested_stable"), 0)` of the tested transcripts
+and `r pct(val("A.m9class.7v7.share_calls_stable"), 0)` of the null calls
+(enrichment `r num(val("A.m9class.7v7.enrichment_calls_in_stable"))`, 95% CI `r ci_range("A.m9class.7v7.enrichment_calls_in_stable")`):
+the draws describe the quantification, and a false call driven by biological noise is stable over them.
+The test that bears on the class as a filter is the removal at equal cost.
+Keeping only class `high` removes `r pct(val("A.m9class.7v7.share_tested_removed_by_M9a"))` of the tested transcripts,
+and at equal removal it is no better than dropping the least expressed ones
+(difference in the share of false calls removed `r num(val("A.m9_vs_m10.7v7.common.a.removed_M9_minus_M10"))`,
+95% CI `r ci_range("A.m9_vs_m10.7v7.common.a.removed_M9_minus_M10")`).
+
+### The InfRV cut-off of 0.5 marks almost everything
+
+Of the expressed placenta transcripts, `r pct(val("S0.uncertain.TRUE") / val("S0.U.all"))` have InfRV of at least 0.5,
+`r pct(val("S0.non_identifiable.TRUE") / val("S0.U.all"))` are not identifiable in at least one sample,
+and `r pct(val("S0.zero_unique.TRUE") / val("S0.U.all"))` have no read of their own;
+`r pct(val("S0.isoform_bin.10+") / val("S0.U.all"))` are in genes with 10 or more annotated isoforms.
+The bottom third of InfRV ends at `r num(val("S0.cut.infrv_tertile.low_mid"))`,
+`r num(val("S0.cut.infrv_tertile.low_mid") / 0.5, 1)` times the cut-off,
+so on a genome-wide human annotation the cut-off separates almost nothing.
+The thirds themselves are stable: computed from 15 draws instead of 30,
+`r pct(val("S0.tertile_agreement_15_vs_30"))` of the transcripts stay in the same third.
+
+### Dividing the counts costs power and does not remove false discoveries
+
+Dividing the counts by the overdispersion removes the small-sample concentration of nominal false calls in uncertain isoforms:
+the ratio of the rate ratios (divided over point counts) is
+`r ci("A.rr_ratio.5v5.prereg.M2_vs_M1")` at 5 v 5 and `r ci("A.rr_ratio.3v3.prereg.M2_vs_M1")` at 3 v 3
+(`r ci("A.rr_ratio.7v7.prereg.M2_vs_M1")` at 7 v 7, where there was no excess to remove).
+It does not lower the number of false discoveries.
+At q < 0.05, point counts made `r num(val("A.mean_calls_q05.3v3.M1.own.all"))` false calls per 3 v 3 split
+and divided counts `r num(val("A.mean_calls_q05.3v3.M2.own.all"))`
+(`r num(val("A.tail.3v3.M2.own.mean_q05_without_max_split"))` without their worst split);
+at 7 v 7, `r num(val("A.mean_calls_q05.7v7.M1.own.all"), 3)` against `r num(val("A.mean_calls_q05.7v7.M2.own.all"))`,
+`r pct(val("A.tail.7v7.M2.own.share_from_max_split"), 0)` of them from a single split.
+Divided counts also test fewer transcripts
+(`r int(val("A.tail.7v7.M2.own.mean_tested"))` per 7 v 7 split against `r int(val("A.tail.7v7.M1.own.mean_tested"))`).
+
+To measure power, known changes were added to
+`r int(get_row("A.thin.7v7_louo.M1.all.q_0.05.fdr_pooled")$n)` of the 7 v 7 null splits
+(and as many 5 v 5 splits, in the supplementary tables):
+5% of the genes with several isoforms (sampled within each third of InfRV) and as many single-isoform genes
+were thinned, each gene in one of the two groups (chosen at random) and by its own factor of 1.5 to 4
+(log2 fold-change drawn between 0.58 and 2), the same factor for every isoform of the gene.
+This keeps the isoform ratios, so it measures power and the false discovery rate between genes,
+not misattribution between isoforms. At q < 0.05:
+
+```{r}
+#| label: tbl-thinning
+thin_method <- c(
+  M1 = "edgeR, point counts",
+  M2 = "edgeR, divided counts",
+  M6 = "swish, draws",
+  M9a = "edgeR, then keep class high only"
+)
+thin_tab <- do.call(rbind, lapply(names(thin_method), function(m) {
+  base <- paste0("A.thin.7v7_louo.", m, ".all.q_0.05.")
+  top <- paste0("A.thin.7v7_louo.", m, ".top_tertile.q_0.05.")
+  data.frame(
+    Method = thin_method[[m]],
+    `Empirical FDR` = ci(paste0(base, "fdr_pooled"), 3),
+    `True calls` = int(val(paste0(base, "total_calls")) - val(paste0(base, "total_false"))),
+    `True calls, top third of InfRV` = int(val(paste0(top, "total_calls")) - val(paste0(top, "total_false"))),
+    check.names = FALSE
+  )
+}))
+knitr::kable(thin_tab, row.names = FALSE)
+```
+
+```{r}
+#| label: thin-fdr-range
+thin_fdr <- sapply(names(thin_method), function(m) val(paste0("A.thin.7v7_louo.", m, ".all.q_0.05.fdr_pooled")))
+thin_fdr_hi <- sapply(c("M2", "M6"), function(m) get_row(paste0("A.thin.7v7_louo.", m, ".all.q_0.05.fdr_pooled"))$ci_hi)
+```
+
+For the four methods in the table, the empirical false discovery rate at q < 0.05 lies between `r pct(min(thin_fdr), 0)` and `r pct(max(thin_fdr), 0)`:
+below 5% for point counts and for keeping class `high` only, above it for divided counts and `swish`,
+whose intervals are wide (upper ends `r pct(thin_fdr_hi[["M2"]], 0)` and `r pct(thin_fdr_hi[["M6"]], 0)`).
+At an equal number of calls, the number divided counts make in each split, point counts had the lower false discovery rate
+(`r num(val("A.thin.7v7_louo.M1.all.top_k_M2.fdr_pooled"), 3)` against `r num(val("A.thin.7v7_louo.M2.all.top_k_M2.fdr_pooled"), 3)`).
+Point counts find the most true changes, and the gap is largest in the top third of InfRV,
+where divided counts and `swish` lose most of their power and keeping class `high` removes nearly every call.
+`swish` also behaves differently in the null: it makes fewer false calls in uncertain isoforms than in certain ones
+(placenta 7 v 7 `r ci(rr("7v7", "M6"))`; mouse `r ci("C.M6.adjusted_rate_ratio_high_low")`),
+which is the method working as designed but is the same loss of power seen from the other side,
+and it was the only expression test with frequent false calls on the batch-balanced mouse splits
+(at least one call at q < 0.05 in `r pct(val("C.M6.splits_with_any_call_q05_U_batch_balanced"), 0)` of them).
+It made more false calls than point counts in the placenta too:
+`r ci("A.mean_calls_q05.5v5.M6.own.all")` per 5 v 5 split at q < 0.05 against
+`r num(val("A.mean_calls_q05.5v5.M1.own.all"))` for edgeR on point counts,
+and `r num(val("A.mean_calls_q05.7v7.M6.own.all"))` against `r num(val("A.mean_calls_q05.7v7.M1.own.all"), 3)` at 7 v 7.
+
+```{r}
+#| label: od-numbers
+d_raw <- function(set, stat) {
+  val(paste0(
+    "D.impact.placenta_8_PE_vs_15_control_units_DTE_edgeR_QL.raw_counts_-_divided_counts_genome-wide_prior.",
+    set, ".", stat
+  ))
+}
+d_kd <- function(series, stat) {
+  val(paste0(
+    "D.impact.", series, "_DTE_edgeR_QL_divided_counts.panel_prior_-_genome_prior_swapped.common.", stat
+  ))
+}
+d_pl <- function(stat) {
+  val(paste0(
+    "D.impact.placenta_8_PE_vs_15_control_units_DTE_edgeR_QL_divided_counts.genome_prior_-_panel_median.common.", stat
+  ))
+}
+kd_changed <- d_kd("GSE129540", "n_lost") + d_kd("GSE129540", "n_gained") +
+  d_kd("GSE75489", "n_lost") + d_kd("GSE75489", "n_gained")
+```
+
+**In the real comparison divided counts made about as many calls or more.**
+The overdispersion part of the evaluation also ran edgeR on the whole placenta comparison
+(`r int(val("design.n_pe"))` preeclampsia samples against `r int(val("design.n_control_units"))` control units).
+Each with its own expression filter, point counts made `r int(d_raw("separate", "n_calls_reference"))` calls at q < 0.05
+and divided counts `r int(d_raw("separate", "n_calls_alternative"))`.
+Refitted together on the `r int(d_raw("common", "n_tested_both"))` transcripts that both filters kept,
+point counts made `r int(d_raw("common", "n_calls_reference"))` calls and divided counts `r int(d_raw("common", "n_calls_alternative"))`
+(`r int(d_raw("common", "n_lost"))` lost, `r int(d_raw("common", "n_gained"))` gained);
+point counts make up the difference by testing transcripts that division pushes below the filter.
+A real comparison has no known truth, so these data cannot say whether the extra calls of divided counts are true changes;
+the power arm above measured changes of whole genes in 7 v 7 null splits, a different setting, and does not settle it.
+This check read the Salmon counts directly, without folding the copies of transcripts on alternate haplotypes,
+so its numbers of calls differ from those of the main analysis.
+The prior of the overdispersion mattered little.
+The draws bundled for the knockdown panels give a prior `r num(val("D.3_HEADLINE_GSE129540_ratio_panel_prior_genome-wide_prior"), 1)` and
+`r num(val("D.3_HEADLINE_GSE75489_ratio_panel_prior_genome-wide_prior"), 1)` times the genome-wide one,
+yet using the genome-wide prior changed `r if (kd_changed == 0) "no" else int(kd_changed)` knockdown call on the transcripts both runs tested;
+in the placenta, replacing the genome-wide prior with that of a median random panel of 39 genes moved the calls
+from `r int(d_pl("n_calls_reference"))` to `r int(d_pl("n_calls_alternative"))`.
+
+### Transcript usage
+
+For `diffSplice`, divided counts help at 5 v 5
+(`r num(val("A.dtu.diffsplice.5v5.raw.mean_n_genes_q05"))` false genes per split on point counts against
+`r num(val("A.dtu.diffsplice.5v5.scaled.mean_n_genes_q05"))`), while at 7 v 7 both are low
+(`r num(val("A.dtu.diffsplice.7v7_louo.raw.mean_n_genes_q05"))` and `r num(val("A.dtu.diffsplice.7v7_louo.scaled.mean_n_genes_q05"))`).
+For `satuRn` the observed over expected share at p < 0.01 rose from
+`r ci("A.dtu.satuRn.7v7_louo.raw.gene_inflation_p01")` on point counts to
+`r ci("A.dtu.satuRn.7v7_louo.scaled.gene_inflation_p01")` on divided counts
+(`r int(get_row("A.dtu.satuRn.7v7_louo.raw.gene_inflation_p01")$n)` splits);
+the intervals overlap almost entirely, so these splits cannot tell the two apart,
+and `DEXSeq` made many false calls either way
+(`r num(val("A.dtu.DEXSeq.7v7_louo.raw.mean_n_genes_q05"), 1)` and `r num(val("A.dtu.DEXSeq.7v7_louo.scaled.mean_n_genes_q05"), 1)`
+genes per split, `r int(get_row("A.dtu.DEXSeq.7v7_louo.raw.mean_n_genes_q05")$n)` splits only).
+Tests of the productive fraction made almost no false calls either way
+(`r num(val("A.nmd.raw.mean_n_padj05"), 3)` and `r num(val("A.nmd.divided.mean_n_padj05"), 3)` genes per 7 v 7 split).
+
+## The genes named in the plan
+
+The plan named FLT1 as its isoform-level example, ENG and LEP as its gene-level examples,
+and two rules to pick one fragile and one robust gene from the results. All of them are reported here.
+The classes `high`, `moderate` and `low` in this section are the confidence classes of the evaluated snapshot of the package,
+which the current version no longer computes.
+
+### FLT1
+
+FLT1, whose soluble form is raised in preeclampsia, was the plan's isoform-level example.
+
+```{r}
+#| label: tbl-flt1
+f <- flt1[flt1$tested_edgeR %in% TRUE, ]
+f <- f[order(-f$mean_count), ]
+knitr::kable(
+  data.frame(
+    Isoform = f$transcript_name,
+    `Mean count` = int(f$mean_count),
+    InfRV = num(f$mean_inf_rv, 1),
+    `log2FC, point counts` = num(f$naive_log2FC),
+    `log2FC, refit on each draw (2.5% to 97.5%)` = paste(num(f$draw_refit_lo), "to", num(f$draw_refit_hi)),
+    `Class (snapshot)` = f$confidence,
+    `Replicated when called` = paste0(pct(f$replicated_when_called, 0), " of ", f$n_called_discovery),
+    check.names = FALSE
+  ),
+  row.names = FALSE
+)
+```
+
+```{r}
+#| label: flt1-numbers
+mod <- f[f$confidence == "moderate", ]
+# point estimate outside the 2.5-97.5% range of the per-draw refits, and
+# further from zero than the whole range
+outside_range <- function(x) x$naive_log2FC < x$draw_refit_lo | x$naive_log2FC > x$draw_refit_hi
+beyond_range <- function(x) {
+  outside_range(x) & sign(x$draw_refit_lo) == sign(x$draw_refit_hi) &
+    abs(x$naive_log2FC) > pmax(abs(x$draw_refit_lo), abs(x$draw_refit_hi))
+}
+f_out <- outside_range(f)
+f_beyond <- beyond_range(f)
+f204 <- fl("FLT1-204")
+```
+
+FLT1-214 has `r int(fl("FLT1-214")$mean_count)` reads on average and an InfRV of `r num(fl("FLT1-214")$mean_inf_rv, 1)`.
+On the point counts its log2 fold-change is `r num(fl("FLT1-214")$naive_log2FC)`
+(Wald interval `r num(fl("FLT1-214")$naive_ci_lo)` to `r num(fl("FLT1-214")$naive_ci_hi)`);
+refitted on each Gibbs draw with the same model it lies between
+`r num(fl("FLT1-214")$draw_refit_lo)` and `r num(fl("FLT1-214")$draw_refit_hi)`: the point estimate is larger than every refit.
+Its direction is never in doubt, and it replicates in all `r int(fl("FLT1-214")$n_called_discovery)` half-splits that call it.
+What is in doubt is the size of the effect: the point estimate and the refits disagree, and neither is the truth (see below).
+FLT1-214 is not special within its gene: `r sum(f_out)` of the `r nrow(f)` tested FLT1 isoforms have a point estimate outside the range of their refits,
+`r sum(f_beyond)` of them further from zero than the whole range.
+The gap is negligible for the abundant ones (FLT1-204, `r num(f204$naive_log2FC, 3)` against `r num(f204$draw_refit_lo, 3)` to `r num(f204$draw_refit_hi, 3)`)
+and can be much larger for those with a few hundred reads or fewer, up to `r num(val("B.posthoc.f1.flt1_214.outside_by"))` log2 units for FLT1-214,
+though not for all of them (FLT1-212, with `r int(fl("FLT1-212")$mean_count)` reads, lies inside its range).
+FLT1-204, with `r int(fl("FLT1-204")$mean_count)` reads, is the only FLT1 isoform in class `high`;
+`r nrow(mod)` of the `r nrow(f)` tested isoforms are `moderate` because of their InfRV,
+yet they replicate in `r pct(min(mod$replicated_when_called), 0)` to `r pct(max(mod$replicated_when_called), 0)`
+of the half-splits that call them.
+The class does not separate them.
+
+FLT1-214 is not unique (a check added after the results were known).
+Of the `r int(val("B.posthoc.f1.n_calls"))` transcript calls of the full comparison (q < 0.05),
+`r int(val("B.posthoc.f1.outside_range.n"))` (`r pct(val("B.posthoc.f1.outside_range.share"))`) have a point fold-change
+outside the range of their per-draw refits,
+`r int(val("B.posthoc.f1.outside_by_gt_1.n"))` by more than one log2 unit, and
+`r int(val("B.posthoc.f1.outside_by_ge_flt1_214.n"))` (`r pct(val("B.posthoc.f1.outside_by_ge_flt1_214.share"))`)
+at least as far as FLT1-214 (`r num(val("B.posthoc.f1.flt1_214.outside_by"))` log2 units beyond the range).
+LEP-203, an isoform of LEP (a gene-level example of the plan, below), comes close
+(`r num(val("B.posthoc.f1.named.LEP-203.point"))` against `r num(val("B.posthoc.f1.named.LEP-203.draw_lo"))` to
+`r num(val("B.posthoc.f1.named.LEP-203.draw_hi"))`, `r num(val("B.posthoc.f1.named.LEP-203.outside_by"))` log2 units beyond).
+This is frequent in classes `moderate` and `low`
+(`r pct(val("B.posthoc.f1.class_moderate.outside_range.share"))` and `r pct(val("B.posthoc.f1.class_low.outside_range.share"))`)
+and rare in `high` (`r pct(val("B.posthoc.f1.class_high.outside_range.share"))`).
+Two cautions apply.
+For `r int(val("B.posthoc.f1.outside.wald_overlaps_range.n"))` of the `r int(val("B.posthoc.f1.outside_range.n"))`
+the Wald interval of the point estimate overlaps the range of the refits,
+and in `r int(val("B.posthoc.f1.outside.point_beyond_far_end.n"))` the point estimate is further from zero than the whole range:
+the refits on the draws are pulled towards zero relative to the point estimate.
+The point estimate comes from the EM algorithm (the most likely split of the reads) and the draws from a Gibbs sampler
+(which averages over plausible splits), and the two differ systematically for poorly determined isoforms;
+neither is ground truth, and these data cannot say which is closer to it.
+The range of the refits is not a confidence interval for the point estimate.
+
+### ENG and LEP
+
+```{r}
+#| label: story-numbers
+sg_gene <- function(g) story[story$level == "gene" & story$gene_name %in% g, ]
+sg_iso <- function(g) story[story$level == "isoform" & story$gene_name %in% g & story$tested_edgeR %in% TRUE, ]
+sg_tx <- function(t) story[story$level == "isoform" & story$transcript_name %in% t, ]
+rep_of <- function(x) paste0(int(x$n_called_discovery * x$replicated_when_called), " of ", int(x$n_called_discovery))
+eng <- sg_iso("ENG")
+lep <- sg_iso("LEP")
+eng_all <- story[story$level == "isoform" & story$gene_name == "ENG", ]
+eng_called <- eng[eng$naive_q < 0.05, ]
+```
+
+At gene level both are clear: ENG has a log2 fold-change of `r num(sg_gene("ENG")$naive_log2FC)`
+(refits on the draws `r num(sg_gene("ENG")$draw_refit_lo)` to `r num(sg_gene("ENG")$draw_refit_hi)`) and replicates in
+`r rep_of(sg_gene("ENG"))` of the directed pairs that call it; LEP has `r num(sg_gene("LEP")$naive_log2FC)`
+(`r num(sg_gene("LEP")$draw_refit_lo)` to `r num(sg_gene("LEP")$draw_refit_hi)`) and replicates in `r rep_of(sg_gene("LEP"))`.
+The isoforms tell the same story as FLT1.
+ENG has `r nrow(eng_all)` expressed isoforms, of which `r nrow(eng)` were tested and `r nrow(eng_called)` called at q < 0.05;
+only `r sum(eng$confidence == "high")` of the tested ones is in class `high`.
+Its two most abundant isoforms are in class `low`, yet replicate whenever called:
+ENG-202 (`r int(sg_tx("ENG-202")$mean_count)` reads, `r rep_of(sg_tx("ENG-202"))`) and
+ENG-216 (`r int(sg_tx("ENG-216")$mean_count)` reads, `r rep_of(sg_tx("ENG-216"))`).
+`r sum(outside_range(eng))` of the `r nrow(eng)` tested ENG isoforms have a point estimate outside the range of their refits,
+for example ENG-255 (`r num(sg_tx("ENG-255")$naive_log2FC)` against `r num(sg_tx("ENG-255")$draw_refit_lo)` to `r num(sg_tx("ENG-255")$draw_refit_hi)`, `r int(sg_tx("ENG-255")$mean_count)` reads).
+All `r nrow(lep)` LEP isoforms are called and replicate whenever called, two of them in class `low`;
+`r sum(outside_range(lep))` lie outside the range of their refits, LEP-201 on the side nearer zero
+(`r num(sg_tx("LEP-201")$naive_log2FC)` against `r num(sg_tx("LEP-201")$draw_refit_lo)` to `r num(sg_tx("LEP-201")$draw_refit_hi)`),
+so the gap does not always go the same way.
+
+### The fragile and the robust rule
+
+```{r}
+#| label: rule-numbers
+rule_row <- function(pattern) story[story$level == "gene" & grepl(pattern, story$rule, fixed = TRUE), ]
+r_frag <- rule_row("fragile (prereg rule)")
+r_task <- rule_row("fragile (WP-B plan rule")
+r_rob <- rule_row("robust (prereg rule)")
+las <- sg_tx("LAS1L-202")
+tbc <- sg_tx("TBC1D26-204")
+```
+
+The plan's fragile rule asked for the gene with the most isoform calls (q < 0.05) that are all outside class `high`
+and are supported (same sign, one-sided p < 0.05) in fewer than half of the `r int(val("design.directed_pairs"))` validation halves
+(the plan's "held-out support"; for a call on the whole cohort these halves are not held out,
+because the sign comes from all `r int(val("design.n_pe") + val("design.n_control_units"))` samples and every half is part of them).
+No gene qualified (`r int(r_frag$n_candidates)` candidates), so it picked none.
+A substitute rule, defined in the analysis scripts and not in the plan (post hoc amendment A20),
+takes the switch or productive-fraction result with the smallest p-value among genes with a gene-level call (q < 0.05),
+keeping only results whose test, refitted on each draw, is significant in fewer than half of the draws.
+It picked `r r_task$gene_name` out of `r int(r_task$n_candidates)` candidate results (switch or productive-fraction tests; a gene can contribute more than one).
+At gene level its point log2 fold-change is `r num(r_task$naive_log2FC)` (q = `r num(r_task$naive_q, 3)`),
+while only `r pct(r_task$sign_agree, 0)` of the refits on the draws share its sign
+(`r num(r_task$draw_refit_lo)` to `r num(r_task$draw_refit_hi)`),
+yet the gene call replicates in `r rep_of(r_task)` of the pairs that call it.
+Its isoform LAS1L-202 (`r int(las$mean_count)` reads, class `r las$confidence`) has a point log2 fold-change of
+`r num(las$naive_log2FC)` against refits of `r num(las$draw_refit_lo)` to `r num(las$draw_refit_hi)`
+(`r pct(las$sign_agree, 0)` with the sign of the point estimate), and replicates in `r rep_of(las)`.
+So the gene that looks most fragile by the draws replicates well in the held-out halves.
+That is not a contradiction: the held-out halves are quantified by the same EM algorithm,
+so replication cannot tell a real change from a distortion of the quantification that repeats in every sample.
+It is a reminder that a flag that predicts replication on average says little about a single gene.
+(The sign agreement in this section is the share of edgeR refits on the draws with the sign of the point estimate,
+not the `sign_agreement` of `de_confidence()`.)
+
+The plan's robust rule asked for the gene with the smallest gene-level q-value whose top isoform is in class `high`
+and is supported in at least 90% of the same validation halves (again not held out for a call on the whole cohort).
+It picked `r r_rob$gene_name` out of `r int(r_rob$n_candidates)` candidate genes, a gene with a single expressed isoform.
+At gene level its log2 fold-change is `r num(r_rob$naive_log2FC)` (refits `r num(r_rob$draw_refit_lo)` to `r num(r_rob$draw_refit_hi)`),
+replicated in `r rep_of(r_rob)` of the pairs that call it;
+its only expressed isoform, TBC1D26-204, has `r num(tbc$naive_log2FC)` (refits `r num(tbc$draw_refit_lo)` to `r num(tbc$draw_refit_hi)`),
+replicated in `r rep_of(tbc)`.
+
+## What we recommend
+
+- **Report `sign_agreement` next to every isoform call you interpret** (`de_confidence()`),
+  and look again at calls below 0.95. In these data they were a small share of calls that replicated
+  about half as often as the rest (`r pct(val("B.flags.flag_unstable.rate_flagged"))` against `r pct(val("B.flags.flag_unstable.rate_unflagged"))`).
+  Do not read a value above 0.95 as a clean bill: the flag marked only `r pct(val("B.5_ppv_cost_flag_unstable.sensitivity_nonreplication"), 0)`
+  of the calls that failed to replicate, and false calls driven by biological variability are mostly stable over the draws.
+- **Do not filter on the confidence class.** It marks most calls and separates them only modestly beyond count and test statistic,
+  so a filter on it would discard most calls that replicate,
+  and in the null, at equal removal, it removed no more false calls than dropping the least expressed transcripts.
+  (This advice led the package to remove the class; it is kept here as the record of the evaluation.)
+- **Do not use the InfRV cut-off of 0.5 as a filter on a genome-wide human annotation**; it marks nearly every expressed isoform.
+- **With 3 to 5 samples per group, expect nominal false positives (p < 0.01) to fall more often on uncertain isoforms**,
+  and check the uncertainty of each isoform you interpret; at q < 0.05 edgeR on point counts made at most
+  `r num(max(sapply(c("3v3", "5v5", "7v7"), function(d) val(paste0("A.mean_calls_q05.", d, ".M1.own.all")))))` false calls per null split at any size tested.
+  Divided counts (`scale_counts()`) remove the concentration but not the false calls, and in the null they cost power;
+  in the real comparison they made more calls on the same transcripts, of unknown truth.
+- **With 7 samples per group, the largest size tested, edgeR on point counts was calibrated here at q < 0.05** (`r num(val("A.mean_calls_q05.7v7.M1.own.all"), 3)` false calls per null split); no concentration of false calls in uncertain isoforms was detected, though the conservative interval cannot rule one out, and accounting for uncertainty mostly cost power.
+  This is a result for edgeR's quasi-likelihood test (and limma-voom): the DESeq2 Wald test on the same counts made many more false calls.
+- **For low-count isoforms, do not quote the point fold-change alone.**
+  What was evaluated here is the primary model (edgeR) refitted on each draw.
+  When the point estimate lies outside the range of those refits, report both and treat the size of the effect as uncertain;
+  neither number is the true one.
+  The `lfc_median`, `lfc_lo` and `lfc_hi` of `de_confidence()` come from a simpler statistic
+  (the difference between the groups of the mean of log2 counts with a pseudocount of 5, a log ratio of geometric means), which pulls low-count fold-changes towards zero.
+  They were not compared with the point estimate in this evaluation, so a gap between the two is expected
+  for low counts and is not by itself a sign of a problem.
+
+After this evaluation the package removed the confidence class and now reports `unstable` (sign agreement below 0.95) as the flag of a call,
+keeping InfRV, ambiguity and identifiability as descriptions of the isoform.
+This change follows the results above and was not part of the plan;
+the flag catches about `r pct(val("B.5_ppv_cost_flag_unstable.sensitivity_nonreplication"), 0)` of the calls that do not replicate.
+The [uncertainty article](isoformic-uncertainty.html) shows the current columns.
+
+## Every method in the null {#every-method-in-the-null}
+
+The main text follows edgeR. These tables give every expression method that the placenta null ran,
+including those that do not fit the story told above.
+Intervals are the delete-one-unit jackknife (Monte Carlo corrected where valid, raw otherwise;
+the type of each is in the bundled table). Intervals are cut at the lowest possible value, so counts often have a lower end of 0.
+The rate ratio was computed only for the methods it is shown for, and its interval here is the primary one;
+the wider raw jackknife intervals are in the figure of the rate ratios above.
+
+```{r}
+#| label: tbl-null-all
+null_method <- c(
+  M1 = "edgeR QL, point counts",
+  M2 = "edgeR QL, divided counts",
+  M3 = "limma-voom, point counts",
+  M4 = "limma-voom, divided counts",
+  M5 = "DESeq2 Wald, point counts",
+  M6 = "swish, draws",
+  M7 = "swish, every draw set to the point counts (control)",
+  M8 = "Wilcoxon, log CPM",
+  M9a = "edgeR, point counts, class high only",
+  M9b = "edgeR, point counts, without uncertain or ambiguous",
+  M10a = "edgeR, point counts, as many low-expression transcripts removed as M9a",
+  M10b = "edgeR, point counts, as many low-expression transcripts removed as M9b",
+  M11raw = "edgeR QL, gene level, point counts",
+  M11div = "edgeR QL, gene level, divided counts"
+)
+has <- function(key) any(ev$key == key)
+ci_or_dash <- function(key) {
+  r <- get_row(key)
+  # three decimals for the small values, so that they match the text
+  digits <- if (abs(r$estimate) < 1) 3 else 2
+  if (is.na(r$ci_lo) || is.na(r$ci_hi)) {
+    return(num(r$estimate, digits))
+  }
+  ci(key, digits)
+}
+null_tab <- do.call(rbind, lapply(c("7v7", "5v5", "3v3"), function(d) {
+  do.call(rbind, lapply(names(null_method), function(m) {
+    k_calls <- paste0("A.mean_calls_q05.", d, ".", m, ".own.all")
+    if (!has(k_calls)) {
+      return(NULL)
+    }
+    k_inf <- paste0("A.inflation_p01.", d, ".", m, ".own.all")
+    data.frame(
+      Size = sub("v", " v ", d),
+      Method = null_method[[m]],
+      Splits = int(get_row(k_calls)$n),
+      `False calls per split, q < 0.05` = ci_or_dash(k_calls),
+      `Observed over expected, p < 0.01` = ci_or_dash(k_inf),
+      `Rate ratio, top against bottom third of InfRV` = if (has(rr(d, m))) ci(rr(d, m)) else "",
+      check.names = FALSE
+    )
+  }))
+}))
+knitr::kable(null_tab, row.names = FALSE)
+```
+
+DESeq2 was run on `r int(get_row("A.mean_calls_q05.7v7.M5.own.all")$n)` splits at 7 v 7 and,
+in the pilot only, on `r int(get_row("A.mean_calls_q05.5v5.M5.own.all")$n)` splits at 5 and at 3 per group, so its small-sample rows rest on very few splits.
+Gene-level rows count genes, not transcripts.
+With 3 samples per group the Wilcoxon test cannot reach p < 0.01.
+The filtered methods (M9 and M10) remove calls after the test, so their observed over expected share is low by construction.
+The swish control (M7) is a diagnostic, not a calibrated reference: on 30 identical copies of the counts,
+the permutation p-values of `swish` pile up at some values.
+
+```{r}
+#| label: tbl-thinning-all
+thin_all <- c(
+  M1 = "edgeR QL, point counts",
+  M2 = "edgeR QL, divided counts",
+  M6 = "swish, draws",
+  M9a = "edgeR, point counts, class high only",
+  M10a = "edgeR, point counts, as many low-expression transcripts removed as M9a"
+)
+thin_all_tab <- do.call(rbind, lapply(c("7v7_louo", "5v5"), function(d) {
+  do.call(rbind, lapply(names(thin_all), function(m) {
+    base <- paste0("A.thin.", d, ".", m, ".all.q_0.05.")
+    top <- paste0("A.thin.", d, ".", m, ".top_tertile.q_0.05.")
+    data.frame(
+      Size = if (d == "5v5") "5 v 5" else "7 v 7",
+      Method = thin_all[[m]],
+      `Empirical FDR` = ci(paste0(base, "fdr_pooled"), 3),
+      `True calls` = int(val(paste0(base, "total_calls")) - val(paste0(base, "total_false"))),
+      `True calls, top third of InfRV` = int(val(paste0(top, "total_calls")) - val(paste0(top, "total_false"))),
+      check.names = FALSE
+    )
+  }))
+}))
+knitr::kable(thin_all_tab, row.names = FALSE)
+```
+
+```{r}
+#| label: thin-fdr-5v5
+thin5 <- lapply(names(thin_all), function(m) get_row(paste0("A.thin.5v5.", m, ".all.q_0.05.fdr_pooled")))
+thin5_est <- vapply(thin5, function(r) r$estimate, numeric(1))
+thin5_hi <- vapply(thin5, function(r) r$ci_hi, numeric(1))
+```
+
+The power arm at 5 v 5 tells the same story as at 7 v 7: the empirical false discovery rate of every method is
+between `r pct(min(thin5_est))` and `r pct(max(thin5_est))`, below 5%, though the upper ends of the intervals reach
+`r pct(max(thin5_hi), 0)`; point counts find the most true changes, most of all in the top third of InfRV (q < 0.05, `r int(get_row("A.thin.5v5.M1.all.q_0.05.fdr_pooled")$n)` splits per size).
+
+```{r}
+#| label: tbl-robustness
+robust <- c(
+  "the other member of each A/B pair" = "variant_member",
+  "haplotype copies not folded" = "variant_unfolded"
+)
+rob_row <- function(label, key_all, key_high, key_low, ref = NULL) {
+  data.frame(
+    Variant = label,
+    Splits = int(get_row(key_all)$n),
+    `All transcripts` = ci(key_all),
+    `Top third of InfRV` = if (is.null(key_high)) "" else ci(key_high),
+    `Bottom third of InfRV` = if (is.null(key_low)) "" else ci(key_low),
+    `Main run on the same splits` = if (is.null(ref)) "" else ci(ref),
+    check.names = FALSE
+  )
+}
+rk <- function(v, s) paste0("A.robust.", v, ".M1.", s)
+rob_tab <- rbind(
+  do.call(rbind, lapply(names(robust), function(lab) {
+    v <- robust[[lab]]
+    rob_row(
+      lab, rk(v, "all.all"), rk(v, "infrv_tertile.high"), rk(v, "infrv_tertile.low"),
+      rk(paste0("main_run_on_the_splits_of_", v), "all.all")
+    )
+  })),
+  rob_row(
+    "splits drawn without balancing sex", rk("7v7_unrestricted_sex", "all.all"),
+    rk("7v7_unrestricted_sex", "infrv_tertile.high"), rk("7v7_unrestricted_sex", "infrv_tertile.low")
+  ),
+  rob_row(
+    "main run, only splits with the same sex counts in both groups", rk("7v7_with_equal_sex_counts", "all.all"),
+    rk("7v7_with_equal_sex_counts", "infrv_tertile.high"), rk("7v7_with_equal_sex_counts", "infrv_tertile.low")
+  ),
+  rob_row("main run, chrX and chrY transcripts removed", rk("7v7_without_chrX_chrY_transcripts", "chr_xy.FALSE"), NULL, NULL)
+)
+knitr::kable(rob_tab, row.names = FALSE)
+```
+
+The robustness variants of the 7 v 7 null give the observed over expected share of false calls at p < 0.01
+for edgeR on point counts. In the column of all transcripts the share stays below or near 1 and every interval includes 1.
+One interval elsewhere in the table excludes 1: the top third of InfRV in the splits drawn without balancing sex,
+`r ci(rk("7v7_unrestricted_sex", "infrv_tertile.high"))`, which is fewer false calls than expected, not more.
+A variant on draws 16 to 30 changes only the methods that use the draws; for point counts it is identical by construction,
+and its effect on the other methods is not in the bundled tables.
+
+## Limits
+
+- One real biological contrast (placenta, `r int(val("design.n_pe"))` against `r int(val("design.n_control"))`
+  samples, analysed as `r int(val("design.n_control_units"))` independent control units)
+  and one biological null in another species (mouse, with a hidden batch). Long reads were not tested.
+- Replication between half-splits of one cohort is agreement between subsets of the same samples, not truth, and it depends on power.
+  None of the intervals of the held-out replication includes the variation from the choice of samples.
+- The read halves are a technical check of the noise the draws model, on few calls.
+  There, the former default class flags almost every call and its odds ratios are degenerate (quasi-separation), so they are not quoted.
+- Not pre-registered: the choice of sign agreement as the main result (its threshold was), the group size at which R-A was judged,
+  the p < 0.01 event of the R-A rate ratio (the plan listed p and q thresholds without choosing one),
+  the q < 0.10 discovery rule and its fallback, the small-sample excess as a finding,
+  the covariates of the R-B odds ratio (count, |z|, number of isoforms of the gene, type class),
+  the replication-rate difference on which "beats the count-matched flag" was judged,
+  the mouse batch analysis, the gene-clustered intervals, the pair fixed effects, the spline adjustment,
+  the same-size controls of the sign-agreement flag,
+  the matched deficit within cells of the joint deciles of count and |z| (the plan defines only the replication metric and three controls),
+  the sign-concordance outcome (same sign in the held-out half, without the p threshold) and its odds ratio,
+  the point-against-draws check, the gene (not transcript) unit of the planned bootstrap,
+  the comparison of the read-half flags, the substitute fragile rule that picked LAS1L,
+  and the mouse null itself (its dataset and 5 v 5 design; only the R-A rule and model applied to it were registered).
+- R-B was judged against a control (the lowest-count calls) that differs from the count-matched flag the plan described.
+  The plan's placebo flag ("a random flag of the same size per split") was implemented as the default flag shuffled
+  within cells of equal count and |z|, and its permutation baseline of the labels is not a null with
+  `r int(val("design.n_pe") / 2)` preeclampsia samples per discovery half, so it was reported but not used;
+  both departures were recorded only after the results.
+- The plan and its amendments are kept in the package repository, not in an external registry,
+  and were committed together with the results; that the plan came first rests on the time stamp inside it.
+  The 9 pilot splits of the null were run before the design amendment and are part of the reported results
+  (the only ones for DESeq2 at 5 and 3 per group).
+- Several Monte Carlo corrected placenta intervals are much narrower than the raw jackknife; the raw intervals are given where it matters.
+- All reported calls use 30 draws; subsets of 15 draws were used only as stability checks, and more draws (100 or more) were not tested for the calls.
+  Only the prior of the overdispersion was computed from 100 draws, in a knockdown series, where it was
+  `r pc(100 * (val("D.5_prior_ratio_100_first_30_draws_3_g100_runs") - 1))` higher than from 30.
+- The numbers come from a frozen snapshot of the package code, not from the current development version.
+  The sign agreement of the current `de_confidence()` was recomputed on the discovery half of all `r int(val("B.pkgcheck.pairs"))` directed pairs
+  (`92_package_flag_check.R`, a post hoc check of the code, amendment A24): its `unstable` flag differs from the evaluated one
+  on `r int(val("B.pkgcheck.unstable_disagree"))` of `r int(get_row("B.pkgcheck.unstable_disagree")$n)` assessed calls,
+  and from the flag scored in the replication table on `r int(val("B.pkgcheck.pooled_flag_disagree"))` of `r int(val("B.pkgcheck.pooled_rows"))`,
+  so the replication results above describe the current `unstable` flag (rerun that script after a change to `de_confidence()`);
+  the class columns (`confidence` in the tables of FLT1, ENG, LEP and LAS1L) are those of the evaluated snapshot.
+- The package's flag is a secondary flag of this analysis, made the headline after the results:
+  its effect in another cohort, with another primary test (DESeq2, swish) or with other replicates (bootstrap, long reads) is an out-of-sample question.
+
+## Reproducing these numbers
+
+The scripts are in `data-raw/uncertainty_evidence/` of the package repository, numbered in the order they run;
+the header of each gives its inputs, settings and memory, and `prereg.yaml` and `prereg_amendments.yaml` give the plan and its changes.
+`90_article_tables.R` copies every number into four small tables, which this article reads:
+
+```{r}
+#| label: tables
+#| echo: true
+data_dir <- "data/uncertainty_evidence" # vignettes/articles/data/uncertainty_evidence in the source repository
+ev <- read_parquet(file.path(data_dir, "evidence_numbers.parquet"))
+ev[ev$key == "B.flags.flag_unstable.adjusted_or", c("key", "estimate", "ci_lo", "ci_hi", "ci_type", "source")]
+```
+
+## Session information
+
+```{r}
+#| label: session-info
+#| echo: true
+sessionInfo()
+```
+
+## References

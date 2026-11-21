@@ -1,8 +1,8 @@
 {
   "prob_model": "no_coverage",
   "bin_width": 100,
-  "alignments": "/data/gamma/luciorq/workspaces/temp/isoformic-v50/oarfish_sc/sc/cells.bam",
-  "output": "/data/gamma/luciorq/workspaces/temp/isoformic-v50/oarfish_sc/sc/out/out",
+  "alignments": "sc/cells.bam",
+  "output": "sc/out/out",
   "verbose": false,
   "single_cell": true,
   "quiet": false,

@@ -47,7 +47,7 @@ with the name of a new column is replaced, and rows of the annotation
 without a match get \code{NA}.
 }
 \examples{
-gff <- system.file("extdata", "example.gff3", package = "isoformic")
+gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 annot <- prepare_isoformic_annotation(gff, output_path = tempdir(), annot_name = "evidence_demo")
 tx <- read_parquet(file.path(annot, "annot_data_transcripts.parquet"))
 evidence <- data.frame(

@@ -1,10 +1,10 @@
 apa_experiment <- function(envir = parent.frame(), with_sequences = TRUE) {
   annot <- mini_annotation("mini_apa.gff3", envir = envir)
   if (isTRUE(with_sequences)) {
-    extract_transcript_sequences(
+    suppressMessages(extract_transcript_sequences(
       annot,
       genome_fasta = mini_genome_fasta(envir = envir)
-    )
+    ))
   }
   ids <- c("tA1", "tA2", "tA3", "tA4", "tA5", "tA6", "tB1", "tB2")
   mat <- matrix(
@@ -143,6 +143,70 @@ testthat::test_that("find_polya_signal reports the strongest hexamer closest to 
   ))
   testthat::expect_identical(found$signal, c("AATAAA", NA, "ATTAAA", NA))
   testthat::expect_equal(found$distance, c(19L, NA, 7L, NA))
+  # The closest occurrence may overlap an earlier one
+  overlap <- find_polya_signal(c(
+    "GAATAAAATAAATG",
+    "CCAAACCACAGGTTCATGAATAAAATAAATG",
+    "AATAAATAAA",
+    "AATAAAA"
+  ))
+  testthat::expect_identical(overlap$signal, rep("AATAAA", 4L))
+  testthat::expect_identical(overlap$distance, c(7L, 7L, 5L, 6L))
+})
+
+testthat::test_that("polya_sites reads only the sequence tails and is cached", {
+  iso <- apa_experiment()
+  annot <- iso@annot_path
+  seqs <- transcript_sequences(annot)
+  tails <- read_sequence_tails(annot, width = 5L)
+  testthat::expect_identical(tails$transcript_id, seqs$transcript_id)
+  testthat::expect_identical(
+    tails$tail,
+    substring(
+      seqs$sequence,
+      pmax(1L, nchar(seqs$sequence) - 4L),
+      nchar(seqs$sequence)
+    )
+  )
+  some <- read_sequence_tails(
+    annot,
+    transcript_id = rev(c(seqs$transcript_id[2:3], "missing")),
+    width = 1e6
+  )
+  testthat::expect_identical(some$transcript_id, seqs$transcript_id[2:3])
+  testthat::expect_identical(some$tail, seqs$sequence[2:3])
+  # A window above the integer range keeps the whole sequence
+  testthat::expect_identical(
+    read_sequence_tails(annot, width = Inf)$tail,
+    seqs$sequence
+  )
+  testthat::expect_identical(
+    read_sequence_tails(annot, width = 3e9)$tail,
+    seqs$sequence
+  )
+  testthat::expect_identical(
+    read_sequence_tails(annot, width = 0L)$tail,
+    rep("", nrow(seqs))
+  )
+  # The cached result equals a fresh computation from the full sequences
+  pa <- polya_sites(iso)
+  feats <- transcript_features(iso)
+  s <- seqs$sequence[match(feats$transcript_id, seqs$transcript_id)]
+  found <- find_polya_signal(
+    substring(s, pmax(1L, nchar(s) - 49L), nchar(s))
+  )
+  testthat::expect_identical(pa$polya_signal, found$signal)
+  testthat::expect_identical(pa$polya_signal_distance, found$distance)
+  testthat::local_mocked_bindings(
+    compute_polya_sites = function(...) stop("not cached", call. = FALSE)
+  )
+  testthat::expect_identical(polya_sites(iso), pa)
+  testthat::expect_identical(
+    polya_sites(iso, gene_name = "gA"),
+    pa[pa$gene_id %in% "gA", ]
+  )
+  testthat::expect_error(polya_sites(iso, signal_window = 20L), "not cached")
+  testthat::expect_no_error(apa_usage(iso, group = "condition"))
 })
 
 testthat::test_that("apa_usage quantifies distal usage and 3' UTR length per gene", {

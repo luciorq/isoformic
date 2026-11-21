@@ -33,7 +33,7 @@ input format of the data-frame method of \code{\link[=plot_genomic_context]{plot
 With an \link{IsoformicExperiment} use \code{\link[=exon_table]{exon_table()}} instead.
 }
 \examples{
-gff <- system.file("extdata", "example.gff3", package = "isoformic")
+gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 exons <- prepare_exon_annotation("RBPJ", gff, output_path = tempdir())
 head(exons)
 

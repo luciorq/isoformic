@@ -77,7 +77,20 @@ testthat::test_that("external groups replace the correlation groups in add_uncer
   )
   testthat::expect_match(uncertainty_methods(iso), "Terminus", fixed = TRUE)
 
-  # The confidence classes and collapse_groups follow the new groups
+  # The report gives the rule of the groups that were used
+  stored <- add_uncertainty(
+    x$iso,
+    paths = x$fixture$dirs,
+    groups = clusters,
+    group = "condition"
+  )
+  de <- uncertainty_report(stored)$de
+  testthat::expect_identical(
+    de$rule[de$flag == "ambiguous"],
+    "in a Terminus group"
+  )
+
+  # `ambiguous` and collapse_groups follow the new groups
   conf <- de_confidence(iso, group = "condition", collapse_groups = TRUE)
   testthat::expect_true("NewTr1" %in% conf$feature_id)
   testthat::expect_false(any(c("tA3", "tA4") %in% conf$feature_id))
@@ -372,7 +385,9 @@ testthat::test_that("check_terminus_env creates the environment and reports fail
   )
   check_terminus_env("my-env")
   testthat::expect_identical(created$args$env_name, "my-env")
-  testthat::expect_identical(created$args$packages, "bioconda::terminus==0.1.0")
+  # The spec is passed unnamed: the `packages` argument is deprecated
+  testthat::expect_false("packages" %in% names(created$args))
+  testthat::expect_identical(created$args[[1L]], "bioconda::terminus==0.1.0")
   testthat::local_mocked_bindings(
     create_env = function(...) stop("no network", call. = FALSE),
     .package = "condathis"

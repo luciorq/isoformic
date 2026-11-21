@@ -51,6 +51,7 @@ run_apa_enrichment(
   max_size = 500,
   rank_by = c("delta", "utr3_length"),
   min_expr = 0,
+  workers = getOption("isoformic.workers", 1L),
   ...
 )
 }
@@ -71,8 +72,9 @@ poly(A) signal (default 50 nt).}
 
 \item{...}{Not used by \code{polya_sites()}, \code{apa_usage()} and \code{test_apa()};
 reserved for methods. \code{run_apa_enrichment()} passes them to
-\code{fgsea::fgseaMultilevel()}, which runs in the session unless \code{nproc} or
-\code{BPPARAM} is given (see \code{\link[=run_enrichment]{run_enrichment()}}).}
+\code{fgsea::fgseaMultilevel()}, which runs with
+\code{BiocParallel::SerialParam()} unless \code{nproc} or \code{BPPARAM} is given;
+prefer \code{workers} (see \emph{Workers} in \code{\link[=run_enrichment]{run_enrichment()}}).}
 
 \item{path}{Path to a GENCODE \code{polyAs.gff3.gz} file.}
 
@@ -107,6 +109,13 @@ is then tested on its own and the result has a \code{collection} column (see
 \item{rank_by}{Statistic that ranks the genes in \code{run_apa_enrichment()}:
 \code{"delta"} (default), the change in distal fraction, or \code{"utr3_length"},
 the change in weighted 3' UTR length.}
+
+\item{workers}{Number of worker processes that run the \code{fgsea} calls of
+\code{run_apa_enrichment()} (one per gene set collection) in parallel: a
+whole number, or \code{"auto"} for the CPUs available to the session.
+Defaults to the \code{isoformic.workers} option, or 1 (serial). Needs the
+\code{mirai} package above 1; see \emph{Workers} in \code{\link[=run_enrichment]{run_enrichment()}}, also for
+the random seeds.}
 }
 \value{
 Tibbles with one row per transcript (\code{polya_sites()}) or per gene
@@ -137,7 +146,8 @@ else from the annotated CDS).
 (\code{AATAAA}, \code{ATTAAA} or one of the weaker variants) found in the last
 \code{signal_window} nt of the transcript sequence, and its distance to the
 3' end (canonical signals sit 10-30 nt upstream); \code{NA} without
-sequences.
+sequences, and when no hexamer lies in that window (common, because
+annotated 3' ends are often not the exact cleavage site).
 \item With \code{polya_atlas}, the nearest atlas site within \code{window} bp of the
 3' end: \code{pas_site_id}, \code{pas_class}, \code{pas_tpm}, \code{pas_distance},
 \code{pas_supported}. The atlas is the frozen PolyASite 2.0 table
@@ -174,12 +184,14 @@ gene sets are returned (there is no p-value cutoff).
 iso <- example_isoformic()
 pa <- polya_sites(iso, gene_name = "RBPJ")
 pa[, c("transcript_name", "tes_rank", "apa_type", "utr3_length", "polya_signal")]
-head(apa_usage(iso, group = "condition"))
+usage <- apa_usage(iso, group = "condition")
+head(usage)
 head(test_apa(iso, group = "condition"))
 
+# Rank genes from the usage table computed above
 if (requireNamespace("fgsea", quietly = TRUE)) {
   gmt <- system.file("extdata", "reactome_subset.gmt", package = "isoformic")
-  head(run_apa_enrichment(iso, read_gmt(gmt), group = "condition", min_size = 2))
+  head(run_apa_enrichment(usage, read_gmt(gmt), min_size = 2))
 }
 
 }

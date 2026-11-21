@@ -83,6 +83,18 @@ testthat::test_that("transcript_features computes ORF, UTR, NMD, ends and events
   testthat::expect_equal(sort(f2$transcript_id), sort(f$transcript_id))
 })
 
+testthat::test_that("transcript_features of selected genes of a directory match the full table", {
+  annot_dir <- mini_annotation("mini_cds.gff3")
+  full <- transcript_features(annot_dir)
+  gene_b <- full$gene_id[full$gene_name == "GENEB"][1L]
+  for (genes in list("GENEA", c(gene_b, "GENEA"), c("GENEB", "NOPE"), "NOPE")) {
+    testthat::expect_identical(
+      transcript_features(annot_dir, gene_name = genes),
+      filter_genes(full, genes)
+    )
+  }
+})
+
 testthat::test_that("transcript_productivity grades isoforms and productive_fraction summarises genes", {
   iso <- cds_experiment()
   p <- transcript_productivity(iso)
@@ -270,5 +282,92 @@ testthat::test_that("FANTOM CAT GTF attributes are parsed and companion tables a
   testthat::expect_error(
     add_fantom_cat_tables(annot_dir, data.frame(x = 1)),
     class = "isoformic_invalid_evidence"
+  )
+})
+
+testthat::test_that("compute_splicing_events counts events on both strands", {
+  exon_rows <- list(
+    cP = list(c(100, 200), c(300, 400), c(500, 600), c(700, 800)),
+    tP1 = list(c(100, 200), c(300, 400), c(700, 800)),
+    tP2 = list(c(100, 200), c(250, 260), c(300, 450), c(500, 600), c(700, 800)),
+    tP3 = list(c(320, 400), c(500, 600), c(700, 850)),
+    tP4 = list(c(100, 200), c(300, 600), c(700, 800)),
+    cM = list(c(1000, 1100), c(1200, 1300), c(1400, 1500)),
+    tM1 = list(c(1000, 1100), c(1250, 1300), c(1400, 1500)),
+    tM2 = list(c(1050, 1100), c(1400, 1500)),
+    tM3 = list(c(1000, 1100), c(1200, 1300), c(1700, 1800)),
+    tN1 = list(c(1, 50)),
+    cU = list(c(1, 10), c(20, 30)),
+    tU1 = list(c(1, 10), c(22, 30))
+  )
+  exons <- data.frame(
+    transcript_id = rep(names(exon_rows), lengths(exon_rows)),
+    start_pos = as.integer(unlist(lapply(exon_rows, function(x) {
+      vapply(x, `[`, numeric(1L), 1L)
+    }))),
+    end_pos = as.integer(unlist(lapply(exon_rows, function(x) {
+      vapply(x, `[`, numeric(1L), 2L)
+    })))
+  )
+  # the ranks along each transcript do not depend on the row order
+  exons <- exons[rev(seq_len(nrow(exons))), ]
+  tx_ids <- c(names(exon_rows), "tP5")
+  gene <- substr(tx_ids, 2L, 2L)
+  tx <- data.frame(
+    transcript_id = tx_ids,
+    gene_id = paste0("g", gene),
+    strand = c(P = "+", M = "-", N = "+", U = ".")[gene]
+  )
+  canonical <- c(gP = "cP", gM = "cM", gN = "tN1", gU = "cU")
+  ev <- compute_splicing_events(tx, exons, canonical)
+  testthat::expect_identical(ev$transcript_id, tx_ids)
+  expected <- tibble::tibble(
+    transcript_id = tx_ids,
+    n_skipped_exons = c(0L, 1L, 0L, 0L, 0L, 0L, 0L, 1L, 1L, 0L, 0L, 0L, 0L),
+    n_novel_exons = c(0L, 0L, 1L, 0L, 0L, 0L, 0L, 0L, 1L, 0L, 0L, 0L, 0L),
+    n_retained_introns = c(0L, 0L, 0L, 0L, 1L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L),
+    n_alt_5ss = c(0L, 0L, 1L, 0L, 1L, 0L, 1L, 0L, 0L, 0L, 0L, 0L, 0L),
+    n_alt_3ss = c(0L, 0L, 0L, 0L, 1L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L),
+    alt_first_exon = c(
+      FALSE,
+      FALSE,
+      FALSE,
+      TRUE,
+      FALSE,
+      FALSE,
+      FALSE,
+      FALSE,
+      TRUE,
+      FALSE,
+      FALSE,
+      TRUE,
+      FALSE
+    ),
+    alt_last_exon = c(
+      FALSE,
+      FALSE,
+      FALSE,
+      FALSE,
+      FALSE,
+      FALSE,
+      FALSE,
+      FALSE,
+      FALSE,
+      FALSE,
+      FALSE,
+      TRUE,
+      FALSE
+    )
+  )
+  testthat::expect_identical(ev, expected)
+  # no exons: every transcript has no event
+  none <- compute_splicing_events(tx, exons[0L, ], canonical)
+  testthat::expect_identical(
+    none,
+    dplyr::mutate(
+      expected,
+      dplyr::across(dplyr::starts_with("n_"), function(x) 0L),
+      dplyr::across(dplyr::starts_with("alt_"), function(x) FALSE)
+    )
   )
 })
