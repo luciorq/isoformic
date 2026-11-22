@@ -139,31 +139,12 @@ read_inferential_replicates <- function(
   # One sample is in memory at a time: its kept transcripts and replicates go
   # into the matrices of the replicates, which are allocated once
   for (i in seq_len(n_sample)) {
-    x <- if (identical(dirs$kind[[i]], "oarfish")) {
-      read_oarfish_replicates(dirs$dir[[i]])
-    } else {
-      read_bootstrap_dir(dirs$dir[[i]])
-    }
-    sample_ids <- rownames(x$counts)
-    if (isTRUE(ignore_after_bar)) {
-      sample_ids <- sub("\\|.*$", "", sample_ids)
-    }
+    x <- read_sample_replicates(dirs, i)
+    sample_ids <- replicate_transcript_ids(x$counts, ignore_after_bar)
     if (i == 1L) {
       ids <- sample_ids
       samp_type <- x$samp_type
-      keep <- seq_along(ids)
-      if (!is.null(transcripts)) {
-        keep <- match(unique(transcripts), ids)
-        keep <- keep[!is.na(keep)]
-        if (!length(keep)) {
-          cli::cli_abort(
-            message = c(
-              x = "None of the requested transcripts are present in the Salmon replicates."
-            ),
-            class = "isoformic_no_annotated_transcripts"
-          )
-        }
-      }
+      keep <- kept_replicate_rows(ids, transcripts)
       rows <- keep
       all_rows <- NULL
       available <- ncol(x$counts)
@@ -245,15 +226,8 @@ read_inferential_replicates <- function(
   # A later sample with fewer replicates: recompute the earlier samples on
   # the replicates that are kept
   for (i in which(mom_n > length(reps))) {
-    x <- if (identical(dirs$kind[[i]], "oarfish")) {
-      read_oarfish_replicates(dirs$dir[[i]])
-    } else {
-      read_bootstrap_dir(dirs$dir[[i]])
-    }
-    sample_ids <- rownames(x$counts)
-    if (isTRUE(ignore_after_bar)) {
-      sample_ids <- sub("\\|.*$", "", sample_ids)
-    }
+    x <- read_sample_replicates(dirs, i)
+    sample_ids <- replicate_transcript_ids(x$counts, ignore_after_bar)
     mom <- replicate_moments(x$counts, length(reps))
     all_rows <- match(ids, sample_ids)
     mom_mean[, i] <- mom$mean[all_rows]
@@ -274,6 +248,48 @@ read_inferential_replicates <- function(
     n = length(reps)
   )
   reps
+}
+
+#' Replicates of sample `i` of the table of [resolve_quant_dirs()]
+#' @keywords internal
+#' @noRd
+read_sample_replicates <- function(dirs, i) {
+  if (identical(dirs$kind[[i]], "oarfish")) {
+    read_oarfish_replicates(dirs$dir[[i]])
+  } else {
+    read_bootstrap_dir(dirs$dir[[i]])
+  }
+}
+
+#' Transcript IDs of a matrix of replicates, cut at the first `|` if asked
+#' @keywords internal
+#' @noRd
+replicate_transcript_ids <- function(counts, ignore_after_bar) {
+  ids <- rownames(counts)
+  if (isTRUE(ignore_after_bar)) {
+    ids <- sub("\\|.*$", "", ids)
+  }
+  ids
+}
+
+#' Rows of `ids` to keep: all of them, or those of `transcripts`
+#' @keywords internal
+#' @noRd
+kept_replicate_rows <- function(ids, transcripts) {
+  if (is.null(transcripts)) {
+    return(seq_along(ids))
+  }
+  keep <- match(unique(transcripts), ids)
+  keep <- keep[!is.na(keep)]
+  if (!length(keep)) {
+    cli::cli_abort(
+      message = c(
+        x = "None of the requested transcripts are present in the Salmon replicates."
+      ),
+      class = "isoformic_no_annotated_transcripts"
+    )
+  }
+  keep
 }
 
 #' Mean and variance of each row over the first `n` replicates of a sample

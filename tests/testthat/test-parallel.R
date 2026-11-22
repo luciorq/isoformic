@@ -695,7 +695,7 @@ testthat::test_that("daemons the user started that are not connected fail the ca
   local_no_workers()
   old <- the_workers$grace
   the_workers$grace <- 1
-  withr::defer(the_workers$grace <- old)
+  withr::defer(assign("grace", old, envir = the_workers))
   # A profile that listens, with no daemon connected to it
   mirai::daemons(url = mirai::local_url(), .compute = "isoformic")
   tasks <- lapply(1:2, function(n) list(n = n))

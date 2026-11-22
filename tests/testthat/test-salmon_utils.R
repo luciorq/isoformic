@@ -141,10 +141,13 @@ testthat::test_that("salmon_index builds a gentrome and decoys.txt from decoy_fa
   tx_fasta <- file.path(tmp, "transcripts.fa")
   writeLines(c(">tx1|gene1|", "ACGTACGT", ">tx2|gene2|", "GGGGCCCC"), tx_fasta)
   decoy_plain <- file.path(tmp, "genome.fa")
+  # A binary connection: writeLines() to a path writes CRLF on Windows
+  plain_con <- file(decoy_plain, "wb")
   writeLines(
     c(">chr1 1 dna:chromosome", "NNNNACGT", ">chrM", "TTTT"),
-    decoy_plain
+    plain_con
   )
+  close(plain_con)
   decoy_gz <- file.path(tmp, "genome.fa.gz")
   gz_con <- gzfile(decoy_gz, "wb")
   writeLines(readLines(decoy_plain), gz_con)

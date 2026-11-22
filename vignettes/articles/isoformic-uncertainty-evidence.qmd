@@ -49,7 +49,7 @@ story <- read_parquet(file.path(data_dir, "story_genes.parquet"))
 get_row <- function(key) {
   r <- ev[ev$key == key, ]
   if (nrow(r) != 1L) {
-    stop("evidence key not found or not unique: ", key)
+    stop("evidence key not found or not unique: ", key, call. = FALSE)
   }
   r
 }
@@ -397,7 +397,7 @@ rh <- rh[order(rh$dataset, match(rh$flag, names(rh_label))), ]
 or_fmt <- function(x) ifelse(x < 0.001, "< 0.001", num(x, 3))
 knitr::kable(
   data.frame(
-    Series = sub("read halves ", "", rh$dataset),
+    Series = sub("read halves ", "", rh$dataset, fixed = TRUE),
     Flag = rh_label[rh$flag],
     Calls = int(rh$n_calls),
     `Share flagged` = paste0(num(rh$pct_flagged, 0), "%"),
@@ -470,7 +470,7 @@ for (s in c("", "_batch_balanced")) {
   for (m in names(methods)) {
     r <- get_row(paste0("C.", m, ".adjusted_rate_ratio_high_low", s))
     rows[[length(rows) + 1L]] <- data.frame(
-      dataset = "mouse", design = if (s == "") "5v5, all" else "5v5, balanced",
+      dataset = "mouse", design = if (nzchar(s)) "5v5, balanced" else "5v5, all",
       method = methods[[m]], estimate = r$estimate, lo = r$ci_lo, hi = r$ci_hi
     )
   }
@@ -975,7 +975,7 @@ null_tab <- do.call(rbind, lapply(c("7v7", "5v5", "3v3"), function(d) {
     }
     k_inf <- paste0("A.inflation_p01.", d, ".", m, ".own.all")
     data.frame(
-      Size = sub("v", " v ", d),
+      Size = sub("v", " v ", d, fixed = TRUE),
       Method = null_method[[m]],
       Splits = int(get_row(k_calls)$n),
       `False calls per split, q < 0.05` = ci_or_dash(k_calls),

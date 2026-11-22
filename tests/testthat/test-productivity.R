@@ -507,7 +507,7 @@ testthat::test_that("poison exon candidates match a grouped summary", {
   exons$end_pos <- exons$start_pos + 50L
   exons$gene_id <- paste0(
     "g",
-    as.integer(sub("t", "", exons$transcript_id)) %% 4L
+    as.integer(sub("t", "", exons$transcript_id, fixed = TRUE)) %% 4L
   )
   exons$productivity <- sample(
     c("unproductive", "productive", "noncoding", NA),

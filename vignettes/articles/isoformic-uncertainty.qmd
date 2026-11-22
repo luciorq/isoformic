@@ -32,7 +32,7 @@ evidence <- isoformic::read_parquet("data/uncertainty_evidence/evidence_numbers.
 ev_val <- function(key) {
   x <- evidence$estimate[evidence$key == key]
   if (length(x) != 1L) {
-    stop("evidence key not found or not unique: ", key)
+    stop("evidence key not found or not unique: ", key, call. = FALSE)
   }
   x
 }

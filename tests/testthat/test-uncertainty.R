@@ -528,7 +528,7 @@ testthat::test_that("de_confidence repeats the contrast on every draw", {
   testthat::expect_false(any(
     grepl("unstable direction", na_conf$flags[low], fixed = TRUE)
   ))
-  testthat::expect_true(all(!is.na(na_conf$unstable[!low])))
+  testthat::expect_false(anyNA(na_conf$unstable[!low]))
   testthat::expect_false(any(na_conf$unstable_de[low]))
   testthat::expect_identical(iso@metadata$uncertainty_group, "condition")
   testthat::expect_identical(iso@metadata$uncertainty_levels, "a|b")
@@ -702,7 +702,7 @@ testthat::test_that("legacy tables lose the uncertain flag of features that were
   current <- de_confidence(iso)
   low <- is.na(current$sign_agreement)
   testthat::expect_true(any(low))
-  testthat::expect_true(any(!low))
+  testthat::expect_false(all(low))
   # Older versions kept the InfRV, and could set the uncertain flag, below
   # `min_count`
   legacy <- current[,
@@ -1734,7 +1734,13 @@ testthat::test_that("row_stats matches median, quantile and sd row by row", {
     rownames(m) <- paste0("f", seq_len(nrow(m)))
     probs <- c(0.025, 0.5, 0.975)
     res <- row_stats(m, probs)
-    testthat::expect_identical(res$median, unname(apply(m, 1L, stats::median)))
+    # stats::median() averages the middle pair with mean(), whose second
+    # pass can change the last bit (it does on macOS arm64)
+    testthat::expect_equal(
+      res$median,
+      unname(apply(m, 1L, stats::median)),
+      tolerance = 1e-12
+    )
     testthat::expect_identical(res$quantiles, row_quantiles(m, probs))
     testthat::expect_equal(
       res$sd,

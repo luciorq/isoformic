@@ -41,7 +41,7 @@ dir.create(dest, recursive = TRUE, showWarnings = FALSE)
 ev <- isoformic::read_parquet(file.path(src, "evidence_numbers.parquet"))
 txt <- paste(unlist(lapply(articles, readLines)), collapse = "\n")
 lit <- regmatches(txt, gregexpr('"(design|S0|A|B|C|D|R)\\.[^"]+"', txt))[[1]]
-lit <- unique(gsub('"', "", lit))
+lit <- unique(gsub('"', "", lit, fixed = TRUE))
 # keys built in loops: the null rate-ratio figure (raw jackknife, placenta;
 # mouse methods and subsets), the thinning tables, and the supplementary
 # tables of every null method and of the robustness variants
