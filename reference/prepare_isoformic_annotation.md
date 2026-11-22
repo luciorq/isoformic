@@ -1,9 +1,9 @@
 # Convert a GFF3/GTF Annotation to Parquet Files
 
-Parses a GENCODE/Ensembl style GFF3 or GTF annotation file with DuckDB
-in a single pass and writes one Parquet table per feature level (genes,
-transcripts, exons) plus metadata and sequence-region tables into an
-*annotation directory*. This directory is what
+Parses a GENCODE/Ensembl style GFF3 or GTF annotation file with DuckDB,
+reading the file once, and writes one Parquet table per feature level
+(genes, transcripts, exons) plus metadata and sequence-region tables
+into an *annotation directory*. This directory is what
 [IsoformicExperiment](https://luciorq.github.io/isoformic/reference/IsoformicExperiment.md)
 objects point to through their `annot_path` property.
 
@@ -60,9 +60,13 @@ The path to the annotation directory (character string).
 
 ## Details
 
-Reading a full human GENCODE release (3 to 4 million features,
-gzip-compressed) takes under a minute; the result is cached so repeated
-calls with the same file and output location return immediately.
+Converting the comprehensive human GENCODE release 50 with patches and
+haplotypes (11.6 million features, gzip-compressed GFF3 or GTF) takes
+about 30 seconds and 2 GB of memory with four DuckDB threads; the result
+is cached so repeated calls with the same file and output location
+return immediately. The memory DuckDB may use is set by the
+`isoformic.duckdb_memory_limit` option (see
+[isoformic-options](https://luciorq.github.io/isoformic/reference/isoformic-options.md)).
 
 The parser is vocabulary-agnostic so that annotations from different
 providers and assemblies work the same way:
@@ -125,17 +129,17 @@ when no biotype attribute exists.
 - exons: `exon_id`, `transcript_id`, `exon_number`, `haplotype`,
   `seqid`, `start_pos`, `end_pos`, `strand`.
 
-- metadata: `key`, `value` (source file, format, header pragmas,
-  creation time).
+- metadata: `key`, `value` (annotation name, source path and file,
+  format, creation time, isoformic version and the header pragmas).
 
 - seq_regions: `seqid`, `start_pos`, `end_pos`.
 
 ## Examples
 
 ``` r
-gff <- system.file("extdata", "example.gff3", package = "isoformic")
+gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 annot_dir <- prepare_isoformic_annotation(gff, output_path = tempdir())
-#> ℹ Using cached annotation directory /tmp/RtmpatoNKq/example.
+#> ℹ Using cached annotation directory /tmp/RtmpPCTCTT/example_gff3.
 list.files(annot_dir)
 #> [1] "annot_data_exons.parquet"       "annot_data_genes.parquet"      
 #> [3] "annot_data_transcripts.parquet" "annot_metadata.parquet"        
@@ -144,12 +148,12 @@ head(read_parquet(file.path(annot_dir, "annot_data_transcripts.parquet")))
 #> # A tibble: 6 × 21
 #>   transcript_id     transcript_name transcript_type gene_id       source_gene_id
 #>   <chr>             <chr>           <chr>           <chr>         <chr>         
-#> 1 ENST00000282397.9 FLT1-201        protein_coding  ENSG00000102… NA            
-#> 2 ENST00000615611.4 FLT1-206        protein_coding  ENSG00000102… NA            
-#> 3 ENST00000617835.4 FLT1-208        protein_coding  ENSG00000102… NA            
-#> 4 ENST00000543394.2 FLT1-205        protein_coding  ENSG00000102… NA            
-#> 5 ENST00000540678.2 FLT1-203        protein_coding  ENSG00000102… NA            
-#> 6 ENST00000541932.5 FLT1-204        protein_coding  ENSG00000102… NA            
+#> 1 ENST00000909997.2 FLT1-211        protein_coding  ENSG00000102… NA            
+#> 2 ENST00000909998.2 FLT1-212        protein_coding  ENSG00000102… NA            
+#> 3 ENST00000909999.2 FLT1-213        protein_coding  ENSG00000102… NA            
+#> 4 ENST00000910000.2 FLT1-214        protein_coding  ENSG00000102… NA            
+#> 5 ENST00001131755.1 FLT1-217        protein_coding  ENSG00000102… NA            
+#> 6 ENST00000282397.9 FLT1-201        protein_coding  ENSG00000102… NA            
 #> # ℹ 16 more variables: source_transcript_id <chr>, tags <chr>,
 #> #   coding_status <chr>, transcript_support_level <chr>, tie_score <dbl>,
 #> #   cds_start <int>, cds_end <int>, cds_length <int>, is_canonical <lgl>,

@@ -47,8 +47,16 @@ salmon_quant(
   (default is 30). They quantify how well each transcript abundance is
   determined by the reads and are used by
   [`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
-  and by `swish`; 30 is enough for those summaries, and more only costs
-  time and disk space. Set it to `0` to skip them.
+  and by `swish`. The genome-wide evaluation of the uncertainty evidence
+  article used 30 and did not test more draws for its calls. For
+  isoforms near a cutoff (few unique fragments or reads, retained
+  introns, lncRNAs), more draws (for example 100) are expected to make
+  the `uncertain` flag more stable, since InfRV from more draws has a
+  smaller sampling error, but this was not tested; they cost time and
+  disk space. TreeTerminus trees of lncRNAs often differed between a
+  30-draw run and a separate 100-draw run, a comparison that does not
+  separate the number of draws from run-to-run randomness (see the
+  quantification stability article). Set it to `0` to skip them.
 
 - min_score_fraction:
 
@@ -65,12 +73,12 @@ processx style output list.
 
 ## Details
 
-The command enables the sequence, GC and positional bias corrections,
-allows dovetailing mates and soft-clipped overhangs, writes the
-equivalence classes with their weights (`--dumpEq --dumpEqWeights`) and
-draws `num_gibbs` Gibbs samples (`aux_info/bootstrap/`) so that
-inferential replicates are available for `swish`. Selective alignment
-and the variational Bayes optimiser are Salmon defaults and are not
-passed explicitly; Salmon 2 quantifies deterministically (identical
-output for any thread count). Single-end reads are passed with
-`--unmatedReads`.
+The command detects the library type (`--libType A`), enables the
+sequence, GC and positional bias corrections, allows dovetailing mates
+and soft-clipped overhangs, writes the equivalence classes with their
+weights (`--dumpEq --dumpEqWeights`) and draws `num_gibbs` Gibbs samples
+(`aux_info/bootstrap/`) so that inferential replicates are available for
+`swish`. Selective alignment and the variational Bayes optimiser are
+Salmon defaults and are not passed explicitly; Salmon 2 quantifies
+deterministically (identical output for any thread count). Single-end
+reads are passed with `--unmatedReads`.

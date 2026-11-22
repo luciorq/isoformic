@@ -23,7 +23,8 @@ transcripts), &amp;lt;prefix&amp;gt;.barcodes.txt, &amp;lt;prefix&amp;gt;.featur
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -35,6 +36,7 @@ transcripts), &amp;lt;prefix&amp;gt;.barcodes.txt, &amp;lt;prefix&amp;gt;.featur
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -162,14 +164,14 @@ combination of sample and cell type its own <code>sample_id</code> and describe 
 <span class="r-in"><span><span class="va">counts</span> <span class="op">&lt;-</span> <span class="fu">read_oarfish_sc_counts</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">dir</span>, <span class="st">"out"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">counts</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 3</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   barcode          transcript_id     count</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> CGGCGCGAACCACCTC ENST00000512351.5  1   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> CGGCGCGAACCACCTC ENST00000345843.7  1.26</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> CGGCGCGAACCACCTC ENST00000342295.5  5.86</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> CGGCGCGAACCACCTC ENST00000514380.5  1.13</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> CGGCGCGAACCACCTC ENST00000355476.7  5.63</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> CGGCGCGAACCACCTC ENST00000511401.5  6   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   barcode          transcript_id         count</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                 <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> CACATCGAACAGCTAA ENST00000681799.1 6.00     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> CACATCGAACAGCTAA ENST00000342295.7 0.000<span style="text-decoration: underline;">023</span>4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> CACATCGAACAGCTAA ENST00000506956.5 1.16     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> CACATCGAACAGCTAA ENST00000512671.7 0.000<span style="text-decoration: underline;">023</span>4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> CACATCGAACAGCTAA ENST00000345843.9 0.000<span style="text-decoration: underline;">023</span>4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> CACATCGAACAGCTAA ENST00001068163.1 1.16     </span>
 <span class="r-in"><span><span class="va">cells</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.delim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">dir</span>, <span class="st">"cells.tsv"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu">read_oarfish_sc</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">dir</span>, <span class="st">"out"</span><span class="op">)</span>,</span></span>

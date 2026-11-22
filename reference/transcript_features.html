@@ -23,8 +23,8 @@ alt_last_exon.
 
 
 splicing_events() returns the event counts alone; both are cached per
-object. The data-frame methods accept the exon table of an annotation
-(see exon_table()) joined with the transcript columns."><meta property="og:description" content="Computes, for every assayed transcript, features that go beyond the
+object. With an annotation directory path every transcript of the
+annotation is described."><meta property="og:description" content="Computes, for every assayed transcript, features that go beyond the
 biotype label, from the exon and CDS coordinates of the annotation:
 Ends: tss_pos, tes_pos (genomic positions of the transcription
 start and end), tss_group and tes_group (integer labels of
@@ -48,8 +48,8 @@ alt_last_exon.
 
 
 splicing_events() returns the event counts alone; both are cached per
-object. The data-frame methods accept the exon table of an annotation
-(see exon_table()) joined with the transcript columns."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
+object. With an annotation directory path every transcript of the
+annotation is described."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -65,7 +65,8 @@ object. The data-frame methods accept the exon table of an annotation
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -77,6 +78,7 @@ object. The data-frame methods accept the exon table of an annotation
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -134,8 +136,8 @@ transcript with the longest CDS, else the longest transcript),
 <code>n_retained_introns</code>, <code>n_alt_5ss</code>, <code>n_alt_3ss</code>, <code>alt_first_exon</code>,
 <code>alt_last_exon</code>.</p></li>
 </ul><p><code>splicing_events()</code> returns the event counts alone; both are cached per
-object. The data-frame methods accept the exon table of an annotation
-(see <code><a href="IsoformicExperiment-accessors.html">exon_table()</a></code>) joined with the transcript columns.</p>
+object. With an annotation directory path every transcript of the
+annotation is described.</p>
     </div>
 
     <div class="section level2">
@@ -174,12 +176,17 @@ ends) are grouped as the same promoter (or 3' end); default 50.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed on to methods.</p></dd>
+<dd><p>Not used; reserved for methods.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A tibble with one row per transcript.</p>
+    <p>A tibble with one row per transcript. <code>transcript_features()</code>:
+<code>transcript_id</code>, <code>transcript_name</code>, <code>transcript_type</code>, <code>gene_id</code>,
+<code>gene_name</code>, <code>strand</code>, <code>n_exons</code>, <code>tx_length</code>, <code>is_canonical</code> and the
+feature columns listed above. <code>splicing_events()</code>: <code>transcript_id</code>,
+<code>transcript_name</code>, <code>gene_id</code>, <code>gene_name</code>, <code>canonical_transcript_id</code>
+and the event columns.</p>
     </div>
 
     <div class="section level2">
@@ -187,30 +194,35 @@ ends) are grouped as the same promoter (or 3' end); default 50.</p></dd>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="example_isoformic.html">example_isoformic</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">feats</span> <span class="op">&lt;-</span> <span class="fu">transcript_features</span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"RBPJ"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">feats</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"transcript_name"</span>, <span class="st">"orf_length"</span>, <span class="st">"nmd_predicted"</span>, <span class="st">"tss_group"</span>, <span class="st">"n_skipped_exons"</span><span class="op">)</span><span class="op">]</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 10 × 5</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 65 × 5</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    transcript_name orf_length nmd_predicted tss_group n_skipped_exons</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> RBPJ-222               283 FALSE                 1               2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> RBPJ-201              <span style="text-decoration: underline;">1</span>503 FALSE                 2               0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> RBPJ-206              <span style="text-decoration: underline;">1</span>503 FALSE                 3               0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> RBPJ-225                <span style="color: #BB0000;">NA</span> FALSE                 4               0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> RBPJ-204              <span style="text-decoration: underline;">1</span>464 FALSE                 5               0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> RBPJ-205              <span style="text-decoration: underline;">1</span>461 FALSE                 5               0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> RBPJ-214              <span style="text-decoration: underline;">1</span>398 FALSE                 6               0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> RBPJ-208              <span style="text-decoration: underline;">1</span>149 FALSE                 7               1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> RBPJ-202              <span style="text-decoration: underline;">1</span>461 FALSE                 7               0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> RBPJ-210                <span style="color: #BB0000;">NA</span> FALSE                 8               0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> RBPJ-222               283 FALSE                 1               1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> RBPJ-247               177 TRUE                  1               1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> RBPJ-243                <span style="color: #BB0000;">NA</span> FALSE                 2               1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> RBPJ-201              <span style="text-decoration: underline;">1</span>503 FALSE                 3               1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> RBPJ-213               291 FALSE                 3               1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> RBPJ-223              <span style="text-decoration: underline;">1</span>503 FALSE                 3               1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> RBPJ-203              <span style="text-decoration: underline;">1</span>398 FALSE                 3               1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> RBPJ-206              <span style="text-decoration: underline;">1</span>503 FALSE                 4               1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> RBPJ-225                <span style="color: #BB0000;">NA</span> FALSE                 5               1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> RBPJ-229               145 FALSE                 6               1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 55 more rows</span></span>
 <span class="r-in"><span><span class="fu">splicing_events</span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"EGFR"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 7 × 12</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   transcript_id     transcript_name gene_id     gene_name canonical_transcript…¹</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENST00000275493.7 EGFR-201        ENSG000001… EGFR      ENST00000275493.7     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENST00000455089.5 EGFR-207        ENSG000001… EGFR      ENST00000275493.7     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00000344576.6 EGFR-203        ENSG000001… EGFR      ENST00000275493.7     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENST00000420316.6 EGFR-204        ENSG000001… EGFR      ENST00000275493.7     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENST00000459688.1 EGFR-208        ENSG000001… EGFR      ENST00000275493.7     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENST00000638463.1 EGFR-211        ENSG000001… EGFR      ENST00000275493.7     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">7</span> ENST00000485503.1 EGFR-210        ENSG000001… EGFR      ENST00000275493.7     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 23 × 12</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    transcript_id     transcript_name gene_id    gene_name canonical_transcript…¹</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> ENST00001124896.1 EGFR-222        ENSG00000… EGFR      ENST00001134423.1     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> ENST00001118378.1 EGFR-221        ENSG00000… EGFR      ENST00001134423.1     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> ENST00001112636.1 EGFR-220        ENSG00000… EGFR      ENST00001134423.1     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> ENST00000420316.7 EGFR-204        ENSG00000… EGFR      ENST00001134423.1     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> ENST00000342916.8 EGFR-202        ENSG00000… EGFR      ENST00001134423.1     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> ENST00000344576.8 EGFR-203        ENSG00000… EGFR      ENST00001134423.1     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> ENST00001110465.1 EGFR-219        ENSG00000… EGFR      ENST00001134423.1     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> ENST00000455089.6 EGFR-206        ENSG00000… EGFR      ENST00001134423.1     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> ENST00000898199.2 EGFR-214        ENSG00000… EGFR      ENST00001134423.1     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> ENST00000898200.2 EGFR-215        ENSG00000… EGFR      ENST00001134423.1     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 13 more rows</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ abbreviated name: ¹​canonical_transcript_id</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 7 more variables: n_skipped_exons &lt;int&gt;, n_novel_exons &lt;int&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   n_retained_introns &lt;int&gt;, n_alt_5ss &lt;int&gt;, n_alt_3ss &lt;int&gt;,</span></span>

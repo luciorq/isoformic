@@ -12,12 +12,12 @@ article shows those counterparts on the tables of the
 library(isoformic)
 library(dplyr)
 
-extdata <- fs::path_package("isoformic", "extdata")
-abundance <- read_parquet(fs::path(extdata, "pe_abundance.parquet"))
-col_data <- read_parquet(fs::path(extdata, "pe_col_data.parquet"))
-det <- read_parquet(fs::path(extdata, "pe_det.parquet"))
-deg <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
-annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+data_dir <- "data/preeclampsia"
+abundance <- read_parquet(fs::path(data_dir, "pe_abundance.parquet"))
+col_data <- read_parquet(fs::path(data_dir, "pe_col_data.parquet"))
+det <- read_parquet(fs::path(data_dir, "pe_det.parquet"))
+deg <- read_parquet(fs::path(data_dir, "pe_deg.parquet"))
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 ```
 
 ## Transcript-to-gene table
@@ -33,12 +33,12 @@ head(tx2gene)
 #> # A tibble: 6 × 8
 #>   transcript_id     gene_id  havana_gene_id havana_transcript_id transcript_name
 #>   <chr>             <chr>    <chr>          <chr>                <chr>          
-#> 1 ENST00000618686.1 ENSG000… <NA>           <NA>                 BX004987.1-201 
-#> 2 ENST00000613230.1 ENSG000… <NA>           <NA>                 AC145212.1-201 
-#> 3 ENST00000400754.4 ENSG000… <NA>           <NA>                 MAFIP-201      
-#> 4 ENST00000618679.1 ENSG000… <NA>           <NA>                 AC011043.2-201 
-#> 5 ENST00000612465.1 ENSG000… <NA>           <NA>                 AC011043.1-201 
-#> 6 ENST00000611619.1 ENSG000… <NA>           <NA>                 AC011043.3-201 
+#> 1 ENST00000741402.1 ENSG000… <NA>           <NA>                 ENST00000741402
+#> 2 ENST00000741407.1 ENSG000… <NA>           <NA>                 ENST00000741407
+#> 3 ENST00000741435.1 ENSG000… <NA>           <NA>                 ENST00000741435
+#> 4 ENST00000741404.1 ENSG000… <NA>           <NA>                 ENST00000741404
+#> 5 ENST00000741436.1 ENSG000… <NA>           <NA>                 ENST00000741436
+#> 6 ENST00000741437.1 ENSG000… <NA>           <NA>                 ENST00000741437
 #> # ℹ 3 more variables: gene_name <chr>, tx_length <int>, transcript_type <chr>
 ```
 
@@ -63,12 +63,12 @@ head(de_long)
 #> # A tibble: 6 × 9
 #>   feature_id   feature_name feature_type gene_id gene_name  log2FC pvalue qvalue
 #>   <chr>        <chr>        <chr>        <chr>   <chr>       <dbl>  <dbl>  <dbl>
-#> 1 ENSG0000000… TSPAN6       gene         ENSG00… TSPAN6    -0.320  0.0485  0.125
-#> 2 ENSG0000000… TNMD         gene         ENSG00… TNMD       0.381  0.107   0.222
-#> 3 ENSG0000000… DPM1         gene         ENSG00… DPM1      -0.0693 0.260   0.417
-#> 4 ENSG0000000… SCYL3        gene         ENSG00… SCYL3      0.107  0.386   0.547
-#> 5 ENSG0000000… C1orf112     gene         ENSG00… C1orf112   0.162  0.229   0.380
-#> 6 ENSG0000000… FGR          gene         ENSG00… FGR       -0.162  0.160   0.296
+#> 1 ENSG0000000… TSPAN6       gene         ENSG00… TSPAN6    -0.0865 0.608   0.791
+#> 2 ENSG0000000… TNMD         gene         ENSG00… TNMD       0.471  0.111   0.305
+#> 3 ENSG0000000… DPM1         gene         ENSG00… DPM1       0.0415 0.423   0.652
+#> 4 ENSG0000000… SCYL3        gene         ENSG00… SCYL3      0.193  0.0884  0.266
+#> 5 ENSG0000000… FIRRM        gene         ENSG00… FIRRM      0.198  0.134   0.342
+#> 6 ENSG0000000… FGR          gene         ENSG00… FGR       -0.154  0.186   0.411
 #> # ℹ 1 more variable: is_de <chr>
 plot_log2fc(de_long, feature = "RBPJ")
 ```
@@ -98,12 +98,12 @@ head(profile)
 #> # A tibble: 6 × 10
 #>   feature_id feature_name feature_type gene_id gene_name group mean_expr sd_expr
 #>   <chr>      <chr>        <chr>        <chr>   <chr>     <fct>     <dbl>   <dbl>
-#> 1 ENSG00000… RBPJ         gene         ENSG00… RBPJ      pree…   1297.    427.  
-#> 2 ENSG00000… RBPJ         gene         ENSG00… RBPJ      cont…   1367.    195.  
-#> 3 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      pree…     11.2    25.1 
-#> 4 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      cont…      3.95    8.30
-#> 5 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      pree…    838.    303.  
-#> 6 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      cont…   1095.    169.  
+#> 1 ENSG00000… RBPJ         gene         ENSG00… RBPJ      pree…    27.7     8.81 
+#> 2 ENSG00000… RBPJ         gene         ENSG00… RBPJ      cont…    33.3     5.27 
+#> 3 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      pree…     0.116   0.148
+#> 4 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      cont…     0.125   0.160
+#> 5 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      pree…     0       0    
+#> 6 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      cont…     0.952   1.39 
 #> # ℹ 2 more variables: n_samples <int>, is_de <chr>
 plot_tx_expr(profile, gene_name = "RBPJ", group = "condition")
 ```
@@ -119,9 +119,9 @@ here from the small GFF3 bundled with the package.
 
 ``` r
 
-gff <- fs::path(extdata, "example.gff3")
+gff <- fs::path_package("isoformic", "extdata", "example.gff3.gz")
 exons <- prepare_exon_annotation("RBPJ", gff, output_path = tempdir())
-#> ℹ Parsing 'example.gff3' (GFF) into '/tmp/Rtmpaa03Ug/example'.
+#> ℹ Parsing 'example.gff3.gz' (GFF) into '/tmp/RtmpeQTaBz/example_gff3'.
 head(exons)
 #> # A tibble: 6 × 12
 #>   gene_id      gene_name transcript_id transcript_name transcript_type haplotype
@@ -142,32 +142,41 @@ plot_genomic_context(exons, gene_name = "RBPJ")
 ## Structural features and enrichment
 
 [`transcript_features()`](https://luciorq.github.io/isoformic/reference/transcript_features.md),
+[`splicing_events()`](https://luciorq.github.io/isoformic/reference/transcript_features.md),
 [`transcript_orfs()`](https://luciorq.github.io/isoformic/reference/transcript_orfs.md),
-[`transcript_productivity()`](https://luciorq.github.io/isoformic/reference/productivity.md)
+[`coding_potential()`](https://luciorq.github.io/isoformic/reference/transcript_orfs.md)
 and
-[`polya_sites()`](https://luciorq.github.io/isoformic/reference/polyadenylation.md)
-accept an annotation directory in place of the object, and
+[`splice_site_strength()`](https://luciorq.github.io/isoformic/reference/splice_sites.md)
+accept an annotation directory in place of the object and then report
+every transcript of the annotation.
 [`run_enrichment()`](https://luciorq.github.io/isoformic/reference/enrichment.md)
-accepts a transcript table together with a `tx_to_gene` table.
+accepts a transcript table together with a `tx_to_gene` table, and
+[`run_productivity_enrichment()`](https://luciorq.github.io/isoformic/reference/productivity.md)
+and
+[`run_apa_enrichment()`](https://luciorq.github.io/isoformic/reference/polyadenylation.md)
+accept the gene tables of
+[`productive_fraction()`](https://luciorq.github.io/isoformic/reference/productivity.md)
+and
+[`apa_usage()`](https://luciorq.github.io/isoformic/reference/polyadenylation.md).
 
 ``` r
 
 feats <- transcript_features(annot_dir, gene_name = "RBPJ")
 feats[, c("transcript_name", "orf_length", "utr3_length", "nmd_predicted", "tss_group")]
-#> # A tibble: 31 × 5
+#> # A tibble: 65 × 5
 #>    transcript_name orf_length utr3_length nmd_predicted tss_group
 #>    <chr>                <int>       <dbl> <lgl>             <int>
 #>  1 RBPJ-222               283           0 FALSE                 1
-#>  2 RBPJ-218               689           0 FALSE                 2
-#>  3 RBPJ-213               291           0 FALSE                 3
-#>  4 RBPJ-223               535           0 FALSE                 3
-#>  5 RBPJ-201              1503        4121 FALSE                 3
-#>  6 RBPJ-203              1458          59 FALSE                 3
-#>  7 RBPJ-206              1503           0 FALSE                 4
-#>  8 RBPJ-225                NA          NA FALSE                 5
-#>  9 RBPJ-229               145           0 FALSE                 6
-#> 10 RBPJ-204              1464          59 FALSE                 6
-#> # ℹ 21 more rows
+#>  2 RBPJ-247               177         936 TRUE                  1
+#>  3 RBPJ-243                NA          NA FALSE                 2
+#>  4 RBPJ-201              1503        4124 FALSE                 3
+#>  5 RBPJ-213               291           0 FALSE                 3
+#>  6 RBPJ-223              1503        4124 FALSE                 3
+#>  7 RBPJ-203              1398        4124 FALSE                 3
+#>  8 RBPJ-206              1503           0 FALSE                 4
+#>  9 RBPJ-225                NA          NA FALSE                 5
+#> 10 RBPJ-229               145           0 FALSE                 6
+#> # ℹ 55 more rows
 ```
 
 ## Citing isoformic
@@ -205,11 +214,11 @@ sessionInfo()
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6       jsonlite_2.0.0     compiler_4.6.2     Rcpp_1.1.2        
-#>  [5] tidyselect_1.2.1   scales_1.4.0       yaml_2.3.12        fastmap_1.2.0     
-#>  [9] ggplot2_4.0.4      R6_2.6.1           labeling_0.4.3     generics_0.1.4    
-#> [13] curl_8.1.0         knitr_1.52         ggrepel_0.9.8      tibble_3.3.1      
+#>  [5] tidyselect_1.2.1   parallel_4.6.2     scales_1.4.0       yaml_2.3.12       
+#>  [9] fastmap_1.2.0      ggplot2_4.0.4      R6_2.6.1           labeling_0.4.3    
+#> [13] generics_0.1.4     knitr_1.52         ggrepel_0.9.8      tibble_3.3.1      
 #> [17] DBI_1.3.0          pillar_1.11.1      RColorBrewer_1.1-3 rlang_1.3.0       
-#> [21] utf8_1.2.6         xfun_0.62          fs_2.1.0           S7_0.2.2          
+#> [21] utf8_1.2.6         xfun_0.62          fs_2.1.0           S7_1.0.0          
 #> [25] otel_0.3.0         cli_3.6.6          withr_3.0.3        magrittr_2.0.5    
 #> [29] digest_0.6.39      grid_4.6.2         lifecycle_1.0.5    vctrs_0.7.3       
 #> [33] evaluate_1.0.5     glue_1.8.1         farver_2.1.2       duckdb_2.0.0      

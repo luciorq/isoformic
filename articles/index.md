@@ -15,6 +15,8 @@
   result?](https://luciorq.github.io/isoformic/articles/isoformic-uncertainty.md):
 - [What makes an isoform hard to
   quantify?](https://luciorq.github.io/isoformic/articles/isoformic-quantification-stability.md):
+- [Is quantification uncertainty worth checking? Genome-wide
+  evidence](https://luciorq.github.io/isoformic/articles/isoformic-uncertainty-evidence.md):
 - [Isoform structure and
   productivity](https://luciorq.github.io/isoformic/articles/isoformic-productivity.md):
 - [Alternative

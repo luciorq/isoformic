@@ -21,7 +21,8 @@ gene_assays() and can be called directly on matrices."><meta property="og:image"
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -33,6 +34,7 @@ gene_assays() and can be called directly on matrices."><meta property="og:image"
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -101,43 +103,43 @@ matrices sharing row names.</p></dd>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="example_isoformic.html">example_isoformic</a></span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">g</span> <span class="op">&lt;-</span> <span class="fu">summarize_to_gene</span><span class="op">(</span><span class="fu"><a href="IsoformicExperiment-accessors.html">assay</a></span><span class="op">(</span><span class="va">iso</span>, <span class="st">"abundance"</span><span class="op">)</span>, <span class="fu"><a href="IsoformicExperiment-accessors.html">tx_to_gene</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">g</span> <span class="op">&lt;-</span> <span class="fu">summarize_to_gene</span><span class="op">(</span><span class="fu"><a href="IsoformicExperiment-accessors.html">tx_assay</a></span><span class="op">(</span><span class="va">iso</span>, <span class="st">"abundance"</span><span class="op">)</span>, <span class="fu"><a href="IsoformicExperiment-accessors.html">tx_to_gene</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    SRR11498039 SRR11498040 SRR11498041 SRR11498042 SRR11498043</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000005007.12    3253.512    2563.848    2656.175    3295.886    4497.997</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000005206.17    1727.018    1515.008    1807.224    1551.435     986.158</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000007384.15    1970.727    1612.095    2188.516    2179.135    1910.157</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000007541.16     550.154     526.270     745.990     723.957     498.251</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000008838.20    1058.643    1018.991     978.694    1061.083    1152.704</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000009413.16     724.057     599.019     675.888     696.338     419.116</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000070404.12  2569.68384   299.07857  1417.10732   603.17133   471.63517</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000070831.20   122.70026    99.10083    80.20022    86.70524   124.04831</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000092199.21   266.25891   326.93814   276.23063   273.64675   514.47320</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000100567.15    83.58850    89.24681    83.38840    83.66714    89.96554</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000101181.20    19.77858    22.22232    26.51377    22.33130    22.33756</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000102755.15  6674.69963   294.43483  2383.73606   559.48987   632.91902</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    SRR11498044 SRR11498045 SRR11498046 SRR11498063 SRR11498064</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000005007.12    4732.194    2686.639    3904.654    3335.450    3699.352</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000005206.17    1850.509     609.902    1492.657    2069.531    2048.620</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000007384.15    2708.052    2264.347    3182.521    2966.487    3382.728</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000007541.16     962.738     245.692     969.690     958.960    1220.914</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000008838.20    1700.362    1002.685    1392.596    1419.984    1543.717</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000009413.16     824.227    1010.559    1235.516     837.198    1042.775</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000070404.12   310.76213   896.73093  3187.15377    29.18200    31.38722</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000070831.20    78.78730   204.01240   107.61872    52.03164    35.00855</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000092199.21   289.21006   525.55022   327.02047   267.16888   228.18136</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000100567.15    84.23372   116.61350    96.74124   166.90329   113.95220</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000101181.20    21.93102    30.98572    19.77071    29.64593    26.51956</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000102755.15  1899.57688  3828.13284  3580.22704   168.79459   124.46575</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    SRR11498065 SRR11498066 SRR11498067 SRR11498068 SRR11498069</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000005007.12    2405.434    2521.298    2951.488    2412.240    3125.850</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000005206.17    1502.081    1117.840    1625.626    1202.581    1971.119</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000007384.15    2154.739    1830.455    2151.931    2016.009    2502.582</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000007541.16     758.946     604.632     712.162     563.255     840.969</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000008838.20    1133.716     996.395    1158.077     867.589    1375.700</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000009413.16     981.165     736.211     844.466     923.871     996.592</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000070404.12    48.99216    14.16329    66.08116    53.78511    13.59521</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000070831.20    38.44176    48.57682    51.06573    43.95347    43.87882</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000092199.21   239.72877   240.21498   277.28130   254.05305   257.29341</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000100567.15   118.80365   121.72739   161.33785   131.05597   111.49771</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000101181.20    21.75279    20.98340    28.30428    28.21587    23.79867</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000102755.15   142.90353   145.31683   220.13165   341.21090   115.23941</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    SRR11498070 SRR11498071 SRR11498072 SRR11498073 SRR11498074</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000005007.12    4497.310    2265.091    3065.700    2692.038    3329.921</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000005206.17    2303.939    1076.992    1372.618    1172.162    1693.740</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000007384.15    3482.066    1743.023    2339.072    2031.263    2347.569</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000007541.16    1170.131     528.531     626.839     608.772     803.845</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000008838.20    1783.556     927.626     953.281    1095.061    1114.967</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000009413.16    1375.634     715.627     462.376     620.009     733.193</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000070404.12    44.79135   136.64611    40.09664    17.48312    20.45126</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000070831.20    46.05098    43.95159    53.90587    55.45721    47.51016</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000092199.21   214.11104   227.47375   246.52902   220.25141   260.88590</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000100567.15   106.60685   124.09180   115.31332   105.69139   105.46941</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000101181.20    17.86774    23.33720    21.65134    21.76331    23.31649</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000102755.15   177.58189   447.94442   270.29311   169.66820   496.04255</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    SRR11498075 SRR11498076 SRR11498077 SRR11498078 SRR11498079</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000005007.12    3200.173    3211.790    2886.842    2522.062    3415.826</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000005206.17    1728.208    1544.569    1448.556    1375.868    1866.532</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000007384.15    2321.575    2703.154    2317.905    2011.830    3311.084</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000007541.16     701.155     760.047     646.552     600.129     922.636</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000008838.20    1117.793    1124.630    1119.471     952.758    1333.459</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000009413.16     924.570     742.140     629.304     927.810    1091.680</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000070404.12    18.72177    49.55750    19.41653   125.57957    17.47104</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000070831.20    36.86573    49.52355    47.49247    42.47217    35.72663</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000092199.21   217.86640   225.80300   225.53977   243.13445   238.39553</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000100567.15   102.48072   114.81176   114.87302   136.99088   106.77130</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000101181.20    23.07231    24.28106    24.41587    25.10409    22.52178</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000102755.15   192.84398   202.08497   209.51895   298.36576   134.90583</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

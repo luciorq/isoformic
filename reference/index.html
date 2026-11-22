@@ -15,7 +15,8 @@
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -27,6 +28,7 @@
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -79,7 +81,7 @@
 
         <dt>
 
-          <code><a href="IsoformicExperiment-accessors.html">col_data()</a></code> <code><a href="IsoformicExperiment-accessors.html">`col_data&lt;-`()</a></code> <code><a href="IsoformicExperiment-accessors.html">col_names()</a></code> <code><a href="IsoformicExperiment-accessors.html">assays()</a></code> <code><a href="IsoformicExperiment-accessors.html">assay_names()</a></code> <code><a href="IsoformicExperiment-accessors.html">assay()</a></code> <code><a href="IsoformicExperiment-accessors.html">`assay&lt;-`()</a></code> <code><a href="IsoformicExperiment-accessors.html">row_names()</a></code> <code><a href="IsoformicExperiment-accessors.html">row_data()</a></code> <code><a href="IsoformicExperiment-accessors.html">tx_annot()</a></code> <code><a href="IsoformicExperiment-accessors.html">tx_to_gene()</a></code> <code><a href="IsoformicExperiment-accessors.html">gene_assays()</a></code> <code><a href="IsoformicExperiment-accessors.html">`gene_assays&lt;-`()</a></code> <code><a href="IsoformicExperiment-accessors.html">gene_assay()</a></code> <code><a href="IsoformicExperiment-accessors.html">gene_names()</a></code> <code><a href="IsoformicExperiment-accessors.html">gene_data()</a></code> <code><a href="IsoformicExperiment-accessors.html">annot_data_transcripts()</a></code> <code><a href="IsoformicExperiment-accessors.html">annot_data_genes()</a></code> <code><a href="IsoformicExperiment-accessors.html">annot_data_exons()</a></code> <code><a href="IsoformicExperiment-accessors.html">annot_data()</a></code> <code><a href="IsoformicExperiment-accessors.html">annot_metadata()</a></code> <code><a href="IsoformicExperiment-accessors.html">exon_table()</a></code> <code><a href="IsoformicExperiment-accessors.html">clear_cache()</a></code>
+          <code><a href="IsoformicExperiment-accessors.html">col_data()</a></code> <code><a href="IsoformicExperiment-accessors.html">`col_data&lt;-`()</a></code> <code><a href="IsoformicExperiment-accessors.html">col_names()</a></code> <code><a href="IsoformicExperiment-accessors.html">tx_assays()</a></code> <code><a href="IsoformicExperiment-accessors.html">assay_names()</a></code> <code><a href="IsoformicExperiment-accessors.html">tx_assay()</a></code> <code><a href="IsoformicExperiment-accessors.html">`tx_assay&lt;-`()</a></code> <code><a href="IsoformicExperiment-accessors.html">row_names()</a></code> <code><a href="IsoformicExperiment-accessors.html">row_data()</a></code> <code><a href="IsoformicExperiment-accessors.html">tx_annot()</a></code> <code><a href="IsoformicExperiment-accessors.html">tx_to_gene()</a></code> <code><a href="IsoformicExperiment-accessors.html">gene_assays()</a></code> <code><a href="IsoformicExperiment-accessors.html">`gene_assays&lt;-`()</a></code> <code><a href="IsoformicExperiment-accessors.html">gene_assay()</a></code> <code><a href="IsoformicExperiment-accessors.html">gene_names()</a></code> <code><a href="IsoformicExperiment-accessors.html">gene_data()</a></code> <code><a href="IsoformicExperiment-accessors.html">annot_data_transcripts()</a></code> <code><a href="IsoformicExperiment-accessors.html">annot_data_genes()</a></code> <code><a href="IsoformicExperiment-accessors.html">annot_data_exons()</a></code> <code><a href="IsoformicExperiment-accessors.html">annot_data()</a></code> <code><a href="IsoformicExperiment-accessors.html">annot_metadata()</a></code> <code><a href="IsoformicExperiment-accessors.html">exon_table()</a></code> <code><a href="IsoformicExperiment-accessors.html">clear_cache()</a></code>
 
         </dt>
         <dd>Accessors for IsoformicExperiment Objects</dd>
@@ -246,14 +248,14 @@
 
         <dt>
 
-          <code><a href="isoformic-options.html">isoformic-options</a></code> <code><a href="isoformic-options.html">isoformic_options</a></code> <code><a href="isoformic-options.html">isoformic.frozen_mirrors</a></code>
+          <code><a href="isoformic-options.html">isoformic-options</a></code> <code><a href="isoformic-options.html">isoformic_options</a></code> <code><a href="isoformic-options.html">isoformic.frozen_mirrors</a></code> <code><a href="isoformic-options.html">isoformic.orf_cache</a></code> <code><a href="isoformic-options.html">isoformic.duckdb_threads</a></code> <code><a href="isoformic-options.html">isoformic.duckdb_memory_limit</a></code> <code><a href="isoformic-options.html">isoformic.workers</a></code>
 
         </dt>
         <dd>Options and environment variables used by isoformic</dd>
       </dl></div><div class="section level2">
       <h2 id="quantification-uncertainty">Quantification uncertainty<a class="anchor" aria-label="anchor" href="#quantification-uncertainty"></a></h2>
 
-      <div class="section-desc"><p>Inferential replicates, equivalence classes and run metadata from Salmon turned into uncertainty, ambiguity and confidence of isoform-level results.</p></div>
+      <div class="section-desc"><p>Inferential replicates, equivalence classes and run metadata from Salmon turned into uncertainty, ambiguity and stability of isoform-level results.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -262,7 +264,7 @@
 
       <dl><dt>
 
-          <code><a href="inferential-io.html">read_inferential_replicates()</a></code> <code><a href="inferential-io.html">equivalence_support()</a></code> <code><a href="inferential-io.html">salmon_run_qc()</a></code> <code><a href="inferential-io.html">inferential_replicates_table()</a></code> <code><a href="inferential-io.html">as_inferential_replicates()</a></code>
+          <code><a href="inferential-io.html">read_inferential_replicates()</a></code> <code><a href="inferential-io.html">equivalence_support()</a></code> <code><a href="inferential-io.html">salmon_run_qc()</a></code> <code><a href="inferential-io.html">inferential_replicates_table()</a></code> <code><a href="inferential-io.html">inferential_moments_table()</a></code> <code><a href="inferential-io.html">as_inferential_replicates()</a></code>
 
         </dt>
         <dd>Read the inferential uncertainty that Salmon writes</dd>
@@ -283,7 +285,7 @@
 
         <dt>
 
-          <code><a href="uncertainty-plots.html">confidence_palette()</a></code> <code><a href="uncertainty-plots.html">plot_de_confidence()</a></code> <code><a href="uncertainty-plots.html">plot_isoform_correlation()</a></code> <code><a href="uncertainty-plots.html">plot_inf_rv()</a></code>
+          <code><a href="uncertainty-plots.html">plot_de_confidence()</a></code> <code><a href="uncertainty-plots.html">plot_isoform_correlation()</a></code> <code><a href="uncertainty-plots.html">plot_inf_rv()</a></code>
 
         </dt>
         <dd>Plot the uncertainty of isoform-level results</dd>
@@ -537,6 +539,13 @@
 
         </dt>
         <dd>Transcript-Type Aware Gene Set Enrichment</dd>
+
+        <dt>
+
+          <code><a href="isoformic_workers.html">isoformic_workers()</a></code>
+
+        </dt>
+        <dd>Start or stop the enrichment workers</dd>
       </dl></div><div class="section level2">
       <h2 id="parquet-and-quantification-tools">Parquet and quantification tools<a class="anchor" aria-label="anchor" href="#parquet-and-quantification-tools"></a></h2>
 

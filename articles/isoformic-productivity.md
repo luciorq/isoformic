@@ -16,16 +16,16 @@ It starts from the object built in the
 library(isoformic)
 library(dplyr)
 
-extdata <- fs::path_package("isoformic", "extdata")
-annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+data_dir <- "data/preeclampsia"
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 iso <- IsoformicExperiment(
   experiment_name = "preeclampsia_placenta",
   annot_path = annot_dir,
-  assays = list(abundance = read_parquet(fs::path(extdata, "pe_abundance.parquet"))),
-  col_data = read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+  assays = list(abundance = read_parquet(fs::path(data_dir, "pe_abundance.parquet"))),
+  col_data = read_parquet(fs::path(data_dir, "pe_col_data.parquet"))
 )
-de_tx(iso) <- read_parquet(fs::path(extdata, "pe_det.parquet"))
-de_gene(iso) <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+de_tx(iso) <- read_parquet(fs::path(data_dir, "pe_det.parquet"))
+de_gene(iso) <- read_parquet(fs::path(data_dir, "pe_deg.parquet"))
 ```
 
 ## Structural features from the annotation
@@ -42,19 +42,20 @@ every isoform relative to it:
 
 feats <- transcript_features(iso, gene_name = "RBPJ")
 feats[, c("transcript_name", "orf_length", "utr3_length", "stop_to_last_junction", "nmd_predicted", "tss_group", "n_skipped_exons", "n_retained_introns")]
-#> # A tibble: 10 × 8
+#> # A tibble: 24 × 8
 #>    transcript_name orf_length utr3_length stop_to_last_junction nmd_predicted
 #>    <chr>                <int>       <dbl>                 <dbl> <lgl>        
 #>  1 RBPJ-222               283           0                  -131 FALSE        
-#>  2 RBPJ-201              1503        4121                  -316 FALSE        
-#>  3 RBPJ-206              1503           0                  -316 FALSE        
-#>  4 RBPJ-225                NA          NA                    NA FALSE        
-#>  5 RBPJ-204              1464          59                  -316 FALSE        
-#>  6 RBPJ-205              1461        4121                  -316 FALSE        
-#>  7 RBPJ-214              1398         176                  -316 FALSE        
-#>  8 RBPJ-208              1149         357                  -108 FALSE        
-#>  9 RBPJ-202              1461        4124                  -316 FALSE        
-#> 10 RBPJ-210                NA          NA                    NA FALSE        
+#>  2 RBPJ-243                NA          NA                    NA FALSE        
+#>  3 RBPJ-201              1503        4124                  -316 FALSE        
+#>  4 RBPJ-203              1398        4124                  -316 FALSE        
+#>  5 RBPJ-206              1503           0                  -316 FALSE        
+#>  6 RBPJ-264              1101         277                  -213 FALSE        
+#>  7 RBPJ-258              1152        4332                  -108 FALSE        
+#>  8 RBPJ-204              1461        4124                  -316 FALSE        
+#>  9 RBPJ-262               756         895                   384 TRUE         
+#> 10 RBPJ-253              1386        4124                  -316 FALSE        
+#> # ℹ 14 more rows
 #> # ℹ 3 more variables: tss_group <int>, n_skipped_exons <int>,
 #> #   n_retained_introns <int>
 ```
@@ -74,30 +75,36 @@ turns those features into a graded call, each with its reason:
 [`productive_fraction()`](https://luciorq.github.io/isoformic/reference/productivity.md)
 is the share of a gene’s expression carried by productive isoforms, per
 condition, with its change. A gene whose total expression is flat while
-its productive fraction falls is regulated post-transcriptionally.
+its productive fraction falls is regulated post-transcriptionally. The
+first call below uses only the annotation (`use_sequence = FALSE`).
+[`productive_fraction()`](https://luciorq.github.io/isoformic/reference/productivity.md)
+has no such argument: like
+[`transcript_productivity()`](https://luciorq.github.io/isoformic/reference/productivity.md)
+by default, it uses the transcript sequences whenever the annotation
+directory has them, as after the next section (the annotation directory
+is shared with the other articles, which may already have added them, so
+`pf` below can already come from the sequences).
 
 ``` r
 
-prod <- transcript_productivity(iso)
-#> Warning: ! 1 transcript has a sequence length differing from the exon length; its ORF is
-#>   skipped.
+prod <- transcript_productivity(iso, use_sequence = FALSE)
 table(prod$productivity)
 #> 
 #>         productive altered_productive       unproductive          noncoding 
-#>              18292              14271              24299              10123 
+#>              29573              35693              45200              12016 
 #>          uncertain 
-#>               5400
+#>               4188
 pf <- productive_fraction(iso, group = "condition")
 head(pf)
 #> # A tibble: 6 × 7
 #>   gene_id    gene_name mean_gene_expr productive_fraction productive_fraction_…¹
 #>   <chr>      <chr>              <dbl>               <dbl>                  <dbl>
-#> 1 ENSG00000… SEC16B              9.63               0.561                  0.963
-#> 2 ENSG00000… RGPD6             741.                 0.820                  0.458
-#> 3 ENSG00000… ACP7               16.2                0.337                  0.677
-#> 4 ENSG00000… RRM2              106.                 0.766                  0.439
-#> 5 ENSG00000… AHNAK2             19.0                0.560                  0.875
-#> 6 ENSG00000… RPL18            3565.                 0.658                  0.970
+#> 1 ENSG00000… HLA-DPA1          0.357                0.362                  0.965
+#> 2 ENSG00000… PRRT1B            0.302                0.583                  0    
+#> 3 ENSG00000… SLC38A4           0.150                0.5                    1    
+#> 4 ENSG00000… MST1R             0.0641               0.5                    0    
+#> 5 ENSG00000… EXOG              0.839                0.450                  1    
+#> 6 ENSG00000… HLA-DPA1          2.32                 0.312                  0    
 #> # ℹ abbreviated name: ¹​productive_fraction_preeclampsia
 #> # ℹ 2 more variables: productive_fraction_control <dbl>,
 #> #   delta_productive_fraction <dbl>
@@ -115,6 +122,10 @@ GENCODE transcript FASTA (the bundled
 [`example_isoformic()`](https://luciorq.github.io/isoformic/reference/example_isoformic.md)
 annotation already carries them).
 
+[`extract_transcript_sequences()`](https://luciorq.github.io/isoformic/reference/transcript_sequences.md)
+does nothing, and says so, when the annotation directory already has the
+sequences (`overwrite = TRUE` writes them again).
+
 With sequences,
 [`transcript_orfs()`](https://luciorq.github.io/isoformic/reference/transcript_orfs.md)
 projects the canonical start codon of each gene onto every isoform and
@@ -126,54 +137,70 @@ reports `source = "sequence"`:
 
 ``` r
 
-fasta_file <- download_reference(version = "33", file_type = "fasta")
-#> ℹ '/home/runner/.cache/R/isoformic/gencode.v33.transcripts.fa.gz' already
+fasta_file <- download_reference(version = "50", file_type = "fasta")
+#> ℹ '/home/runner/.cache/R/isoformic/gencode.v50.transcripts.fa.gz' already
 #>   exists.
 extract_transcript_sequences(annot_dir, transcript_fasta = fasta_file)
-#> ℹ '/home/runner/.cache/R/isoformic/gencode_v33_chr_patch_hapl_scaff_annotation_gff3/annot_data_sequences.parquet'
+#> ℹ '/home/runner/.cache/R/isoformic/gencode_v50_chr_patch_hapl_scaff_annotation_gff3/annot_data_sequences.parquet'
 #>   already exists; use `overwrite = TRUE` to replace it.
 has_sequences(iso)
 #> [1] TRUE
+# The calls of the previous section, now from the sequences
+table(transcript_productivity(iso)$productivity)
+#> 
+#>         productive altered_productive       unproductive          noncoding 
+#>              29555              35695              45266              12039 
+#>          uncertain 
+#>               4115
 orfs <- transcript_orfs(iso, gene_name = "RBPJ")
 orfs[, c("transcript_name", "orf_source", "orf_length", "stop_codon", "nmd_class", "n_uorf", "frame_vs_canonical", "coding_probability")]
-#> # A tibble: 10 × 8
+#> # A tibble: 24 × 8
 #>    transcript_name orf_source         orf_length stop_codon nmd_class n_uorf
 #>    <chr>           <chr>                   <dbl> <chr>      <chr>      <int>
 #>  1 RBPJ-222        annotation_partial        283 <NA>       <NA>           6
-#>  2 RBPJ-201        annotation               1503 TAA        none           2
-#>  3 RBPJ-206        annotation               1503 TAA        none           0
-#>  4 RBPJ-225        projected                1140 TGA        none           0
-#>  5 RBPJ-204        annotation               1464 TAA        none           0
-#>  6 RBPJ-205        annotation               1461 TAA        none           5
-#>  7 RBPJ-214        annotation               1398 TAA        none           0
-#>  8 RBPJ-208        annotation               1149 TGA        none           4
-#>  9 RBPJ-202        annotation               1461 TAA        none           4
-#> 10 RBPJ-210        longest                   462 TAA        none           4
+#>  2 RBPJ-243        longest                  1098 TGA        none           6
+#>  3 RBPJ-201        annotation               1503 TAA        none           2
+#>  4 RBPJ-203        annotation               1398 TAA        none           1
+#>  5 RBPJ-206        annotation               1503 TAA        none           0
+#>  6 RBPJ-264        annotation               1101 TGA        none           0
+#>  7 RBPJ-258        annotation               1152 TGA        none           0
+#>  8 RBPJ-204        annotation               1461 TAA        none           5
+#>  9 RBPJ-262        annotation                756 TGA        ptc            0
+#> 10 RBPJ-253        annotation               1386 TAA        none           0
+#> # ℹ 14 more rows
 #> # ℹ 2 more variables: frame_vs_canonical <chr>, coding_probability <dbl>
 prod <- transcript_productivity(iso, gene_name = "RBPJ")
 prod[, c("transcript_name", "productivity", "reason", "source")]
-#> # A tibble: 10 × 4
+#> # A tibble: 24 × 4
 #>    transcript_name productivity       reason                              source
 #>    <chr>           <fct>              <chr>                               <chr> 
 #>  1 RBPJ-222        uncertain          incomplete 3' end, no stop codon r… seque…
-#>  2 RBPJ-201        productive         complete ORF identical to the cano… seque…
-#>  3 RBPJ-206        productive         complete ORF identical to the cano… seque…
-#>  4 RBPJ-225        unproductive       unproductive biotype                annot…
-#>  5 RBPJ-204        altered_productive alternative start codon             seque…
-#>  6 RBPJ-205        altered_productive alternative start codon             seque…
-#>  7 RBPJ-214        altered_productive alternative start codon             seque…
-#>  8 RBPJ-208        altered_productive alternative start codon             seque…
-#>  9 RBPJ-202        altered_productive alternative start codon             seque…
-#> 10 RBPJ-210        unproductive       unproductive biotype                annot…
+#>  2 RBPJ-243        unproductive       unproductive biotype                annot…
+#>  3 RBPJ-201        altered_productive alternative start codon             seque…
+#>  4 RBPJ-203        altered_productive alternative start codon             seque…
+#>  5 RBPJ-206        altered_productive alternative start codon             seque…
+#>  6 RBPJ-264        altered_productive stop codon in sequence absent from… seque…
+#>  7 RBPJ-258        altered_productive frameshift relative to the canonic… seque…
+#>  8 RBPJ-204        altered_productive alternative start codon             seque…
+#>  9 RBPJ-262        unproductive       unproductive biotype                annot…
+#> 10 RBPJ-253        altered_productive in-frame internal change of the ORF seque…
+#> # ℹ 14 more rows
 ```
 
 `orf_source` records where the ORF came from: `annotation` (the
 annotated CDS, re-read from the sequence), `projected` (the canonical
 start codon projected onto the isoform), `annotation_partial` (a CDS
 flagged incomplete), `longest` (the longest ORF, when nothing could be
-projected) or `none`. `coding_probability` comes from a Fickett +
-hexamer logistic model trained on GENCODE coding and lncRNA transcripts;
-it decides whether a longest ORF is believable.
+projected) or `none`. `coding_probability` comes from a logistic model
+of the Fickett score, the hexamer usage, the ORF length and the share of
+the transcript the ORF covers, trained on GENCODE 50 human coding and
+lncRNA transcripts; it decides whether a longest ORF is believable. The
+ORFs of a whole annotation take minutes, so
+[`transcript_orfs()`](https://luciorq.github.io/isoformic/reference/transcript_orfs.md)
+stores the rows it computes in the annotation directory
+(`annot_data_orfs.parquet`) and later calls read them back;
+`options(isoformic.orf_cache = FALSE)` turns the table off (see
+`?isoformic-options`).
 
 [`benchmark_productivity()`](https://luciorq.github.io/isoformic/reference/productivity.md)
 measures the rules against the annotation biotypes: how many
@@ -187,11 +214,30 @@ benchmark_productivity(iso)$summary
 #> # A tibble: 5 × 4
 #>   metric                                  n value source  
 #>   <chr>                               <int> <dbl> <chr>   
-#> 1 nmd_biotype_called_unproductive      5088 0.994 sequence
-#> 2 retained_intron_called_unproductive 13074 0.551 sequence
-#> 3 protein_coding_called_productive    38376 0.848 sequence
-#> 4 canonical_called_productive         15242 0.963 sequence
-#> 5 lncrna_called_noncoding              7343 1     sequence
+#> 1 nmd_biotype_called_unproductive     26560 0.999 sequence
+#> 2 retained_intron_called_unproductive 14202 0.533 sequence
+#> 3 protein_coding_called_productive    69571 0.938 sequence
+#> 4 canonical_called_productive         15457 0.963 sequence
+#> 5 lncrna_called_noncoding             10704 1     sequence
+```
+
+[`splice_site_strength()`](https://luciorq.github.io/isoformic/reference/splice_sites.md)
+scores the donor and acceptor site of every intron with position weight
+matrices built from the introns of the canonical transcripts of the same
+annotation, and reports the weakest site of every transcript
+(`by = "intron"` gives one row per intron). A weak site is evidence to
+read next to the productivity call, not a classifier. The scores need
+the sequences around the splice sites, which come from the genome:
+[`extract_splice_sites()`](https://luciorq.github.io/isoformic/reference/splice_sites.md)
+cuts them out of a genome FASTA, and
+[`extract_transcript_sequences()`](https://luciorq.github.io/isoformic/reference/transcript_sequences.md)
+stores them as well when it is given one.
+
+``` r
+
+genome <- download_reference(version = "50", file_type = "genome_fasta", region = "primary")
+extract_splice_sites(annot_dir, genome_fasta = genome)
+splice_site_strength(iso, gene_name = "RBPJ")
 ```
 
 ## Fractions, tests and uncertainty
@@ -213,23 +259,23 @@ head(productivity_fractions(iso, group = "condition"))
 #> # A tibble: 6 × 7
 #>   gene_id gene_name productivity fraction fraction_preeclampsia fraction_control
 #>   <chr>   <chr>     <fct>           <dbl>                 <dbl>            <dbl>
-#> 1 ENSG00… TSPAN6    productive     1                     1                1     
-#> 2 ENSG00… TNMD      productive     1                     1                1     
-#> 3 ENSG00… DPM1      altered_pro…   0.915                 0.930            0.908 
-#> 4 ENSG00… DPM1      other          0.0394                0.0388           0.0396
-#> 5 ENSG00… DPM1      uncertain      0.0460                0.0316           0.0528
-#> 6 ENSG00… SCYL3     productive     0.720                 0.614            0.770 
+#> 1 ENSG00… TSPAN6    productive    0.0903                0.144            0.0650 
+#> 2 ENSG00… TSPAN6    altered_pro…  0.636                 0.722            0.596  
+#> 3 ENSG00… TSPAN6    nmd           0.273                 0.134            0.339  
+#> 4 ENSG00… TNMD      productive    1                     1                1      
+#> 5 ENSG00… DPM1      productive    0.773                 0.773            0.773  
+#> 6 ENSG00… DPM1      altered_pro…  0.00338               0.00326          0.00344
 #> # ℹ 1 more variable: delta_fraction <dbl>
 head(test_productive_fraction(iso, group = "condition", assay = "abundance"))
 #> # A tibble: 6 × 13
 #>   gene_id gene_name mean_gene_expr productive_fraction_…¹ productive_fraction_…²
 #>   <chr>   <chr>              <dbl>                  <dbl>                  <dbl>
-#> 1 ENSG00… RPL35A             1749.                  0.389                  0.853
-#> 2 ENSG00… UQCRB               856.                  0.589                  0.215
-#> 3 ENSG00… RPL36A             1448.                  0.985                  0.929
-#> 4 ENSG00… SKP1               3755.                  0.548                  0.641
-#> 5 ENSG00… H3-3A              1555.                  0.820                  0.691
-#> 6 ENSG00… SNX6               1302.                  0.880                  0.975
+#> 1 ENSG00… RASA1               299.                  0.914                  0.363
+#> 2 ENSG00… EEF1A1             3549.                  0.635                  0.880
+#> 3 ENSG00… SRSF5               405.                  0.482                  0.266
+#> 4 ENSG00… CDO1                152.                  0.516                  0.755
+#> 5 ENSG00… ALPP               1967.                  0.605                  0.787
+#> 6 ENSG00… RPS6                562.                  0.733                  0.892
 #> # ℹ abbreviated names: ¹​productive_fraction_preeclampsia,
 #> #   ²​productive_fraction_control
 #> # ℹ 8 more variables: delta_productive_fraction <dbl>, log_odds_ratio <dbl>,
@@ -239,8 +285,16 @@ head(test_productive_fraction(iso, group = "condition", assay = "abundance"))
 
 [`productive_fraction()`](https://luciorq.github.io/isoformic/reference/productivity.md)
 also accepts an expression floor (`min_expr`), Salmon inferential
-replicates (`inf_reps`, or `metadata(iso)$inf_reps`) for the uncertainty
-of each fraction, and a healthy-tissue `reference` from GTEx (below).
+replicates (`inf_reps`, or the draws stored in `iso@metadata$inf_reps`)
+for the uncertainty of each fraction, and a healthy-tissue `reference`
+from GTEx (below). The replicates are counts: they are put on the scale
+of `assay` (TPM by default) before the fractions are computed, and
+`productive_fraction_sd` is the standard deviation of each fraction over
+the replicates, averaged over the samples (see
+[`?productivity`](https://luciorq.github.io/isoformic/reference/productivity.md)).
+`levels` chooses the groups and their order (the change is the last
+level minus the first); the samples of other groups are left out, as if
+the object had been subset to the samples kept.
 
 ## Poison exons and enrichment
 
@@ -248,42 +302,46 @@ Genes ranked by the change in productive fraction can be tested for
 enrichment directly, which targets regulated unproductive splicing such
 as AS-NMD. With inferential replicates, `rank_by = "delta_z"` ranks by
 the change divided by its standard deviation over the replicates, and
-`levels` chooses the two groups when the object has more. The function
-also takes the table of
+`levels` chooses the two groups when the object has more. Like
+[`run_enrichment()`](https://luciorq.github.io/isoformic/reference/enrichment.md),
+it takes one collection of gene sets or a named list of collections,
+each tested on its own (see the [enrichment
+article](https://luciorq.github.io/isoformic/articles/isoformic-enrichment.md)).
+The function also takes the table of
 [`productive_fraction()`](https://luciorq.github.io/isoformic/reference/productivity.md),
-which avoids computing it again for each gene set collection;
-`inf_reps = FALSE` skips stored replicates when only the fractions are
-needed. Exons found only in unproductive isoforms (poison exons) are
-listed by
+which avoids computing it again for each call; `inf_reps = FALSE` skips
+stored replicates when only the fractions are needed, and the replicates
+are read only for `rank_by = "delta_z"`. Exons found only in
+unproductive isoforms (poison exons) are listed by
 [`poison_exons()`](https://luciorq.github.io/isoformic/reference/productivity.md)
 and outlined in the genomic context plot:
 
 ``` r
 
-genesets <- read_gmt(fs::path(extdata, "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"))
+genesets <- read_gmt(fs::path(data_dir, "c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"))
 set.seed(42)
 prod_enrichment <- run_productivity_enrichment(iso, genesets, group = "condition")
 head(prod_enrichment[order(prod_enrichment$padj), c("pathway", "NES", "padj")])
 #> # A tibble: 6 × 3
-#>   pathway                                                            NES    padj
-#>   <chr>                                                            <dbl>   <dbl>
-#> 1 REACTOME_OLFACTORY_SIGNALING_PATHWAY                              1.99 2.29e-4
-#> 2 REACTOME_INWARDLY_RECTIFYING_K_CHANNELS                           1.91 5.55e-4
-#> 3 REACTOME_AMINE_LIGAND_BINDING_RECEPTORS                           1.81 1.08e-2
-#> 4 REACTOME_CHEMOKINE_RECEPTORS_BIND_CHEMOKINES                     -1.71 1.50e-2
-#> 5 REACTOME_PLATELET_HOMEOSTASIS                                    -1.63 1.20e-1
-#> 6 REACTOME_FACTORS_INVOLVED_IN_MEGAKARYOCYTE_DEVELOPMENT_AND_PLAT… -1.52 1.33e-1
+#>   pathway                                                         NES  padj
+#>   <chr>                                                         <dbl> <dbl>
+#> 1 REACTOME_LAMININ_INTERACTIONS                                 -1.79 0.163
+#> 2 REACTOME_ADP_SIGNALLING_THROUGH_P2Y_PURINOCEPTOR_12           -1.60 0.396
+#> 3 REACTOME_BINDING_AND_UPTAKE_OF_LIGANDS_BY_SCAVENGER_RECEPTORS -1.56 0.396
+#> 4 REACTOME_COLLAGEN_CHAIN_TRIMERIZATION                         -1.54 0.396
+#> 5 REACTOME_DNA_DOUBLE_STRAND_BREAK_REPAIR                       -1.41 0.396
+#> 6 REACTOME_ECM_PROTEOGLYCANS                                    -1.58 0.396
 poison <- poison_exons(iso)
 head(poison)
 #> # A tibble: 6 × 9
 #>   gene_id gene_name seqid start_pos end_pos strand n_unproductive transcript_ids
 #>   <chr>   <chr>     <chr>     <int>   <int> <chr>           <int> <chr>         
-#> 1 ENSG00… C1orf112  chr1  169662007  1.70e8 +                   1 ENST000004982…
-#> 2 ENSG00… C1orf112  chr1  169683469  1.70e8 +                   1 ENST000004982…
-#> 3 ENSG00… C1orf112  chr1  169683756  1.70e8 +                   1 ENST000004982…
-#> 4 ENSG00… C1orf112  chr1  169783811  1.70e8 +                   1 ENST000004982…
-#> 5 ENSG00… C1orf112  chr1  169784877  1.70e8 +                   1 ENST000004982…
-#> 6 ENSG00… C1orf112  chr1  169850454  1.70e8 +                   1 ENST000004982…
+#> 1 ENSG00… TSPAN6    chrX  100636191  1.01e8 -                   1 ENST000011019…
+#> 2 ENSG00… SCYL3     chr1  169864700  1.70e8 -                   1 ENST000009851…
+#> 3 ENSG00… SCYL3     chr1  169893476  1.70e8 -                   1 ENST000010500…
+#> 4 ENSG00… FIRRM     chr1  169745506  1.70e8 +                   1 ENST000011173…
+#> 5 ENSG00… FIRRM     chr1  169783811  1.70e8 +                   1 ENST000011173…
+#> 6 ENSG00… FIRRM     chr1  169784877  1.70e8 +                   1 ENST000011173…
 #> # ℹ 1 more variable: exon_length <int>
 ```
 
@@ -292,7 +350,7 @@ head(poison)
 plot_genomic_context(iso, gene_name = unique(poison$gene_name)[1])
 ```
 
-![](isoformic-productivity_files/figure-html/unnamed-chunk-8-1.png)
+![](isoformic-productivity_files/figure-html/unnamed-chunk-9-1.png)
 
 ## External evidence from frozen datasets
 
@@ -383,15 +441,15 @@ sessionInfo()
 #>  [7] parallel_4.6.2      scales_1.4.0        BiocParallel_1.46.0
 #> [10] yaml_2.3.12         fastmap_1.2.0       lattice_0.23-1     
 #> [13] ggplot2_4.0.4       R6_2.6.1            labeling_0.4.3     
-#> [16] generics_0.1.4      curl_8.1.0          knitr_1.52         
-#> [19] tibble_3.3.1        DBI_1.3.0           RColorBrewer_1.1-3 
-#> [22] pillar_1.11.1       rlang_1.3.0         fastmatch_1.1-8    
-#> [25] utf8_1.2.6          xfun_0.62           fs_2.1.0           
-#> [28] S7_0.2.2            otel_0.3.0          cli_3.6.6          
-#> [31] withr_3.0.3         magrittr_2.0.5      grid_4.6.2         
-#> [34] digest_0.6.39       fgsea_1.38.0        cowplot_1.2.0      
-#> [37] lifecycle_1.0.5     vctrs_0.7.3         data.table_1.18.6.1
-#> [40] evaluate_1.0.5      glue_1.8.1          farver_2.1.2       
-#> [43] duckdb_2.0.0        codetools_0.2-20    rmarkdown_2.32     
-#> [46] tools_4.6.2         pkgconfig_2.0.3     htmltools_0.5.9
+#> [16] generics_0.1.4      knitr_1.52          tibble_3.3.1       
+#> [19] DBI_1.3.0           RColorBrewer_1.1-3  pillar_1.11.1      
+#> [22] rlang_1.3.0         fastmatch_1.1-8     utf8_1.2.6         
+#> [25] xfun_0.62           fs_2.1.0            S7_1.0.0           
+#> [28] otel_0.3.0          cli_3.6.6           withr_3.0.3        
+#> [31] magrittr_2.0.5      digest_0.6.39       grid_4.6.2         
+#> [34] fgsea_1.38.0        cowplot_1.2.0       lifecycle_1.0.5    
+#> [37] vctrs_0.7.3         data.table_1.18.6.1 evaluate_1.0.5     
+#> [40] glue_1.8.1          farver_2.1.2        duckdb_2.0.0       
+#> [43] codetools_0.2-20    rmarkdown_2.32      tools_4.6.2        
+#> [46] pkgconfig_2.0.3     htmltools_0.5.9
 ```

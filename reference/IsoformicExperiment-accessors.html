@@ -9,8 +9,9 @@ col_names(): sample IDs of the assays.
 
 
 Transcript level
-assays(), assay(x, name), assay_names(), assay&amp;lt;-: transcript
-matrices. assay() without a name returns the first assay.
+tx_assays(), tx_assay(x, name), assay_names(), tx_assay&amp;lt;-:
+transcript matrices. tx_assay() without a name returns the first
+assay.
 row_names(): transcript IDs of the assays.
 row_data(): transcript annotation (with gene columns) for the assayed
 transcripts, in assay row order.
@@ -36,7 +37,8 @@ exon_table(x, gene_name): exons of the transcripts of selected genes.
 
 Housekeeping
 clear_cache(): drop cached derived data for the object (and, with
-annotation = TRUE, the shared annotation tables).
+annotation = TRUE, the shared annotation tables); returns the object
+invisibly.
 
 "><meta property="og:description" content="S7 generics giving SummarizedExperiment-style access to the three
 levels of an IsoformicExperiment. All of them return in-memory tibbles
@@ -48,8 +50,9 @@ col_names(): sample IDs of the assays.
 
 
 Transcript level
-assays(), assay(x, name), assay_names(), assay&amp;lt;-: transcript
-matrices. assay() without a name returns the first assay.
+tx_assays(), tx_assay(x, name), assay_names(), tx_assay&amp;lt;-:
+transcript matrices. tx_assay() without a name returns the first
+assay.
 row_names(): transcript IDs of the assays.
 row_data(): transcript annotation (with gene columns) for the assayed
 transcripts, in assay row order.
@@ -75,7 +78,8 @@ exon_table(x, gene_name): exons of the transcripts of selected genes.
 
 Housekeeping
 clear_cache(): drop cached derived data for the object (and, with
-annotation = TRUE, the shared annotation tables).
+annotation = TRUE, the shared annotation tables); returns the object
+invisibly.
 
 "><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -93,7 +97,8 @@ annotation = TRUE, the shared annotation tables).
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -105,6 +110,7 @@ annotation = TRUE, the shared annotation tables).
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -147,8 +153,9 @@ or matrices; the annotation tables are read from Parquet on first use
 and cached (see the class documentation).</p>
 <p><strong>Samples</strong></p><ul><li><p><code>col_data()</code>, <code>col_data&lt;-</code>: sample metadata (<code>sample_id</code> first).</p></li>
 <li><p><code>col_names()</code>: sample IDs of the assays.</p></li>
-</ul><p><strong>Transcript level</strong></p><ul><li><p><code>assays()</code>, <code>assay(x, name)</code>, <code>assay_names()</code>, <code>assay&lt;-</code>: transcript
-matrices. <code>assay()</code> without a name returns the first assay.</p></li>
+</ul><p><strong>Transcript level</strong></p><ul><li><p><code>tx_assays()</code>, <code>tx_assay(x, name)</code>, <code>assay_names()</code>, <code>tx_assay&lt;-</code>:
+transcript matrices. <code>tx_assay()</code> without a name returns the first
+assay.</p></li>
 <li><p><code>row_names()</code>: transcript IDs of the assays.</p></li>
 <li><p><code>row_data()</code>: transcript annotation (with gene columns) for the assayed
 transcripts, in assay row order.</p></li>
@@ -165,7 +172,8 @@ the raw annotation tables.</p></li>
 <li><p><code>annot_metadata()</code>: named list describing the annotation source.</p></li>
 <li><p><code>exon_table(x, gene_name)</code>: exons of the transcripts of selected genes.</p></li>
 </ul><p><strong>Housekeeping</strong></p><ul><li><p><code>clear_cache()</code>: drop cached derived data for the object (and, with
-<code>annotation = TRUE</code>, the shared annotation tables).</p></li>
+<code>annotation = TRUE</code>, the shared annotation tables); returns the object
+invisibly.</p></li>
 </ul></div>
 
     <div class="section level2">
@@ -176,13 +184,13 @@ the raw annotation tables.</p></li>
 <span></span>
 <span><span class="fu">col_names</span><span class="op">(</span><span class="va">self</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">assays</span><span class="op">(</span><span class="va">self</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">tx_assays</span><span class="op">(</span><span class="va">self</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">assay_names</span><span class="op">(</span><span class="va">self</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">assay</span><span class="op">(</span><span class="va">self</span>, name <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">tx_assay</span><span class="op">(</span><span class="va">self</span>, name <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">assay</span><span class="op">(</span><span class="va">self</span>, <span class="va">name</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">value</span></span>
+<span><span class="fu">tx_assay</span><span class="op">(</span><span class="va">self</span>, <span class="va">name</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">value</span></span>
 <span></span>
 <span><span class="fu">row_names</span><span class="op">(</span><span class="va">self</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
@@ -226,7 +234,7 @@ the raw annotation tables.</p></li>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed on to methods.</p></dd>
+<dd><p>Not used; reserved for methods.</p></dd>
 
 
 <dt id="arg-value">value<a class="anchor" aria-label="anchor" href="#arg-value"></a></dt>
@@ -234,7 +242,9 @@ the raw annotation tables.</p></li>
 
 
 <dt id="arg-name">name<a class="anchor" aria-label="anchor" href="#arg-name"></a></dt>
-<dd><p>Name of the assay. <code>NULL</code> selects the first assay.</p></dd>
+<dd><p>Name of the assay (a position also works for <code>tx_assay()</code> and
+<code>gene_assay()</code>). <code>NULL</code> selects the first assay. Required, as a single
+string, for <code>tx_assay&lt;-</code>.</p></dd>
 
 
 <dt id="arg-with-exons">with_exons<a class="anchor" aria-label="anchor" href="#arg-with-exons"></a></dt>
@@ -274,26 +284,26 @@ the raw annotation tables.</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 15 more rows</span></span>
 <span class="r-in"><span><span class="fu">assay_names</span><span class="op">(</span><span class="va">iso</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "abundance" "counts"   </span>
-<span class="r-in"><span><span class="fu">assay</span><span class="op">(</span><span class="va">iso</span>, <span class="st">"abundance"</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></span></span>
+<span class="r-in"><span><span class="fu">tx_assay</span><span class="op">(</span><span class="va">iso</span>, <span class="st">"abundance"</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                   SRR11498039 SRR11498040 SRR11498041</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENST00000374514.8     895.871     850.783     956.829</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENST00000420982.5       0.000       0.000       0.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENST00000374502.7      20.998      16.324      17.151</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENST00001127150.1      0.0000     0.00000     0.00000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENST00001127151.1     57.7435    54.02444    22.27803</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENST00001091268.1      0.0000     0.00000     0.00000</span>
 <span class="r-in"><span><span class="fu">gene_assay</span><span class="op">(</span><span class="va">iso</span>, <span class="st">"abundance"</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    SRR11498039 SRR11498040 SRR11498041</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000005007.12    3253.512    2563.848    2656.175</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000005206.17    1727.018    1515.008    1807.224</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000007384.15    1970.727    1612.095    2188.516</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000070404.12   2569.6838   299.07857  1417.10732</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000070831.20    122.7003    99.10083    80.20022</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENSG00000092199.21    266.2589   326.93814   276.23063</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">row_data</span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 19</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   transcript_id     transcript_name transcript_type  gene_id gene_name gene_type</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENST00000374514.8 LYPLA2-205      protein_coding   ENSG00… LYPLA2    protein_…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENST00000420982.5 LYPLA2-206      protein_coding   ENSG00… LYPLA2    protein_…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00000374502.7 LYPLA2-202      protein_coding   ENSG00… LYPLA2    protein_…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENST00000374501.1 LYPLA2-201      protein_coding   ENSG00… LYPLA2    protein_…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENST00000436063.7 DNTTIP2-202     protein_coding   ENSG00… DNTTIP2   protein_…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENST00000496535.6 DNTTIP2-205     processed_trans… ENSG00… DNTTIP2   protein_…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   transcript_id     transcript_name transcript_type gene_id  gene_name gene_type</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENST00001127150.1 CDC42-254       protein_coding  ENSG000… CDC42     protein_…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENST00001127151.1 CDC42-255       protein_coding  ENSG000… CDC42     protein_…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00001091268.1 CDC42-249       protein_coding  ENSG000… CDC42     protein_…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENST00001127149.1 CDC42-253       protein_coding  ENSG000… CDC42     protein_…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENST00000695857.2 CDC42-218       protein_coding  ENSG000… CDC42     protein_…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENST00000695860.2 CDC42-221       protein_coding  ENSG000… CDC42     protein_…</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 13 more variables: source_gene_id &lt;chr&gt;, source_transcript_id &lt;chr&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   tags &lt;chr&gt;, coding_status &lt;chr&gt;, transcript_support_level &lt;chr&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   tie_score &lt;dbl&gt;, cds_start &lt;int&gt;, cds_end &lt;int&gt;, cds_length &lt;int&gt;,</span></span>
@@ -302,12 +312,12 @@ the raw annotation tables.</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 14</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   gene_id   gene_name gene_type source_gene_id gene_class gene_category dhs_type</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG0000… UPF1      protein_… <span style="color: #BB0000;">NA</span>             <span style="color: #BB0000;">NA</span>         <span style="color: #BB0000;">NA</span>            <span style="color: #BB0000;">NA</span>      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG0000… SPPL2B    protein_… <span style="color: #BB0000;">NA</span>             <span style="color: #BB0000;">NA</span>         <span style="color: #BB0000;">NA</span>            <span style="color: #BB0000;">NA</span>      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENSG0000… RHBDF1    protein_… <span style="color: #BB0000;">NA</span>             <span style="color: #BB0000;">NA</span>         <span style="color: #BB0000;">NA</span>            <span style="color: #BB0000;">NA</span>      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENSG0000… PIGQ      protein_… <span style="color: #BB0000;">NA</span>             <span style="color: #BB0000;">NA</span>         <span style="color: #BB0000;">NA</span>            <span style="color: #BB0000;">NA</span>      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENSG0000… MED24     protein_… <span style="color: #BB0000;">NA</span>             <span style="color: #BB0000;">NA</span>         <span style="color: #BB0000;">NA</span>            <span style="color: #BB0000;">NA</span>      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENSG0000… REV3L     protein_… <span style="color: #BB0000;">NA</span>             <span style="color: #BB0000;">NA</span>         <span style="color: #BB0000;">NA</span>            <span style="color: #BB0000;">NA</span>      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG0000… FSTL3     protein_… <span style="color: #BB0000;">NA</span>             <span style="color: #BB0000;">NA</span>         <span style="color: #BB0000;">NA</span>            <span style="color: #BB0000;">NA</span>      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG0000… CDC42     protein_… <span style="color: #BB0000;">NA</span>             <span style="color: #BB0000;">NA</span>         <span style="color: #BB0000;">NA</span>            <span style="color: #BB0000;">NA</span>      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENSG0000… HNRNPC    protein_… <span style="color: #BB0000;">NA</span>             <span style="color: #BB0000;">NA</span>         <span style="color: #BB0000;">NA</span>            <span style="color: #BB0000;">NA</span>      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENSG0000… PSMA3     protein_… <span style="color: #BB0000;">NA</span>             <span style="color: #BB0000;">NA</span>         <span style="color: #BB0000;">NA</span>            <span style="color: #BB0000;">NA</span>      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENSG0000… MTG2      protein_… <span style="color: #BB0000;">NA</span>             <span style="color: #BB0000;">NA</span>         <span style="color: #BB0000;">NA</span>            <span style="color: #BB0000;">NA</span>      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENSG0000… FLT1      protein_… <span style="color: #BB0000;">NA</span>             <span style="color: #BB0000;">NA</span>         <span style="color: #BB0000;">NA</span>            <span style="color: #BB0000;">NA</span>      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 7 more variables: coding_status &lt;chr&gt;, cumulative_support &lt;chr&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   haplotype &lt;chr&gt;, seqid &lt;chr&gt;, start_pos &lt;int&gt;, end_pos &lt;int&gt;, strand &lt;chr&gt;</span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">exon_table</span><span class="op">(</span><span class="va">iso</span>, <span class="st">"RBPJ"</span><span class="op">)</span><span class="op">)</span></span></span>

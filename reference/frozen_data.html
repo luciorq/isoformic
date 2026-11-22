@@ -69,7 +69,8 @@ file and a README stating versions and sources."><meta property="og:image" conte
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -81,6 +82,7 @@ file and a README stating versions and sources."><meta property="og:image" conte
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -209,8 +211,10 @@ published with the package, <code>NA</code> when there is none.</p></dd>
 
 <dt id="arg-verify">verify<a class="anchor" aria-label="anchor" href="#arg-verify"></a></dt>
 <dd><p>Logical, check the MD5 of the file against the registry
-(default <code>TRUE</code>; a mismatch is a warning, since a rebuilt file from a
-newer source is still usable).</p></dd>
+(default <code>TRUE</code>). A downloaded file that does not match is discarded
+and the next mirror is tried; for a cached or rebuilt file a mismatch
+is a warning, since a file rebuilt from a newer source is still
+usable.</p></dd>
 
 
 <dt id="arg-mirrors">mirrors<a class="anchor" aria-label="anchor" href="#arg-mirrors"></a></dt>

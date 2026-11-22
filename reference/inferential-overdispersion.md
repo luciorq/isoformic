@@ -4,28 +4,51 @@ Reads that map to several isoforms make the counts of an isoform more
 variable than a Poisson count, by an amount that differs between
 transcripts. Baldoni et al. (2024) estimate this overdispersion for
 every transcript from the Salmon replicates and divide it out of the
-counts, so that tests built for counts (`edgeR`, `limma`, `DESeq2`) keep
+counts, with the aim that tests built for counts (`edgeR`, `limma`) keep
 their error rate without a model of their own for the read ambiguity.
+The scaled counts are not integers. In a genome-wide null of control
+placentas (see the article "Is quantification uncertainty worth
+checking?") dividing the counts removed the small-sample concentration
+of nominal false calls in uncertain isoforms (3 and 5 samples per
+group), but it did not lower the false discoveries at q \< 0.05 (on
+average 1.21 against 0.20 per 3 v 3 split, and 0.80 against 0.095 per 7
+v 7 split, most of them from one split). With known changes added at 7
+samples per group it found fewer of them (21,349 against 31,886 true
+calls), so it costs power.
 
 - `inferential_overdispersion()` computes the overdispersion of every
-  transcript from the replicates stored in the object, as
+  transcript from the replicates stored in the object, with the
+  estimator of
   [`edgeR::catchSalmon()`](https://rdrr.io/pkg/edgeR/man/catchSalmon.html)
-  does: the Pearson statistic of a quasi-Poisson fit to the replicates
-  of each sample, pooled over the samples, moderated towards the median
-  with a prior of `prior_df` degrees of freedom and floored at one. The
-  estimates use the transcripts whose replicates are in the object
-  (those with a mean count of at least `min_count` in
-  [`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)),
-  so the prior differs from the one `catchSalmon()` computes over every
-  transcript of the index; transcripts without replicates get the prior.
+  (checked against edgeR 4.8): the Pearson statistic of a quasi-Poisson
+  fit to the replicates of each sample, pooled over the samples where
+  the transcript has a non-zero mean, moderated towards the median with
+  a prior of `prior_df` degrees of freedom and floored at one. The prior
+  comes from every transcript of the index, as in `catchSalmon()`, also
+  when
+  [`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
+  keeps only the replicates of the transcripts with a mean count of at
+  least `min_count`:
+  [`read_inferential_replicates()`](https://luciorq.github.io/isoformic/reference/inferential-io.md)
+  records the mean and variance of the replicates of every transcript,
+  and the overdispersion of a transcript without stored replicates is
+  estimated from them as well. Replicates without these moments (for
+  example rebuilt with
+  [`as_inferential_replicates()`](https://luciorq.github.io/isoformic/reference/inferential-io.md)
+  without its `moments` argument) give estimates from the stored
+  transcripts only; transcripts without replicates then get the prior.
 
 - `scale_counts()` divides an assay by the overdispersion and stores the
-  result as a new assay, ready for a count-based test.
+  result as a new assay, ready for a count-based test (the counts
+  divided by the `Overdispersion` column of `catchSalmon()` in Baldoni
+  et al. 2024).
+  [`test_usage()`](https://luciorq.github.io/isoformic/reference/test_usage.md)
+  divides the counts in the same way when the object holds replicates.
 
-The overdispersion complements the confidence classes of
+The overdispersion complements the stability columns of
 [`de_confidence()`](https://luciorq.github.io/isoformic/reference/uncertainty.md):
-it changes the test, while the classes describe how far each call can be
-trusted.
+it changes the test, while those columns describe the quantification
+behind each call.
 
 ## Usage
 
@@ -50,7 +73,7 @@ scale_counts(self, assay = "counts", name = paste0(assay, "_scaled"), ...)
 
 - ...:
 
-  Unused.
+  Not used; reserved for methods.
 
 - assay:
 
@@ -63,9 +86,10 @@ scale_counts(self, assay = "counts", name = paste0(assay, "_scaled"), ...)
 ## Value
 
 `inferential_overdispersion()`: a tibble with `transcript_id`,
-`overdispersion` and `df` (degrees of freedom of the estimate), with the
-prior in the `prior` attribute. `scale_counts()`: the object with the
-scaled assay added.
+`overdispersion` and `df` (degrees of freedom of the estimate, the
+number of samples where the transcript has a non-zero mean times the
+number of replicates minus one), with the prior in the `prior`
+attribute. `scale_counts()`: the object with the scaled assay added.
 
 ## References
 
@@ -77,7 +101,8 @@ efficient assessment of differential transcript expression with edgeR.
 ## See also
 
 [`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md),
-[`de_confidence()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
+[`de_confidence()`](https://luciorq.github.io/isoformic/reference/uncertainty.md),
+[`test_usage()`](https://luciorq.github.io/isoformic/reference/test_usage.md)
 
 ## Examples
 
@@ -90,7 +115,7 @@ iso <- read_salmon(
   annot_path = file.path(extdata, "mini_annotation"),
   col_data = data.frame(
     sample_id = names(quant_dirs),
-    condition = rep(c("control", "treatment"), each = 3)
+    condition = rep(c("preeclampsia", "control"), each = 3)
   )
 )
 iso@metadata$inf_reps <- as_inferential_replicates(read_parquet(
@@ -103,10 +128,10 @@ head(inferential_overdispersion(iso))
 #> # A tibble: 6 × 3
 #>   transcript_id      overdispersion    df
 #>   <chr>                       <dbl> <dbl>
-#> 1 ENST00000367468.10           2.96   114
-#> 2 ENST00000681605.1            5.30   114
-#> 3 ENST00000680451.1            3.93   114
-#> 4 ENST00000490885.6            1      114
-#> 5 ENST00000559627.1            1.58   114
-#> 6 ENST00000466691.1            1      114
+#> 1 ENST00000367468.10           4.05   114
+#> 2 ENST00000681605.1            3.30   114
+#> 3 ENST00000680451.1            3.94   114
+#> 4 ENST00000490885.6            3.00   114
+#> 5 ENST00000559627.1            2.42   114
+#> 6 ENST00000466691.1            1       95
 ```

@@ -36,6 +36,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -49,6 +50,7 @@
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -103,7 +105,7 @@
     <p>This article applies <code>isoformic</code> to a complete public dataset. It contains bulk RNA-seq of the anterodorsal bed nucleus of the stria terminalis (adBNST) of male mice. The mice had six weeks of chronic variable mild stress and are compared with unstressed controls [<span class="citation" data-cites="degroat2024">Degroat et al. (<a href="#ref-degroat2024" role="doc-biblioref">2024</a>)</span>; BioProject <a href="https://www.ncbi.nlm.nih.gov/bioproject/PRJNA984605" class="external-link">PRJNA984605</a>]. It shows a common outcome of transcript-level analysis. Stress leaves the expression of genes almost unchanged, but changes which of their isoforms are expressed.</p>
 <section class="level2"><h2 id="the-data">The data<a class="anchor" aria-label="anchor" href="#the-data"></a>
 </h2>
-<p>The 19 male samples (10 control, 9 stressed) were quantified with Salmon <span class="citation" data-cites="salmon">(<a href="#ref-salmon" role="doc-biblioref">Patro et al. 2017</a>)</span> against the GENCODE vM38 transcripts <span class="citation" data-cites="gencode">(<a href="#ref-gencode" role="doc-biblioref">Frankish et al. 2018</a>)</span>. The GRCm39 genome served as decoy, and each sample has 30 Gibbs draws. Transcripts were tested with <code>swish</code> <span class="citation" data-cites="swish">(<a href="#ref-swish" role="doc-biblioref">Zhu et al. 2019</a>)</span> on the inferential replicates. Genes were tested with <code>DESeq2</code> on the summed counts. The scripts that download the reads from SRA and run every step are in <code>data-raw/case_studies/</code> of the package repository.</p>
+<p>The 19 male samples (10 control, 9 stressed) were quantified with Salmon <span class="citation" data-cites="salmon">(<a href="#ref-salmon" role="doc-biblioref">Patro et al. 2017</a>)</span> against the GENCODE vM39 transcripts <span class="citation" data-cites="gencode">(<a href="#ref-gencode" role="doc-biblioref">Frankish et al. 2018</a>)</span>. The GRCm39 genome served as decoy, and each sample has 30 Gibbs draws. Transcripts were tested with <code>swish</code> <span class="citation" data-cites="swish">(<a href="#ref-swish" role="doc-biblioref">Zhu et al. 2019</a>)</span> on the inferential replicates. Genes were tested with <code>DESeq2</code> on the summed counts. The scripts that download the reads from SRA and run every step are in <code>data-raw/case_studies/</code> of the package repository.</p>
 <p>The result is an <code>IsoformicExperiment</code> saved with <code><a href="../reference/isoformic-io.html">write_isoformic()</a></code>. It keeps the complete differential expression tables (every tested transcript and gene). The expression assays and exon structures cover only a panel of 47 genes, so that the object fits in the repository. It is not installed with the package.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="downlit sourceCode r">
@@ -115,13 +117,13 @@
 <span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/isoformic-io.html">read_isoformic</a></span><span class="op">(</span><span class="va">data_dir</span><span class="op">)</span></span>
 <span><span class="va">iso</span></span>
 <span><span class="co">#&gt; &lt;IsoformicExperiment&gt; mouse_bnst</span></span>
-<span><span class="co">#&gt;   annotation : gencode_vm38_chr_patch_hapl_scaff_annotation_gff3_case_study_subset (20,720 genes, 135,433 transcripts, 4,443 exons)</span></span>
+<span><span class="co">#&gt;   annotation : gencode_vm39_chr_patch_hapl_scaff_annotation_gff3_case_study_subset (20,736 genes, 330,137 transcripts, 17,003 exons)</span></span>
 <span><span class="co">#&gt;   samples    : 19 [condition, batch, replicate, run]</span></span>
-<span><span class="co">#&gt;   transcripts: 538 assayed from 47 genes</span></span>
+<span><span class="co">#&gt;   transcripts: 1,346 assayed from 47 genes</span></span>
 <span><span class="co">#&gt;   assays     : abundance, counts</span></span>
 <span><span class="co">#&gt;   gene assays: derived from transcript assays on demand</span></span>
-<span><span class="co">#&gt;   DE results : det (58,661 transcripts), deg (20,720 genes)</span></span>
-<span><span class="co">#&gt;   on disk    : /home/runner/work/isoformic/isoformic/vignettes/articles/data/mouse_bnst</span></span>
+<span><span class="co">#&gt;   DE results : det (103,288 transcripts), deg (20,736 genes)</span></span>
+<span><span class="co">#&gt;   on disk    : data/mouse_bnst</span></span>
 <span><span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">col_data</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span></span>
 <span><span class="co">#&gt; # A tibble: 19 × 5</span></span>
 <span><span class="co">#&gt;    sample_id  condition batch replicate run        </span></span>
@@ -148,7 +150,7 @@
 </div>
 </section><section class="level2"><h2 id="checking-the-samples-first">Checking the samples first<a class="anchor" aria-label="anchor" href="#checking-the-samples-first"></a>
 </h2>
-<p>A principal component analysis of the gene-level counts shows that the first component does not separate the conditions. It separates two groups of samples, one per range of SRA run accessions. The groups are not annotated in GEO but are most likely two processing batches. They are balanced between conditions (4 + 4 and 6 + 5 samples), so the tests can adjust for them. <code>swish</code> stratifies its permutations by batch and <code>DESeq2</code> uses the design <code>~ batch + condition</code>. Without the adjustment, no transcript and no gene reaches a false discovery rate of 10%.</p>
+<p>A principal component analysis of the gene-level counts shows that the first component does not separate the conditions. It separates two groups of samples, one per range of SRA run accessions. The groups are not annotated in GEO but are most likely two processing batches. They are balanced between conditions (4 + 4 and 6 + 5 samples), so the tests can adjust for them. <code>swish</code> stratifies its permutations by batch and <code>DESeq2</code> uses the design <code>~ batch + condition</code>. Without the adjustment, no transcript and no gene reaches a false discovery rate of 5%, and only 4 transcripts and no gene reach 10%.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pca</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">data_dir</span>, <span class="st">"sample_pca.parquet"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -167,7 +169,7 @@
 </div>
 </div>
 </div>
-<p>The sample far below the others on the second component (<code>control_3</code>) has the smallest library (18.6 million read pairs) and the lowest mapping rate (71%). It is kept in the analysis. It is the first sample to check when a result depends on a single animal.</p>
+<p>The sample far below the others on the second component (<code>control_3</code>) has the smallest library (18.6 million read pairs) and the lowest mapping rate (72%). It is kept in the analysis. It is the first sample to check when a result depends on a single animal.</p>
 </section><section class="level2"><h2 id="genes-barely-change-isoforms-do">Genes barely change, isoforms do<a class="anchor" aria-label="anchor" href="#genes-barely-change-isoforms-do"></a>
 </h2>
 <div class="cell">
@@ -187,14 +189,14 @@
 <span>  transcripts_fdr_5 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">det</span><span class="op">$</span><span class="va">qvalue</span> <span class="op">&lt;</span> <span class="fl">0.05</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt;       genes_tested        genes_fdr_5 transcripts_tested  transcripts_fdr_5 </span></span>
-<span><span class="co">#&gt;              20720                  4              58661                137</span></span></code></pre></div>
+<span><span class="co">#&gt;              20736                  4             103288                126</span></span></code></pre></div>
 </div>
-<p>At a false discovery rate of 5%, <code>DESeq2</code> finds 4 genes and <code>swish</code> 137 transcripts. Many of the transcript changes are moderate. This article therefore lowers the fold-change cutoff of the significance calls from the default of 1 to 0.5 (a 1.4-fold change):</p>
+<p>At a false discovery rate of 5%, <code>DESeq2</code> finds 4 genes and <code>swish</code> 126 transcripts. Many of the transcript changes are moderate: 74 of the 126 transcripts change less than 2-fold. This article therefore lowers the fold-change cutoff of the significance calls from the default of 1 to 0.5 (a 1.4-fold change):</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/dea.html">de_cutoffs</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>log2fc <span class="op">=</span> <span class="fl">0.5</span>, pvalue <span class="op">=</span> <span class="fl">0.05</span>, use_fdr <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
-<p>The significant transcripts are not only protein coding isoforms. About a third are retained intron, nonsense-mediated decay, other non-coding isoforms of protein coding genes or lncRNAs.</p>
+<p>The significant transcripts are not only protein coding isoforms. More than half of them (69 of 126) are nonsense-mediated decay, retained intron or other non-coding isoforms of protein coding genes, lncRNAs or a TEC transcript.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">det</span> <span class="op">|&gt;</span></span>
@@ -204,45 +206,45 @@
 <span><span class="co">#&gt; # A tibble: 6 × 2</span></span>
 <span><span class="co">#&gt;   transcript_type                    n</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;                          &lt;int&gt;</span></span>
-<span><span class="co">#&gt; 1 protein_coding                    89</span></span>
-<span><span class="co">#&gt; 2 retained_intron                   24</span></span>
-<span><span class="co">#&gt; 3 protein_coding_CDS_not_defined    11</span></span>
-<span><span class="co">#&gt; 4 nonsense_mediated_decay            7</span></span>
+<span><span class="co">#&gt; 1 protein_coding                    57</span></span>
+<span><span class="co">#&gt; 2 nonsense_mediated_decay           28</span></span>
+<span><span class="co">#&gt; 3 retained_intron                   24</span></span>
+<span><span class="co">#&gt; 4 protein_coding_CDS_not_defined    12</span></span>
 <span><span class="co">#&gt; 5 lncRNA                             4</span></span>
-<span><span class="co">#&gt; 6 TEC                                2</span></span></code></pre></div>
+<span><span class="co">#&gt; 6 TEC                                1</span></span></code></pre></div>
 </div>
-<p><code><a href="../reference/diversity.html">isoform_switches()</a></code> relates the two levels. Almost every gene with significant isoforms has no significant change of its total expression (<code>det_not_deg</code>). A gene-level analysis would miss all of them.</p>
+<p><code><a href="../reference/diversity.html">isoform_switches()</a></code> relates the two levels. With these cutoffs, 107 genes have one significant isoform each, and none of them has a significant change of its total expression (<code>det_not_deg</code>). A gene-level analysis would miss all of them.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">switches</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/diversity.html">isoform_switches</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">switches</span><span class="op">$</span><span class="va">switch_type</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;         consistent        det_not_deg opposite_direction </span></span>
-<span><span class="co">#&gt;                  1                 88                  1</span></span>
+<span><span class="co">#&gt; det_not_deg </span></span>
+<span><span class="co">#&gt;         107</span></span>
 <span><span class="va">switches</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">gene_name</span>, <span class="va">n_det_up</span>, <span class="va">n_det_down</span>, <span class="va">det_sig_types</span>, <span class="va">gene_log2FC</span>, <span class="va">switch_type</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span></span>
 <span><span class="co">#&gt; # A tibble: 10 × 6</span></span>
 <span><span class="co">#&gt;    gene_name n_det_up n_det_down det_sig_types           gene_log2FC switch_type</span></span>
 <span><span class="co">#&gt;    &lt;chr&gt;        &lt;int&gt;      &lt;int&gt; &lt;chr&gt;                         &lt;dbl&gt; &lt;chr&gt;      </span></span>
-<span><span class="co">#&gt;  1 Taf15            1          1 protein_coding;protein…    -0.0193  opposite_d…</span></span>
-<span><span class="co">#&gt;  2 Atrx             2          0 retained_intron             0.0334  det_not_deg</span></span>
-<span><span class="co">#&gt;  3 Rbm39            2          0 retained_intron             0.0315  det_not_deg</span></span>
-<span><span class="co">#&gt;  4 Tspoap1          0          1 protein_coding              0.00976 det_not_deg</span></span>
-<span><span class="co">#&gt;  5 Sympk            0          1 protein_coding_CDS_not…    -0.0210  det_not_deg</span></span>
-<span><span class="co">#&gt;  6 Atp5f1b          0          1 protein_coding_CDS_not…    -0.0379  det_not_deg</span></span>
-<span><span class="co">#&gt;  7 Ptk2b            0          1 protein_coding             -0.0238  det_not_deg</span></span>
-<span><span class="co">#&gt;  8 Atp2a2           1          0 protein_coding              0.0266  det_not_deg</span></span>
-<span><span class="co">#&gt;  9 Prrc2c           1          0 protein_coding              0.240   det_not_deg</span></span>
-<span><span class="co">#&gt; 10 Sez6             0          1 nonsense_mediated_decay     0.00178 det_not_deg</span></span></code></pre></div>
+<span><span class="co">#&gt;  1 Gng7             0          1 protein_coding             -0.107   det_not_deg</span></span>
+<span><span class="co">#&gt;  2 Psap             0          1 protein_coding             -0.00322 det_not_deg</span></span>
+<span><span class="co">#&gt;  3 Hsp90ab1         0          1 nonsense_mediated_decay    -0.0143  det_not_deg</span></span>
+<span><span class="co">#&gt;  4 Slc6a6           0          1 nonsense_mediated_decay     0.0966  det_not_deg</span></span>
+<span><span class="co">#&gt;  5 Sdha             0          1 nonsense_mediated_decay     0.0233  det_not_deg</span></span>
+<span><span class="co">#&gt;  6 Celf1            1          0 protein_coding              0.0135  det_not_deg</span></span>
+<span><span class="co">#&gt;  7 Kif1b            1          0 retained_intron             0.126   det_not_deg</span></span>
+<span><span class="co">#&gt;  8 Glyr1            1          0 nonsense_mediated_decay     0.00392 det_not_deg</span></span>
+<span><span class="co">#&gt;  9 Eno2             0          1 retained_intron            -0.0311  det_not_deg</span></span>
+<span><span class="co">#&gt; 10 Epn1             0          1 protein_coding             -0.0245  det_not_deg</span></span></code></pre></div>
 </div>
-</section><section class="level2"><h2 id="an-isoform-switch-in-taf15">An isoform switch in <em>Taf15</em>
-<a class="anchor" aria-label="anchor" href="#an-isoform-switch-in-taf15"></a>
+</section><section class="level2"><h2 id="a-change-of-isoforms-in-celf1">A change of isoforms in <em>Celf1</em>
+<a class="anchor" aria-label="anchor" href="#a-change-of-isoforms-in-celf1"></a>
 </h2>
-<p><em>Taf15</em> encodes an RNA-binding protein of the FET family. Its total expression does not change. Its protein coding isoform <code>Taf15-201</code> goes down while <code>Taf15-204</code>, a transcript without a coding sequence, goes up. This is a switch from a productive to an unproductive isoform.</p>
+<p><em>Celf1</em> encodes an RNA-binding protein of the CELF family that regulates alternative splicing. Its total expression does not change. Its protein coding isoform <code>Celf1-203</code> goes up (log2 fold change 2.8), from 1.2 to 13 transcripts per million on average. <code>Celf1-203</code> encodes the same protein as <code>Celf1-205</code>, one of the two most expressed isoforms in the controls, but starts at a first exon far upstream and has a longer last exon. <code>Celf1-205</code> goes down from 16 to 11 transcripts per million, which is not significant on its own (q = 0.15).</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_log2fc.html">plot_log2fc</a></span><span class="op">(</span><span class="va">iso</span>, feature <span class="op">=</span> <span class="st">"Taf15"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_log2fc.html">plot_log2fc</a></span><span class="op">(</span><span class="va">iso</span>, feature <span class="op">=</span> <span class="st">"Celf1"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
 <figure><p><img src="isoformic-case-mouse-stress_files/figure-html/unnamed-chunk-7-1.png" width="768"></p>
@@ -250,10 +252,10 @@
 </div>
 </div>
 </div>
-<p>The expression profile shows the same switch in transcripts per million:</p>
+<p>The expression profile shows the change in transcripts per million:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/profiles.html">plot_tx_expr</a></span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"Taf15"</span>, group <span class="op">=</span> <span class="st">"condition"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/profiles.html">plot_tx_expr</a></span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"Celf1"</span>, group <span class="op">=</span> <span class="st">"condition"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
 <figure><p><img src="isoformic-case-mouse-stress_files/figure-html/unnamed-chunk-8-1.png" width="768"></p>
@@ -264,7 +266,7 @@
 <p>and the genomic context shows the structures of the isoforms, with the differentially expressed ones outlined:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_genomic_context.html">plot_genomic_context</a></span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"Taf15"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_genomic_context.html">plot_genomic_context</a></span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"Celf1"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
 <figure><p><img src="isoformic-case-mouse-stress_files/figure-html/unnamed-chunk-9-1.png" width="768"></p>
@@ -274,10 +276,10 @@
 </div>
 </section><section class="level2"><h2 id="more-genes-with-isoform-level-changes">More genes with isoform-level changes<a class="anchor" aria-label="anchor" href="#more-genes-with-isoform-level-changes"></a>
 </h2>
-<p>The other panel genes show the same pattern: one or two significant isoforms in genes whose total does not move.</p>
+<p>Most other panel genes (34 of the other 46) show the same pattern: a single significant isoform in a gene whose total expression does not change significantly.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_log2fc.html">plot_log2fc</a></span><span class="op">(</span><span class="va">iso</span>, feature <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Clstn2"</span>, <span class="st">"Sympk"</span>, <span class="st">"Neu2"</span>, <span class="st">"Prrc2c"</span><span class="op">)</span>, ncol <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_log2fc.html">plot_log2fc</a></span><span class="op">(</span><span class="va">iso</span>, feature <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Clstn2"</span>, <span class="st">"Gng7"</span>, <span class="st">"Npas2"</span>, <span class="st">"Ptk2b"</span><span class="op">)</span>, ncol <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
 <figure><p><img src="isoformic-case-mouse-stress_files/figure-html/unnamed-chunk-10-1.png" width="960"></p>
@@ -295,11 +297,11 @@
 <span><span class="co">#&gt; # A tibble: 5 × 2</span></span>
 <span><span class="co">#&gt;   gene_name best_qvalue</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;           &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt; 1 Meg3           0.0932</span></span>
-<span><span class="co">#&gt; 2 Trip12         0.0516</span></span>
-<span><span class="co">#&gt; 3 Sgk1           0.321 </span></span>
-<span><span class="co">#&gt; 4 Map4           0.111 </span></span>
-<span><span class="co">#&gt; 5 Fkbp5          0.313</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 Map4           0.162 </span></span>
+<span><span class="co">#&gt; 2 Meg3           0.0976</span></span>
+<span><span class="co">#&gt; 3 Fkbp5          0.660 </span></span>
+<span><span class="co">#&gt; 4 Trip12         0.247 </span></span>
+<span><span class="co">#&gt; 5 Sgk1           0.286</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h2 id="enrichment-by-transcript-type">Enrichment by transcript type<a class="anchor" aria-label="anchor" href="#enrichment-by-transcript-type"></a>
 </h2>
@@ -312,11 +314,11 @@
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">enrichment</span><span class="op">$</span><span class="va">experiment</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;        nonsense_mediated_decay                 protein_coding </span></span>
-<span><span class="co">#&gt;                             27                            132 </span></span>
+<span><span class="co">#&gt;                             52                            119 </span></span>
 <span><span class="co">#&gt; protein_coding_CDS_not_defined                retained_intron </span></span>
-<span><span class="co">#&gt;                             34                             77 </span></span>
+<span><span class="co">#&gt;                             20                             58 </span></span>
 <span><span class="co">#&gt;                   unproductive </span></span>
-<span><span class="co">#&gt;                            109</span></span></code></pre></div>
+<span><span class="co">#&gt;                             68</span></span></code></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb13"><pre class="downlit sourceCode r">
@@ -333,7 +335,7 @@
 </div>
 </div>
 </div>
-<p>Translation, ribosome biogenesis and respiration pathways go down in the protein coding isoforms of the stressed animals. Synaptic pathways go up (protein interactions at synapses, neurexins and neuroligins, transmission across chemical synapses). The translation pathways go down in the unproductive isoforms of the same genes as well. The ribosomal protein genes also dominate the <em>nonsense-mediated decay</em> pathways of Reactome, which is why those appear as well. That pathway name describes the genes, not the transcript type.</p>
+<p>Translation and mitochondrial pathways go down in the protein coding isoforms of the stressed animals (translation and eukaryotic translation initiation, rRNA processing, mitochondrial translation, aerobic respiration and respiratory electron transport, and complex IV assembly; false discovery rate below 5%). Complex I biogenesis, in the figure, goes down too, but not at a 5% false discovery rate. Few pathways go up in the protein coding isoforms, and none of them is synaptic. The ribosomal protein genes dominate the <em>nonsense-mediated decay</em> pathways of Reactome (75 of the 92 leading-edge genes in the protein coding isoforms), which is why those pathways are the most significant ones. That pathway name describes the genes, not the transcript type. In the unproductive isoforms the nonsense-mediated decay pathways and mitochondrial translation go down as well, while apoptosis and programmed cell death go up.</p>
 </section><section class="level2"><h2 id="citing-isoformic">Citing isoformic<a class="anchor" aria-label="anchor" href="#citing-isoformic"></a>
 </h2>
 <p>If you use <code>isoformic</code> in publications, please cite <span class="citation" data-cites="isoformic">Mamede et al. (<a href="#ref-isoformic" role="doc-biblioref">2025</a>)</span>. <code>citation("isoformic")</code> prints the reference.</p>
@@ -374,7 +376,7 @@
 <span><span class="co">#&gt; [16] knitr_1.52          ggrepel_0.9.8       tibble_3.3.1       </span></span>
 <span><span class="co">#&gt; [19] DBI_1.3.0           pillar_1.11.1       RColorBrewer_1.1-3 </span></span>
 <span><span class="co">#&gt; [22] rlang_1.3.0         fastmatch_1.1-8     utf8_1.2.6         </span></span>
-<span><span class="co">#&gt; [25] xfun_0.62           fs_2.1.0            S7_0.2.2           </span></span>
+<span><span class="co">#&gt; [25] xfun_0.62           fs_2.1.0            S7_1.0.0           </span></span>
 <span><span class="co">#&gt; [28] otel_0.3.0          cli_3.6.6           withr_3.0.3        </span></span>
 <span><span class="co">#&gt; [31] magrittr_2.0.5      digest_0.6.39       grid_4.6.2         </span></span>
 <span><span class="co">#&gt; [34] fgsea_1.38.0        cowplot_1.2.0       lifecycle_1.0.5    </span></span>

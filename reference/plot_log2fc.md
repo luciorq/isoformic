@@ -10,6 +10,8 @@ method uses the stored differential expression results (see
 the data frame method accepts the long table produced by
 [`de_table()`](https://luciorq.github.io/isoformic/reference/dea.md) or
 [`join_DEG_DET()`](https://luciorq.github.io/isoformic/reference/join_DEG_DET.md).
+`plot_log2FC()` is kept as an alias of the data frame method. Features
+without a fold-change are not drawn.
 
 ## Usage
 
@@ -42,8 +44,9 @@ plot_log2FC(
 
 - feature:
 
-  Character vector of gene names (or IDs, or transcript names, matched
-  against `feature_column`).
+  Character vector of values matched against `feature_column`: gene
+  names by default, or gene IDs, transcript names and so on with another
+  column.
 
 - feature_column:
 
@@ -62,7 +65,7 @@ plot_log2FC(
 
 - ...:
 
-  Passed on to methods.
+  Not used; reserved for methods.
 
 - de_data:
 

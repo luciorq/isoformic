@@ -32,8 +32,17 @@ Instead of assuming file names, the function lists the release directory
 on the server and picks the matching file, so new releases and new
 genome patch versions (for example `GRCh38.p15`) work without a package
 update. Files already present in `output_path` are not downloaded again.
-Any other file reachable by URL (for example the T2T consortium Liftoff
-GFF3 files) can be cached the same way with
+When the request determines the file name (GENCODE annotations and
+transcript sequences, MANE with an explicit `version`, FANTOM CAT), a
+file already in `output_path` is used without contacting the server.
+Otherwise, when the directory cannot be listed (a transient server
+error, or no connection) and exactly one file in `output_path` matches
+the request, that file is used with a message. A GENCODE genome must be
+of the release's assembly, and an Ensembl `region = "all"` annotation
+must be the `chr_patch_hapl_scaff` file; requests for the current
+Ensembl or MANE release always need the listing. Any other file
+reachable by URL (for example the T2T consortium Liftoff GFF3 files) can
+be cached the same way with
 [`download_reference_url()`](https://luciorq.github.io/isoformic/reference/download_reference_url.md),
 and HPRC per-haplotype annotations with
 [`download_hprc_annotation()`](https://luciorq.github.io/isoformic/reference/download_hprc_annotation.md).
@@ -62,10 +71,11 @@ download_reference(
 - version:
 
   Release version. GENCODE: the release number (`"50"`, `50`, or `"M39"`
-  / `"39"` for mouse; default `"50"`). Ensembl: the release number
-  (`"116"`); `NULL` (default) uses the current release. MANE: `"1.5"`;
-  `NULL` uses the current release. NCBI/T2T: ignored (the accession
-  identifies the assembly version).
+  / `"39"` for mouse); `NULL` (default) uses `"50"` for human and
+  `"M39"` for mouse. Ensembl: the release number (`"116"`); `NULL` uses
+  the current release. MANE: `"1.5"`; `NULL` uses the current release.
+  FANTOM: the level (`NULL` uses `"lv3_robust"`). NCBI: ignored (the
+  accession identifies the assembly version); T2T: `NULL` or `"2.0"`.
 
 - reference:
 
@@ -92,7 +102,8 @@ download_reference(
   haplotypes and scaffolds), `"chr"` (reference chromosomes only) or
   `"primary"` (primary assembly). For `file_type = "genome_fasta"`,
   `"primary"` selects the primary assembly genome and the other values
-  the full patched / toplevel genome. Ignored for NCBI and MANE.
+  the full patched / toplevel genome. Ignored for NCBI, T2T, MANE and
+  FANTOM.
 
 - species:
 
@@ -138,7 +149,8 @@ The full path to the downloaded (or already present) file.
 
 The function fails early with a specific condition class:
 
-- `isoformic_download_reference_no_internet_error`: no connection.
+- `isoformic_download_reference_no_internet_error`: no connection and no
+  matching file in `output_path`.
 
 - `isoformic_download_reference_release_not_found_error`: the release
   (or species, assembly) directory does not exist; for GENCODE the

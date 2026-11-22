@@ -53,7 +53,8 @@ of plot_log2fc().
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -65,6 +66,7 @@ of plot_log2fc().
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -169,7 +171,7 @@ of the stored cutoffs.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed on to methods.</p></dd>
+<dd><p>Not used; reserved for methods.</p></dd>
 
 
 <dt id="arg-value">value<a class="anchor" aria-label="anchor" href="#arg-value"></a></dt>
@@ -183,11 +185,20 @@ of cutoffs (<code>de_cutoffs&lt;-</code>).</p></dd>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Recognised column synonyms: <code>log2FoldChange</code>/<code>logFC</code> for <code>log2FC</code>;
-<code>padj</code>/<code>FDR</code>/<code>adj.P.Val</code>/<code>svalue</code> for <code>qvalue</code>; <code>PValue</code>/<code>P.Value</code> for
-<code>pvalue</code>. Row names are used as IDs when no ID column is present, and
-GENCODE-style <code>|</code>-suffixed transcript IDs are truncated. When <code>qvalue</code>
-is absent it is computed with Benjamini-Hochberg adjustment of <code>pvalue</code>.</p>
+    <p>Recognised column synonyms: <code>log2FoldChange</code>/<code>logFC</code>/<code>log2fc</code>/<code>log2_fc</code>
+for <code>log2FC</code>; <code>padj</code>/<code>FDR</code>/<code>adj.P.Val</code>/<code>svalue</code>/<code>fdr</code>/<code>q_value</code> for
+<code>qvalue</code>; <code>PValue</code>/<code>P.Value</code>/<code>pval</code>/<code>p_value</code> for <code>pvalue</code>. The ID
+column (<code>transcript_id</code> or <code>gene_id</code>) is also found as <code>feature_id</code>,
+<code>id</code> or <code>ID</code> (and <code>tx_id</code>/<code>transcript</code> or <code>gene</code>). Row names are used as
+IDs when no ID column is present, and GENCODE-style <code>|</code>-suffixed
+transcript IDs are truncated. When <code>qvalue</code> is absent it is computed with
+Benjamini-Hochberg adjustment of <code>pvalue</code>.</p>
+<p><code>de_cutoffs&lt;-</code> takes a named list with any of <code>log2fc</code>, <code>pvalue</code> and
+<code>use_fdr</code> (also as <code>log2FC</code>/<code>lfc</code>, <code>padj</code> and <code>fdr</code>); missing entries
+take the defaults and other names are an error.</p>
+<p>The <code>dea</code> property also holds the uncertainty tables of
+<code><a href="uncertainty.html">add_uncertainty()</a></code> (<code>uncertainty</code>, <code>ambiguity</code>, and <code>confidence</code>, the
+fold-change table of <code>add_uncertainty(group = )</code>).</p>
     </div>
 
     <div class="section level2">
@@ -205,39 +216,39 @@ is absent it is computed with Benjamini-Hochberg adjustment of <code>pvalue</cod
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">de_tx</span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 5</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   transcript_id     log2FC      pvalue    qvalue det_sig</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENST00000638463.1   8.57 0.022<span style="text-decoration: underline;">6</span>      0.102     no     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENST00000557508.5  -<span style="color: #BB0000;">5.47</span> 0.000<span style="text-decoration: underline;">000</span>138 0.000<span style="text-decoration: underline;">023</span>6 yes    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00000166139.9   5.01 0.000<span style="text-decoration: underline;">000</span>138 0.000<span style="text-decoration: underline;">023</span>6 yes    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENST00000592947.5   4.85 0.000<span style="text-decoration: underline;">003</span>32  0.000<span style="text-decoration: underline;">211</span>  yes    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENST00000508871.5  -<span style="color: #BB0000;">4.61</span> 0.011<span style="text-decoration: underline;">6</span>      0.065<span style="text-decoration: underline;">8</span>    no     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENST00000615840.4   3.82 0.000<span style="text-decoration: underline;">000</span>138 0.000<span style="text-decoration: underline;">023</span>6 yes    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   transcript_id     log2FC       pvalue    qvalue det_sig</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENST00000308868.5   6.73 0.000<span style="text-decoration: underline;">000</span>078<span style="text-decoration: underline;">9</span> 0.000<span style="text-decoration: underline;">019</span>8 yes    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENST00000965599.2   6.42 0.000<span style="text-decoration: underline;">000</span>078<span style="text-decoration: underline;">9</span> 0.000<span style="text-decoration: underline;">019</span>8 yes    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00000450046.3  -<span style="color: #BB0000;">6.05</span> 0.000<span style="text-decoration: underline;">000</span>078<span style="text-decoration: underline;">9</span> 0.000<span style="text-decoration: underline;">019</span>8 yes    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENST00001134423.1   5.95 0.046<span style="text-decoration: underline;">0</span>       0.193     no     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENST00001002978.1   5.64 0.000<span style="text-decoration: underline;">384</span>     0.007<span style="text-decoration: underline;">72</span>   yes    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENST00001035611.1  -<span style="color: #BB0000;">5.52</span> 0.000<span style="text-decoration: underline;">000</span>078<span style="text-decoration: underline;">9</span> 0.000<span style="text-decoration: underline;">019</span>8 yes    </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">de_gene</span><span class="op">(</span><span class="va">iso</span>, sig_only <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 8</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   gene_id            log10mean  stat log2FC      pvalue   locfdr  qvalue deg_sig</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG00000070404.10      4.20  68     5.23 0.000<span style="text-decoration: underline;">000</span>462  5.48<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span> 2.58<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span> yes    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG00000130822.15      1.78  64.5   3.39 0.000<span style="text-decoration: underline;">001</span>39   1.33<span style="color: #949494;">e</span><span style="color: #BB0000;">-4</span> 4.69<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span> yes    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENSG00000102755.12      4.66  63.4   3.37 0.000<span style="text-decoration: underline;">002</span>77   2.56<span style="color: #949494;">e</span><span style="color: #BB0000;">-4</span> 8.56<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span> yes    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENSG00000070388.11      1.89  68.0   2.56 0.000<span style="text-decoration: underline;">000</span>462  5.48<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span> 2.58<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span> yes    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENSG00000061656.10      2.15  67.1   2.54 0.000<span style="text-decoration: underline;">000</span>462  5.48<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span> 2.58<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span> yes    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENSG00000106991.13      4.30  67     2.49 0.000<span style="text-decoration: underline;">000</span>462  5.48<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span> 2.58<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span> yes    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG00000174697.7       3.97  68     6.58 0.000<span style="text-decoration: underline;">000</span>451 0.000<span style="text-decoration: underline;">450</span> 3.57<span style="color: #949494;">e</span><span style="color: #BB0000;">-4</span> yes    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG00000070404.12      4.13  68     4.85 0.000<span style="text-decoration: underline;">000</span>451 0.000<span style="text-decoration: underline;">450</span> 3.57<span style="color: #949494;">e</span><span style="color: #BB0000;">-4</span> yes    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENSG00000169495.6       3.73  68     4.40 0.000<span style="text-decoration: underline;">000</span>451 0.000<span style="text-decoration: underline;">450</span> 3.57<span style="color: #949494;">e</span><span style="color: #BB0000;">-4</span> yes    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENSG00000102755.15      4.67  64.6   3.47 0.000<span style="text-decoration: underline;">013</span>5   0.002<span style="text-decoration: underline;">85</span>  1.38<span style="color: #949494;">e</span><span style="color: #BB0000;">-3</span> yes    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENSG00000169994.22      2.79  68     3.16 0.000<span style="text-decoration: underline;">000</span>451 0.000<span style="text-decoration: underline;">450</span> 3.57<span style="color: #949494;">e</span><span style="color: #BB0000;">-4</span> yes    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENSG00000104827.13      4.24  68     3.05 0.000<span style="text-decoration: underline;">000</span>451 0.000<span style="text-decoration: underline;">450</span> 3.57<span style="color: #949494;">e</span><span style="color: #BB0000;">-4</span> yes    </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">de_table</span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 9</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   feature_id  feature_name feature_type gene_id gene_name log2FC  pvalue  qvalue</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG000000… FSTL3        gene         ENSG00… FSTL3       5.23 4.62<span style="color: #949494;">e</span><span style="color: #BB0000;">-7</span> 2.58<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG000001… PNCK         gene         ENSG00… PNCK        3.39 1.39<span style="color: #949494;">e</span><span style="color: #BB0000;">-6</span> 4.69<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENSG000001… FLT1         gene         ENSG00… FLT1        3.37 2.77<span style="color: #949494;">e</span><span style="color: #BB0000;">-6</span> 8.56<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENSG000000… FGF22        gene         ENSG00… FGF22       2.56 4.62<span style="color: #949494;">e</span><span style="color: #BB0000;">-7</span> 2.58<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENSG000000… SPAG4        gene         ENSG00… SPAG4       2.54 4.62<span style="color: #949494;">e</span><span style="color: #BB0000;">-7</span> 2.58<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENSG000001… ENG          gene         ENSG00… ENG         2.49 4.62<span style="color: #949494;">e</span><span style="color: #BB0000;">-7</span> 2.58<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG000001… LEP          gene         ENSG00… LEP         6.58 4.51<span style="color: #949494;">e</span><span style="color: #BB0000;">-7</span> 3.57<span style="color: #949494;">e</span><span style="color: #BB0000;">-4</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG000000… FSTL3        gene         ENSG00… FSTL3       4.85 4.51<span style="color: #949494;">e</span><span style="color: #BB0000;">-7</span> 3.57<span style="color: #949494;">e</span><span style="color: #BB0000;">-4</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENSG000001… HTRA4        gene         ENSG00… HTRA4       4.40 4.51<span style="color: #949494;">e</span><span style="color: #BB0000;">-7</span> 3.57<span style="color: #949494;">e</span><span style="color: #BB0000;">-4</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENSG000001… FLT1         gene         ENSG00… FLT1        3.47 1.35<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span> 1.38<span style="color: #949494;">e</span><span style="color: #BB0000;">-3</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENSG000001… MYO7B        gene         ENSG00… MYO7B       3.16 4.51<span style="color: #949494;">e</span><span style="color: #BB0000;">-7</span> 3.57<span style="color: #949494;">e</span><span style="color: #BB0000;">-4</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENSG000001… CGB3         gene         ENSG00… CGB3        3.05 4.51<span style="color: #949494;">e</span><span style="color: #BB0000;">-7</span> 3.57<span style="color: #949494;">e</span><span style="color: #BB0000;">-4</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 1 more variable: is_de &lt;chr&gt;</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">de_cutoffs</span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>log2fc <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu">de_tx</span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">$</span><span class="va">det_sig</span> <span class="op">==</span> <span class="st">"yes"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 135</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 307</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

@@ -67,11 +67,20 @@ transcript_sequences(x, transcript_id = NULL)
 - transcript_id:
 
   Optional transcript identifiers to read; `NULL` reads all sequences.
+  The selection is done while reading, so only the sequences of these
+  transcripts are loaded into memory.
 
 ## Value
 
-The path of the written Parquet file, invisibly. The table has columns
-`transcript_id`, `sequence` and `seq_length`.
+`extract_transcript_sequences()` returns the path of the Parquet file,
+invisibly (an existing file is kept, with a message, unless
+`overwrite = TRUE`; a warning says when its recorded source is not the
+FASTA given, for example sequences of a cached directory cut from a
+genome while a transcript FASTA is given). The table has columns
+`transcript_id`, `sequence` and `seq_length`; the source and the number
+of sequences are recorded in the annotation metadata
+(`sequences_source`, `sequences_n`). `has_sequences()` returns `TRUE` or
+`FALSE`, and `transcript_sequences()` the table as a tibble.
 
 ## Details
 
@@ -88,25 +97,25 @@ from a transcript FASTA) are reported and left out.
 ## Examples
 
 ``` r
-gff <- system.file("extdata", "example.gff3", package = "isoformic")
+gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 fasta <- system.file("extdata", "example_transcripts.fa.gz", package = "isoformic")
 annot <- prepare_isoformic_annotation(gff, output_path = tempdir(), annot_name = "seq_demo")
-#> ℹ Parsing example.gff3 (GFF) into /tmp/RtmpatoNKq/seq_demo.
+#> ℹ Parsing example.gff3.gz (GFF) into /tmp/RtmpPCTCTT/seq_demo.
 extract_transcript_sequences(annot, transcript_fasta = fasta, overwrite = TRUE)
-#> ✔ Wrote 72 transcript sequences to
-#>   /tmp/RtmpatoNKq/seq_demo/annot_data_sequences.parquet.
+#> ✔ Wrote 141 transcript sequences to
+#>   /tmp/RtmpPCTCTT/seq_demo/annot_data_sequences.parquet.
 has_sequences(annot)
 #> [1] TRUE
 head(transcript_sequences(annot)[, c("transcript_id", "seq_length")])
 #> # A tibble: 6 × 2
 #>   transcript_id     seq_length
 #>   <chr>                  <int>
-#> 1 ENST00000282397.9       7123
-#> 2 ENST00000615611.4       1476
-#> 3 ENST00000617835.4        434
-#> 4 ENST00000543394.2       1275
-#> 5 ENST00000540678.2       1927
-#> 6 ENST00000541932.5       2969
+#> 1 ENST00000909997.2       7765
+#> 2 ENST00000909998.2       8110
+#> 3 ENST00000909999.2       6184
+#> 4 ENST00000910000.2       7975
+#> 5 ENST00001131755.1       8089
+#> 6 ENST00000282397.9       7123
 
 if (FALSE) { # \dontrun{
 # From a genome FASTA (covers novel transcripts of any annotation)

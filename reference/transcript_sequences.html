@@ -47,7 +47,8 @@ pass (annot_data_splice_sites.parquet, see splice_site_strength())."><meta prope
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -59,6 +60,7 @@ pass (annot_data_splice_sites.parquet, see splice_site_strength())."><meta prope
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -157,13 +159,21 @@ pass (<code>annot_data_splice_sites.parquet</code>, see <code><a href="splice_si
 
 <dt id="arg-transcript-id">transcript_id<a class="anchor" aria-label="anchor" href="#arg-transcript-id"></a></dt>
 <dd><p>Optional transcript identifiers to read; <code>NULL</code> reads
-all sequences.</p></dd>
+all sequences. The selection is done while reading, so only the
+sequences of these transcripts are loaded into memory.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>The path of the written Parquet file, invisibly. The table has
-columns <code>transcript_id</code>, <code>sequence</code> and <code>seq_length</code>.</p>
+    <p><code>extract_transcript_sequences()</code> returns the path of the
+Parquet file, invisibly (an existing file is kept, with a message,
+unless <code>overwrite = TRUE</code>; a warning says when its recorded source is
+not the FASTA given, for example sequences of a cached directory cut
+from a genome while a transcript FASTA is given). The table has columns <code>transcript_id</code>,
+<code>sequence</code> and <code>seq_length</code>; the source and the number of sequences are
+recorded in the annotation metadata (<code>sequences_source</code>,
+<code>sequences_n</code>). <code>has_sequences()</code> returns <code>TRUE</code> or <code>FALSE</code>, and
+<code>transcript_sequences()</code> the table as a tibble.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -179,25 +189,25 @@ from a transcript FASTA) are reported and left out.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">gff</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"example.gff3"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">gff</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"example.gff3.gz"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fasta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"example_transcripts.fa.gz"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">annot</span> <span class="op">&lt;-</span> <span class="fu"><a href="prepare_isoformic_annotation.html">prepare_isoformic_annotation</a></span><span class="op">(</span><span class="va">gff</span>, output_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, annot_name <span class="op">=</span> <span class="st">"seq_demo"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Parsing <span style="color: #0000BB;">example.gff3</span> (GFF) into <span style="color: #0000BB;">/tmp/RtmpatoNKq/seq_demo</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Parsing <span style="color: #0000BB;">example.gff3.gz</span> (GFF) into <span style="color: #0000BB;">/tmp/RtmpPCTCTT/seq_demo</span>.</span>
 <span class="r-in"><span><span class="fu">extract_transcript_sequences</span><span class="op">(</span><span class="va">annot</span>, transcript_fasta <span class="op">=</span> <span class="va">fasta</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote 72 transcript sequences to</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   <span style="color: #0000BB;">/tmp/RtmpatoNKq/seq_demo/annot_data_sequences.parquet</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote 141 transcript sequences to</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   <span style="color: #0000BB;">/tmp/RtmpPCTCTT/seq_demo/annot_data_sequences.parquet</span>.</span>
 <span class="r-in"><span><span class="fu">has_sequences</span><span class="op">(</span><span class="va">annot</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">transcript_sequences</span><span class="op">(</span><span class="va">annot</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"transcript_id"</span>, <span class="st">"seq_length"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 2</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   transcript_id     seq_length</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENST00000282397.9       <span style="text-decoration: underline;">7</span>123</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENST00000615611.4       <span style="text-decoration: underline;">1</span>476</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00000617835.4        434</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENST00000543394.2       <span style="text-decoration: underline;">1</span>275</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENST00000540678.2       <span style="text-decoration: underline;">1</span>927</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENST00000541932.5       <span style="text-decoration: underline;">2</span>969</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENST00000909997.2       <span style="text-decoration: underline;">7</span>765</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENST00000909998.2       <span style="text-decoration: underline;">8</span>110</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00000909999.2       <span style="text-decoration: underline;">6</span>184</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENST00000910000.2       <span style="text-decoration: underline;">7</span>975</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENST00001131755.1       <span style="text-decoration: underline;">8</span>089</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENST00000282397.9       <span style="text-decoration: underline;">7</span>123</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="co"># From a genome FASTA (covers novel transcripts of any annotation)</span></span></span>

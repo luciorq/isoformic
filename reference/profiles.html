@@ -27,7 +27,8 @@ table from loose tables."><meta property="og:image" content="https://luciorq.git
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -39,6 +40,7 @@ table from loose tables."><meta property="og:image" content="https://luciorq.git
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -112,12 +114,13 @@ profile table produced by <code>profile_data()</code>/<code><a href="prepare_pro
 
 
 <dt id="arg-gene-name">gene_name<a class="anchor" aria-label="anchor" href="#arg-gene-name"></a></dt>
-<dd><p>Character vector of gene names or IDs to profile.</p></dd>
+<dd><p>Character vector of gene names or IDs to profile. For a
+profile table, optional genes to keep.</p></dd>
 
 
 <dt id="arg-group">group<a class="anchor" aria-label="anchor" href="#arg-group"></a></dt>
 <dd><p>Name of the <code>col_data</code> column defining the groups
-(x axis).</p></dd>
+(x axis). Not needed for a profile table, which has its groups.</p></dd>
 
 
 <dt id="arg-levels">levels<a class="anchor" aria-label="anchor" href="#arg-levels"></a></dt>
@@ -129,11 +132,11 @@ appearance). For a profile table, the groups of the table to draw.</p></dd>
 
 <dt id="arg-assay">assay<a class="anchor" aria-label="anchor" href="#arg-assay"></a></dt>
 <dd><p>Name of the transcript assay to summarise (default
-<code>"abundance"</code>).</p></dd>
+<code>"abundance"</code>); not used for a profile table.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed on to methods.</p></dd>
+<dd><p>Not used; reserved for methods.</p></dd>
 
 
 <dt id="arg-log-scale">log_scale<a class="anchor" aria-label="anchor" href="#arg-log-scale"></a></dt>
@@ -157,7 +160,8 @@ to the object's palette or <code><a href="tx_type_palette.html">tx_type_palette(
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p><code>profile_data()</code> returns a tibble with columns <code>feature_id</code>,
 <code>feature_name</code>, <code>feature_type</code>, <code>gene_id</code>, <code>gene_name</code>, <code>group</code>,
-<code>mean_expr</code>, <code>sd_expr</code>, <code>n_samples</code> and <code>is_de</code>; the grouping variable
+<code>mean_expr</code>, <code>sd_expr</code>, <code>n_samples</code> and <code>is_de</code> (<code>"yes"</code>/<code>"no"</code>, from
+the stored results and <code><a href="dea.html">de_cutoffs()</a></code>); the grouping variable
 name is stored in the <code>"group_var"</code> attribute. <code>plot_tx_expr()</code> returns
 a <code>ggplot</code> object.</p>
     </div>
@@ -169,12 +173,12 @@ a <code>ggplot</code> object.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 10</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   feature_id feature_name feature_type gene_id gene_name group mean_expr sd_expr</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG00000… RBPJ         gene         ENSG00… RBPJ      pree…   <span style="text-decoration: underline;">1</span>297.    427.  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG00000… RBPJ         gene         ENSG00… RBPJ      cont…   <span style="text-decoration: underline;">1</span>367.    195.  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      pree…     11.2    25.1 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      cont…      3.95    8.30</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      pree…    838.    303.  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      cont…   <span style="text-decoration: underline;">1</span>095.    169.  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG00000… RBPJ         gene         ENSG00… RBPJ      pree…    33.0    11.1  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG00000… RBPJ         gene         ENSG00… RBPJ      cont…    36.3     6.25 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      pree…     0.116   0.148</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      cont…     0.125   0.160</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      pree…     0       0    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      cont…     0.952   1.39 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 2 more variables: n_samples &lt;int&gt;, is_de &lt;chr&gt;</span></span>
 <span class="r-in"><span><span class="fu">plot_tx_expr</span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"RBPJ"</span>, <span class="st">"EGFR"</span><span class="op">)</span>, group <span class="op">=</span> <span class="st">"condition"</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="profiles-1.png" alt="" width="700" height="433"></span>

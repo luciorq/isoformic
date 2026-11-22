@@ -68,13 +68,16 @@ splice_site_strength(
 
 - ...:
 
-  Unused.
+  Not used; reserved for methods.
 
 ## Value
 
 - `extract_splice_sites()`: the path of the written Parquet file,
   invisibly. The table has `seqid`, `strand`, `intron_start`,
-  `intron_end` (1-based, inclusive), `donor_seq` and `acceptor_seq`.
+  `intron_end` (1-based, inclusive), `donor_seq` and `acceptor_seq`. An
+  existing table is kept, with a message, unless `overwrite = TRUE`.
+
+- `has_splice_sites()`: `TRUE` when the table is present.
 
 - `splice_site_strength()`: a tibble. By transcript: `transcript_id`,
   `gene_id`, `gene_name`, `n_introns`, `n_scored`, `weakest_donor`,
@@ -98,6 +101,14 @@ introns. A score is the sum over the window of
 composition of the training windows and half a pseudocount per base.
 Positive means closer to the consensus.
 
+The matrices are trained once per annotation directory and kept for the
+session. With `gene_name`, only the introns of those genes are read and
+scored, with the same matrices, so a transcript gets the same scores as
+in the genome-wide table. On an
+[IsoformicExperiment](https://luciorq.github.io/isoformic/reference/IsoformicExperiment.md),
+the table by transcript is cached in the object, and later calls with
+`gene_name` take their rows from it.
+
 Limits. The matrices assume that positions are independent, so they are
 weaker than MaxEntScan or a sequence model, and they describe the major
 (GT-AG) spliceosome: U12 introns and other non-canonical sites get low
@@ -120,13 +131,13 @@ Computational Biology* 11(2-3), 377-394.
 ## Examples
 
 ``` r
-gff <- system.file("extdata", "example.gff3", package = "isoformic")
+gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 annot <- prepare_isoformic_annotation(
   gff,
   output_path = tempdir(),
   annot_name = "splice_demo"
 )
-#> ℹ Parsing example.gff3 (GFF) into /tmp/RtmpatoNKq/splice_demo.
+#> ℹ Parsing example.gff3.gz (GFF) into /tmp/RtmpPCTCTT/splice_demo.
 has_splice_sites(annot)
 #> [1] FALSE
 if (FALSE) { # \dontrun{

@@ -8,7 +8,9 @@ joins them into the annotation directory: the CAGE cluster (the
 CAGE-defined promoter of each transcript) becomes `cage_cluster_id`,
 with its coordinates parsed into `cage_cluster_seqid`,
 `cage_cluster_start`, `cage_cluster_end`, and the gene information
-columns are added to the gene table in snake case. See
+columns are added to the gene table in snake case (except the location,
+strand and the attributes the GTF already provides, such as `gene_class`
+and `gene_category`). See
 [`download_fantom_cat_tables()`](https://luciorq.github.io/isoformic/reference/download_fantom_cat_tables.md).
 
 ## Usage
@@ -40,7 +42,11 @@ The annotation directory path, invisibly.
 
 ``` r
 if (FALSE) { # \dontrun{
-gtf <- download_reference(reference = "fantom", version = "lv3_robust")
+gtf <- download_reference(
+  reference = "fantom",
+  version = "lv3_robust",
+  file_type = "gtf"
+)
 tables <- download_fantom_cat_tables("lv3_robust")
 annot <- prepare_isoformic_annotation(gtf)
 add_fantom_cat_tables(annot, tables[["id_mapping"]], tables[["gene_info"]])

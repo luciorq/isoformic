@@ -21,7 +21,8 @@ on Salmon output made with --numGibbsSamples (or --numBootstraps),
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -33,6 +34,7 @@ on Salmon output made with --numGibbsSamples (or --numBootstraps),
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -86,8 +88,9 @@ on Salmon output made with <code>--numGibbsSamples</code> (or <code>--numBootstr
 
 <dl><dt id="arg-path">path<a class="anchor" aria-label="anchor" href="#arg-path"></a></dt>
 <dd><p>The <code>clusters.txt</code> file, or a folder that holds it (the output
-folder of one sample, or the folder given to <code>-o</code> when it holds one sample
-folder).</p></dd>
+folder of one sample), or the folder given to <code>-o</code>: the first
+<code>clusters.txt</code> one folder down is read, as the consensus groups are the
+same in every sample folder.</p></dd>
 
 
 <dt id="arg-ignore-after-bar">ignore_after_bar<a class="anchor" aria-label="anchor" href="#arg-ignore-after-bar"></a></dt>

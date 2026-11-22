@@ -53,12 +53,16 @@ join_DEG_DET(
 
 - transcript_types:
 
-  Transcript types to keep. `NULL` keeps all.
+  Transcript types to keep. The default keeps protein coding, `lncRNA`,
+  `retained_intron`, `nonsense_mediated_decay`, `non_stop_decay`,
+  `processed_transcript`, `protein_coding_CDS_not_defined` and the
+  pseudogene types. `NULL` keeps all.
 
 ## Value
 
-A tibble with `feature_id`, `feature_name`, `feature_type`, `gene_name`,
-`log2FC`, `pvalue` (and `qvalue` when present) and `is_de`.
+A tibble with `feature_id`, `feature_name`, `feature_type`, `gene_id`
+(when present), `gene_name`, `log2FC`, `pvalue` (and `qvalue` when
+present) and `is_de` (`"yes"`/`"no"`).
 
 ## Examples
 

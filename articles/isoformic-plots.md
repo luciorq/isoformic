@@ -14,16 +14,16 @@ They start from the object built in the
 
 library(isoformic)
 
-extdata <- fs::path_package("isoformic", "extdata")
-annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+data_dir <- "data/preeclampsia"
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 iso <- IsoformicExperiment(
   experiment_name = "preeclampsia_placenta",
   annot_path = annot_dir,
-  assays = list(abundance = read_parquet(fs::path(extdata, "pe_abundance.parquet"))),
-  col_data = read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+  assays = list(abundance = read_parquet(fs::path(data_dir, "pe_abundance.parquet"))),
+  col_data = read_parquet(fs::path(data_dir, "pe_col_data.parquet"))
 )
-de_tx(iso) <- read_parquet(fs::path(extdata, "pe_det.parquet"))
-de_gene(iso) <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+de_tx(iso) <- read_parquet(fs::path(data_dir, "pe_det.parquet"))
+de_gene(iso) <- read_parquet(fs::path(data_dir, "pe_deg.parquet"))
 ```
 
 ## Log2 fold-change plot
@@ -113,7 +113,7 @@ plot_tx_expr(iso, gene_name = "RBPJ", group = "condition")
 
 ``` r
 
-plot_tx_expr(iso, gene_name = c("IL2RA", "EGFR"), group = "condition", ncol = 2)
+plot_tx_expr(iso, gene_name = c("FLT1", "EGFR"), group = "condition", ncol = 2)
 ```
 
 ![](isoformic-plots_files/figure-html/unnamed-chunk-4-2.png)
@@ -127,12 +127,12 @@ head(profile_data(iso, gene_name = "RBPJ", group = "condition"))
 #> # A tibble: 6 × 10
 #>   feature_id feature_name feature_type gene_id gene_name group mean_expr sd_expr
 #>   <chr>      <chr>        <chr>        <chr>   <chr>     <fct>     <dbl>   <dbl>
-#> 1 ENSG00000… RBPJ         gene         ENSG00… RBPJ      pree…   1297.    427.  
-#> 2 ENSG00000… RBPJ         gene         ENSG00… RBPJ      cont…   1367.    195.  
-#> 3 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      pree…     11.2    25.1 
-#> 4 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      cont…      3.95    8.30
-#> 5 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      pree…    838.    303.  
-#> 6 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      cont…   1095.    169.  
+#> 1 ENSG00000… RBPJ         gene         ENSG00… RBPJ      pree…    27.7     8.81 
+#> 2 ENSG00000… RBPJ         gene         ENSG00… RBPJ      cont…    33.3     5.27 
+#> 3 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      pree…     0.116   0.148
+#> 4 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      cont…     0.125   0.160
+#> 5 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      pree…     0       0    
+#> 6 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      cont…     0.952   1.39 
 #> # ℹ 2 more variables: n_samples <int>, is_de <chr>
 ```
 
@@ -141,16 +141,15 @@ head(profile_data(iso, gene_name = "RBPJ", group = "condition"))
 [`plot_genomic_context()`](https://luciorq.github.io/isoformic/reference/plot_genomic_context.md)
 draws the exon-intron structure of every annotated isoform of a gene
 along the genome, coloured by transcript type, labelled with its mean
-expression and outlined when differentially expressed. Poison exons (see
-the [productivity
+expression and outlined when differentially expressed. Isoforms missing
+from the abundance table, here those not tested by swish, are drawn with
+their name only. Poison exons (see the [productivity
 article](https://luciorq.github.io/isoformic/articles/isoformic-productivity.md))
 are outlined as well.
 
 ``` r
 
 plot_genomic_context(iso, gene_name = "FLT1")
-#> Warning: ! 91 transcripts have a sequence length differing from the exon length; their
-#>   ORFs are skipped.
 ```
 
 ![](isoformic-plots_files/figure-html/unnamed-chunk-6-1.png)
@@ -202,12 +201,12 @@ sessionInfo()
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6       jsonlite_2.0.0     dplyr_1.2.1        compiler_4.6.2    
-#>  [5] tidyselect_1.2.1   Rcpp_1.1.2         scales_1.4.0       yaml_2.3.12       
-#>  [9] fastmap_1.2.0      ggplot2_4.0.4      R6_2.6.1           labeling_0.4.3    
-#> [13] generics_0.1.4     curl_8.1.0         knitr_1.52         ggrepel_0.9.8     
+#>  [5] tidyselect_1.2.1   Rcpp_1.1.2         parallel_4.6.2     scales_1.4.0      
+#>  [9] yaml_2.3.12        fastmap_1.2.0      ggplot2_4.0.4      R6_2.6.1          
+#> [13] labeling_0.4.3     generics_0.1.4     knitr_1.52         ggrepel_0.9.8     
 #> [17] tibble_3.3.1       DBI_1.3.0          pillar_1.11.1      RColorBrewer_1.1-3
 #> [21] rlang_1.3.0        utf8_1.2.6         xfun_0.62          fs_2.1.0          
-#> [25] S7_0.2.2           otel_0.3.0         cli_3.6.6          withr_3.0.3       
+#> [25] S7_1.0.0           otel_0.3.0         cli_3.6.6          withr_3.0.3       
 #> [29] magrittr_2.0.5     digest_0.6.39      grid_4.6.2         lifecycle_1.0.5   
 #> [33] vctrs_0.7.3        evaluate_1.0.5     glue_1.8.1         farver_2.1.2      
 #> [37] duckdb_2.0.0       rmarkdown_2.32     tools_4.6.2        pkgconfig_2.0.3   

@@ -36,6 +36,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -49,6 +50,7 @@
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -108,16 +110,16 @@
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">extdata</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span><span class="op">)</span></span>
-<span><span class="va">annot_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_isoformic_annotation.html">prepare_isoformic_annotation</a></span><span class="op">(</span><span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"33"</span>, file_type <span class="op">=</span> <span class="st">"gff"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">data_dir</span> <span class="op">&lt;-</span> <span class="st">"data/preeclampsia"</span></span>
+<span><span class="va">annot_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_isoformic_annotation.html">prepare_isoformic_annotation</a></span><span class="op">(</span><span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"50"</span>, file_type <span class="op">=</span> <span class="st">"gff"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/IsoformicExperiment.html">IsoformicExperiment</a></span><span class="op">(</span></span>
 <span>  experiment_name <span class="op">=</span> <span class="st">"preeclampsia_placenta"</span>,</span>
 <span>  annot_path <span class="op">=</span> <span class="va">annot_dir</span>,</span>
-<span>  assays <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>abundance <span class="op">=</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">extdata</span>, <span class="st">"pe_abundance.parquet"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  col_data <span class="op">=</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">extdata</span>, <span class="st">"pe_col_data.parquet"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  assays <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>abundance <span class="op">=</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">data_dir</span>, <span class="st">"pe_abundance.parquet"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  col_data <span class="op">=</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">data_dir</span>, <span class="st">"pe_col_data.parquet"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/dea.html">de_tx</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">extdata</span>, <span class="st">"pe_det.parquet"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/dea.html">de_gene</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">extdata</span>, <span class="st">"pe_deg.parquet"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/dea.html">de_tx</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">data_dir</span>, <span class="st">"pe_det.parquet"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/dea.html">de_gene</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">data_dir</span>, <span class="st">"pe_deg.parquet"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <section class="level2"><h2 id="isoform-usage-per-gene">Isoform usage per gene<a class="anchor" aria-label="anchor" href="#isoform-usage-per-gene"></a>
 </h2>
@@ -129,12 +131,12 @@
 <span><span class="co">#&gt; # A tibble: 6 × 14</span></span>
 <span><span class="co">#&gt;   gene_id         gene_name gene_type n_tx_annotated n_tx_assayed n_tx_expressed</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;           &lt;chr&gt;     &lt;chr&gt;              &lt;int&gt;        &lt;int&gt;          &lt;int&gt;</span></span>
-<span><span class="co">#&gt; 1 ENSG0000017296… MIR4435-… lncRNA               108           29             29</span></span>
-<span><span class="co">#&gt; 2 ENSG0000019791… SPG7      protein_…             96           45             45</span></span>
-<span><span class="co">#&gt; 3 ENSG0000010126… CSNK2A1   protein_…             48           34             34</span></span>
-<span><span class="co">#&gt; 4 ENSG0000024208… MUC20-OT1 lncRNA               142           53             53</span></span>
-<span><span class="co">#&gt; 5 ENSG0000024853… AC022784… lncRNA                70           26             26</span></span>
-<span><span class="co">#&gt; 6 ENSG0000017981… PCBP1-AS1 lncRNA               239           32             32</span></span>
+<span><span class="co">#&gt; 1 ENSG0000024208… MUC20-OT1 lncRNA               249           52             45</span></span>
+<span><span class="co">#&gt; 2 ENSG0000023172… LINC-PINT lncRNA               284           49             35</span></span>
+<span><span class="co">#&gt; 3 ENSG0000012478… SLC35B3   protein_…             86           36             14</span></span>
+<span><span class="co">#&gt; 4 ENSG0000021398… AP1G2     protein_…            126           46             33</span></span>
+<span><span class="co">#&gt; 5 ENSG0000019791… SPG7      protein_…            133           51             27</span></span>
+<span><span class="co">#&gt; 6 ENSG0000017253… BANP      protein_…            121           43             24</span></span>
 <span><span class="co">#&gt; # ℹ 8 more variables: n_tx_types &lt;int&gt;, tx_types &lt;chr&gt;, mean_gene_expr &lt;dbl&gt;,</span></span>
 <span><span class="co">#&gt; #   dominant_transcript_id &lt;chr&gt;, dominant_transcript_name &lt;chr&gt;,</span></span>
 <span><span class="co">#&gt; #   dominant_transcript_type &lt;chr&gt;, dominant_fraction &lt;dbl&gt;,</span></span>
@@ -165,16 +167,16 @@
 <span><span class="co">#&gt; # A tibble: 10 × 11</span></span>
 <span><span class="co">#&gt;    gene_id            gene_name gene_type      condition  dominant_transcript_id</span></span>
 <span><span class="co">#&gt;    &lt;chr&gt;              &lt;chr&gt;     &lt;chr&gt;          &lt;chr&gt;      &lt;chr&gt;                 </span></span>
-<span><span class="co">#&gt;  1 ENSG00000000938.13 FGR       protein_coding preeclamp… ENST00000374005.8     </span></span>
-<span><span class="co">#&gt;  2 ENSG00000000938.13 FGR       protein_coding control    ENST00000374004.5     </span></span>
-<span><span class="co">#&gt;  3 ENSG00000001084.13 GCLC      protein_coding preeclamp… ENST00000650454.1     </span></span>
-<span><span class="co">#&gt;  4 ENSG00000001084.13 GCLC      protein_coding control    ENST00000509541.5     </span></span>
-<span><span class="co">#&gt;  5 ENSG00000003436.16 TFPI      protein_coding preeclamp… ENST00000392365.5     </span></span>
-<span><span class="co">#&gt;  6 ENSG00000003436.16 TFPI      protein_coding control    ENST00000233156.9     </span></span>
-<span><span class="co">#&gt;  7 ENSG00000004846.16 ABCB5     protein_coding preeclamp… ENST00000404938.6     </span></span>
-<span><span class="co">#&gt;  8 ENSG00000004846.16 ABCB5     protein_coding control    ENST00000443026.6     </span></span>
-<span><span class="co">#&gt;  9 ENSG00000005187.12 ACSM3     protein_coding preeclamp… ENST00000289416.10    </span></span>
-<span><span class="co">#&gt; 10 ENSG00000005187.12 ACSM3     protein_coding control    ENST00000614721.1     </span></span>
+<span><span class="co">#&gt;  1 ENSG00000000003.18 TSPAN6    protein_coding preeclamp… ENST00000966006.2     </span></span>
+<span><span class="co">#&gt;  2 ENSG00000000003.18 TSPAN6    protein_coding control    ENST00001101988.1     </span></span>
+<span><span class="co">#&gt;  3 ENSG00000001497.20 LAS1L     protein_coding control    ENST00000677834.1     </span></span>
+<span><span class="co">#&gt;  4 ENSG00000002822.18 MAD1L1    protein_coding control    ENST00000477172.1     </span></span>
+<span><span class="co">#&gt;  5 ENSG00000002919.17 SNX11     protein_coding preeclamp… ENST00000581298.5     </span></span>
+<span><span class="co">#&gt;  6 ENSG00000003989.20 SLC7A2    protein_coding preeclamp… ENST00000494857.6     </span></span>
+<span><span class="co">#&gt;  7 ENSG00000003989.20 SLC7A2    protein_coding control    ENST00000640220.2     </span></span>
+<span><span class="co">#&gt;  8 ENSG00000004142.14 POLDIP2   protein_coding preeclamp… ENST00001121072.1     </span></span>
+<span><span class="co">#&gt;  9 ENSG00000004142.14 POLDIP2   protein_coding control    ENST00000540200.6     </span></span>
+<span><span class="co">#&gt; 10 ENSG00000004897.14 CDC27     protein_coding preeclamp… ENST00000575483.5     </span></span>
 <span><span class="co">#&gt; # ℹ 6 more variables: dominant_transcript_name &lt;chr&gt;,</span></span>
 <span><span class="co">#&gt; #   dominant_transcript_type &lt;chr&gt;, dominant_is_canonical &lt;lgl&gt;,</span></span>
 <span><span class="co">#&gt; #   dominant_fraction &lt;dbl&gt;, gene_expr &lt;dbl&gt;, dominant_switch &lt;lgl&gt;</span></span>
@@ -183,9 +185,9 @@
 <span><span class="co">#&gt; # A tibble: 3 × 4</span></span>
 <span><span class="co">#&gt;   gene_name dominant_transcript_name dominant_is_canonical dominant_fraction</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;     &lt;chr&gt;                    &lt;lgl&gt;                             &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt; 1 FLT1      FLT1-204                 FALSE                             0.580</span></span>
-<span><span class="co">#&gt; 2 EGFR      EGFR-201                 TRUE                              0.963</span></span>
-<span><span class="co">#&gt; 3 RBPJ      RBPJ-202                 FALSE                             0.753</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 FLT1      FLT1-204                 FALSE                             0.749</span></span>
+<span><span class="co">#&gt; 2 EGFR      EGFR-201                 TRUE                              0.341</span></span>
+<span><span class="co">#&gt; 3 RBPJ      RBPJ-205                 TRUE                              0.485</span></span></code></pre></div>
 </div>
 <p><code>min_expr</code> sets the expression floor below which a sample does not vote for a dominant isoform.</p>
 </section><section class="level2"><h2 id="isoform-switches">Isoform switches<a class="anchor" aria-label="anchor" href="#isoform-switches"></a>
@@ -197,21 +199,21 @@
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">switches</span><span class="op">$</span><span class="va">switch_type</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;         consistent        det_not_deg opposite_direction </span></span>
-<span><span class="co">#&gt;                596               1804                241</span></span>
+<span><span class="co">#&gt;                444               2604                552</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">switches</span><span class="op">)</span></span>
 <span><span class="co">#&gt; # A tibble: 6 × 12</span></span>
 <span><span class="co">#&gt;   gene_id          gene_name gene_type n_tx_tested n_det_sig n_det_up n_det_down</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;            &lt;chr&gt;     &lt;chr&gt;           &lt;int&gt;     &lt;int&gt;    &lt;int&gt;      &lt;int&gt;</span></span>
-<span><span class="co">#&gt; 1 ENSG00000198668… CALM1     protein_…          16         9        8          1</span></span>
-<span><span class="co">#&gt; 2 ENSG00000213923… CSNK1E    protein_…          13         9        8          1</span></span>
-<span><span class="co">#&gt; 3 ENSG00000196730… DAPK1     protein_…          16         8        7          1</span></span>
-<span><span class="co">#&gt; 4 ENSG00000104763… ASAH1     protein_…          31         7        1          6</span></span>
-<span><span class="co">#&gt; 5 ENSG00000100650… SRSF5     protein_…          17         7        5          2</span></span>
-<span><span class="co">#&gt; 6 ENSG00000197102… DYNC1H1   protein_…          30         7        6          1</span></span>
+<span><span class="co">#&gt; 1 ENSG00000251562… MALAT1    lncRNA             46        12        6          6</span></span>
+<span><span class="co">#&gt; 2 ENSG00000100650… SRSF5     protein_…          25        11        8          3</span></span>
+<span><span class="co">#&gt; 3 ENSG00000147872… PLIN2     protein_…          26        11       10          1</span></span>
+<span><span class="co">#&gt; 4 ENSG00000133112… TPT1      protein_…          47        10        5          5</span></span>
+<span><span class="co">#&gt; 5 ENSG00000196975… ANXA4     protein_…          36         9        8          1</span></span>
+<span><span class="co">#&gt; 6 ENSG00000167986… DDB1      protein_…          62         8        5          3</span></span>
 <span><span class="co">#&gt; # ℹ 5 more variables: det_sig_types &lt;chr&gt;, max_abs_log2FC &lt;dbl&gt;,</span></span>
 <span><span class="co">#&gt; #   gene_log2FC &lt;dbl&gt;, deg_sig &lt;chr&gt;, switch_type &lt;chr&gt;</span></span></code></pre></div>
 </div>
-<p>The expression profile plot makes a switch visible as crossing lines (see the <a href="isoformic-plots.html">plots article</a>):</p>
+<p>The expression profile plot shows how the isoforms of a gene share its expression in each condition, and a switch appears as crossing lines (see the <a href="isoformic-plots.html">plots article</a>). RBPJ is not a switch: none of its isoforms passes the significance cutoffs (<code>det_sig</code>) and its canonical isoform, RBPJ-205, dominates in both conditions:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/profiles.html">plot_tx_expr</a></span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"RBPJ"</span>, group <span class="op">=</span> <span class="st">"condition"</span><span class="op">)</span></span></code></pre></div>
@@ -231,9 +233,9 @@
 <span><span class="co">#&gt; # A tibble: 3 × 9</span></span>
 <span><span class="co">#&gt;   gene_id   gene_name gene_type  n_tx mean_exons_per_tx max_exons_per_tx n_exons</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;     &lt;chr&gt;     &lt;chr&gt;     &lt;int&gt;             &lt;dbl&gt;            &lt;int&gt;   &lt;int&gt;</span></span>
-<span><span class="co">#&gt; 1 ENSG0000… RBPJ      protein_…    31              6.52               12      65</span></span>
-<span><span class="co">#&gt; 2 ENSG0000… EGFR      protein_…    11             14.4                28      46</span></span>
-<span><span class="co">#&gt; 3 ENSG0000… FLT1      protein_…     9             14                  30      44</span></span>
+<span><span class="co">#&gt; 1 ENSG0000… RBPJ      protein_…    65              9.52               13     113</span></span>
+<span><span class="co">#&gt; 2 ENSG0000… EGFR      protein_…    23             15.1                28      57</span></span>
+<span><span class="co">#&gt; 3 ENSG0000… FLT1      protein_…    17             19                  30      52</span></span>
 <span><span class="co">#&gt; # ℹ 2 more variables: n_constitutive &lt;int&gt;, n_alternative &lt;int&gt;</span></span></code></pre></div>
 </div>
 <p>What those structural differences do to the protein is the subject of the <a href="isoformic-productivity.html">productivity article</a>.</p>
@@ -267,15 +269,15 @@
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] gtable_0.3.6       jsonlite_2.0.0     compiler_4.6.2     Rcpp_1.1.2        </span></span>
-<span><span class="co">#&gt;  [5] tidyselect_1.2.1   scales_1.4.0       yaml_2.3.12        fastmap_1.2.0     </span></span>
-<span><span class="co">#&gt;  [9] R6_2.6.1           labeling_0.4.3     generics_0.1.4     curl_8.1.0        </span></span>
-<span><span class="co">#&gt; [13] knitr_1.52         ggrepel_0.9.8      tibble_3.3.1       DBI_1.3.0         </span></span>
-<span><span class="co">#&gt; [17] pillar_1.11.1      RColorBrewer_1.1-3 rlang_1.3.0        utf8_1.2.6        </span></span>
-<span><span class="co">#&gt; [21] xfun_0.62          fs_2.1.0           S7_0.2.2           otel_0.3.0        </span></span>
-<span><span class="co">#&gt; [25] cli_3.6.6          withr_3.0.3        magrittr_2.0.5     digest_0.6.39     </span></span>
-<span><span class="co">#&gt; [29] grid_4.6.2         lifecycle_1.0.5    vctrs_0.7.3        evaluate_1.0.5    </span></span>
-<span><span class="co">#&gt; [33] glue_1.8.1         farver_2.1.2       duckdb_2.0.0       rmarkdown_2.32    </span></span>
-<span><span class="co">#&gt; [37] tools_4.6.2        pkgconfig_2.0.3    htmltools_0.5.9</span></span></code></pre></div>
+<span><span class="co">#&gt;  [5] tidyselect_1.2.1   parallel_4.6.2     scales_1.4.0       yaml_2.3.12       </span></span>
+<span><span class="co">#&gt;  [9] fastmap_1.2.0      R6_2.6.1           labeling_0.4.3     generics_0.1.4    </span></span>
+<span><span class="co">#&gt; [13] curl_8.1.0         knitr_1.52         ggrepel_0.9.8      tibble_3.3.1      </span></span>
+<span><span class="co">#&gt; [17] DBI_1.3.0          pillar_1.11.1      RColorBrewer_1.1-3 rlang_1.3.0       </span></span>
+<span><span class="co">#&gt; [21] utf8_1.2.6         xfun_0.62          fs_2.1.0           S7_1.0.0          </span></span>
+<span><span class="co">#&gt; [25] otel_0.3.0         cli_3.6.6          withr_3.0.3        magrittr_2.0.5    </span></span>
+<span><span class="co">#&gt; [29] digest_0.6.39      grid_4.6.2         lifecycle_1.0.5    vctrs_0.7.3       </span></span>
+<span><span class="co">#&gt; [33] evaluate_1.0.5     glue_1.8.1         farver_2.1.2       duckdb_2.0.0      </span></span>
+<span><span class="co">#&gt; [37] rmarkdown_2.32     tools_4.6.2        pkgconfig_2.0.3    htmltools_0.5.9</span></span></code></pre></div>
 </div>
 </section><script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {

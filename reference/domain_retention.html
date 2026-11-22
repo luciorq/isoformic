@@ -10,8 +10,8 @@ or the annotated CDS) extends over it without a frameshift, partial
 when only part of the span is covered, and lost otherwise.
 An altered_productive isoform that keeps all domains of the canonical
 protein is a milder event than one that loses a domain; the
-domain_retention_fraction column grades this and is included in
-transcript_productivity() output when the dataset is available."><meta property="og:description" content="Compares the Pfam domains of every isoform with those of the canonical
+domain_retention_fraction column grades this. It is not part of the
+transcript_productivity() table; join the two by transcript_id."><meta property="og:description" content="Compares the Pfam domains of every isoform with those of the canonical
 isoform of its gene, using the APPRIS SPADE domain coordinates (frozen
 dataset appris_domains, frozen_data). For isoforms present in APPRIS
 the domain sets are compared directly. For other isoforms (novel
@@ -22,8 +22,8 @@ or the annotated CDS) extends over it without a frameshift, partial
 when only part of the span is covered, and lost otherwise.
 An altered_productive isoform that keeps all domains of the canonical
 protein is a milder event than one that loses a domain; the
-domain_retention_fraction column grades this and is included in
-transcript_productivity() output when the dataset is available."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
+domain_retention_fraction column grades this. It is not part of the
+transcript_productivity() table; join the two by transcript_id."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -39,7 +39,8 @@ transcript_productivity() output when the dataset is available."><meta property=
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -51,6 +52,7 @@ transcript_productivity() output when the dataset is available."><meta property=
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -98,8 +100,8 @@ or the annotated CDS) extends over it without a frameshift, <code>partial</code>
 when only part of the span is covered, and <code>lost</code> otherwise.</p>
 <p>An <code>altered_productive</code> isoform that keeps all domains of the canonical
 protein is a milder event than one that loses a domain; the
-<code>domain_retention_fraction</code> column grades this and is included in
-<code><a href="productivity.html">transcript_productivity()</a></code> output when the dataset is available.</p>
+<code>domain_retention_fraction</code> column grades this. It is not part of the
+<code><a href="productivity.html">transcript_productivity()</a></code> table; join the two by <code>transcript_id</code>.</p>
     </div>
 
     <div class="section level2">
@@ -125,15 +127,17 @@ fetches the frozen <code>appris_domains</code> dataset.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed on to methods.</p></dd>
+<dd><p>Not used; reserved for methods.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A tibble with one row per transcript: <code>n_domains_canonical</code>,
-<code>n_retained</code>, <code>n_partial</code>, <code>n_lost</code>, <code>domains_lost</code> (Pfam names) and
-<code>domain_retention_fraction</code> (<code>NA</code> when the canonical isoform has no
-domain).</p>
+    <p>A tibble with one row per transcript: <code>transcript_id</code>,
+<code>transcript_name</code>, <code>gene_id</code>, <code>gene_name</code>, <code>canonical_transcript_id</code>,
+<code>in_domain_table</code> (<code>TRUE</code> when the isoform itself is in the domain
+table), <code>n_domains_canonical</code>, <code>n_retained</code>, <code>n_partial</code>, <code>n_lost</code>,
+<code>domains_lost</code> (Pfam names) and <code>domain_retention_fraction</code> (<code>NA</code> when
+the canonical isoform has no domain).</p>
     </div>
 
     <div class="section level2">

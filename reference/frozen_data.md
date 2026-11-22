@@ -99,8 +99,9 @@ bundle_frozen_data(
 - verify:
 
   Logical, check the MD5 of the file against the registry (default
-  `TRUE`; a mismatch is a warning, since a rebuilt file from a newer
-  source is still usable).
+  `TRUE`). A downloaded file that does not match is discarded and the
+  next mirror is tried; for a cached or rebuilt file a mismatch is a
+  warning, since a file rebuilt from a newer source is still usable.
 
 - mirrors:
 

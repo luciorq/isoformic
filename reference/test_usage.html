@@ -91,7 +91,8 @@ Simes' test keeps its error rate."><meta property="og:image" content="https://lu
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -103,6 +104,7 @@ Simes' test keeps its error rate."><meta property="og:image" content="https://lu
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -216,7 +218,7 @@ groups are ignored. <code>NULL</code> takes all the levels of <code>group</code>
 <dd><p>The comparisons to test: <code>NULL</code> (default) compares every
 level with the first one; <code>"pairwise"</code> tests every pair of levels (the
 later level against the earlier one); <code>"omnibus"</code> tests whether usage
-differs among any of the groups (see Details); otherwise a list of
+differs among any of the groups (see Description); otherwise a list of
 <code>c(numerator, denominator)</code> pairs of levels, or one such pair. With two
 levels the default is the single contrast second against first.</p></dd>
 
@@ -227,15 +229,20 @@ installed.</p></dd>
 
 
 <dt id="arg-assay">assay<a class="anchor" aria-label="anchor" href="#arg-assay"></a></dt>
-<dd><p>Counts assay to test.</p></dd>
+<dd><p>Counts assay to test (default <code>"counts"</code>).</p></dd>
 
 
 <dt id="arg-scale">scale<a class="anchor" aria-label="anchor" href="#arg-scale"></a></dt>
 <dd><p>Logical, divide the counts by the overdispersion of the
-replicates. <code>NULL</code> (default) does it when the object has replicates. In
-a read-split experiment (technical replicates of the same libraries, see
-the uncertainty article) this removed most false positives of <code>"diffsplice"</code>
-and <code>"DEXSeq"</code> and made their calls reproducible, so keep it on.</p></dd>
+replicates. <code>NULL</code> (default) does it when the object has replicates.
+Between technical halves of the same libraries (read-split experiment,
+see the uncertainty article) it removed most false positives of
+<code>"diffsplice"</code> and <code>"DEXSeq"</code>, and their calls kept their direction in
+the other half. In a biological null of control placentas (see the
+uncertainty evidence article) the gain was smaller and depended on the
+method: <code>"diffsplice"</code> gained mainly at 5 samples per group, <code>"satuRn"</code>
+showed no detectable difference, and <code>"DEXSeq"</code> made fewer but still
+many false calls either way.</p></dd>
 
 
 <dt id="arg-min-count-min-prop">min_count, min_prop<a class="anchor" aria-label="anchor" href="#arg-min-count-min-prop"></a></dt>
@@ -243,8 +250,12 @@ and <code>"DEXSeq"</code> and made their calls reproducible, so keep it on.</p><
 
 
 <dt id="arg-workers">workers<a class="anchor" aria-label="anchor" href="#arg-workers"></a></dt>
-<dd><p>Number of workers for <code>satuRn</code> and <code>DEXSeq</code> (parallel on
-Unix-like systems).</p></dd>
+<dd><p>Number of workers for <code>satuRn</code> and <code>DEXSeq</code>: a whole
+number of at least 1 or <code>"auto"</code> for <code><a href="https://parallelly.futureverse.org/reference/availableCores.html" class="external-link">parallelly::availableCores()</a></code>,
+checked as in <code><a href="enrichment.html">run_enrichment()</a></code> (default 1). Above 1 they run on
+<code><a href="https://rdrr.io/pkg/BiocParallel/man/MulticoreParam-class.html" class="external-link">BiocParallel::MulticoreParam()</a></code> forked workers on Unix-like systems
+(serial elsewhere); this argument does not read the <code>isoformic.workers</code>
+option, which sets the <code>mirai</code> daemons of the enrichment functions.</p></dd>
 
 
 <dt id="arg-gene-name">gene_name<a class="anchor" aria-label="anchor" href="#arg-gene-name"></a></dt>
@@ -253,7 +264,7 @@ applied after the test.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Unused.</p></dd>
+<dd><p>Not used; reserved for methods.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -292,7 +303,7 @@ from RNA-seq data. <em>Genome Research</em> 22:2008-2017.</p>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> control vs preeclampsia </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     164 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                     111 </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

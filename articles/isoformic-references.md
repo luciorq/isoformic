@@ -151,6 +151,6 @@ sessionInfo()
 #> loaded via a namespace (and not attached):
 #>  [1] compiler_4.6.2  fastmap_1.2.0   cli_3.6.6       tools_4.6.2    
 #>  [5] htmltools_0.5.9 otel_0.3.0      yaml_2.3.12     rmarkdown_2.32 
-#>  [9] knitr_1.52      S7_0.2.2        jsonlite_2.0.0  xfun_0.62      
+#>  [9] knitr_1.52      S7_1.0.0        jsonlite_2.0.0  xfun_0.62      
 #> [13] digest_0.6.39   rlang_1.3.0     evaluate_1.0.5
 ```

@@ -9,37 +9,44 @@ runs when a frozen file cannot be downloaded, and what
 `data-raw/build_frozen_data.R` runs to publish a new version. The
 resulting tables:
 
-- `build_frozen_appris()`: one row per transcript with
+- `build_frozen_appris()`: one row per transcript (`transcript_id`,
+  `gene_id`, `gene_name`, `translation_id`, `transcript_type`) with
   `appris_annotation` (`PRINCIPAL:1` to `ALTERNATIVE:2`, `MINOR`),
+  `appris_principal` (`TRUE` for the `PRINCIPAL` labels),
   `appris_score`, the method scores (`firestar_residues`,
   `matador_structure`, `corsair_conservation`, `spade_domain_score`,
   `thump_tm_helices`, `crash_signal`, `trifid_score`), `protein_length`,
   `ccds_id` and `mane` label.
 
 - `build_frozen_appris_domains()`: one row per Pfam domain per
-  transcript with its genomic span (`seqid`, `start_pos`, `end_pos`,
-  `strand`), `pfam_acc`, `pfam_name`, `evalue`, `pep_start`, `pep_end`.
+  transcript (`transcript_id`, `gene_id`) with its genomic span
+  (`seqid`, `start_pos`, `end_pos`, `strand`), `score`, `pfam_acc`,
+  `pfam_name`, `evalue`, `pep_start`, `pep_end`.
 
-- `build_frozen_riboseq_orfs()`: one row per Ribo-seq ORF with `phase`,
-  genomic span, `block_starts`/`block_ends` (1-based, `;`-separated),
-  `orf_type`, `gene_id`, `gene_name`, `transcript_ids` (compatible
-  transcripts, phase 1 only), `replicated` and `studies`.
+- `build_frozen_riboseq_orfs()`: one row per Ribo-seq ORF with `orf_id`,
+  `phase`, genomic span, `n_blocks`, `block_starts`/`block_ends`
+  (1-based, `;`-separated), `orf_type`, `gene_id`, `gene_name`,
+  `transcript_biotype`, `transcript_ids` (compatible transcripts),
+  `replicated`, `studies` and `protein`. `orf_type`, `gene_id`,
+  `transcript_ids`, `replicated`, `studies` and `protein` are `NA` for
+  the phase 2 ORFs.
 
 - `build_frozen_nmd_exons()`: one row per validated NMD-inducing exon
   with `seqid`, `start_pos`, `end_pos`, `strand`, the flanking exons,
   `nmd_transcript_ids`, `non_nmd_transcript_ids`, `gene_id`,
-  `gene_name`. Reading the supplementary spreadsheet needs the `readxl`
-  package.
+  `gene_name`, `source`. Reading the supplementary spreadsheet needs the
+  `readxl` package.
 
 - `build_frozen_polyasite()`: one row per poly(A) site cluster with
-  `seqid`, `start_pos`, `end_pos`, `cleavage_pos`, `strand`, `tpm`,
-  `frac_samples`, `n_protocols`, `site_class` (TE terminal exon, EX
-  exon, IN intron, DS downstream, AE/AI/AU antisense, IG intergenic) and
-  `signals`.
+  `site_id`, `seqid`, `start_pos`, `end_pos`, `cleavage_pos`, `strand`,
+  `tpm`, `frac_samples`, `n_protocols`, `site_class` (TE terminal exon,
+  EX exon, IN intron, DS downstream, AE/AI/AU antisense, IG intergenic)
+  and `signals`.
 
-- `build_frozen_gtex()`: one row per transcript and tissue with
-  `median_tpm` and `n_samples` (GTEx v8, RSEM transcript TPM;
-  identifiers are GENCODE v26, stored without version).
+- `build_frozen_gtex()`: one row per transcript and tissue
+  (`transcript_id`, `gene_id`, `tissue`) with `median_tpm` and
+  `n_samples` (GTEx v8, RSEM transcript TPM; identifiers are GENCODE
+  v26, stored without version).
 
 ## Usage
 

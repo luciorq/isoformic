@@ -2,10 +2,11 @@
 
 Default colour palette for transcript types: the GENCODE/Ensembl
 biotypes used by the workflow, the `gene` level, generic labels for
-annotations without biotypes (`unknown`, `novel`) and the SQANTI3
+annotations without biotypes (`unknown`, `novel`), the SQANTI3
 structural categories assigned by
 [`add_sqanti_classification()`](https://luciorq.github.io/isoformic/reference/add_sqanti_classification.md)
-to long-read transcript catalogs.
+to long-read transcript catalogs and the FANTOM CAT gene classes
+(`coding_mRNA`, `lncRNA_intergenic`, ...).
 
 ## Usage
 

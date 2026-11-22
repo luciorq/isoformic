@@ -29,7 +29,8 @@ run_terminus(
 
 - paths:
 
-  Salmon output directories (or paths to their `quant.sf`).
+  Salmon output directories (or paths to their `quant.sf`); Oarfish
+  output is not accepted.
 
 - output_dir:
 

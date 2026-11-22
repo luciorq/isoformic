@@ -24,22 +24,24 @@ article each:
 - [Quantification
   uncertainty](https://luciorq.github.io/isoformic/articles/isoformic-uncertainty.md):
   how well the reads determine each isoform, which isoforms cannot be
-  told apart and how confident each differential expression call is.
+  told apart and how stable the direction of each differential
+  expression call is over the replicates.
 - [What makes an isoform hard to
   quantify?](https://luciorq.github.io/isoformic/articles/isoformic-quantification-stability.md):
-  which isoforms the reads leave uncertain, why, and how many Gibbs
-  draws are enough.
+  which isoforms the reads leave uncertain, why, and how far 30 Gibbs
+  draws can be trusted to measure it.
 - [Isoform structure and
   productivity](https://luciorq.github.io/isoformic/articles/isoformic-productivity.md):
   open reading frames, nonsense-mediated decay, productive fractions,
   poison exons and external evidence.
 - [Alternative
   polyadenylation](https://luciorq.github.io/isoformic/articles/isoformic-polyadenylation.md):
-  3’ end usage and 3’ UTR length.
+  3’ end usage, 3’ UTR length and gene set enrichment on their change.
 - [Functional enrichment by transcript
   type](https://luciorq.github.io/isoformic/articles/isoformic-enrichment.md):
   gene set enrichment run separately for coding and unproductive
-  transcripts.
+  transcripts, with a choice of ranking statistic and of gene set
+  collections.
 - [Plots](https://luciorq.github.io/isoformic/articles/isoformic-plots.md):
   fold-change, expression profile and genomic context plots.
 - [Other
@@ -53,6 +55,12 @@ article each:
 To start from Salmon output instead of ready-made tables, see [From
 Salmon quantifications to an
 IsoformicExperiment](https://luciorq.github.io/isoformic/articles/isoformic-preprocess.md).
+Two case studies apply the workflow to complete public datasets:
+[chronic stress in the mouse
+brain](https://luciorq.github.io/isoformic/articles/isoformic-case-mouse-stress.md)
+(short reads, Salmon) and [a splicing kinase inhibitor in nanopore long
+reads](https://luciorq.github.io/isoformic/articles/isoformic-case-long-reads.md)
+(Oarfish).
 
 ### The data
 
@@ -60,51 +68,47 @@ The examples use the placenta RNA-seq dataset from [“Landscape of
 Dysregulated Placental RNA Editing Associated With
 Preeclampsia”](https://pubmed.ncbi.nlm.nih.gov/32306769/): 8
 preeclamptic and 17 control placentas quantified with Salmon ([Patro et
-al. 2017](#ref-salmon)) against GENCODE v33 and tested for differential
-expression at the transcript level with `swish` ([Zhu et al.
-2019](#ref-swish)) and at the gene level with `DESeq2`. The tables ship
-with the package as Parquet files.
+al. 2017](#ref-salmon)) against GENCODE v50 and tested for differential
+expression with `swish` ([Zhu et al. 2019](#ref-swish)) on the 30 Gibbs
+draws, at the transcript level and at the gene level (counts and draws
+summed over the isoforms of each gene). The tables are Parquet files in
+the [source
+repository](https://github.com/luciorq/isoformic/tree/main/vignettes/articles/data/preeclampsia)
+of the package, under `vignettes/articles/data/preeclampsia/`: they are
+too large to install with the package, so the code below reads them from
+that directory, relative to the article. The abundance table holds the
+TPM of the 126,670 transcripts tested by `swish`, the same ones as the
+transcript-level results; the other transcripts of each gene come from
+the annotation.
 
 ``` r
 
 library(isoformic)
 library(dplyr)
 
-extdata <- fs::path_package("isoformic", "extdata")
-fs::dir_ls(extdata)
-#> /home/runner/work/_temp/Library/isoformic/extdata/c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt
-#> /home/runner/work/_temp/Library/isoformic/extdata/coding_model
-#> /home/runner/work/_temp/Library/isoformic/extdata/example.gff3
-#> /home/runner/work/_temp/Library/isoformic/extdata/example_experiment
-#> /home/runner/work/_temp/Library/isoformic/extdata/example_transcripts.fa.gz
-#> /home/runner/work/_temp/Library/isoformic/extdata/knockdown
-#> /home/runner/work/_temp/Library/isoformic/extdata/knockdown_annotation
-#> /home/runner/work/_temp/Library/isoformic/extdata/mini_annotation
-#> /home/runner/work/_temp/Library/isoformic/extdata/mini_draws.parquet
-#> /home/runner/work/_temp/Library/isoformic/extdata/mini_quants
-#> /home/runner/work/_temp/Library/isoformic/extdata/oarfish
-#> /home/runner/work/_temp/Library/isoformic/extdata/oarfish_sc
-#> /home/runner/work/_temp/Library/isoformic/extdata/pe_abundance.parquet
-#> /home/runner/work/_temp/Library/isoformic/extdata/pe_col_data.parquet
-#> /home/runner/work/_temp/Library/isoformic/extdata/pe_deg.parquet
-#> /home/runner/work/_temp/Library/isoformic/extdata/pe_det.parquet
-#> /home/runner/work/_temp/Library/isoformic/extdata/reactome_subset.gmt
+data_dir <- "data/preeclampsia"
+fs::dir_ls(data_dir)
+#> data/preeclampsia/c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt
+#> data/preeclampsia/pe_abundance.parquet
+#> data/preeclampsia/pe_col_data.parquet
+#> data/preeclampsia/pe_deg.parquet
+#> data/preeclampsia/pe_det.parquet
 ```
 
 ``` r
 
-abundance <- read_parquet(fs::path(extdata, "pe_abundance.parquet"))
-col_data <- read_parquet(fs::path(extdata, "pe_col_data.parquet"))
-det <- read_parquet(fs::path(extdata, "pe_det.parquet"))
-deg <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+abundance <- read_parquet(fs::path(data_dir, "pe_abundance.parquet"))
+col_data <- read_parquet(fs::path(data_dir, "pe_col_data.parquet"))
+det <- read_parquet(fs::path(data_dir, "pe_det.parquet"))
+deg <- read_parquet(fs::path(data_dir, "pe_deg.parquet"))
 
 abundance[1:3, 1:4]
 #> # A tibble: 3 × 4
 #>   transcript_id     SRR11498039 SRR11498040 SRR11498041
 #>   <chr>                   <dbl>       <dbl>       <dbl>
-#> 1 ENST00000456328.2        6.17         0          4.49
-#> 2 ENST00000488147.1       94.0        241.       295.  
-#> 3 ENST00000466430.5       30.4         49.4       21.5
+#> 1 ENST00000832823.1        0          0          21.4  
+#> 2 ENST00000831746.1        4.52       0.437       7.10 
+#> 3 ENST00000831361.1        0          0           0.343
 col_data
 #> # A tibble: 25 × 2
 #>    sample_id   condition   
@@ -122,31 +126,31 @@ col_data
 #> # ℹ 15 more rows
 head(det)
 #> # A tibble: 6 × 4
-#>   transcript_id      log2FC  pvalue qvalue
-#>   <chr>               <dbl>   <dbl>  <dbl>
-#> 1 ENST00000456328.2 -0.692  0.0199  0.0940
-#> 2 ENST00000488147.1  0.0731 0.652   0.812 
-#> 3 ENST00000466430.5 -0.146  0.364   0.590 
-#> 4 ENST00000442987.3 -0.183  0.0841  0.242 
-#> 5 ENST00000494149.2 -0.728  0.00599 0.0420
-#> 6 ENST00000595919.1 -0.0789 0.951   0.977
+#>   transcript_id      log2FC pvalue qvalue
+#>   <chr>               <dbl>  <dbl>  <dbl>
+#> 1 ENST00000832823.1 -0.265  0.191   0.441
+#> 2 ENST00000831746.1 -0.605  0.0245  0.131
+#> 3 ENST00000831361.1 -0.119  0.636   0.819
+#> 4 ENST00000831289.1  0.0349 0.905   0.959
+#> 5 ENST00000831275.1 -0.168  0.710   0.861
+#> 6 ENST00000831218.1  0.0995 0.958   0.982
 head(deg)
 #> # A tibble: 6 × 7
 #>   gene_id            log10mean  stat  log2FC pvalue locfdr qvalue
 #>   <chr>                  <dbl> <dbl>   <dbl>  <dbl>  <dbl>  <dbl>
-#> 1 ENSG00000000003.15      2.40 -31.0 -0.320  0.0485  0.470  0.125
-#> 2 ENSG00000000005.6       1.11  25.4  0.381  0.107   0.798  0.222
-#> 3 ENSG00000000419.12      2.45 -17.8 -0.0693 0.260   1      0.417
-#> 4 ENSG00000000457.14      2.52  13.8  0.107  0.386   1      0.547
-#> 5 ENSG00000000460.17      1.95  19.1  0.162  0.229   1      0.380
-#> 6 ENSG00000000938.13      1.70 -22.2 -0.162  0.160   1      0.296
+#> 1 ENSG00000000003.18      2.44  -8.1 -0.0865 0.608   1      0.791
+#> 2 ENSG00000000005.7       1.30  25.2  0.471  0.111   0.750  0.305
+#> 3 ENSG00000000419.16      2.60  12.7  0.0415 0.423   1      0.652
+#> 4 ENSG00000000457.16      2.54  27    0.193  0.0884  0.660  0.266
+#> 5 ENSG00000000460.19      2.15  23.7  0.198  0.134   0.828  0.342
+#> 6 ENSG00000000938.15      1.97 -21.0 -0.154  0.186   0.976  0.411
 ```
 
 ### The annotation
 
 `isoformic` relies on the transcript types of the
 [GENCODE](https://www.gencodegenes.org/human/) annotation. The
-annotation must be the one used for quantification, here GENCODE v33.
+annotation must be the one used for quantification, here GENCODE v50.
 [`download_reference()`](https://luciorq.github.io/isoformic/reference/download_reference.md)
 fetches it into the package cache (this step needs an internet
 connection the first time) and
@@ -155,19 +159,18 @@ converts the GFF3 file, once, into a directory of Parquet tables.
 
 ``` r
 
-gff_file <- download_reference(version = "33", file_type = "gff")
-#> ℹ '/home/runner/.cache/R/isoformic/gencode.v33.chr_patch_hapl_scaff.annotation.gff3.gz'
+gff_file <- download_reference(version = "50", file_type = "gff")
+#> ℹ '/home/runner/.cache/R/isoformic/gencode.v50.chr_patch_hapl_scaff.annotation.gff3.gz'
 #>   already exists.
 annot_dir <- prepare_isoformic_annotation(gff_file)
 #> ℹ Using cached annotation directory
-#>   '/home/runner/.cache/R/isoformic/gencode_v33_chr_patch_hapl_scaff_annotation_gff3'.
+#>   '/home/runner/.cache/R/isoformic/gencode_v50_chr_patch_hapl_scaff_annotation_gff3'.
 fs::dir_ls(annot_dir)
-#> /home/runner/.cache/R/isoformic/gencode_v33_chr_patch_hapl_scaff_annotation_gff3/annot_data_exons.parquet
-#> /home/runner/.cache/R/isoformic/gencode_v33_chr_patch_hapl_scaff_annotation_gff3/annot_data_genes.parquet
-#> /home/runner/.cache/R/isoformic/gencode_v33_chr_patch_hapl_scaff_annotation_gff3/annot_data_sequences.parquet
-#> /home/runner/.cache/R/isoformic/gencode_v33_chr_patch_hapl_scaff_annotation_gff3/annot_data_transcripts.parquet
-#> /home/runner/.cache/R/isoformic/gencode_v33_chr_patch_hapl_scaff_annotation_gff3/annot_metadata.parquet
-#> /home/runner/.cache/R/isoformic/gencode_v33_chr_patch_hapl_scaff_annotation_gff3/annot_seq_regions.parquet
+#> /home/runner/.cache/R/isoformic/gencode_v50_chr_patch_hapl_scaff_annotation_gff3/annot_data_exons.parquet
+#> /home/runner/.cache/R/isoformic/gencode_v50_chr_patch_hapl_scaff_annotation_gff3/annot_data_genes.parquet
+#> /home/runner/.cache/R/isoformic/gencode_v50_chr_patch_hapl_scaff_annotation_gff3/annot_data_transcripts.parquet
+#> /home/runner/.cache/R/isoformic/gencode_v50_chr_patch_hapl_scaff_annotation_gff3/annot_metadata.parquet
+#> /home/runner/.cache/R/isoformic/gencode_v50_chr_patch_hapl_scaff_annotation_gff3/annot_seq_regions.parquet
 ```
 
 The tables can be inspected with
@@ -180,9 +183,9 @@ read_parquet(fs::path(annot_dir, "annot_data_transcripts.parquet"), n_max = 3)
 #> # A tibble: 3 × 21
 #>   transcript_id     transcript_name transcript_type gene_id       source_gene_id
 #>   <chr>             <chr>           <chr>           <chr>         <chr>         
-#> 1 ENST00000618686.1 BX004987.1-201  protein_coding  ENSG00000278… <NA>          
-#> 2 ENST00000613230.1 AC145212.1-201  protein_coding  ENSG00000277… <NA>          
-#> 3 ENST00000400754.4 MAFIP-201       protein_coding  ENSG00000274… <NA>          
+#> 1 ENST00000741402.1 ENST00000741402 lncRNA          ENSG00000296… <NA>          
+#> 2 ENST00000741407.1 ENST00000741407 lncRNA          ENSG00000296… <NA>          
+#> 3 ENST00000741435.1 ENST00000741435 lncRNA          ENSG00000296… <NA>          
 #> # ℹ 16 more variables: source_transcript_id <chr>, tags <chr>,
 #> #   coding_status <chr>, transcript_support_level <chr>, tie_score <dbl>,
 #> #   cds_start <int>, cds_end <int>, cds_length <int>, is_canonical <lgl>,
@@ -209,9 +212,9 @@ iso <- IsoformicExperiment(
 )
 iso
 #> <IsoformicExperiment> preeclampsia_placenta
-#>   annotation : gencode_v33_chr_patch_hapl_scaff_annotation_gff3 (67,017 genes, 248,882 transcripts, 1,497,350 exons)
+#>   annotation : gencode_v50_chr_patch_hapl_scaff_annotation_gff3 (86,411 genes, 670,670 transcripts, 5,227,964 exons)
 #>   samples    : 25 [condition]
-#>   transcripts: 72,385 assayed from 21,637 genes
+#>   transcripts: 126,670 assayed from 20,985 genes
 #>   assays     : abundance
 #>   gene assays: derived from transcript assays on demand
 #>   DE results : <none>
@@ -222,22 +225,22 @@ The object behaves like a `SummarizedExperiment`:
 ``` r
 
 dim(iso)
-#> [1] 72385    25
-assay(iso, "abundance")[1:3, 1:3]
+#> [1] 126670     25
+tx_assay(iso, "abundance")[1:3, 1:3]
 #>                   SRR11498039 SRR11498040 SRR11498041
-#> ENST00000456328.2       6.168       0.000       4.494
-#> ENST00000488147.1      93.959     240.922     295.194
-#> ENST00000466430.5      30.399      49.359      21.525
+#> ENST00000832823.1    0.000000    0.000000   21.371838
+#> ENST00000831746.1    4.517379    0.436699    7.103105
+#> ENST00000831361.1    0.000000    0.000000    0.342551
 head(row_data(iso))
 #> # A tibble: 6 × 19
-#>   transcript_id     transcript_name transcript_type  gene_id gene_name gene_type
-#>   <chr>             <chr>           <chr>            <chr>   <chr>     <chr>    
-#> 1 ENST00000456328.2 DDX11L1-202     processed_trans… ENSG00… DDX11L1   transcri…
-#> 2 ENST00000488147.1 WASH7P-201      unprocessed_pse… ENSG00… WASH7P    unproces…
-#> 3 ENST00000466430.5 AL627309.1-201  lncRNA           ENSG00… AL627309… lncRNA   
-#> 4 ENST00000442987.3 CICP27-201      processed_pseud… ENSG00… CICP27    processe…
-#> 5 ENST00000494149.2 AL627309.6-201  processed_pseud… ENSG00… AL627309… processe…
-#> 6 ENST00000595919.1 AL627309.7-201  processed_pseud… ENSG00… AL627309… processe…
+#>   transcript_id     transcript_name transcript_type gene_id  gene_name gene_type
+#>   <chr>             <chr>           <chr>           <chr>    <chr>     <chr>    
+#> 1 ENST00000832823.1 DDX11L16-259    lncRNA          ENSG000… DDX11L16  lncRNA   
+#> 2 ENST00000831746.1 WASH7P-484      lncRNA          ENSG000… WASH7P    lncRNA   
+#> 3 ENST00000831361.1 WASH7P-278      lncRNA          ENSG000… WASH7P    lncRNA   
+#> 4 ENST00000831289.1 WASH7P-249      lncRNA          ENSG000… WASH7P    lncRNA   
+#> 5 ENST00000831275.1 WASH7P-244      lncRNA          ENSG000… WASH7P    lncRNA   
+#> 6 ENST00000831218.1 WASH7P-224      lncRNA          ENSG000… WASH7P    lncRNA   
 #> # ℹ 13 more variables: source_gene_id <chr>, source_transcript_id <chr>,
 #> #   tags <chr>, coding_status <chr>, transcript_support_level <chr>,
 #> #   tie_score <dbl>, cds_start <int>, cds_end <int>, cds_length <int>,
@@ -259,9 +262,9 @@ col_data(iso)
 #> # ℹ 15 more rows
 iso[1:5, 1:3]
 #> <IsoformicExperiment> preeclampsia_placenta
-#>   annotation : gencode_v33_chr_patch_hapl_scaff_annotation_gff3 (67,017 genes, 248,882 transcripts, 1,497,350 exons)
+#>   annotation : gencode_v50_chr_patch_hapl_scaff_annotation_gff3 (86,411 genes, 670,670 transcripts, 5,227,964 exons)
 #>   samples    : 3 [condition]
-#>   transcripts: 5 assayed from 5 genes
+#>   transcripts: 5 assayed from 2 genes
 #>   assays     : abundance
 #>   gene assays: derived from transcript assays on demand
 #>   DE results : <none>
@@ -274,9 +277,9 @@ gene and cached.
 
 gene_assay(iso, "abundance")[1:3, 1:3]
 #>                    SRR11498039 SRR11498040 SRR11498041
-#> ENSG00000000003.15     249.107     260.237     225.292
-#> ENSG00000000005.6       10.000      14.000      18.000
-#> ENSG00000000419.12     300.484     278.667     264.840
+#> ENSG00000000003.18   14.213808   16.588492   11.627883
+#> ENSG00000000005.7     0.699687    0.996592    1.166971
+#> ENSG00000000419.16   30.235937   30.721446   25.944463
 head(gene_data(iso))
 #> # A tibble: 6 × 14
 #>   gene_id   gene_name gene_type source_gene_id gene_class gene_category dhs_type
@@ -285,7 +288,7 @@ head(gene_data(iso))
 #> 2 ENSG0000… TNMD      protein_… <NA>           <NA>       <NA>          <NA>    
 #> 3 ENSG0000… DPM1      protein_… <NA>           <NA>       <NA>          <NA>    
 #> 4 ENSG0000… SCYL3     protein_… <NA>           <NA>       <NA>          <NA>    
-#> 5 ENSG0000… C1orf112  protein_… <NA>           <NA>       <NA>          <NA>    
+#> 5 ENSG0000… FIRRM     protein_… <NA>           <NA>       <NA>          <NA>    
 #> 6 ENSG0000… FGR       protein_… <NA>           <NA>       <NA>          <NA>    
 #> # ℹ 7 more variables: coding_status <chr>, cumulative_support <chr>,
 #> #   haplotype <chr>, seqid <chr>, start_pos <int>, end_pos <int>, strand <chr>
@@ -315,24 +318,24 @@ de_cutoffs(iso)
 
 head(de_tx(iso, sig_only = TRUE))
 #> # A tibble: 6 × 5
-#>   transcript_id     log2FC      pvalue    qvalue det_sig
-#>   <chr>              <dbl>       <dbl>     <dbl> <chr>  
-#> 1 ENST00000334433.7  -8.65 0.000000138 0.0000236 yes    
-#> 2 ENST00000084795.9  -8.23 0.000000138 0.0000236 yes    
-#> 3 ENST00000601306.1  -8.02 0.0000710   0.00188   yes    
-#> 4 ENST00000525681.5  -7.57 0.000267    0.00489   yes    
-#> 5 ENST00000392177.8  -7.35 0.000115    0.00267   yes    
-#> 6 ENST00000579374.5  -7.17 0.000000138 0.0000236 yes
+#>   transcript_id     log2FC       pvalue    qvalue det_sig
+#>   <chr>              <dbl>        <dbl>     <dbl> <chr>  
+#> 1 ENST00001096014.1  -7.07 0.0000000789 0.0000198 yes    
+#> 2 ENST00000601306.1  -6.98 0.0000000789 0.0000198 yes    
+#> 3 ENST00000948415.2   6.85 0.0000635    0.00218   yes    
+#> 4 ENST00000670617.1  -6.75 0.0000000789 0.0000198 yes    
+#> 5 ENST00000308868.5   6.73 0.0000000789 0.0000198 yes    
+#> 6 ENST00000965599.2   6.42 0.0000000789 0.0000198 yes
 head(de_gene(iso, sig_only = TRUE))
 #> # A tibble: 6 × 8
 #>   gene_id            log10mean  stat log2FC      pvalue   locfdr  qvalue deg_sig
 #>   <chr>                  <dbl> <dbl>  <dbl>       <dbl>    <dbl>   <dbl> <chr>  
-#> 1 ENSG00000174697.5       3.96  68     6.51 0.000000462  5.48e-5 2.58e-5 yes    
-#> 2 ENSG00000070404.10      4.20  68     5.23 0.000000462  5.48e-5 2.58e-5 yes    
-#> 3 ENSG00000169495.5       3.76  68     4.50 0.000000462  5.48e-5 2.58e-5 yes    
-#> 4 ENSG00000196136.18      1.99  53.6   3.72 0.000263     9.92e-3 2.55e-3 yes    
-#> 5 ENSG00000104827.12      4.34  68     3.65 0.000000462  5.48e-5 2.58e-5 yes    
-#> 6 ENSG00000232434.2       2.28  67.0   3.53 0.000000462  5.48e-5 2.58e-5 yes
+#> 1 ENSG00000174697.7       3.97  68     6.58 0.000000451 0.000450 3.57e-4 yes    
+#> 2 ENSG00000070404.12      4.13  68     4.85 0.000000451 0.000450 3.57e-4 yes    
+#> 3 ENSG00000169495.6       3.73  68     4.40 0.000000451 0.000450 3.57e-4 yes    
+#> 4 ENSG00000102755.15      4.67  64.6   3.47 0.0000135   0.00285  1.38e-3 yes    
+#> 5 ENSG00000298257.1       2.39  66.7   3.41 0.00000361  0.00125  7.48e-4 yes    
+#> 6 ENSG00000282810.1       2.12  54.1   3.25 0.000489    0.0260   1.10e-2 yes
 ```
 
 [`de_table()`](https://luciorq.github.io/isoformic/reference/dea.md)
@@ -343,21 +346,21 @@ what the plots consume.
 
 de_table(iso) |>
   filter(gene_name == "RBPJ")
-#> # A tibble: 11 × 9
-#>    feature_id        feature_name feature_type gene_id gene_name  log2FC  pvalue
-#>    <chr>             <chr>        <chr>        <chr>   <chr>       <dbl>   <dbl>
-#>  1 ENSG00000168214.… RBPJ         gene         ENSG00… RBPJ      -0.333  1.04e-2
-#>  2 ENST00000355476.7 RBPJ-205     protein_cod… ENSG00… RBPJ       1.78   4.46e-5
-#>  3 ENST00000507561.5 RBPJ-214     protein_cod… ENSG00… RBPJ      -1.49   2.90e-2
-#>  4 ENST00000342295.5 RBPJ-201     protein_cod… ENSG00… RBPJ       0.671  7.83e-1
-#>  5 ENST00000348160.8 RBPJ-204     protein_cod… ENSG00… RBPJ       0.644  1.20e-2
-#>  6 ENST00000505727.1 RBPJ-210     retained_in… ENSG00… RBPJ      -0.508  7.23e-2
-#>  7 ENST00000342320.8 RBPJ-202     protein_cod… ENSG00… RBPJ      -0.503  1.26e-5
-#>  8 ENST00000514380.5 RBPJ-225     retained_in… ENSG00… RBPJ       0.498  9.92e-2
-#>  9 ENST00000504907.5 RBPJ-208     protein_cod… ENSG00… RBPJ      -0.0816 8.37e-1
-#> 10 ENST00000361572.… RBPJ-206     protein_cod… ENSG00… RBPJ      -0.0791 9.67e-1
-#> 11 ENST00000512351.5 RBPJ-222     protein_cod… ENSG00… RBPJ      -0.0429 5.39e-1
-#> # ℹ 2 more variables: qvalue <dbl>, is_de <chr>
+#> # A tibble: 25 × 9
+#>    feature_id  feature_name feature_type gene_id gene_name log2FC  pvalue qvalue
+#>    <chr>       <chr>        <chr>        <chr>   <chr>      <dbl>   <dbl>  <dbl>
+#>  1 ENSG000001… RBPJ         gene         ENSG00… RBPJ      -0.129 0.220   0.453 
+#>  2 ENST000003… RBPJ-202     protein_cod… ENSG00… RBPJ      -0.805 0.0740  0.257 
+#>  3 ENST000003… RBPJ-204     protein_cod… ENSG00… RBPJ       0.772 0.00786 0.0624
+#>  4 ENST000005… RBPJ-210     retained_in… ENSG00… RBPJ      -0.757 0.00303 0.0328
+#>  5 ENST000005… RBPJ-216     protein_cod… ENSG00… RBPJ      -0.641 0.0744  0.258 
+#>  6 ENST000006… RBPJ-239     nonsense_me… ENSG00… RBPJ      -0.609 0.133   0.361 
+#>  7 ENST000006… RBPJ-243     retained_in… ENSG00… RBPJ      -0.483 0.0992  0.305 
+#>  8 ENST000011… RBPJ-264     protein_cod… ENSG00… RBPJ       0.439 0.0636  0.235 
+#>  9 ENST000006… RBPJ-240     protein_cod… ENSG00… RBPJ      -0.433 0.332   0.592 
+#> 10 ENST000003… RBPJ-203     protein_cod… ENSG00… RBPJ      -0.405 0.270   0.533 
+#> # ℹ 15 more rows
+#> # ℹ 1 more variable: is_de <chr>
 ```
 
 ### A first look
@@ -385,25 +388,25 @@ Parquet files and restored with
 out_dir <- fs::path(tempdir(), "preeclampsia_placenta")
 iso <- write_isoformic(iso, out_dir, overwrite = TRUE)
 iso@data_path
-#> [1] "/tmp/RtmpE0v7Q0/preeclampsia_placenta"
+#> [1] "/tmp/RtmpTuRH2v/preeclampsia_placenta"
 fs::dir_ls(out_dir, recurse = TRUE)
-#> /tmp/RtmpE0v7Q0/preeclampsia_placenta/assays
-#> /tmp/RtmpE0v7Q0/preeclampsia_placenta/assays/abundance.parquet
-#> /tmp/RtmpE0v7Q0/preeclampsia_placenta/col_data.parquet
-#> /tmp/RtmpE0v7Q0/preeclampsia_placenta/dea
-#> /tmp/RtmpE0v7Q0/preeclampsia_placenta/dea/deg.parquet
-#> /tmp/RtmpE0v7Q0/preeclampsia_placenta/dea/det.parquet
-#> /tmp/RtmpE0v7Q0/preeclampsia_placenta/experiment.parquet
-#> /tmp/RtmpE0v7Q0/preeclampsia_placenta/tx_type_palette.parquet
+#> /tmp/RtmpTuRH2v/preeclampsia_placenta/assays
+#> /tmp/RtmpTuRH2v/preeclampsia_placenta/assays/abundance.parquet
+#> /tmp/RtmpTuRH2v/preeclampsia_placenta/col_data.parquet
+#> /tmp/RtmpTuRH2v/preeclampsia_placenta/dea
+#> /tmp/RtmpTuRH2v/preeclampsia_placenta/dea/deg.parquet
+#> /tmp/RtmpTuRH2v/preeclampsia_placenta/dea/det.parquet
+#> /tmp/RtmpTuRH2v/preeclampsia_placenta/experiment.parquet
+#> /tmp/RtmpTuRH2v/preeclampsia_placenta/tx_type_palette.parquet
 read_isoformic(out_dir)
 #> <IsoformicExperiment> preeclampsia_placenta
-#>   annotation : gencode_v33_chr_patch_hapl_scaff_annotation_gff3 (67,017 genes, 248,882 transcripts, 1,497,350 exons)
+#>   annotation : gencode_v50_chr_patch_hapl_scaff_annotation_gff3 (86,411 genes, 670,670 transcripts, 5,227,964 exons)
 #>   samples    : 25 [condition]
-#>   transcripts: 72,385 assayed from 21,637 genes
+#>   transcripts: 126,670 assayed from 20,985 genes
 #>   assays     : abundance
 #>   gene assays: derived from transcript assays on demand
-#>   DE results : det (72,385 transcripts), deg (21,637 genes)
-#>   on disk    : /tmp/RtmpE0v7Q0/preeclampsia_placenta
+#>   DE results : det (126,670 transcripts), deg (22,167 genes)
+#>   on disk    : /tmp/RtmpTuRH2v/preeclampsia_placenta
 ```
 
 Every other article starts from this object; the block below is all it
@@ -412,16 +415,16 @@ takes to rebuild it.
 ``` r
 
 library(isoformic)
-extdata <- fs::path_package("isoformic", "extdata")
-annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+data_dir <- "data/preeclampsia" # vignettes/articles/data/preeclampsia in the source repository
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 iso <- IsoformicExperiment(
   experiment_name = "preeclampsia_placenta",
   annot_path = annot_dir,
-  assays = list(abundance = read_parquet(fs::path(extdata, "pe_abundance.parquet"))),
-  col_data = read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+  assays = list(abundance = read_parquet(fs::path(data_dir, "pe_abundance.parquet"))),
+  col_data = read_parquet(fs::path(data_dir, "pe_col_data.parquet"))
 )
-de_tx(iso) <- read_parquet(fs::path(extdata, "pe_det.parquet"))
-de_gene(iso) <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+de_tx(iso) <- read_parquet(fs::path(data_dir, "pe_det.parquet"))
+de_gene(iso) <- read_parquet(fs::path(data_dir, "pe_deg.parquet"))
 ```
 
 ### Citing isoformic
@@ -459,11 +462,11 @@ sessionInfo()
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6       jsonlite_2.0.0     compiler_4.6.2     crayon_1.5.3      
-#>  [5] tidyselect_1.2.1   scales_1.4.0       yaml_2.3.12        fastmap_1.2.0     
-#>  [9] ggplot2_4.0.4      R6_2.6.1           labeling_0.4.3     generics_0.1.4    
-#> [13] curl_8.1.0         knitr_1.52         tibble_3.3.1       DBI_1.3.0         
+#>  [5] tidyselect_1.2.1   parallel_4.6.2     scales_1.4.0       yaml_2.3.12       
+#>  [9] fastmap_1.2.0      ggplot2_4.0.4      R6_2.6.1           labeling_0.4.3    
+#> [13] generics_0.1.4     knitr_1.52         tibble_3.3.1       DBI_1.3.0         
 #> [17] pillar_1.11.1      RColorBrewer_1.1-3 rlang_1.3.0        utf8_1.2.6        
-#> [21] xfun_0.62          fs_2.1.0           S7_0.2.2           otel_0.3.0        
+#> [21] xfun_0.62          fs_2.1.0           S7_1.0.0           otel_0.3.0        
 #> [25] cli_3.6.6          withr_3.0.3        magrittr_2.0.5     digest_0.6.39     
 #> [29] grid_4.6.2         lifecycle_1.0.5    vctrs_0.7.3        evaluate_1.0.5    
 #> [33] glue_1.8.1         farver_2.1.2       duckdb_2.0.0       rmarkdown_2.32    

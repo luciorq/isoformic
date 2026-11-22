@@ -15,9 +15,9 @@ when only part of the span is covered, and `lost` otherwise.
 
 An `altered_productive` isoform that keeps all domains of the canonical
 protein is a milder event than one that loses a domain; the
-`domain_retention_fraction` column grades this and is included in
+`domain_retention_fraction` column grades this. It is not part of the
 [`transcript_productivity()`](https://luciorq.github.io/isoformic/reference/productivity.md)
-output when the dataset is available.
+table; join the two by `transcript_id`.
 
 ## Usage
 
@@ -43,14 +43,16 @@ domain_retention(self, gene_name = NULL, domains = NULL, ...)
 
 - ...:
 
-  Passed on to methods.
+  Not used; reserved for methods.
 
 ## Value
 
-A tibble with one row per transcript: `n_domains_canonical`,
-`n_retained`, `n_partial`, `n_lost`, `domains_lost` (Pfam names) and
-`domain_retention_fraction` (`NA` when the canonical isoform has no
-domain).
+A tibble with one row per transcript: `transcript_id`,
+`transcript_name`, `gene_id`, `gene_name`, `canonical_transcript_id`,
+`in_domain_table` (`TRUE` when the isoform itself is in the domain
+table), `n_domains_canonical`, `n_retained`, `n_partial`, `n_lost`,
+`domains_lost` (Pfam names) and `domain_retention_fraction` (`NA` when
+the canonical isoform has no domain).
 
 ## Examples
 

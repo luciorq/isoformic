@@ -29,9 +29,10 @@ size and modification time, so a re-created annotation is picked up
 automatically and several objects sharing one annotation share one copy
 of the tables.
 
-Derived results (gene assays, row data, isoform fractions) are cached
-per object in the `.cache` environment, keyed by a hash of their inputs,
-and therefore survive copies but never go stale. See
+Derived results (gene assays, row data, isoform fractions, ORFs,
+transcript features and productivity classes) are cached per object in
+the `.cache` environment, keyed by a hash of their inputs, and therefore
+survive copies but never go stale. See
 [`clear_cache()`](https://luciorq.github.io/isoformic/reference/IsoformicExperiment-accessors.md).
 
 Objects persist to disk as a directory of Parquet files with
@@ -60,7 +61,8 @@ IsoformicExperiment(
 
 - experiment_name:
 
-  Single string naming the experiment.
+  Single string naming the experiment; a random name is generated when
+  `NULL`.
 
 - annot_path:
 
@@ -74,7 +76,8 @@ IsoformicExperiment(
 - col_data:
 
   Data frame of sample metadata with a `sample_id` column (or sample IDs
-  as row names / first column).
+  as row names / first column). `NULL` builds it from the column names
+  of the assays.
 
 - gene_assays:
 
@@ -137,7 +140,9 @@ An `IsoformicExperiment` object.
 - `dea`:
 
   List with differential expression results: `det` (transcripts), `deg`
-  (genes) and `cutoffs`. Use de_tx\<- and de_gene\<- to set them.
+  (genes) and `cutoffs`, and the uncertainty tables of
+  [`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md).
+  Use de_tx\<- and de_gene\<- to set the results.
 
 - `gsea`:
 
@@ -165,22 +170,60 @@ An `IsoformicExperiment` object.
 ## Subsetting
 
 `x[i, j]` keeps the transcripts `i` and the samples `j`, given as IDs,
-positions or logical vectors, and at least one of each. Everything
-stored by transcript or by sample follows: the assays, the sample table,
-stored gene assays (the genes of the kept transcripts) and the
-inferential replicates in `metadata(x)$inf_reps`. The uncertainty tables
-of
+positions or logical vectors; a missing `i` or `j` keeps all of them,
+and the subset must hold at least one transcript and one sample.
+Everything stored by transcript or by sample follows: the assays, the
+sample table, stored gene assays (the genes of the kept transcripts) and
+the inferential replicates in `x@metadata$inf_reps`. The uncertainty
+tables of
 [`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
 are restricted to the kept transcripts (a collapsed ambiguity group
 stays only with all its members); when samples are dropped they are not
 recomputed, and a message says so. Differential expression and
 enrichment results are kept as they are.
 
-A subset holds its own copy of the inferential replicates of the kept
-transcripts and samples. To compare two groups of a larger object, pass
-`levels` to the function instead of subsetting: the samples of the other
-groups are ignored and nothing is copied. A subset with other
-transcripts starts with an empty cache of derived tables.
+The inferential replicates are not copied: the `metadata$inf_reps` of a
+subset holds the draws of `x` and a `selection` attribute, a list with
+the IDs of the kept `transcripts` and `samples`. The functions of the
+package (and
+[`inferential_replicates_table()`](https://luciorq.github.io/isoformic/reference/inferential-io.md))
+read the draws through that selection, and
+[`write_isoformic()`](https://luciorq.github.io/isoformic/reference/isoformic-io.md)
+writes only the selected rows and columns, so the results are those of a
+copy of the kept draws, while the memory of a subset does not grow with
+the draws. The trade-off: the draws of `x` (every transcript and sample)
+stay in memory as long as a subset made from it exists, even after `x`
+itself is removed, and they go with every serialised copy of the subset:
+[`saveRDS()`](https://rdrr.io/r/base/readRDS.html),
+[`serialize()`](https://rdrr.io/r/base/serialize.html) and the objects
+sent to parallel workers that do not share memory (such as `future` or
+`mirai` workers) carry every transcript and sample of the draws of `x`,
+while
+[`write_isoformic()`](https://luciorq.github.io/isoformic/reference/isoformic-io.md)
+writes only the selected ones. Code that indexes the matrices of
+`metadata$inf_reps` directly sees the draws of `x`. A list operation on
+`metadata$inf_reps` (such as
+[`lapply()`](https://rdrr.io/r/base/lapply.html) or `[`) drops the
+`selection` attribute and returns the draws of `x`: the functions that
+take the object still read only its kept transcripts and samples, while
+code that gets only the list, such as
+[`inferential_replicates_table()`](https://luciorq.github.io/isoformic/reference/inferential-io.md)
+without its `x` argument, reads every transcript and sample of `x`. When
+no kept transcript has draws, the subset keeps only the replicate
+moments (with zero-row draws), so that
+[`scale_counts()`](https://luciorq.github.io/isoformic/reference/inferential-overdispersion.md)
+and
+[`inferential_overdispersion()`](https://luciorq.github.io/isoformic/reference/inferential-overdispersion.md)
+still work, but the functions that need the draws treat it as an object
+without inferential replicates; without moments, `metadata$inf_reps` is
+`NULL`. To replace the draws by plain matrices of the kept draws (and
+free those of `x`), write the subset with
+[`write_isoformic()`](https://luciorq.github.io/isoformic/reference/isoformic-io.md)
+and read it back; to drop them, set `metadata$inf_reps <- NULL`. To
+compare two groups of a larger object, pass `levels` to the function
+instead of subsetting: the samples of the other groups are ignored. A
+subset with other transcripts starts with an empty cache of derived
+tables (the transcript annotation join is shared).
 
 ## See also
 
@@ -199,81 +242,81 @@ for the accessor generics.
 iso <- example_isoformic()
 iso
 #> <IsoformicExperiment> pe_placenta_example
-#>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)
+#>   annotation : gencode_v50_example_subset (69 genes, 1,914 transcripts, 18,656 exons)
 #>   samples    : 25 [condition]
-#>   transcripts: 499 assayed from 69 genes
+#>   transcripts: 1,911 assayed from 69 genes
 #>   assays     : abundance, counts
 #>   gene assays: derived from transcript assays on demand
-#>   DE results : det (499 transcripts), deg (69 genes)
+#>   DE results : det (710 transcripts), deg (69 genes)
 dim(iso)
-#> [1] 499  25
+#> [1] 1911   25
 assay_names(iso)
 #> [1] "abundance" "counts"   
 head(row_data(iso))
 #> # A tibble: 6 × 19
-#>   transcript_id     transcript_name transcript_type  gene_id gene_name gene_type
-#>   <chr>             <chr>           <chr>            <chr>   <chr>     <chr>    
-#> 1 ENST00000374514.8 LYPLA2-205      protein_coding   ENSG00… LYPLA2    protein_…
-#> 2 ENST00000420982.5 LYPLA2-206      protein_coding   ENSG00… LYPLA2    protein_…
-#> 3 ENST00000374502.7 LYPLA2-202      protein_coding   ENSG00… LYPLA2    protein_…
-#> 4 ENST00000374501.1 LYPLA2-201      protein_coding   ENSG00… LYPLA2    protein_…
-#> 5 ENST00000436063.7 DNTTIP2-202     protein_coding   ENSG00… DNTTIP2   protein_…
-#> 6 ENST00000496535.6 DNTTIP2-205     processed_trans… ENSG00… DNTTIP2   protein_…
+#>   transcript_id     transcript_name transcript_type gene_id  gene_name gene_type
+#>   <chr>             <chr>           <chr>           <chr>    <chr>     <chr>    
+#> 1 ENST00001127150.1 CDC42-254       protein_coding  ENSG000… CDC42     protein_…
+#> 2 ENST00001127151.1 CDC42-255       protein_coding  ENSG000… CDC42     protein_…
+#> 3 ENST00001091268.1 CDC42-249       protein_coding  ENSG000… CDC42     protein_…
+#> 4 ENST00001127149.1 CDC42-253       protein_coding  ENSG000… CDC42     protein_…
+#> 5 ENST00000695857.2 CDC42-218       protein_coding  ENSG000… CDC42     protein_…
+#> 6 ENST00000695860.2 CDC42-221       protein_coding  ENSG000… CDC42     protein_…
 #> # ℹ 13 more variables: source_gene_id <chr>, source_transcript_id <chr>,
 #> #   tags <chr>, coding_status <chr>, transcript_support_level <chr>,
 #> #   tie_score <dbl>, cds_start <int>, cds_end <int>, cds_length <int>,
 #> #   is_canonical <lgl>, haplotype <chr>, n_exons <int>, tx_length <int>
 head(gene_assay(iso, "abundance"))
 #>                    SRR11498039 SRR11498040 SRR11498041 SRR11498042 SRR11498043
-#> ENSG00000005007.12    3253.512    2563.848    2656.175    3295.886    4497.997
-#> ENSG00000005206.17    1727.018    1515.008    1807.224    1551.435     986.158
-#> ENSG00000007384.15    1970.727    1612.095    2188.516    2179.135    1910.157
-#> ENSG00000007541.16     550.154     526.270     745.990     723.957     498.251
-#> ENSG00000008838.20    1058.643    1018.991     978.694    1061.083    1152.704
-#> ENSG00000009413.16     724.057     599.019     675.888     696.338     419.116
+#> ENSG00000070404.12  2569.68384   299.07857  1417.10732   603.17133   471.63517
+#> ENSG00000070831.20   122.70026    99.10083    80.20022    86.70524   124.04831
+#> ENSG00000092199.21   266.25891   326.93814   276.23063   273.64675   514.47320
+#> ENSG00000100567.15    83.58850    89.24681    83.38840    83.66714    89.96554
+#> ENSG00000101181.20    19.77858    22.22232    26.51377    22.33130    22.33756
+#> ENSG00000102755.15  6674.69963   294.43483  2383.73606   559.48987   632.91902
 #>                    SRR11498044 SRR11498045 SRR11498046 SRR11498063 SRR11498064
-#> ENSG00000005007.12    4732.194    2686.639    3904.654    3335.450    3699.352
-#> ENSG00000005206.17    1850.509     609.902    1492.657    2069.531    2048.620
-#> ENSG00000007384.15    2708.052    2264.347    3182.521    2966.487    3382.728
-#> ENSG00000007541.16     962.738     245.692     969.690     958.960    1220.914
-#> ENSG00000008838.20    1700.362    1002.685    1392.596    1419.984    1543.717
-#> ENSG00000009413.16     824.227    1010.559    1235.516     837.198    1042.775
+#> ENSG00000070404.12   310.76213   896.73093  3187.15377    29.18200    31.38722
+#> ENSG00000070831.20    78.78730   204.01240   107.61872    52.03164    35.00855
+#> ENSG00000092199.21   289.21006   525.55022   327.02047   267.16888   228.18136
+#> ENSG00000100567.15    84.23372   116.61350    96.74124   166.90329   113.95220
+#> ENSG00000101181.20    21.93102    30.98572    19.77071    29.64593    26.51956
+#> ENSG00000102755.15  1899.57688  3828.13284  3580.22704   168.79459   124.46575
 #>                    SRR11498065 SRR11498066 SRR11498067 SRR11498068 SRR11498069
-#> ENSG00000005007.12    2405.434    2521.298    2951.488    2412.240    3125.850
-#> ENSG00000005206.17    1502.081    1117.840    1625.626    1202.581    1971.119
-#> ENSG00000007384.15    2154.739    1830.455    2151.931    2016.009    2502.582
-#> ENSG00000007541.16     758.946     604.632     712.162     563.255     840.969
-#> ENSG00000008838.20    1133.716     996.395    1158.077     867.589    1375.700
-#> ENSG00000009413.16     981.165     736.211     844.466     923.871     996.592
+#> ENSG00000070404.12    48.99216    14.16329    66.08116    53.78511    13.59521
+#> ENSG00000070831.20    38.44176    48.57682    51.06573    43.95347    43.87882
+#> ENSG00000092199.21   239.72877   240.21498   277.28130   254.05305   257.29341
+#> ENSG00000100567.15   118.80365   121.72739   161.33785   131.05597   111.49771
+#> ENSG00000101181.20    21.75279    20.98340    28.30428    28.21587    23.79867
+#> ENSG00000102755.15   142.90353   145.31683   220.13165   341.21090   115.23941
 #>                    SRR11498070 SRR11498071 SRR11498072 SRR11498073 SRR11498074
-#> ENSG00000005007.12    4497.310    2265.091    3065.700    2692.038    3329.921
-#> ENSG00000005206.17    2303.939    1076.992    1372.618    1172.162    1693.740
-#> ENSG00000007384.15    3482.066    1743.023    2339.072    2031.263    2347.569
-#> ENSG00000007541.16    1170.131     528.531     626.839     608.772     803.845
-#> ENSG00000008838.20    1783.556     927.626     953.281    1095.061    1114.967
-#> ENSG00000009413.16    1375.634     715.627     462.376     620.009     733.193
+#> ENSG00000070404.12    44.79135   136.64611    40.09664    17.48312    20.45126
+#> ENSG00000070831.20    46.05098    43.95159    53.90587    55.45721    47.51016
+#> ENSG00000092199.21   214.11104   227.47375   246.52902   220.25141   260.88590
+#> ENSG00000100567.15   106.60685   124.09180   115.31332   105.69139   105.46941
+#> ENSG00000101181.20    17.86774    23.33720    21.65134    21.76331    23.31649
+#> ENSG00000102755.15   177.58189   447.94442   270.29311   169.66820   496.04255
 #>                    SRR11498075 SRR11498076 SRR11498077 SRR11498078 SRR11498079
-#> ENSG00000005007.12    3200.173    3211.790    2886.842    2522.062    3415.826
-#> ENSG00000005206.17    1728.208    1544.569    1448.556    1375.868    1866.532
-#> ENSG00000007384.15    2321.575    2703.154    2317.905    2011.830    3311.084
-#> ENSG00000007541.16     701.155     760.047     646.552     600.129     922.636
-#> ENSG00000008838.20    1117.793    1124.630    1119.471     952.758    1333.459
-#> ENSG00000009413.16     924.570     742.140     629.304     927.810    1091.680
+#> ENSG00000070404.12    18.72177    49.55750    19.41653   125.57957    17.47104
+#> ENSG00000070831.20    36.86573    49.52355    47.49247    42.47217    35.72663
+#> ENSG00000092199.21   217.86640   225.80300   225.53977   243.13445   238.39553
+#> ENSG00000100567.15   102.48072   114.81176   114.87302   136.99088   106.77130
+#> ENSG00000101181.20    23.07231    24.28106    24.41587    25.10409    22.52178
+#> ENSG00000102755.15   192.84398   202.08497   209.51895   298.36576   134.90583
 
 # Subset like a SummarizedExperiment. Stored gene assays, inferential
 # replicates and uncertainty tables follow the transcripts and samples kept
 iso[1:10, c("SRR11498039", "SRR11498063")]
 #> <IsoformicExperiment> pe_placenta_example
-#>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)
+#>   annotation : gencode_v50_example_subset (69 genes, 1,914 transcripts, 18,656 exons)
 #>   samples    : 2 [condition]
-#>   transcripts: 10 assayed from 3 genes
+#>   transcripts: 10 assayed from 1 genes
 #>   assays     : abundance, counts
 #>   gene assays: derived from transcript assays on demand
-#>   DE results : det (499 transcripts), deg (69 genes)
+#>   DE results : det (710 transcripts), deg (69 genes)
 
 # Build one from matrices
 annot <- system.file("extdata", "example_experiment", "annotation", package = "isoformic")
-tpm <- assay(iso, "abundance")[1:5, 1:3]
+tpm <- tx_assay(iso, "abundance")[1:5, 1:3]
 small <- IsoformicExperiment(
   experiment_name = "tiny",
   annot_path = annot,
@@ -282,9 +325,9 @@ small <- IsoformicExperiment(
 )
 small
 #> <IsoformicExperiment> tiny
-#>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)
+#>   annotation : gencode_v50_example_subset (69 genes, 1,914 transcripts, 18,656 exons)
 #>   samples    : 3 [condition]
-#>   transcripts: 5 assayed from 2 genes
+#>   transcripts: 5 assayed from 1 genes
 #>   assays     : abundance
 #>   gene assays: derived from transcript assays on demand
 #>   DE results : <none>

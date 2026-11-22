@@ -5,13 +5,17 @@ tximport list (abundance, counts, length) or from a named list of
 matrices. as_summarized_experiment() does the reverse at the transcript
 or gene level, which is convenient for running Bioconductor tools such as
 DESeq2 or fishpond on the stored assays (a counts assay is placed
-first, as those tools expect)."><meta property="og:description" content="as_isoformic() builds an IsoformicExperiment from a
+first, as those tools expect). The metadata of the result holds
+experiment_name, annot_path and the object's metadata without the
+inferential replicates."><meta property="og:description" content="as_isoformic() builds an IsoformicExperiment from a
 SummarizedExperiment (for example the output of tximeta), from a
 tximport list (abundance, counts, length) or from a named list of
 matrices. as_summarized_experiment() does the reverse at the transcript
 or gene level, which is convenient for running Bioconductor tools such as
 DESeq2 or fishpond on the stored assays (a counts assay is placed
-first, as those tools expect)."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
+first, as those tools expect). The metadata of the result holds
+experiment_name, annot_path and the object's metadata without the
+inferential replicates."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -27,7 +31,8 @@ first, as those tools expect)."><meta property="og:image" content="https://lucio
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -39,6 +44,7 @@ first, as those tools expect)."><meta property="og:image" content="https://lucio
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -81,7 +87,9 @@ first, as those tools expect)."><meta property="og:image" content="https://lucio
 matrices. <code>as_summarized_experiment()</code> does the reverse at the transcript
 or gene level, which is convenient for running Bioconductor tools such as
 <code>DESeq2</code> or <code>fishpond</code> on the stored assays (a <code>counts</code> assay is placed
-first, as those tools expect).</p>
+first, as those tools expect). The <code>metadata</code> of the result holds
+<code>experiment_name</code>, <code>annot_path</code> and the object's <code>metadata</code> without the
+inferential replicates.</p>
     </div>
 
     <div class="section level2">
@@ -104,7 +112,7 @@ first, as those tools expect).</p>
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
 <dd><p>A <code>SummarizedExperiment</code>, a <code>tximport</code> list or a named list of
-matrices.</p></dd>
+matrices. An <a href="IsoformicExperiment.html">IsoformicExperiment</a> is returned as it is.</p></dd>
 
 
 <dt id="arg-annot-path">annot_path<a class="anchor" aria-label="anchor" href="#arg-annot-path"></a></dt>
@@ -139,7 +147,7 @@ annotation instead of failing.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed on to methods.</p></dd>
+<dd><p>Not used; reserved for methods.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -151,31 +159,26 @@ annotation instead of failing.</p></dd>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="example_isoformic.html">example_isoformic</a></span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">txi</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>abundance <span class="op">=</span> <span class="fu"><a href="IsoformicExperiment-accessors.html">assay</a></span><span class="op">(</span><span class="va">iso</span>, <span class="st">"abundance"</span><span class="op">)</span>, counts <span class="op">=</span> <span class="fu"><a href="IsoformicExperiment-accessors.html">assay</a></span><span class="op">(</span><span class="va">iso</span>, <span class="st">"counts"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">txi</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  abundance <span class="op">=</span> <span class="fu"><a href="IsoformicExperiment-accessors.html">tx_assay</a></span><span class="op">(</span><span class="va">iso</span>, <span class="st">"abundance"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  counts <span class="op">=</span> <span class="fu"><a href="IsoformicExperiment-accessors.html">tx_assay</a></span><span class="op">(</span><span class="va">iso</span>, <span class="st">"counts"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">annot</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"example_experiment"</span>, <span class="st">"annotation"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">iso2</span> <span class="op">&lt;-</span> <span class="fu">as_isoformic</span><span class="op">(</span><span class="va">txi</span>, annot_path <span class="op">=</span> <span class="va">annot</span>, col_data <span class="op">=</span> <span class="fu"><a href="IsoformicExperiment-accessors.html">col_data</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">iso2</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;IsoformicExperiment&gt; isoformic_35b784a7b1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;IsoformicExperiment&gt; isoformic_f2faf1f9ff</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   annotation : gencode_v50_example_subset (69 genes, 1,914 transcripts, 18,656 exons)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   samples    : 25 [condition]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   transcripts: 499 assayed from 69 genes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   transcripts: 1,911 assayed from 69 genes</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   assays     : abundance, counts</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   gene assays: derived from transcript assays on demand</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   DE results : &lt;none&gt;</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"SummarizedExperiment"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span><span class="co"># Loading the SummarizedExperiment namespace takes several seconds</span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"SummarizedExperiment"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="va">se</span> <span class="op">&lt;-</span> <span class="fu">as_summarized_experiment</span><span class="op">(</span><span class="va">iso</span>, level <span class="op">=</span> <span class="st">"gene"</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">se</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> class: SummarizedExperiment </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> dim: 69 25 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> metadata(5): experiment_name annot_path source annotation note</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> assays(2): counts abundance</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> rownames(69): ENSG00000005007.12 ENSG00000005206.17 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ENSG00000229807.12 ENSG00000270641.1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> rowData names(14): gene_id gene_name ... end_pos gene_strand</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> colnames(25): SRR11498039 SRR11498040 ... SRR11498078 SRR11498079</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> colData names(2): sample_id condition</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

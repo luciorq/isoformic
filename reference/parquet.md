@@ -45,7 +45,8 @@ write_parquet(
 
 - compression:
 
-  Parquet compression codec.
+  Parquet compression codec: `"zstd"` (default), `"snappy"`, `"gzip"` or
+  `"uncompressed"`.
 
 ## Value
 
@@ -56,9 +57,10 @@ returns `path`, invisibly.
 
 `read_parquet()` reads a Parquet file. `read_tabular()` reads Parquet,
 CSV or TSV files (`.csv`, `.tsv`, `.tab`, `.txt`, Salmon `.sf`;
-optionally gzip-compressed), auto-detecting delimiter and types.
-`write_parquet()` writes any data frame to a Parquet file, creating
-parent directories as needed.
+optionally gzip-compressed) and auto-detects the column types (and the
+delimiter of `.txt` files; `.tsv`, `.tab` and `.sf` are read as
+tab-separated). `write_parquet()` writes any data frame to a Parquet
+file, creating parent directories as needed.
 
 Factor columns are stored as Parquet strings and come back as character.
 Row names are not stored; keep identifiers in a regular column.

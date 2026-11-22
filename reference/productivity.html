@@ -40,11 +40,21 @@ mechanism (nmd, retained_intron, no_orf, non_stop, other).
 test_productive_fraction() tests the change in productive fraction
 between two groups on counts, with a quasi-binomial model per gene
 (pooled proportions per group, Pearson over-dispersion, t test on the
-log odds ratio, BH adjustment).
+log odds ratio, BH adjustment). A gene with fewer than 5 reads in its
+smaller class (productive or not), pooled over both groups, carries
+too little information on usage: it gets a log_odds_ratio of 0 and no
+statistic or p-value, and does not count in the BH adjustment. A gene
+without reads in one group gets NA there too.
 run_productivity_enrichment() ranks genes by the change in
-productive fraction between two groups and runs gene set enrichment
-(fgsea) on gene symbols, which captures regulated unproductive
-splicing (AS-NMD) directly.
+productive fraction between the last and the first group level
+(rank_by = &quot;delta&quot;), by that change over its standard deviation
+(rank_by = &quot;delta_z&quot;) or by the statistic of
+test_productive_fraction() (rank_by = &quot;statistic&quot;), and runs gene
+set enrichment (fgsea) on gene symbols, which captures regulated
+unproductive splicing (AS-NMD) directly. It takes an
+IsoformicExperiment, a productive_fraction() table or a
+test_productive_fraction() table, and one or several gene set
+collections.
 poison_exons() lists exons that occur only in unproductive isoforms
 of genes that also have productive isoforms and that do not overlap
 any exon of a productive isoform (cassette poison / NMD exons, as
@@ -97,11 +107,21 @@ mechanism (nmd, retained_intron, no_orf, non_stop, other).
 test_productive_fraction() tests the change in productive fraction
 between two groups on counts, with a quasi-binomial model per gene
 (pooled proportions per group, Pearson over-dispersion, t test on the
-log odds ratio, BH adjustment).
+log odds ratio, BH adjustment). A gene with fewer than 5 reads in its
+smaller class (productive or not), pooled over both groups, carries
+too little information on usage: it gets a log_odds_ratio of 0 and no
+statistic or p-value, and does not count in the BH adjustment. A gene
+without reads in one group gets NA there too.
 run_productivity_enrichment() ranks genes by the change in
-productive fraction between two groups and runs gene set enrichment
-(fgsea) on gene symbols, which captures regulated unproductive
-splicing (AS-NMD) directly.
+productive fraction between the last and the first group level
+(rank_by = &quot;delta&quot;), by that change over its standard deviation
+(rank_by = &quot;delta_z&quot;) or by the statistic of
+test_productive_fraction() (rank_by = &quot;statistic&quot;), and runs gene
+set enrichment (fgsea) on gene symbols, which captures regulated
+unproductive splicing (AS-NMD) directly. It takes an
+IsoformicExperiment, a productive_fraction() table or a
+test_productive_fraction() table, and one or several gene set
+collections.
 poison_exons() lists exons that occur only in unproductive isoforms
 of genes that also have productive isoforms and that do not overlap
 any exon of a productive isoform (cassette poison / NMD exons, as
@@ -129,7 +149,8 @@ productivity_palette() gives colours for the classes.
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -141,6 +162,7 @@ productivity_palette() gives colours for the classes.
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -217,11 +239,21 @@ mechanism (<code>nmd</code>, <code>retained_intron</code>, <code>no_orf</code>, 
 <li><p><code>test_productive_fraction()</code> tests the change in productive fraction
 between two groups on counts, with a quasi-binomial model per gene
 (pooled proportions per group, Pearson over-dispersion, t test on the
-log odds ratio, BH adjustment).</p></li>
+log odds ratio, BH adjustment). A gene with fewer than 5 reads in its
+smaller class (productive or not), pooled over both groups, carries
+too little information on usage: it gets a <code>log_odds_ratio</code> of 0 and no
+statistic or p-value, and does not count in the BH adjustment. A gene
+without reads in one group gets <code>NA</code> there too.</p></li>
 <li><p><code>run_productivity_enrichment()</code> ranks genes by the change in
-productive fraction between two groups and runs gene set enrichment
-(<code>fgsea</code>) on gene symbols, which captures regulated unproductive
-splicing (AS-NMD) directly.</p></li>
+productive fraction between the last and the first group level
+(<code>rank_by = "delta"</code>), by that change over its standard deviation
+(<code>rank_by = "delta_z"</code>) or by the statistic of
+<code>test_productive_fraction()</code> (<code>rank_by = "statistic"</code>), and runs gene
+set enrichment (<code>fgsea</code>) on gene symbols, which captures regulated
+unproductive splicing (AS-NMD) directly. It takes an
+<a href="IsoformicExperiment.html">IsoformicExperiment</a>, a <code>productive_fraction()</code> table or a
+<code>test_productive_fraction()</code> table, and one or several gene set
+collections.</p></li>
 <li><p><code>poison_exons()</code> lists exons that occur only in unproductive isoforms
 of genes that also have productive isoforms and that do not overlap
 any exon of a productive isoform (cassette poison / NMD exons, as
@@ -258,6 +290,7 @@ transcripts by the sequence/structure rules alone, and the share of
 <span>  as_matrix <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  gene_name <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  min_expr <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  min_gene_count <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  inf_reps <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  reference <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -280,6 +313,7 @@ transcripts by the sequence/structure rules alone, and the share of
 <span>  assay <span class="op">=</span> <span class="st">"counts"</span>,</span>
 <span>  include_altered <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  min_expr <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  min_gene_count <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  gene_name <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
@@ -292,10 +326,12 @@ transcripts by the sequence/structure rules alone, and the share of
 <span>  assay <span class="op">=</span> <span class="st">"abundance"</span>,</span>
 <span>  min_size <span class="op">=</span> <span class="fl">15</span>,</span>
 <span>  max_size <span class="op">=</span> <span class="fl">500</span>,</span>
-<span>  rank_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"delta"</span>, <span class="st">"delta_z"</span><span class="op">)</span>,</span>
+<span>  rank_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"delta"</span>, <span class="st">"delta_z"</span>, <span class="st">"statistic"</span><span class="op">)</span>,</span>
 <span>  include_altered <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  min_expr <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  min_gene_count <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  inf_reps <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  workers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"isoformic.workers"</span>, <span class="fl">1L</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -310,10 +346,11 @@ transcripts by the sequence/structure rules alone, and the share of
 
 <dl><dt id="arg-self">self<a class="anchor" aria-label="anchor" href="#arg-self"></a></dt>
 <dd><p>An <a href="IsoformicExperiment.html">IsoformicExperiment</a>. <code>run_productivity_enrichment()</code> also
-takes the table of <code>productive_fraction()</code> for two or more groups, so
-that one table serves several gene set collections; the arguments that
-build the table (<code>group</code>, <code>levels</code>, <code>assay</code>, <code>include_altered</code>,
-<code>min_expr</code>, <code>inf_reps</code>) are then ignored.</p></dd>
+takes the table of <code>productive_fraction()</code> for two or more groups, or of
+<code>test_productive_fraction()</code> for <code>rank_by = "statistic"</code>, so that one
+table serves several gene set collections; the arguments that build the
+table (<code>group</code>, <code>levels</code>, <code>assay</code>, <code>include_altered</code>, <code>min_expr</code>,
+<code>min_gene_count</code>, <code>inf_reps</code>) are then ignored.</p></dd>
 
 
 <dt id="arg-gene-name">gene_name<a class="anchor" aria-label="anchor" href="#arg-gene-name"></a></dt>
@@ -346,7 +383,11 @@ that could not be projected from the canonical start) is not believed
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed on to methods or to <code><a href="https://rdrr.io/pkg/fgsea/man/fgseaMultilevel.html" class="external-link">fgsea::fgseaMultilevel()</a></code>.</p></dd>
+<dd><p>Used only by <code>run_productivity_enrichment()</code>, which passes them
+to <code><a href="https://rdrr.io/pkg/fgsea/man/fgseaMultilevel.html" class="external-link">fgsea::fgseaMultilevel()</a></code>; the other functions do not use them
+(reserved for methods). Each <code>fgsea</code> call runs with
+<code><a href="https://rdrr.io/pkg/BiocParallel/man/SerialParam-class.html" class="external-link">BiocParallel::SerialParam()</a></code> unless <code>nproc</code> or <code>BPPARAM</code> is given;
+prefer <code>workers</code> (see <em>Workers</em> in <code><a href="enrichment.html">run_enrichment()</a></code>).</p></dd>
 
 
 <dt id="arg-group">group<a class="anchor" aria-label="anchor" href="#arg-group"></a></dt>
@@ -383,12 +424,23 @@ productive fractions instead of the summary table.</p></dd>
 (default 0): isoforms below it count as zero.</p></dd>
 
 
+<dt id="arg-min-gene-count">min_gene_count<a class="anchor" aria-label="anchor" href="#arg-min-gene-count"></a></dt>
+<dd><p>Minimum mean count of a gene, the sum of its
+isoforms in the <code>"counts"</code> assay, in every group (over all the samples
+kept without <code>group</code>); genes below it are dropped. Needs a <code>"counts"</code>
+assay whatever <code>assay</code> is. The default 0 keeps every gene. See Details.</p></dd>
+
+
 <dt id="arg-inf-reps">inf_reps<a class="anchor" aria-label="anchor" href="#arg-inf-reps"></a></dt>
 <dd><p>Optional list of transcript matrices (inferential
-replicates with the same dimnames as the assay); <code>NULL</code> uses
-<code>metadata(x)$inf_reps</code> when present and <code>FALSE</code> skips the replicates,
-which leaves out the standard deviations and <code>delta_z</code> and is much
-faster. <code>run_productivity_enrichment()</code> reads the replicates only for
+replicates with the transcripts in rows and the samples of the assay in
+columns, as counts, as <code><a href="inferential-io.html">read_inferential_replicates()</a></code> returns them);
+<code>NULL</code> uses <code>x@metadata$inf_reps</code> when present and <code>FALSE</code> skips the
+replicates, which leaves out the standard deviations and <code>delta_z</code> and
+is much faster. For an <code>assay</code> other than <code>"counts"</code> the draws are put on
+its scale with the <code>"counts"</code> assay (see Details); an object without a
+<code>"counts"</code> assay takes the draws to be on the scale of <code>assay</code>.
+<code>run_productivity_enrichment()</code> reads the replicates only for
 <code>rank_by = "delta_z"</code>.</p></dd>
 
 
@@ -410,51 +462,147 @@ and the result has a <code>collection</code> column (see <code><a href="enrichme
 <dt id="arg-rank-by">rank_by<a class="anchor" aria-label="anchor" href="#arg-rank-by"></a></dt>
 <dd><p>Statistic that ranks the genes in
 <code>run_productivity_enrichment()</code>: <code>"delta"</code> (default), the change in
-productive fraction, or <code>"delta_z"</code>, that change divided by its
+productive fraction, <code>"delta_z"</code>, that change divided by its
 standard deviation over the inferential replicates, which moves the
-genes with an uncertain change towards the middle of the ranking.
+genes with an uncertain change towards the middle of the ranking, or
+<code>"statistic"</code>, the test of <code>test_productive_fraction()</code> on the
+<code>"counts"</code> assay between the first and the last level of <code>levels</code>, as
+a signed normal quantile of its p-value (see Details); <code>assay</code> and
+<code>inf_reps</code> are then not used.
 <code>"delta_z"</code> needs inferential replicates; a change that is the same in
-every replicate gets the largest <code>delta_z</code> of the table. It reflects the
-quantification uncertainty only, not the variation between samples.</p></dd>
+every replicate (<code>delta_z</code> is <code>NA</code> in the <code>productive_fraction()</code>
+table) is ranked with the largest absolute <code>delta_z</code> of the table (at
+least 1), with the sign of the change. It reflects the
+quantification uncertainty only, not the variation between samples or
+the number of reads; <code>"statistic"</code> reflects both (see Details).</p></dd>
+
+
+<dt id="arg-workers">workers<a class="anchor" aria-label="anchor" href="#arg-workers"></a></dt>
+<dd><p>Number of worker processes that run the <code>fgsea</code> calls of
+<code>run_productivity_enrichment()</code> (one per gene set collection) in
+parallel: a whole number, or <code>"auto"</code> for the CPUs available to the
+session. Defaults to the <code>isoformic.workers</code> option, or 1 (serial).
+Needs the <code>mirai</code> package above 1; see <em>Workers</em> in <code><a href="enrichment.html">run_enrichment()</a></code>,
+also for the random seeds.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>Tibbles, a matrix for <code>productive_fraction(as_matrix = TRUE)</code>,
-a named character vector for <code>productivity_palette()</code>, a list with
-<code>summary</code> and <code>confusion</code> tibbles for <code>benchmark_productivity()</code>.</p>
+
+<ul><li><p><code>transcript_productivity()</code>: one row per transcript with
+<code>transcript_id</code>, <code>transcript_name</code>, <code>transcript_type</code>, <code>gene_id</code>,
+<code>gene_name</code>, <code>productivity</code> (a factor with the levels of
+<code>productivity_palette()</code>), <code>reason</code>, <code>source</code>, <code>has_cds</code>,
+<code>cds_complete</code>, <code>orf_length</code>, <code>nmd_predicted</code>, <code>stop_to_last_junction</code>,
+<code>orf_fraction_of_canonical</code>, <code>is_canonical</code> and, with sequences, the
+ORF columns behind the call (<code>orf_source</code>, <code>nmd_class</code>,
+<code>frame_vs_canonical</code>, <code>coding_probability</code>, <code>n_uorf</code>).</p></li>
+<li><p><code>productive_fraction()</code>: one row per coding gene with
+<code>gene_id</code>, <code>gene_name</code>, <code>mean_gene_expr</code>, <code>productive_fraction</code> (mean
+over the samples kept), with <code>group</code> one <code>productive_fraction_&lt;level&gt;</code>
+column per level and <code>delta_productive_fraction</code>, with inferential
+replicates <code>productive_fraction_sd</code> (the standard deviation over the
+draws, see Details) and, with <code>group</code>,
+<code>delta_productive_fraction_sd</code> and <code>delta_z</code>, and with <code>reference</code> the
+<code>reference_*</code> columns and <code>delta_vs_reference</code>. A genes x samples
+matrix with <code>as_matrix = TRUE</code>.</p></li>
+<li><p><code>productivity_fractions()</code>: one row per gene and class present
+(<code>productivity</code>, a factor), with <code>fraction</code> and, with <code>group</code>, the
+<code>fraction_&lt;level&gt;</code> and <code>delta_fraction</code> columns.</p></li>
+<li><p><code>test_productive_fraction()</code>: one row per coding gene with
+<code>mean_gene_expr</code>, the two <code>productive_fraction_&lt;level&gt;</code> columns,
+<code>delta_productive_fraction</code>, <code>log_odds_ratio</code>, <code>se</code>, <code>statistic</code>,
+<code>dispersion</code>, <code>df</code>, <code>pvalue</code> and <code>padj</code>, ordered by <code>pvalue</code>.</p></li>
+<li><p><code>run_productivity_enrichment()</code>: the <code>fgsea</code> result with the columns
+<code>experiment</code> (<code>"productive_fraction"</code>), <code>rank_by</code> and, for a list of
+collections, <code>collection</code>.</p></li>
+<li><p><code>poison_exons()</code>: one row per exon with <code>gene_id</code>, <code>gene_name</code>,
+<code>seqid</code>, <code>start_pos</code>, <code>end_pos</code>, <code>strand</code>, <code>n_unproductive</code>,
+<code>transcript_ids</code> and <code>exon_length</code>.</p></li>
+<li><p><code>benchmark_productivity()</code>: a list with the <code>summary</code> (<code>metric</code>, <code>n</code>,
+<code>value</code>, <code>source</code>) and <code>confusion</code> (<code>transcript_type</code>, <code>productivity</code>,
+<code>n</code>) tibbles.</p></li>
+<li><p><code>productivity_palette()</code>: a named character vector of colours.</p></li>
+</ul></div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p><strong>Low-count genes.</strong> A productive fraction computed from a few reads is
+mostly sampling noise: a gene with 4 reads moves by 0.25 when one read
+changes isoform. <code>delta_z</code> does not catch this, because the inferential
+replicates measure how the reads are split between isoforms, not how many
+reads were sampled. <code>min_gene_count</code> removes genes whose mean count (the
+sum of the counts of their isoforms in the <code>"counts"</code> assay) is below it in
+any group, before the statistics and the BH adjustment; with
+<code>rank_by = "statistic"</code>, before the ranking. The filter is off by default
+(0); 10 reads is a reasonable start. The rule asks for enough reads in
+every group, because a fraction is compared between groups: it is
+stricter than the transcript filter of <code><a href="test_usage.html">test_usage()</a></code> (<code>min_count</code> reads
+in as many samples as the smallest group), and <code>min_expr</code> sets single
+isoform values to zero rather than removing genes.
+<code>rank_by = "statistic"</code> accounts for the reads of every gene and for the
+variation between its samples. Its dispersion is estimated for each gene
+alone, on <code>n - 2</code> degrees of freedom and not moderated, so with three
+samples per group the ranking is still noisy. The t statistic is put on
+the normal scale through its p-value
+(<code>sign(statistic) * qnorm(pvalue / 2, lower.tail = FALSE)</code>), because the
+degrees of freedom differ between genes when samples without reads drop
+out. Its sign is that of the pooled change (<code>delta_productive_fraction</code>
+of <code>test_productive_fraction()</code>), which can differ from the mean of the
+per-sample fractions in <code>productive_fraction()</code> when the samples differ
+much in depth. Genes with fewer than 5 reads in one class get no
+statistic and are left out of the ranking, so that a change in the
+expression of the whole gene does not rank it.</p>
+<p><strong>Uncertainty of the fractions.</strong> With inferential replicates,
+<code>productive_fraction()</code> computes the productive fraction of every gene and
+sample in each draw. The draws are counts; for another <code>assay</code> each draw
+is first put on the scale of that assay, multiplied by <code>assay / counts</code> of
+the same transcript and sample (for TPM, the inverse of the effective
+length times the scaling of the sample), so that the fractions of the
+draws and of the assay, and <code>min_expr</code>, are on one scale. Where the point
+count or value is zero (Gibbs draws often give reads to such cells) the
+factor is estimated: from the <code>length</code> assay when the assay follows it
+(TPM of <code><a href="read_salmon.html">read_salmon()</a></code> and <code><a href="read_oarfish.html">read_oarfish()</a></code>), otherwise from a transcript
+effect plus a sample effect on the log scale fitted on the other cells,
+and for a transcript without any count from its annotated length.
+<code>productive_fraction_sd</code> is the sample standard deviation of a gene's
+fraction over the draws, around the mean of the draws, averaged over the
+samples kept; <code>delta_productive_fraction_sd</code> is the standard deviation
+over the draws of the change between the group means, and <code>delta_z</code> is
+<code>delta_productive_fraction</code> divided by it. In every draw, only the samples
+in which the assay gives the gene a fraction are used. Both measure the
+spread of the draws, not their distance to the point estimate: the mean of
+Gibbs draws can differ from the EM estimate of the assay.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="example_isoformic.html">example_isoformic</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">prod</span> <span class="op">&lt;-</span> <span class="fu">transcript_productivity</span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"RBPJ"</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span><span style="color: #BBBB00;">!</span> 1 transcript has a sequence length differing from the exon length; its ORF is</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span>   skipped.</span>
 <span class="r-in"><span><span class="va">prod</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"transcript_name"</span>, <span class="st">"transcript_type"</span>, <span class="st">"productivity"</span>, <span class="st">"reason"</span>, <span class="st">"source"</span><span class="op">)</span><span class="op">]</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 10 × 5</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    transcript_name transcript_type productivity       reason              source</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>               <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> RBPJ-222        protein_coding  uncertain          incomplete 3' end,… seque…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> RBPJ-201        protein_coding  productive         complete ORF ident… seque…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> RBPJ-206        protein_coding  productive         complete ORF ident… seque…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> RBPJ-225        retained_intron unproductive       unproductive bioty… annot…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> RBPJ-204        protein_coding  altered_productive alternative start … seque…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> RBPJ-205        protein_coding  altered_productive alternative start … seque…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> RBPJ-214        protein_coding  altered_productive alternative start … seque…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> RBPJ-208        protein_coding  altered_productive alternative start … seque…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> RBPJ-202        protein_coding  altered_productive alternative start … seque…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> RBPJ-210        retained_intron unproductive       unproductive bioty… annot…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 65 × 5</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    transcript_name transcript_type         productivity       reason      source</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                   <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> RBPJ-222        protein_coding          uncertain          incomplete… seque…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> RBPJ-247        nonsense_mediated_decay unproductive       unproducti… annot…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> RBPJ-243        retained_intron         unproductive       unproducti… annot…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> RBPJ-201        protein_coding          altered_productive alternativ… seque…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> RBPJ-213        protein_coding          uncertain          incomplete… seque…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> RBPJ-223        protein_coding          altered_productive alternativ… seque…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> RBPJ-203        protein_coding          altered_productive alternativ… seque…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> RBPJ-206        protein_coding          altered_productive alternativ… seque…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> RBPJ-225        retained_intron         unproductive       unproducti… annot…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> RBPJ-229        protein_coding          uncertain          incomplete… seque…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 55 more rows</span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">productive_fraction</span><span class="op">(</span><span class="va">iso</span>, group <span class="op">=</span> <span class="st">"condition"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 7</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   gene_id    gene_name mean_gene_expr productive_fraction productive_fraction_…¹</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>               <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG00000… PNCK                50.6               0.251                  0.450</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG00000… REV3L              831.                0.265                  0.458</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENSG00000… PSMA3              860.                0.527                  0.614</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENSG00000… ANO8               208.                0.668                  0.747</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENSG00000… GDPD3              152.                0.792                  0.862</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENSG00000… TSG101            <span style="text-decoration: underline;">1</span>002.                0.847                  0.912</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG00000… SNX6               47.8                0.337                  0.154</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG00000… ERO1A              17.9                0.830                  0.655</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENSG00000… DNAJB6             52.5                0.659                  0.496</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENSG00000… GPT2                8.34               0.511                  0.377</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENSG00000… PIP5K1A           108.                 0.408                  0.541</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENSG00000… MYO7B              10.2                0.291                  0.414</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ abbreviated name: ¹​productive_fraction_preeclampsia</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 2 more variables: productive_fraction_control &lt;dbl&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   delta_productive_fraction &lt;dbl&gt;</span></span>
@@ -462,42 +610,53 @@ a named character vector for <code>productivity_palette()</code>, a list with
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 7</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   gene_id gene_name productivity fraction fraction_preeclampsia fraction_control</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>                 <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG00… UPF1      productive     0.132                 0.141           0.128  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG00… UPF1      altered_pro…   0.829                 0.823           0.832  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENSG00… UPF1      retained_in…   0.038<span style="text-decoration: underline;">6</span>                0.036<span style="text-decoration: underline;">4</span>          0.039<span style="text-decoration: underline;">7</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENSG00… SPPL2B    productive     0.399                 0.350           0.422  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENSG00… SPPL2B    altered_pro…   0.307                 0.377           0.274  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENSG00… SPPL2B    nmd            0.011<span style="text-decoration: underline;">1</span>                0.013<span style="text-decoration: underline;">8</span>          0.009<span style="text-decoration: underline;">84</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG00… FSTL3     productive    0.889               0.926               0.871 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG00… FSTL3     altered_pro…  0.045<span style="text-decoration: underline;">2</span>              0.040<span style="text-decoration: underline;">4</span>              0.047<span style="text-decoration: underline;">4</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENSG00… FSTL3     nmd           0.021<span style="text-decoration: underline;">0</span>              0.029<span style="text-decoration: underline;">4</span>              0.017<span style="text-decoration: underline;">1</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENSG00… FSTL3     no_orf        0.007<span style="text-decoration: underline;">00</span>             0.000<span style="text-decoration: underline;">016</span>4           0.010<span style="text-decoration: underline;">3</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENSG00… FSTL3     uncertain     0.038<span style="text-decoration: underline;">2</span>              0.004<span style="text-decoration: underline;">50</span>             0.054<span style="text-decoration: underline;">1</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENSG00… CDC42     productive    0.021<span style="text-decoration: underline;">2</span>              0.012<span style="text-decoration: underline;">0</span>              0.025<span style="text-decoration: underline;">5</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 1 more variable: delta_fraction &lt;dbl&gt;</span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">test_productive_fraction</span><span class="op">(</span><span class="va">iso</span>, group <span class="op">=</span> <span class="st">"condition"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 13</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   gene_id gene_name mean_gene_expr productive_fraction_…¹ productive_fraction_…²</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG00… TSG101            <span style="text-decoration: underline;">20</span>031.                  0.910                  0.814</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG00… FAM120A           <span style="text-decoration: underline;">73</span>031.                  0.933                  0.970</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENSG00… POLR2F             <span style="text-decoration: underline;">7</span>000.                  0.729                  0.634</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENSG00… REV3L             <span style="text-decoration: underline;">16</span>616.                  0.465                  0.183</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENSG00… MED24             <span style="text-decoration: underline;">23</span>507.                  0.822                  0.869</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENSG00… U2AF2             <span style="text-decoration: underline;">40</span>683.                  0.874                  0.840</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG00… MYO7B               593.                  0.647                  0.354</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG00… CCSAP              <span style="text-decoration: underline;">5</span>483.                  0.961                  0.977</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENSG00… TPT1              <span style="text-decoration: underline;">24</span>353.                  0.923                  0.813</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENSG00… DNAJB6             <span style="text-decoration: underline;">1</span>408.                  0.599                  0.711</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENSG00… PIP5K1A            <span style="text-decoration: underline;">3</span>240.                  0.815                  0.682</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENSG00… PSMA3               889.                  0.618                  0.504</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ abbreviated names: ¹​productive_fraction_preeclampsia,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   ²​productive_fraction_control</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 8 more variables: delta_productive_fraction &lt;dbl&gt;, log_odds_ratio &lt;dbl&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   se &lt;dbl&gt;, statistic &lt;dbl&gt;, dispersion &lt;dbl&gt;, df &lt;dbl&gt;, pvalue &lt;dbl&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   padj &lt;dbl&gt;</span></span>
 <span class="r-in"><span><span class="fu">poison_exons</span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"RBPJ"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 0 × 9</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 9 variables: gene_id &lt;chr&gt;, gene_name &lt;chr&gt;, seqid &lt;chr&gt;, start_pos &lt;int&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   end_pos &lt;int&gt;, strand &lt;chr&gt;, n_unproductive &lt;int&gt;, transcript_ids &lt;chr&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   exon_length &lt;int&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 11 × 9</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    gene_id            gene_name seqid start_pos  end_pos strand n_unproductive</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> ENSG00000168214.24 RBPJ      chr4   26<span style="text-decoration: underline;">163</span>458 26<span style="text-decoration: underline;">163</span>614 +                   1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> ENSG00000168214.24 RBPJ      chr4   26<span style="text-decoration: underline;">163</span>530 26<span style="text-decoration: underline;">163</span>614 +                   1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> ENSG00000168214.24 RBPJ      chr4   26<span style="text-decoration: underline;">263</span>617 26<span style="text-decoration: underline;">263</span>714 +                   1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> ENSG00000168214.24 RBPJ      chr4   26<span style="text-decoration: underline;">321</span>228 26<span style="text-decoration: underline;">321</span>295 +                   1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> ENSG00000168214.24 RBPJ      chr4   26<span style="text-decoration: underline;">367</span>874 26<span style="text-decoration: underline;">368</span>145 +                   1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> ENSG00000168214.24 RBPJ      chr4   26<span style="text-decoration: underline;">385</span>917 26<span style="text-decoration: underline;">386</span>072 +                   1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> ENSG00000168214.24 RBPJ      chr4   26<span style="text-decoration: underline;">408</span>060 26<span style="text-decoration: underline;">408</span>174 +                   3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> ENSG00000168214.24 RBPJ      chr4   26<span style="text-decoration: underline;">410</span>042 26<span style="text-decoration: underline;">410</span>292 +                   2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> ENSG00000168214.24 RBPJ      chr4   26<span style="text-decoration: underline;">412</span>930 26<span style="text-decoration: underline;">412</span>987 +                   4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> ENSG00000168214.24 RBPJ      chr4   26<span style="text-decoration: underline;">414</span>049 26<span style="text-decoration: underline;">414</span>155 +                   3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">11</span> ENSG00000168214.24 RBPJ      chr4   26<span style="text-decoration: underline;">422</span>132 26<span style="text-decoration: underline;">422</span>156 +                   2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 2 more variables: transcript_ids &lt;chr&gt;, exon_length &lt;int&gt;</span></span>
 <span class="r-in"><span><span class="fu">benchmark_productivity</span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">$</span><span class="va">summary</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 5 × 4</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   metric                                  n value source  </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                               <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> nmd_biotype_called_unproductive        38 0.974 sequence</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> retained_intron_called_unproductive   145 0.6   sequence</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> protein_coding_called_productive      252 0.782 sequence</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> canonical_called_productive            67 1     sequence</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> lncrna_called_noncoding                19 1     sequence</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> nmd_biotype_called_unproductive       353 1     sequence</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> retained_intron_called_unproductive   125 0.68  sequence</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> protein_coding_called_productive     <span style="text-decoration: underline;">1</span>226 0.900 sequence</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> canonical_called_productive            57 0.982 sequence</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> lncrna_called_noncoding               107 1     sequence</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

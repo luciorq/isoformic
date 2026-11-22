@@ -15,8 +15,9 @@ documentation).
 
 **Transcript level**
 
-- `assays()`, `assay(x, name)`, `assay_names()`, `assay<-`: transcript
-  matrices. `assay()` without a name returns the first assay.
+- `tx_assays()`, `tx_assay(x, name)`, `assay_names()`, `tx_assay<-`:
+  transcript matrices. `tx_assay()` without a name returns the first
+  assay.
 
 - `row_names()`: transcript IDs of the assays.
 
@@ -53,7 +54,8 @@ documentation).
 **Housekeeping**
 
 - `clear_cache()`: drop cached derived data for the object (and, with
-  `annotation = TRUE`, the shared annotation tables).
+  `annotation = TRUE`, the shared annotation tables); returns the object
+  invisibly.
 
 ## Usage
 
@@ -64,13 +66,13 @@ col_data(self) <- value
 
 col_names(self, ...)
 
-assays(self, ...)
+tx_assays(self, ...)
 
 assay_names(self, ...)
 
-assay(self, name = NULL, ...)
+tx_assay(self, name = NULL, ...)
 
-assay(self, name) <- value
+tx_assay(self, name) <- value
 
 row_names(self, ...)
 
@@ -114,7 +116,7 @@ clear_cache(self, annotation = FALSE, ...)
 
 - ...:
 
-  Passed on to methods.
+  Not used; reserved for methods.
 
 - value:
 
@@ -122,7 +124,9 @@ clear_cache(self, annotation = FALSE, ...)
 
 - name:
 
-  Name of the assay. `NULL` selects the first assay.
+  Name of the assay (a position also works for `tx_assay()` and
+  `gene_assay()`). `NULL` selects the first assay. Required, as a single
+  string, for `tx_assay<-`.
 
 - with_exons:
 
@@ -161,26 +165,26 @@ col_data(iso)
 #> # ℹ 15 more rows
 assay_names(iso)
 #> [1] "abundance" "counts"   
-assay(iso, "abundance")[1:3, 1:3]
+tx_assay(iso, "abundance")[1:3, 1:3]
 #>                   SRR11498039 SRR11498040 SRR11498041
-#> ENST00000374514.8     895.871     850.783     956.829
-#> ENST00000420982.5       0.000       0.000       0.000
-#> ENST00000374502.7      20.998      16.324      17.151
+#> ENST00001127150.1      0.0000     0.00000     0.00000
+#> ENST00001127151.1     57.7435    54.02444    22.27803
+#> ENST00001091268.1      0.0000     0.00000     0.00000
 gene_assay(iso, "abundance")[1:3, 1:3]
 #>                    SRR11498039 SRR11498040 SRR11498041
-#> ENSG00000005007.12    3253.512    2563.848    2656.175
-#> ENSG00000005206.17    1727.018    1515.008    1807.224
-#> ENSG00000007384.15    1970.727    1612.095    2188.516
+#> ENSG00000070404.12   2569.6838   299.07857  1417.10732
+#> ENSG00000070831.20    122.7003    99.10083    80.20022
+#> ENSG00000092199.21    266.2589   326.93814   276.23063
 head(row_data(iso))
 #> # A tibble: 6 × 19
-#>   transcript_id     transcript_name transcript_type  gene_id gene_name gene_type
-#>   <chr>             <chr>           <chr>            <chr>   <chr>     <chr>    
-#> 1 ENST00000374514.8 LYPLA2-205      protein_coding   ENSG00… LYPLA2    protein_…
-#> 2 ENST00000420982.5 LYPLA2-206      protein_coding   ENSG00… LYPLA2    protein_…
-#> 3 ENST00000374502.7 LYPLA2-202      protein_coding   ENSG00… LYPLA2    protein_…
-#> 4 ENST00000374501.1 LYPLA2-201      protein_coding   ENSG00… LYPLA2    protein_…
-#> 5 ENST00000436063.7 DNTTIP2-202     protein_coding   ENSG00… DNTTIP2   protein_…
-#> 6 ENST00000496535.6 DNTTIP2-205     processed_trans… ENSG00… DNTTIP2   protein_…
+#>   transcript_id     transcript_name transcript_type gene_id  gene_name gene_type
+#>   <chr>             <chr>           <chr>           <chr>    <chr>     <chr>    
+#> 1 ENST00001127150.1 CDC42-254       protein_coding  ENSG000… CDC42     protein_…
+#> 2 ENST00001127151.1 CDC42-255       protein_coding  ENSG000… CDC42     protein_…
+#> 3 ENST00001091268.1 CDC42-249       protein_coding  ENSG000… CDC42     protein_…
+#> 4 ENST00001127149.1 CDC42-253       protein_coding  ENSG000… CDC42     protein_…
+#> 5 ENST00000695857.2 CDC42-218       protein_coding  ENSG000… CDC42     protein_…
+#> 6 ENST00000695860.2 CDC42-221       protein_coding  ENSG000… CDC42     protein_…
 #> # ℹ 13 more variables: source_gene_id <chr>, source_transcript_id <chr>,
 #> #   tags <chr>, coding_status <chr>, transcript_support_level <chr>,
 #> #   tie_score <dbl>, cds_start <int>, cds_end <int>, cds_length <int>,
@@ -189,12 +193,12 @@ head(gene_data(iso))
 #> # A tibble: 6 × 14
 #>   gene_id   gene_name gene_type source_gene_id gene_class gene_category dhs_type
 #>   <chr>     <chr>     <chr>     <chr>          <chr>      <chr>         <chr>   
-#> 1 ENSG0000… UPF1      protein_… NA             NA         NA            NA      
-#> 2 ENSG0000… SPPL2B    protein_… NA             NA         NA            NA      
-#> 3 ENSG0000… RHBDF1    protein_… NA             NA         NA            NA      
-#> 4 ENSG0000… PIGQ      protein_… NA             NA         NA            NA      
-#> 5 ENSG0000… MED24     protein_… NA             NA         NA            NA      
-#> 6 ENSG0000… REV3L     protein_… NA             NA         NA            NA      
+#> 1 ENSG0000… FSTL3     protein_… NA             NA         NA            NA      
+#> 2 ENSG0000… CDC42     protein_… NA             NA         NA            NA      
+#> 3 ENSG0000… HNRNPC    protein_… NA             NA         NA            NA      
+#> 4 ENSG0000… PSMA3     protein_… NA             NA         NA            NA      
+#> 5 ENSG0000… MTG2      protein_… NA             NA         NA            NA      
+#> 6 ENSG0000… FLT1      protein_… NA             NA         NA            NA      
 #> # ℹ 7 more variables: coding_status <chr>, cumulative_support <chr>,
 #> #   haplotype <chr>, seqid <chr>, start_pos <int>, end_pos <int>, strand <chr>
 head(exon_table(iso, "RBPJ"))

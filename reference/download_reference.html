@@ -23,7 +23,16 @@ download_fantom_cat_tables().
 Instead of assuming file names, the function lists the release directory
 on the server and picks the matching file, so new releases and new genome
 patch versions (for example GRCh38.p15) work without a package update.
-Files already present in output_path are not downloaded again. Any other
+Files already present in output_path are not downloaded again. When the
+request determines the file name (GENCODE annotations and transcript
+sequences, MANE with an explicit version, FANTOM CAT), a file already
+in output_path is used without contacting the server. Otherwise, when
+the directory cannot be listed (a transient server error, or no
+connection) and exactly one file in output_path matches the request,
+that file is used with a message. A GENCODE genome must be of the
+release's assembly, and an Ensembl region = &quot;all&quot; annotation must be
+the chr_patch_hapl_scaff file; requests for the current Ensembl or
+MANE release always need the listing. Any other
 file reachable by URL (for example the T2T consortium Liftoff GFF3 files)
 can be cached the same way with download_reference_url(), and HPRC
 per-haplotype annotations with download_hprc_annotation()."><meta property="og:description" content="Downloads annotation (GFF3/GTF) and sequence (transcript or genome FASTA)
@@ -50,7 +59,16 @@ download_fantom_cat_tables().
 Instead of assuming file names, the function lists the release directory
 on the server and picks the matching file, so new releases and new genome
 patch versions (for example GRCh38.p15) work without a package update.
-Files already present in output_path are not downloaded again. Any other
+Files already present in output_path are not downloaded again. When the
+request determines the file name (GENCODE annotations and transcript
+sequences, MANE with an explicit version, FANTOM CAT), a file already
+in output_path is used without contacting the server. Otherwise, when
+the directory cannot be listed (a transient server error, or no
+connection) and exactly one file in output_path matches the request,
+that file is used with a message. A GENCODE genome must be of the
+release's assembly, and an Ensembl region = &quot;all&quot; annotation must be
+the chr_patch_hapl_scaff file; requests for the current Ensembl or
+MANE release always need the listing. Any other
 file reachable by URL (for example the T2T consortium Liftoff GFF3 files)
 can be cached the same way with download_reference_url(), and HPRC
 per-haplotype annotations with download_hprc_annotation()."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
@@ -69,7 +87,8 @@ per-haplotype annotations with download_hprc_annotation()."><meta property="og:i
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -81,6 +100,7 @@ per-haplotype annotations with download_hprc_annotation()."><meta property="og:i
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -138,7 +158,16 @@ mapping, gene information and CAGE cluster tables come from
 </ul><p>Instead of assuming file names, the function lists the release directory
 on the server and picks the matching file, so new releases and new genome
 patch versions (for example <code>GRCh38.p15</code>) work without a package update.
-Files already present in <code>output_path</code> are not downloaded again. Any other
+Files already present in <code>output_path</code> are not downloaded again. When the
+request determines the file name (GENCODE annotations and transcript
+sequences, MANE with an explicit <code>version</code>, FANTOM CAT), a file already
+in <code>output_path</code> is used without contacting the server. Otherwise, when
+the directory cannot be listed (a transient server error, or no
+connection) and exactly one file in <code>output_path</code> matches the request,
+that file is used with a message. A GENCODE genome must be of the
+release's assembly, and an Ensembl <code>region = "all"</code> annotation must be
+the <code>chr_patch_hapl_scaff</code> file; requests for the current Ensembl or
+MANE release always need the listing. Any other
 file reachable by URL (for example the T2T consortium Liftoff GFF3 files)
 can be cached the same way with <code><a href="download_reference_url.html">download_reference_url()</a></code>, and HPRC
 per-haplotype annotations with <code><a href="download_hprc_annotation.html">download_hprc_annotation()</a></code>.</p>
@@ -168,10 +197,12 @@ per-haplotype annotations with <code><a href="download_hprc_annotation.html">dow
 
 <dl><dt id="arg-version">version<a class="anchor" aria-label="anchor" href="#arg-version"></a></dt>
 <dd><p>Release version. GENCODE: the release number (<code>"50"</code>,
-<code>50</code>, or <code>"M39"</code> / <code>"39"</code> for mouse; default <code>"50"</code>). Ensembl: the
-release number (<code>"116"</code>); <code>NULL</code> (default) uses the current release.
-MANE: <code>"1.5"</code>; <code>NULL</code> uses the current release. NCBI/T2T: ignored (the
-accession identifies the assembly version).</p></dd>
+<code>50</code>, or <code>"M39"</code> / <code>"39"</code> for mouse); <code>NULL</code> (default) uses <code>"50"</code> for
+human and <code>"M39"</code> for mouse. Ensembl: the release number (<code>"116"</code>);
+<code>NULL</code> uses the current release. MANE: <code>"1.5"</code>; <code>NULL</code> uses the current
+release. FANTOM: the level (<code>NULL</code> uses <code>"lv3_robust"</code>). NCBI: ignored
+(the accession identifies the assembly version); T2T: <code>NULL</code> or
+<code>"2.0"</code>.</p></dd>
 
 
 <dt id="arg-reference">reference<a class="anchor" aria-label="anchor" href="#arg-reference"></a></dt>
@@ -197,7 +228,8 @@ sites and signals, <code>polyAs.gff3.gz</code>; see <code><a href="polyadenylati
 patches, haplotypes and scaffolds), <code>"chr"</code> (reference chromosomes only)
 or <code>"primary"</code> (primary assembly). For <code>file_type = "genome_fasta"</code>,
 <code>"primary"</code> selects the primary assembly genome and the other values the
-full patched / toplevel genome. Ignored for NCBI and MANE.</p></dd>
+full patched / toplevel genome. Ignored for NCBI, T2T, MANE and
+FANTOM.</p></dd>
 
 
 <dt id="arg-species">species<a class="anchor" aria-label="anchor" href="#arg-species"></a></dt>
@@ -243,7 +275,8 @@ precedence over <code>options("timeout")</code>. Defaults to <code>3600</code>.<
     <h2 id="errors">Errors<a class="anchor" aria-label="anchor" href="#errors"></a></h2>
 
 
-<p>The function fails early with a specific condition class:</p><ul><li><p><code>isoformic_download_reference_no_internet_error</code>: no connection.</p></li>
+<p>The function fails early with a specific condition class:</p><ul><li><p><code>isoformic_download_reference_no_internet_error</code>: no connection and no
+matching file in <code>output_path</code>.</p></li>
 <li><p><code>isoformic_download_reference_release_not_found_error</code>: the release
 (or species, assembly) directory does not exist; for GENCODE the
 message lists the latest available releases.</p></li>

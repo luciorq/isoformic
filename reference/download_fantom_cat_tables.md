@@ -27,7 +27,8 @@ download_fantom_cat_tables(
 
 - tables:
 
-  Which tables to download.
+  Which tables to download: any of `"id_mapping"`, `"gene_info"` and
+  `"cage_clusters"` (default all three).
 
 - output_path:
 

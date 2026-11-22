@@ -88,7 +88,11 @@ while `n_classes` is not available. The functions
 and
 [`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
 accept Oarfish prefixes as `paths`, but not together with Salmon
-directories.
+directories;
+[`equivalence_identifiability()`](https://luciorq.github.io/isoformic/reference/equivalence_identifiability.md)
+and
+[`run_terminus()`](https://luciorq.github.io/isoformic/reference/run_terminus.md)
+need the equivalence classes of Salmon and do not.
 
 ## Examples
 
@@ -104,10 +108,10 @@ annot <- system.file(
 )
 iso <- read_oarfish(prefixes, annot_path = annot, inferential = TRUE)
 iso
-#> <IsoformicExperiment> isoformic_885e61b483
-#>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)
+#> <IsoformicExperiment> isoformic_5ae24fa071
+#>   annotation : gencode_v50_example_subset (69 genes, 1,914 transcripts, 18,656 exons)
 #>   samples    : 3 [oarfish_num_processed, oarfish_num_mapped, oarfish_percent_mapped, oarfish_replicate_type, oarfish_num_replicates, oarfish_optimiser, oarfish_alignment_source, oarfish_prob_model, oarfish_qc_flag]
-#>   transcripts: 72 assayed from 3 genes
+#>   transcripts: 141 assayed from 3 genes
 #>   assays     : abundance, counts, length
 #>   gene assays: derived from transcript assays on demand
 #>   DE results : <none>
@@ -115,12 +119,12 @@ head(tx_uncertainty(iso))
 #> # A tibble: 6 × 19
 #>   transcript_id     gene_id gene_name transcript_name transcript_type mean_count
 #>   <chr>             <chr>   <chr>     <chr>           <chr>                <dbl>
-#> 1 ENST00000512351.5 ENSG00… RBPJ      RBPJ-222        protein_coding       59.9 
-#> 2 ENST00000510778.6 ENSG00… RBPJ      RBPJ-218        protein_coding       13.7 
-#> 3 ENST00000506956.5 ENSG00… RBPJ      RBPJ-213        protein_coding       21.4 
-#> 4 ENST00000512671.5 ENSG00… RBPJ      RBPJ-223        protein_coding        1.19
-#> 5 ENST00000345843.7 ENSG00… RBPJ      RBPJ-203        protein_coding        8.92
-#> 6 ENST00000342295.5 ENSG00… RBPJ      RBPJ-201        protein_coding       41.3 
+#> 1 ENST00000512351.5 ENSG00… RBPJ      RBPJ-222        protein_coding        8.20
+#> 2 ENST00000681799.1 ENSG00… RBPJ      RBPJ-247        nonsense_media…      11.5 
+#> 3 ENST00000681403.1 ENSG00… RBPJ      RBPJ-243        retained_intron      17.8 
+#> 4 ENST00000342295.7 ENSG00… RBPJ      RBPJ-201        protein_coding       14.7 
+#> 5 ENST00000506956.5 ENSG00… RBPJ      RBPJ-213        protein_coding        5.83
+#> 6 ENST00000512671.7 ENSG00… RBPJ      RBPJ-223        protein_coding        2.80
 #> # ℹ 13 more variables: assessed <lgl>, mean_inf_rv <dbl>, max_inf_rv <dbl>,
 #> #   mean_inf_cv <dbl>, uncertain <lgl>, min_sibling_cor <dbl>,
 #> #   n_ambiguous_partners <int>, ambiguity_group <chr>, n_classes <dbl>,

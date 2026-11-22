@@ -16,8 +16,9 @@ read_terminus_groups(path, ignore_after_bar = TRUE)
 - path:
 
   The `clusters.txt` file, or a folder that holds it (the output folder
-  of one sample, or the folder given to `-o` when it holds one sample
-  folder).
+  of one sample), or the folder given to `-o`: the first `clusters.txt`
+  one folder down is read, as the consensus groups are the same in every
+  sample folder.
 
 - ignore_after_bar:
 

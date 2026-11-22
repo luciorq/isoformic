@@ -36,6 +36,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -49,6 +50,7 @@
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -106,12 +108,12 @@
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/luciorq/isoformic" class="external-link">isoformic</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">extdata</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span><span class="op">)</span></span>
-<span><span class="va">abundance</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">extdata</span>, <span class="st">"pe_abundance.parquet"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">col_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">extdata</span>, <span class="st">"pe_col_data.parquet"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">det</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">extdata</span>, <span class="st">"pe_det.parquet"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">deg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">extdata</span>, <span class="st">"pe_deg.parquet"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">annot_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_isoformic_annotation.html">prepare_isoformic_annotation</a></span><span class="op">(</span><span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"33"</span>, file_type <span class="op">=</span> <span class="st">"gff"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">data_dir</span> <span class="op">&lt;-</span> <span class="st">"data/preeclampsia"</span></span>
+<span><span class="va">abundance</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">data_dir</span>, <span class="st">"pe_abundance.parquet"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">col_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">data_dir</span>, <span class="st">"pe_col_data.parquet"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">det</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">data_dir</span>, <span class="st">"pe_det.parquet"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">deg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">data_dir</span>, <span class="st">"pe_deg.parquet"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">annot_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_isoformic_annotation.html">prepare_isoformic_annotation</a></span><span class="op">(</span><span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"50"</span>, file_type <span class="op">=</span> <span class="st">"gff"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <section class="level2"><h2 id="transcript-to-gene-table">Transcript-to-gene table<a class="anchor" aria-label="anchor" href="#transcript-to-gene-table"></a>
 </h2>
@@ -123,12 +125,12 @@
 <span><span class="co">#&gt; # A tibble: 6 × 8</span></span>
 <span><span class="co">#&gt;   transcript_id     gene_id  havana_gene_id havana_transcript_id transcript_name</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;             &lt;chr&gt;    &lt;chr&gt;          &lt;chr&gt;                &lt;chr&gt;          </span></span>
-<span><span class="co">#&gt; 1 ENST00000618686.1 ENSG000… &lt;NA&gt;           &lt;NA&gt;                 BX004987.1-201 </span></span>
-<span><span class="co">#&gt; 2 ENST00000613230.1 ENSG000… &lt;NA&gt;           &lt;NA&gt;                 AC145212.1-201 </span></span>
-<span><span class="co">#&gt; 3 ENST00000400754.4 ENSG000… &lt;NA&gt;           &lt;NA&gt;                 MAFIP-201      </span></span>
-<span><span class="co">#&gt; 4 ENST00000618679.1 ENSG000… &lt;NA&gt;           &lt;NA&gt;                 AC011043.2-201 </span></span>
-<span><span class="co">#&gt; 5 ENST00000612465.1 ENSG000… &lt;NA&gt;           &lt;NA&gt;                 AC011043.1-201 </span></span>
-<span><span class="co">#&gt; 6 ENST00000611619.1 ENSG000… &lt;NA&gt;           &lt;NA&gt;                 AC011043.3-201 </span></span>
+<span><span class="co">#&gt; 1 ENST00000741402.1 ENSG000… &lt;NA&gt;           &lt;NA&gt;                 ENST00000741402</span></span>
+<span><span class="co">#&gt; 2 ENST00000741407.1 ENSG000… &lt;NA&gt;           &lt;NA&gt;                 ENST00000741407</span></span>
+<span><span class="co">#&gt; 3 ENST00000741435.1 ENSG000… &lt;NA&gt;           &lt;NA&gt;                 ENST00000741435</span></span>
+<span><span class="co">#&gt; 4 ENST00000741404.1 ENSG000… &lt;NA&gt;           &lt;NA&gt;                 ENST00000741404</span></span>
+<span><span class="co">#&gt; 5 ENST00000741436.1 ENSG000… &lt;NA&gt;           &lt;NA&gt;                 ENST00000741436</span></span>
+<span><span class="co">#&gt; 6 ENST00000741437.1 ENSG000… &lt;NA&gt;           &lt;NA&gt;                 ENST00000741437</span></span>
 <span><span class="co">#&gt; # ℹ 3 more variables: gene_name &lt;chr&gt;, tx_length &lt;int&gt;, transcript_type &lt;chr&gt;</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h2 id="differential-expression-tables">Differential expression tables<a class="anchor" aria-label="anchor" href="#differential-expression-tables"></a>
@@ -146,12 +148,12 @@
 <span><span class="co">#&gt; # A tibble: 6 × 9</span></span>
 <span><span class="co">#&gt;   feature_id   feature_name feature_type gene_id gene_name  log2FC pvalue qvalue</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;        &lt;chr&gt;        &lt;chr&gt;        &lt;chr&gt;   &lt;chr&gt;       &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt; 1 ENSG0000000… TSPAN6       gene         ENSG00… TSPAN6    -0.320  0.0485  0.125</span></span>
-<span><span class="co">#&gt; 2 ENSG0000000… TNMD         gene         ENSG00… TNMD       0.381  0.107   0.222</span></span>
-<span><span class="co">#&gt; 3 ENSG0000000… DPM1         gene         ENSG00… DPM1      -0.0693 0.260   0.417</span></span>
-<span><span class="co">#&gt; 4 ENSG0000000… SCYL3        gene         ENSG00… SCYL3      0.107  0.386   0.547</span></span>
-<span><span class="co">#&gt; 5 ENSG0000000… C1orf112     gene         ENSG00… C1orf112   0.162  0.229   0.380</span></span>
-<span><span class="co">#&gt; 6 ENSG0000000… FGR          gene         ENSG00… FGR       -0.162  0.160   0.296</span></span>
+<span><span class="co">#&gt; 1 ENSG0000000… TSPAN6       gene         ENSG00… TSPAN6    -0.0865 0.608   0.791</span></span>
+<span><span class="co">#&gt; 2 ENSG0000000… TNMD         gene         ENSG00… TNMD       0.471  0.111   0.305</span></span>
+<span><span class="co">#&gt; 3 ENSG0000000… DPM1         gene         ENSG00… DPM1       0.0415 0.423   0.652</span></span>
+<span><span class="co">#&gt; 4 ENSG0000000… SCYL3        gene         ENSG00… SCYL3      0.193  0.0884  0.266</span></span>
+<span><span class="co">#&gt; 5 ENSG0000000… FIRRM        gene         ENSG00… FIRRM      0.198  0.134   0.342</span></span>
+<span><span class="co">#&gt; 6 ENSG0000000… FGR          gene         ENSG00… FGR       -0.154  0.186   0.411</span></span>
 <span><span class="co">#&gt; # ℹ 1 more variable: is_de &lt;chr&gt;</span></span>
 <span><span class="fu"><a href="../reference/plot_log2fc.html">plot_log2fc</a></span><span class="op">(</span><span class="va">de_long</span>, feature <span class="op">=</span> <span class="st">"RBPJ"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
@@ -179,12 +181,12 @@
 <span><span class="co">#&gt; # A tibble: 6 × 10</span></span>
 <span><span class="co">#&gt;   feature_id feature_name feature_type gene_id gene_name group mean_expr sd_expr</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;      &lt;chr&gt;        &lt;chr&gt;        &lt;chr&gt;   &lt;chr&gt;     &lt;fct&gt;     &lt;dbl&gt;   &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt; 1 ENSG00000… RBPJ         gene         ENSG00… RBPJ      pree…   1297.    427.  </span></span>
-<span><span class="co">#&gt; 2 ENSG00000… RBPJ         gene         ENSG00… RBPJ      cont…   1367.    195.  </span></span>
-<span><span class="co">#&gt; 3 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      pree…     11.2    25.1 </span></span>
-<span><span class="co">#&gt; 4 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      cont…      3.95    8.30</span></span>
-<span><span class="co">#&gt; 5 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      pree…    838.    303.  </span></span>
-<span><span class="co">#&gt; 6 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      cont…   1095.    169.  </span></span>
+<span><span class="co">#&gt; 1 ENSG00000… RBPJ         gene         ENSG00… RBPJ      pree…    27.7     8.81 </span></span>
+<span><span class="co">#&gt; 2 ENSG00000… RBPJ         gene         ENSG00… RBPJ      cont…    33.3     5.27 </span></span>
+<span><span class="co">#&gt; 3 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      pree…     0.116   0.148</span></span>
+<span><span class="co">#&gt; 4 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      cont…     0.125   0.160</span></span>
+<span><span class="co">#&gt; 5 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      pree…     0       0    </span></span>
+<span><span class="co">#&gt; 6 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      cont…     0.952   1.39 </span></span>
 <span><span class="co">#&gt; # ℹ 2 more variables: n_samples &lt;int&gt;, is_de &lt;chr&gt;</span></span>
 <span><span class="fu"><a href="../reference/profiles.html">plot_tx_expr</a></span><span class="op">(</span><span class="va">profile</span>, gene_name <span class="op">=</span> <span class="st">"RBPJ"</span>, group <span class="op">=</span> <span class="st">"condition"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
@@ -199,9 +201,9 @@
 <p><code><a href="../reference/prepare_exon_annotation.html">prepare_exon_annotation()</a></code> extracts the exon table of a set of genes from a GFF3 or GTF file for <code><a href="../reference/plot_genomic_context.html">plot_genomic_context()</a></code>; here from the small GFF3 bundled with the package.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">gff</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">extdata</span>, <span class="st">"example.gff3"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">gff</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"example.gff3.gz"</span><span class="op">)</span></span>
 <span><span class="va">exons</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_exon_annotation.html">prepare_exon_annotation</a></span><span class="op">(</span><span class="st">"RBPJ"</span>, <span class="va">gff</span>, output_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; ℹ Parsing 'example.gff3' (GFF) into '/tmp/Rtmpaa03Ug/example'.</span></span>
+<span><span class="co">#&gt; ℹ Parsing 'example.gff3.gz' (GFF) into '/tmp/RtmpeQTaBz/example_gff3'.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">exons</span><span class="op">)</span></span>
 <span><span class="co">#&gt; # A tibble: 6 × 12</span></span>
 <span><span class="co">#&gt;   gene_id      gene_name transcript_id transcript_name transcript_type haplotype</span></span>
@@ -224,25 +226,25 @@
 </div>
 </section><section class="level2"><h2 id="structural-features-and-enrichment">Structural features and enrichment<a class="anchor" aria-label="anchor" href="#structural-features-and-enrichment"></a>
 </h2>
-<p><code><a href="../reference/transcript_features.html">transcript_features()</a></code>, <code><a href="../reference/transcript_orfs.html">transcript_orfs()</a></code>, <code><a href="../reference/productivity.html">transcript_productivity()</a></code> and <code><a href="../reference/polyadenylation.html">polya_sites()</a></code> accept an annotation directory in place of the object, and <code><a href="../reference/enrichment.html">run_enrichment()</a></code> accepts a transcript table together with a <code>tx_to_gene</code> table.</p>
+<p><code><a href="../reference/transcript_features.html">transcript_features()</a></code>, <code><a href="../reference/transcript_features.html">splicing_events()</a></code>, <code><a href="../reference/transcript_orfs.html">transcript_orfs()</a></code>, <code><a href="../reference/transcript_orfs.html">coding_potential()</a></code> and <code><a href="../reference/splice_sites.html">splice_site_strength()</a></code> accept an annotation directory in place of the object and then report every transcript of the annotation. <code><a href="../reference/enrichment.html">run_enrichment()</a></code> accepts a transcript table together with a <code>tx_to_gene</code> table, and <code><a href="../reference/productivity.html">run_productivity_enrichment()</a></code> and <code><a href="../reference/polyadenylation.html">run_apa_enrichment()</a></code> accept the gene tables of <code><a href="../reference/productivity.html">productive_fraction()</a></code> and <code><a href="../reference/polyadenylation.html">apa_usage()</a></code>.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">feats</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/transcript_features.html">transcript_features</a></span><span class="op">(</span><span class="va">annot_dir</span>, gene_name <span class="op">=</span> <span class="st">"RBPJ"</span><span class="op">)</span></span>
 <span><span class="va">feats</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"transcript_name"</span>, <span class="st">"orf_length"</span>, <span class="st">"utr3_length"</span>, <span class="st">"nmd_predicted"</span>, <span class="st">"tss_group"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt; # A tibble: 31 × 5</span></span>
+<span><span class="co">#&gt; # A tibble: 65 × 5</span></span>
 <span><span class="co">#&gt;    transcript_name orf_length utr3_length nmd_predicted tss_group</span></span>
 <span><span class="co">#&gt;    &lt;chr&gt;                &lt;int&gt;       &lt;dbl&gt; &lt;lgl&gt;             &lt;int&gt;</span></span>
 <span><span class="co">#&gt;  1 RBPJ-222               283           0 FALSE                 1</span></span>
-<span><span class="co">#&gt;  2 RBPJ-218               689           0 FALSE                 2</span></span>
-<span><span class="co">#&gt;  3 RBPJ-213               291           0 FALSE                 3</span></span>
-<span><span class="co">#&gt;  4 RBPJ-223               535           0 FALSE                 3</span></span>
-<span><span class="co">#&gt;  5 RBPJ-201              1503        4121 FALSE                 3</span></span>
-<span><span class="co">#&gt;  6 RBPJ-203              1458          59 FALSE                 3</span></span>
-<span><span class="co">#&gt;  7 RBPJ-206              1503           0 FALSE                 4</span></span>
-<span><span class="co">#&gt;  8 RBPJ-225                NA          NA FALSE                 5</span></span>
-<span><span class="co">#&gt;  9 RBPJ-229               145           0 FALSE                 6</span></span>
-<span><span class="co">#&gt; 10 RBPJ-204              1464          59 FALSE                 6</span></span>
-<span><span class="co">#&gt; # ℹ 21 more rows</span></span></code></pre></div>
+<span><span class="co">#&gt;  2 RBPJ-247               177         936 TRUE                  1</span></span>
+<span><span class="co">#&gt;  3 RBPJ-243                NA          NA FALSE                 2</span></span>
+<span><span class="co">#&gt;  4 RBPJ-201              1503        4124 FALSE                 3</span></span>
+<span><span class="co">#&gt;  5 RBPJ-213               291           0 FALSE                 3</span></span>
+<span><span class="co">#&gt;  6 RBPJ-223              1503        4124 FALSE                 3</span></span>
+<span><span class="co">#&gt;  7 RBPJ-203              1398        4124 FALSE                 3</span></span>
+<span><span class="co">#&gt;  8 RBPJ-206              1503           0 FALSE                 4</span></span>
+<span><span class="co">#&gt;  9 RBPJ-225                NA          NA FALSE                 5</span></span>
+<span><span class="co">#&gt; 10 RBPJ-229               145           0 FALSE                 6</span></span>
+<span><span class="co">#&gt; # ℹ 55 more rows</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h2 id="citing-isoformic">Citing isoformic<a class="anchor" aria-label="anchor" href="#citing-isoformic"></a>
 </h2>
@@ -277,11 +279,11 @@
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] gtable_0.3.6       jsonlite_2.0.0     compiler_4.6.2     Rcpp_1.1.2        </span></span>
-<span><span class="co">#&gt;  [5] tidyselect_1.2.1   scales_1.4.0       yaml_2.3.12        fastmap_1.2.0     </span></span>
-<span><span class="co">#&gt;  [9] ggplot2_4.0.4      R6_2.6.1           labeling_0.4.3     generics_0.1.4    </span></span>
-<span><span class="co">#&gt; [13] curl_8.1.0         knitr_1.52         ggrepel_0.9.8      tibble_3.3.1      </span></span>
+<span><span class="co">#&gt;  [5] tidyselect_1.2.1   parallel_4.6.2     scales_1.4.0       yaml_2.3.12       </span></span>
+<span><span class="co">#&gt;  [9] fastmap_1.2.0      ggplot2_4.0.4      R6_2.6.1           labeling_0.4.3    </span></span>
+<span><span class="co">#&gt; [13] generics_0.1.4     knitr_1.52         ggrepel_0.9.8      tibble_3.3.1      </span></span>
 <span><span class="co">#&gt; [17] DBI_1.3.0          pillar_1.11.1      RColorBrewer_1.1-3 rlang_1.3.0       </span></span>
-<span><span class="co">#&gt; [21] utf8_1.2.6         xfun_0.62          fs_2.1.0           S7_0.2.2          </span></span>
+<span><span class="co">#&gt; [21] utf8_1.2.6         xfun_0.62          fs_2.1.0           S7_1.0.0          </span></span>
 <span><span class="co">#&gt; [25] otel_0.3.0         cli_3.6.6          withr_3.0.3        magrittr_2.0.5    </span></span>
 <span><span class="co">#&gt; [29] digest_0.6.39      grid_4.6.2         lifecycle_1.0.5    vctrs_0.7.3       </span></span>
 <span><span class="co">#&gt; [33] evaluate_1.0.5     glue_1.8.1         farver_2.1.2       duckdb_2.0.0      </span></span>

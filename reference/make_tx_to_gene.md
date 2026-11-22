@@ -21,8 +21,8 @@ make_tx_to_gene(
 
 - file_path:
 
-  Path to a FASTA (`.fa`, `.fasta`, optionally `.gz`), GFF3 or GTF file,
-  or to an annotation directory.
+  Path to a FASTA (`.fa`, `.fasta`, `.fna`, optionally `.gz`), GFF3 or
+  GTF file, or to an annotation directory.
 
 - file_type:
 
@@ -39,7 +39,8 @@ make_tx_to_gene(
 
 A tibble with columns `transcript_id`, `gene_id`, `havana_gene_id`,
 `havana_transcript_id`, `transcript_name`, `gene_name`, `tx_length` and
-`transcript_type`. The Havana columns are `NA` for GFF3/GTF inputs.
+`transcript_type`. The Havana columns are `NA` for GFF3/GTF inputs and
+annotation directories.
 
 ## Details
 
@@ -54,18 +55,18 @@ which read the same information from the annotation directory.
 ## Examples
 
 ``` r
-gff <- system.file("extdata", "example.gff3", package = "isoformic")
+gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 tx2gene <- make_tx_to_gene(gff, output_path = tempdir())
-#> ℹ Parsing example.gff3 (GFF) into /tmp/RtmpatoNKq/example.
+#> ℹ Parsing example.gff3.gz (GFF) into /tmp/RtmpPCTCTT/example_gff3.
 head(tx2gene)
 #> # A tibble: 6 × 8
 #>   transcript_id     gene_id  havana_gene_id havana_transcript_id transcript_name
 #>   <chr>             <chr>    <chr>          <chr>                <chr>          
-#> 1 ENST00000282397.9 ENSG000… NA             NA                   FLT1-201       
-#> 2 ENST00000615611.4 ENSG000… NA             NA                   FLT1-206       
-#> 3 ENST00000617835.4 ENSG000… NA             NA                   FLT1-208       
-#> 4 ENST00000543394.2 ENSG000… NA             NA                   FLT1-205       
-#> 5 ENST00000540678.2 ENSG000… NA             NA                   FLT1-203       
-#> 6 ENST00000541932.5 ENSG000… NA             NA                   FLT1-204       
+#> 1 ENST00000909997.2 ENSG000… NA             NA                   FLT1-211       
+#> 2 ENST00000909998.2 ENSG000… NA             NA                   FLT1-212       
+#> 3 ENST00000909999.2 ENSG000… NA             NA                   FLT1-213       
+#> 4 ENST00000910000.2 ENSG000… NA             NA                   FLT1-214       
+#> 5 ENST00001131755.1 ENSG000… NA             NA                   FLT1-217       
+#> 6 ENST00000282397.9 ENSG000… NA             NA                   FLT1-201       
 #> # ℹ 3 more variables: gene_name <chr>, tx_length <int>, transcript_type <chr>
 ```

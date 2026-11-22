@@ -12,6 +12,12 @@ row names of a haplotype-resolved
 (rename the sequences of the per-haplotype transcript FASTA files the
 same way before building the Salmon index).
 
+The tables are copied by DuckDB from the Parquet files of each haplotype
+to the merged files, so they are not read into R: merging two
+annotations of a whole human release with their transcript sequences
+takes seconds and less than 2 GB of memory. The sequences are copied by
+one DuckDB thread, which keeps their memory to a few hundred megabytes.
+
 The `source_gene_id` / `source_transcript_id` columns (GRCh38
 identifiers kept by Liftoff/CAT) are left untouched, which is what
 [`haplotype_summary()`](https://luciorq.github.io/isoformic/reference/diversity.md)
@@ -63,21 +69,21 @@ The path to the merged annotation directory.
 ## Examples
 
 ``` r
-gff <- system.file("extdata", "example.gff3", package = "isoformic")
+gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 merged <- merge_annotations(
   c(hap1 = gff, hap2 = gff),
   output_path = tempdir(),
   annot_name = "example_diploid",
   overwrite = TRUE
 )
-#> ℹ Using cached annotation directory /tmp/RtmpatoNKq/example.
-#> ℹ Using cached annotation directory /tmp/RtmpatoNKq/example.
+#> ℹ Using cached annotation directory /tmp/RtmpPCTCTT/example_gff3.
+#> ℹ Using cached annotation directory /tmp/RtmpPCTCTT/example_gff3.
 tx <- read_parquet(file.path(merged, "annot_data_transcripts.parquet"))
 table(tx$haplotype)
 #> 
 #> hap1 hap2 
-#>   72   72 
+#>  141  141 
 head(tx$transcript_id)
-#> [1] "ENST00000282397.9_hap1" "ENST00000615611.4_hap1" "ENST00000617835.4_hap1"
-#> [4] "ENST00000543394.2_hap1" "ENST00000540678.2_hap1" "ENST00000541932.5_hap1"
+#> [1] "ENST00000909997.2_hap1" "ENST00000909998.2_hap1" "ENST00000909999.2_hap1"
+#> [4] "ENST00000910000.2_hap1" "ENST00001131755.1_hap1" "ENST00000282397.9_hap1"
 ```

@@ -3,10 +3,10 @@
 TreeTerminus builds, from Salmon replicates, a forest of transcript
 trees: the leaves are transcripts and every internal node is the sum of
 the transcripts below it, built so that the inferential uncertainty
-falls as the tree is ascended. Unlike the flat groups of Terminus, a
-tree lets the resolution change from one isoform to the next: an isoform
-the reads determine stays a leaf, one they do not is replaced by the
-smallest node that they do determine.
+falls, on average, as the tree is ascended. Unlike the flat groups of
+Terminus, a tree lets the resolution change from one isoform to the
+next: an isoform the reads determine stays a leaf, one they do not is
+replaced by the smallest node that they do determine.
 
 - `read_treeterminus()` reads the trees (Newick, one per line):
   `cluster_nwk.txt` for the trees of all samples
@@ -23,14 +23,14 @@ smallest node that they do determine.
   every transcript whose own variance is at least `cutoff` by its lowest
   ancestor below `cutoff`, and returns the groups, which do not overlap
   (when two chosen nodes are nested, the larger one is kept). The result
-  goes to `add_uncertainty(groups = )`, so that the confidence classes
-  and `collapse_groups` work at the resolution the data support.
+  goes to `add_uncertainty(groups = )`, so that `ambiguous` and
+  `collapse_groups` work at the resolution the data support.
 
 Transcripts whose whole path to the root stays above the cutoff are
 unresolved: by default they are left as they are
-(`unresolved = "transcript"`), where the confidence classes still flag
-them as uncertain; `unresolved = "root"` merges every tree that has one
-into a single group.
+(`unresolved = "transcript"`), where `uncertain` still flags them;
+`unresolved = "root"` merges every tree that has one into a single
+group.
 
 ## Usage
 
@@ -54,8 +54,8 @@ cut_transcript_trees(
 
 - path:
 
-  A Newick file of TreeTerminus, or a folder holding `cluster_nwk.txt`
-  (or a single `group_nwk.txt`).
+  A Newick file of TreeTerminus, or a folder holding, directly or one
+  folder down, a single `cluster_nwk.txt` (or a single `group_nwk.txt`).
 
 - salmon_dir:
 
@@ -99,7 +99,9 @@ cut_transcript_trees(
 (leaves; `NA` for nodes) and `parent_id` (`NA` for the roots).
 `cut_transcript_trees()`: a tibble with `transcript_id`, `group_id`,
 `group_size`, `group_inf_rv` and `tree_id` for the transcripts that are
-grouped, with the cutoff in the `cutoff` attribute.
+grouped (groups of at least two transcripts with replicates in `x`;
+transcripts of the trees without replicates are ignored), with the
+cutoff in the `cutoff` attribute.
 
 ## References
 

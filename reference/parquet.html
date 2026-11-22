@@ -21,7 +21,8 @@ bundled example data are all stored as Parquet."><meta property="og:image" conte
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -33,6 +34,7 @@ bundled example data are all stored as Parquet."><meta property="og:image" conte
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -115,7 +117,8 @@ bundled example data are all stored as Parquet.</p>
 
 
 <dt id="arg-compression">compression<a class="anchor" aria-label="anchor" href="#arg-compression"></a></dt>
-<dd><p>Parquet compression codec.</p></dd>
+<dd><p>Parquet compression codec: <code>"zstd"</code> (default),
+<code>"snappy"</code>, <code>"gzip"</code> or <code>"uncompressed"</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -127,8 +130,10 @@ bundled example data are all stored as Parquet.</p>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p><code>read_parquet()</code> reads a Parquet file. <code>read_tabular()</code> reads Parquet,
 CSV or TSV files (<code>.csv</code>, <code>.tsv</code>, <code>.tab</code>, <code>.txt</code>, Salmon <code>.sf</code>; optionally
-gzip-compressed), auto-detecting delimiter and types. <code>write_parquet()</code> writes any data frame to a
-Parquet file, creating parent directories as needed.</p>
+gzip-compressed) and auto-detects the column types (and the delimiter of
+<code>.txt</code> files; <code>.tsv</code>, <code>.tab</code> and <code>.sf</code> are read as tab-separated).
+<code>write_parquet()</code> writes any data frame to a Parquet file, creating
+parent directories as needed.</p>
 <p>Factor columns are stored as Parquet strings and come back as character.
 Row names are not stored; keep identifiers in a regular column.</p>
     </div>

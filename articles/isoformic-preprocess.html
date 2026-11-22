@@ -36,6 +36,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -49,6 +50,7 @@
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -139,11 +141,11 @@
 <span>  num_threads <span class="op">=</span> <span class="fl">8</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
-<p><code><a href="../reference/salmon_quant.html">salmon_quant()</a></code> draws 30 Gibbs samples per sample by default (<code>num_gibbs = 0</code> skips them). Besides <code>swish</code>, they quantify how well the reads determine each isoform, which isoforms cannot be told apart and how confident each differential expression call is; <code>read_salmon(inferential = TRUE)</code> reads them and the <a href="isoformic-uncertainty.html">uncertainty article</a> explains how to use and report them.</p>
-<p>For a decoy-aware index (recommended by the Salmon authors), build the <code>gentrome</code> FASTA and <code>decoys.txt</code> from the genome as described in the Salmon documentation and pass <code>--decoys decoys.txt</code> to <code>salmon index</code>.</p>
+<p><code><a href="../reference/salmon_quant.html">salmon_quant()</a></code> draws 30 Gibbs samples per sample by default (<code>num_gibbs = 0</code> skips them). Besides <code>swish</code>, they quantify how well the reads determine each isoform, which isoforms cannot be told apart and how stable the direction of each differential expression call is over the replicates; <code>read_salmon(inferential = TRUE)</code> reads them and the <a href="isoformic-uncertainty.html">uncertainty article</a> explains how to use and report them.</p>
+<p>For a decoy-aware index (recommended by the Salmon authors), pass the genome FASTA as <code>decoy_fasta</code>, for GENCODE the <code>GRCh38.primary_assembly.genome.fa.gz</code> of the same release: <code><a href="../reference/salmon_index.html">salmon_index()</a></code> writes the <code>gentrome</code> FASTA (transcripts followed by the genome) and <code>decoys.txt</code> (the genome sequence names) in a temporary directory, runs <code>salmon index --decoys decoys.txt</code> and removes them. The genome makes the index much larger and slower to build, and needs free disk space in <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code> for a copy of the genome while it runs.</p>
 </section><section class="level2"><h2 id="reading-quantifications-directly">Reading quantifications directly<a class="anchor" aria-label="anchor" href="#reading-quantifications-directly"></a>
 </h2>
-<p><code><a href="../reference/read_salmon.html">read_salmon()</a></code> reads any number of <code>quant.sf</code> files with DuckDB and returns an <code>IsoformicExperiment</code> with <code>abundance</code> (TPM), <code>counts</code> and <code>length</code> assays. The package ships a down-sampled dataset of six placenta samples quantified against GENCODE v49.</p>
+<p><code><a href="../reference/read_salmon.html">read_salmon()</a></code> reads any number of <code>quant.sf</code> files with DuckDB and returns an <code>IsoformicExperiment</code> with <code>abundance</code> (TPM), <code>counts</code> and <code>length</code> assays. The package ships the Salmon output of six placenta samples (three with preeclampsia, three controls) quantified against the GENCODE v50 transcripts of 15 genes.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/luciorq/isoformic" class="external-link">isoformic</a></span><span class="op">)</span></span>
@@ -154,23 +156,23 @@
 <span></span>
 <span><span class="va">col_data</span> <span class="op">&lt;-</span> <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span></span>
 <span>  sample_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">quant_dirs</span><span class="op">)</span>,</span>
-<span>  condition <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="fl">3</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"treatment"</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"treatment"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  condition <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"preeclampsia"</span>, <span class="fl">3</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"preeclampsia"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">col_data</span></span>
 <span><span class="co">#&gt; # A tibble: 6 × 2</span></span>
-<span><span class="co">#&gt;   sample_id   condition</span></span>
-<span><span class="co">#&gt;   &lt;chr&gt;       &lt;fct&gt;    </span></span>
-<span><span class="co">#&gt; 1 SRR11498039 control  </span></span>
-<span><span class="co">#&gt; 2 SRR11498040 control  </span></span>
-<span><span class="co">#&gt; 3 SRR11498041 control  </span></span>
-<span><span class="co">#&gt; 4 SRR11498079 treatment</span></span>
-<span><span class="co">#&gt; 5 SRR11498080 treatment</span></span>
-<span><span class="co">#&gt; 6 SRR11498081 treatment</span></span></code></pre></div>
+<span><span class="co">#&gt;   sample_id   condition   </span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;       &lt;fct&gt;       </span></span>
+<span><span class="co">#&gt; 1 SRR11498039 preeclampsia</span></span>
+<span><span class="co">#&gt; 2 SRR11498040 preeclampsia</span></span>
+<span><span class="co">#&gt; 3 SRR11498041 preeclampsia</span></span>
+<span><span class="co">#&gt; 4 SRR11498077 control     </span></span>
+<span><span class="co">#&gt; 5 SRR11498078 control     </span></span>
+<span><span class="co">#&gt; 6 SRR11498079 control</span></span></code></pre></div>
 </div>
-<p>The annotation must match the reference used for quantification, GENCODE v49 here. For real data it is downloaded once into the package cache and converted to Parquet once:</p>
+<p>The annotation must match the reference used for quantification, GENCODE v50 here. For real data it is downloaded once into the package cache and converted to Parquet once:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">gff_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"49"</span>, file_type <span class="op">=</span> <span class="st">"gff"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">gff_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"50"</span>, file_type <span class="op">=</span> <span class="st">"gff"</span><span class="op">)</span></span>
 <span><span class="va">annot_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_isoformic_annotation.html">prepare_isoformic_annotation</a></span><span class="op">(</span><span class="va">gff_path</span><span class="op">)</span></span></code></pre></div>
 </div>
 <p>The package bundles the subset of that annotation covering the transcripts of the mini dataset.</p>
@@ -181,9 +183,9 @@
 <span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_salmon.html">read_salmon</a></span><span class="op">(</span><span class="va">quant_dirs</span>, annot_path <span class="op">=</span> <span class="va">annot_dir</span>, col_data <span class="op">=</span> <span class="va">col_data</span>, experiment_name <span class="op">=</span> <span class="st">"mini_placenta"</span><span class="op">)</span></span>
 <span><span class="va">iso</span></span>
 <span><span class="co">#&gt; &lt;IsoformicExperiment&gt; mini_placenta</span></span>
-<span><span class="co">#&gt;   annotation : gencode_v49_mini_subset (15 genes, 111 transcripts, 1,071 exons)</span></span>
+<span><span class="co">#&gt;   annotation : gencode_v50_mini_subset (15 genes, 158 transcripts, 1,802 exons)</span></span>
 <span><span class="co">#&gt;   samples    : 6 [condition]</span></span>
-<span><span class="co">#&gt;   transcripts: 111 assayed from 15 genes</span></span>
+<span><span class="co">#&gt;   transcripts: 158 assayed from 15 genes</span></span>
 <span><span class="co">#&gt;   assays     : abundance, counts, length</span></span>
 <span><span class="co">#&gt;   gene assays: derived from transcript assays on demand</span></span>
 <span><span class="co">#&gt;   DE results : &lt;none&gt;</span></span>
@@ -206,7 +208,7 @@
 </div>
 </section><section class="level2"><h2 id="transcript-level-differential-expression-with-swish">Transcript-level differential expression with swish<a class="anchor" aria-label="anchor" href="#transcript-level-differential-expression-with-swish"></a>
 </h2>
-<p><code>swish</code> needs the inferential replicates, which <code>tximeta</code> imports from the Salmon output (the bundled quantifications carry them separately to keep the package small).</p>
+<p><code>swish</code> needs the inferential replicates, which <code>tximeta</code> imports from the Salmon output (the bundled quantifications carry their 20 Gibbs draws separately, in <code>mini_draws.parquet</code>, to keep the package small, so <code>tximeta</code> is told to skip them).</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressPackageStartupMessages</a></span><span class="op">(</span><span class="op">{</span></span>
@@ -226,13 +228,17 @@
 <span>  skipMeta <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  useHub <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  ignoreAfterBar <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  skipSeqinfo <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  skipSeqinfo <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  dropInfReps <span class="op">=</span> <span class="cn">TRUE</span> <span class="co"># the draws are not in the bundled directories</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">mini_draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/inferential-io.html">as_inferential_replicates</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"mini_draws.parquet"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">mini_draws</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"infRep"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">mini_draws</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">assays</a></span><span class="op">(</span><span class="va">se_tx</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">as.list</a></span><span class="op">(</span><span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">assays</a></span><span class="op">(</span><span class="va">se_tx</span><span class="op">)</span><span class="op">)</span>, <span class="va">mini_draws</span><span class="op">)</span></span>
+<span><span class="fu">SummarizedExperiment</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assays</a></span><span class="op">(</span><span class="va">se_tx</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">as.list</a></span><span class="op">(</span><span class="fu">SummarizedExperiment</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assays</a></span><span class="op">(</span><span class="va">se_tx</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="va">mini_draws</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu">fishpond</span><span class="fu">::</span><span class="fu"><a href="https://thelovelab.github.io/fishpond/reference/scaleInfReps.html" class="external-link">scaleInfReps</a></span><span class="op">(</span><span class="va">se_tx</span><span class="op">)</span></span>
 <span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu">fishpond</span><span class="fu">::</span><span class="fu"><a href="https://thelovelab.github.io/fishpond/reference/labelKeep.html" class="external-link">labelKeep</a></span><span class="op">(</span><span class="va">y</span>, minCount <span class="op">=</span> <span class="fl">10</span>, minN <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
@@ -243,13 +249,13 @@
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/rownames.html" class="external-link">rownames_to_column</a></span><span class="op">(</span><span class="st">"transcript_id"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">swish_results</span><span class="op">)</span></span>
-<span><span class="co">#&gt;        transcript_id log10mean  keep stat   log2FC    pvalue locfdr    qvalue</span></span>
-<span><span class="co">#&gt; 1 ENST00000367468.10  2.923578  TRUE 1.85 1.821603 0.3115385      1 0.5785714</span></span>
-<span><span class="co">#&gt; 2  ENST00000681605.1  2.553906 FALSE   NA       NA        NA     NA        NA</span></span>
-<span><span class="co">#&gt; 3  ENST00000680451.1  2.350137 FALSE   NA       NA        NA     NA        NA</span></span>
-<span><span class="co">#&gt; 4  ENST00000490885.6  2.225321 FALSE   NA       NA        NA     NA        NA</span></span>
-<span><span class="co">#&gt; 5  ENST00000559627.1  1.959647 FALSE   NA       NA        NA     NA        NA</span></span>
-<span><span class="co">#&gt; 6  ENST00000466691.1  1.607356 FALSE   NA       NA        NA     NA        NA</span></span></code></pre></div>
+<span><span class="co">#&gt;        transcript_id log10mean  keep stat log2FC pvalue locfdr qvalue</span></span>
+<span><span class="co">#&gt; 1 ENST00000367468.10 1.0366158 FALSE   NA     NA     NA     NA     NA</span></span>
+<span><span class="co">#&gt; 2  ENST00000681605.1 0.7665459 FALSE   NA     NA     NA     NA     NA</span></span>
+<span><span class="co">#&gt; 3  ENST00000680451.1 1.0361596 FALSE   NA     NA     NA     NA     NA</span></span>
+<span><span class="co">#&gt; 4  ENST00000490885.6 1.0145195 FALSE   NA     NA     NA     NA     NA</span></span>
+<span><span class="co">#&gt; 5  ENST00000559627.1 0.8826379 FALSE   NA     NA     NA     NA     NA</span></span>
+<span><span class="co">#&gt; 6  ENST00000466691.1 0.3940242 FALSE   NA     NA     NA     NA     NA</span></span></code></pre></div>
 </div>
 <p>The results are attached to the object; <code>tximeta</code> objects can also be converted directly with <code>as_isoformic(se_tx, annot_path = annot_dir)</code>.</p>
 <div class="cell">
@@ -257,14 +263,14 @@
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/dea.html">de_tx</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">swish_results</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="../reference/dea.html">de_tx</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; # A tibble: 6 × 9</span></span>
-<span><span class="co">#&gt;   transcript_id     log10mean keep   stat log2FC pvalue locfdr qvalue det_sig</span></span>
-<span><span class="co">#&gt;   &lt;chr&gt;                 &lt;dbl&gt; &lt;lgl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;  </span></span>
-<span><span class="co">#&gt; 1 ENST00000263341.7      3.59 TRUE   3.25   6.63 0.0727  0.529  0.234 no     </span></span>
-<span><span class="co">#&gt; 2 ENST00000651122.1      2.72 TRUE   3.5    4.91 0.0562  0.455  0.234 no     </span></span>
-<span><span class="co">#&gt; 3 ENST00000306602.3      2.44 TRUE  -3.3   -3.75 0.0673  0.506  0.234 no     </span></span>
-<span><span class="co">#&gt; 4 ENST00000392322.7      2.61 TRUE   2.45   2.62 0.157   0.839  0.407 no     </span></span>
-<span><span class="co">#&gt; 5 ENST00000698141.1      2.45 TRUE   2      2.24 0.264   1      0.528 no     </span></span>
-<span><span class="co">#&gt; 6 ENST00000697958.1      2.52 TRUE  -3.65  -2.01 0.0423  0.388  0.234 no</span></span></code></pre></div>
+<span><span class="co">#&gt;   transcript_id     log10mean keep   stat log2FC  pvalue locfdr qvalue det_sig</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;                 &lt;dbl&gt; &lt;lgl&gt; &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;  </span></span>
+<span><span class="co">#&gt; 1 ENST00000907726.2      1.97 TRUE   4.3    2.69 0.00545  0.176  0.18  no     </span></span>
+<span><span class="co">#&gt; 2 ENST00000306602.3      1.45 TRUE   0.5    1.60 0.779    1      0.951 no     </span></span>
+<span><span class="co">#&gt; 3 ENST00000580907.6      1.13 TRUE  -4.1   -1.46 0.0155   0.276  0.255 no     </span></span>
+<span><span class="co">#&gt; 4 ENST00000361099.8      1.65 TRUE  -1.7   -1.43 0.343    1      0.566 no     </span></span>
+<span><span class="co">#&gt; 5 ENST00000225831.4      1.69 TRUE  -2.9   -1.36 0.0830   0.599  0.404 no     </span></span>
+<span><span class="co">#&gt; 6 ENST00000540176.6      1.51 TRUE   3.35   1.31 0.0448   0.446  0.296 no</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h2 id="gene-level-differential-expression-with-deseq2">Gene-level differential expression with DESeq2<a class="anchor" aria-label="anchor" href="#gene-level-differential-expression-with-deseq2"></a>
 </h2>
@@ -272,35 +278,37 @@
 <div class="cell">
 <div class="sourceCode cell-code" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">se_gene</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/isoformic-conversion.html">as_summarized_experiment</a></span><span class="op">(</span><span class="va">iso</span>, level <span class="op">=</span> <span class="st">"gene"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">assay</a></span><span class="op">(</span><span class="va">se_gene</span>, <span class="st">"counts"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">assay</a></span><span class="op">(</span><span class="va">se_gene</span>, <span class="st">"counts"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">se_gene</span><span class="op">$</span><span class="va">condition</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">se_gene</span><span class="op">$</span><span class="va">condition</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"treatment"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">SummarizedExperiment</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">se_gene</span>, <span class="st">"counts"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span></span>
+<span>  <span class="fu">SummarizedExperiment</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">se_gene</span>, <span class="st">"counts"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">se_gene</span><span class="op">$</span><span class="va">condition</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">se_gene</span><span class="op">$</span><span class="va">condition</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"preeclampsia"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">dds</span> <span class="op">&lt;-</span> <span class="fu">DESeq2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/DESeq2/man/DESeqDataSet.html" class="external-link">DESeqDataSet</a></span><span class="op">(</span><span class="va">se_gene</span>, design <span class="op">=</span> <span class="op">~</span><span class="va">condition</span><span class="op">)</span></span>
 <span><span class="va">dds</span> <span class="op">&lt;-</span> <span class="va">dds</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/pkg/MatrixGenerics/man/rowSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="fu">DESeq2</span><span class="fu">::</span><span class="fu">counts</span><span class="op">(</span><span class="va">dds</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="fl">10</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="fl">3</span>, <span class="op">]</span></span>
 <span><span class="va">dds</span> <span class="op">&lt;-</span> <span class="fu">DESeq2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/DESeq2/man/DESeq.html" class="external-link">DESeq</a></span><span class="op">(</span><span class="va">dds</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu">DESeq2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/DESeq2/man/results.html" class="external-link">results</a></span><span class="op">(</span><span class="va">dds</span>, contrast <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"condition"</span>, <span class="st">"treatment"</span>, <span class="st">"control"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu">DESeq2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/DESeq2/man/results.html" class="external-link">results</a></span><span class="op">(</span><span class="va">dds</span>, contrast <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"condition"</span>, <span class="st">"preeclampsia"</span>, <span class="st">"control"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">shrink_type</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu">rlang</span><span class="fu">::</span><span class="fu"><a href="https://rlang.r-lib.org/reference/is_installed.html" class="external-link">is_installed</a></span><span class="op">(</span><span class="st">"apeglm"</span><span class="op">)</span><span class="op">)</span> <span class="st">"apeglm"</span> <span class="kw">else</span> <span class="st">"normal"</span></span>
-<span><span class="va">res_shr</span> <span class="op">&lt;-</span> <span class="fu">DESeq2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/DESeq2/man/lfcShrink.html" class="external-link">lfcShrink</a></span><span class="op">(</span><span class="va">dds</span>, coef <span class="op">=</span> <span class="st">"condition_treatment_vs_control"</span>, res <span class="op">=</span> <span class="va">res</span>, type <span class="op">=</span> <span class="va">shrink_type</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">res_shr</span> <span class="op">&lt;-</span> <span class="fu">DESeq2</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/DESeq2/man/lfcShrink.html" class="external-link">lfcShrink</a></span><span class="op">(</span><span class="va">dds</span>, coef <span class="op">=</span> <span class="st">"condition_preeclampsia_vs_control"</span>, res <span class="op">=</span> <span class="va">res</span>, type <span class="op">=</span> <span class="va">shrink_type</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/dea.html">de_gene</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">res_shr</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="../reference/dea.html">de_gene</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; # A tibble: 6 × 7</span></span>
-<span><span class="co">#&gt;   gene_id            baseMean       log2FC   lfcSE   pvalue  qvalue deg_sig</span></span>
-<span><span class="co">#&gt;   &lt;chr&gt;                 &lt;dbl&gt;        &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;  </span></span>
-<span><span class="co">#&gt; 1 ENSG00000125538.12    140.   3.94        1.55    0.000218 0.00196 yes    </span></span>
-<span><span class="co">#&gt; 2 ENSG00000115415.22    435.   0.00000191  0.00144 0.452    0.614   no     </span></span>
-<span><span class="co">#&gt; 3 ENSG00000100906.13   1212.  -0.00000132  0.00144 0.362    0.614   no     </span></span>
-<span><span class="co">#&gt; 4 ENSG00000271503.7   20364.  -0.000000869 0.00144 0.477    0.614   no     </span></span>
-<span><span class="co">#&gt; 5 ENSG00000184557.5     241.   0.000000810 0.00144 0.586    0.659   no     </span></span>
-<span><span class="co">#&gt; 6 ENSG00000073756.13     63.9  0.000000600 0.00144 0.438    0.614   no</span></span>
+<span><span class="co">#&gt;   gene_id            baseMean log2FC lfcSE   pvalue  qvalue deg_sig</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;                 &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;  </span></span>
+<span><span class="co">#&gt; 1 ENSG00000184557.6     256.   1.16  0.430 0.000601 0.00722 yes    </span></span>
+<span><span class="co">#&gt; 2 ENSG00000108691.11     97.1 -0.802 0.899 0.0193   0.116   no     </span></span>
+<span><span class="co">#&gt; 3 ENSG00000090339.11    250.   0.435 0.392 0.0806   0.242   no     </span></span>
+<span><span class="co">#&gt; 4 ENSG00000274233.4     106.  -0.297 0.422 0.170    0.407   no     </span></span>
+<span><span class="co">#&gt; 5 ENSG00000073756.13     47.2  0.257 0.509 0.0405   0.162   no     </span></span>
+<span><span class="co">#&gt; 6 ENSG00000115415.23    779.  -0.180 0.213 0.318    0.504   no</span></span>
 <span><span class="va">iso</span></span>
 <span><span class="co">#&gt; &lt;IsoformicExperiment&gt; mini_placenta</span></span>
-<span><span class="co">#&gt;   annotation : gencode_v49_mini_subset (15 genes, 111 transcripts, 1,071 exons)</span></span>
+<span><span class="co">#&gt;   annotation : gencode_v50_mini_subset (15 genes, 158 transcripts, 1,802 exons)</span></span>
 <span><span class="co">#&gt;   samples    : 6 [condition]</span></span>
-<span><span class="co">#&gt;   transcripts: 111 assayed from 15 genes</span></span>
+<span><span class="co">#&gt;   transcripts: 158 assayed from 15 genes</span></span>
 <span><span class="co">#&gt;   assays     : abundance, counts, length</span></span>
 <span><span class="co">#&gt;   gene assays: derived from transcript assays on demand</span></span>
-<span><span class="co">#&gt;   DE results : det (111 transcripts), deg (12 genes)</span></span></code></pre></div>
+<span><span class="co">#&gt;   DE results : det (158 transcripts), deg (12 genes)</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h2 id="looking-at-the-results">Looking at the results<a class="anchor" aria-label="anchor" href="#looking-at-the-results"></a>
 </h2>
@@ -312,7 +320,7 @@
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/pull.html" class="external-link">pull</a></span><span class="op">(</span><span class="va">gene_id</span><span class="op">)</span></span>
 <span><span class="va">gene_name</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">gene_data</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">$</span><span class="va">gene_name</span><span class="op">[</span><span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">gene_data</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">$</span><span class="va">gene_id</span> <span class="op">==</span> <span class="va">top_gene</span><span class="op">]</span></span>
 <span><span class="va">gene_name</span></span>
-<span><span class="co">#&gt; [1] "IL1B"</span></span>
+<span><span class="co">#&gt; [1] "SOCS3"</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/plot_log2fc.html">plot_log2fc</a></span><span class="op">(</span><span class="va">iso</span>, feature <span class="op">=</span> <span class="va">gene_name</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
@@ -353,17 +361,17 @@
 <code class="sourceCode R"><span><span class="va">out_dir</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"mini_placenta"</span><span class="op">)</span></span>
 <span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/isoformic-io.html">write_isoformic</a></span><span class="op">(</span><span class="va">iso</span>, <span class="va">out_dir</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">iso</span><span class="op">@</span><span class="va">data_path</span></span>
-<span><span class="co">#&gt; [1] "/tmp/RtmpREvlr3/mini_placenta"</span></span>
+<span><span class="co">#&gt; [1] "/tmp/RtmpPPTSB0/mini_placenta"</span></span>
 <span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/dir_ls.html" class="external-link">dir_ls</a></span><span class="op">(</span><span class="va">out_dir</span><span class="op">)</span></span>
-<span><span class="co">#&gt; /tmp/RtmpREvlr3/mini_placenta/assays</span></span>
-<span><span class="co">#&gt; /tmp/RtmpREvlr3/mini_placenta/col_data.parquet</span></span>
-<span><span class="co">#&gt; /tmp/RtmpREvlr3/mini_placenta/dea</span></span>
-<span><span class="co">#&gt; /tmp/RtmpREvlr3/mini_placenta/experiment.parquet</span></span>
-<span><span class="co">#&gt; /tmp/RtmpREvlr3/mini_placenta/tx_type_palette.parquet</span></span></code></pre></div>
+<span><span class="co">#&gt; /tmp/RtmpPPTSB0/mini_placenta/assays</span></span>
+<span><span class="co">#&gt; /tmp/RtmpPPTSB0/mini_placenta/col_data.parquet</span></span>
+<span><span class="co">#&gt; /tmp/RtmpPPTSB0/mini_placenta/dea</span></span>
+<span><span class="co">#&gt; /tmp/RtmpPPTSB0/mini_placenta/experiment.parquet</span></span>
+<span><span class="co">#&gt; /tmp/RtmpPPTSB0/mini_placenta/tx_type_palette.parquet</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h2 id="long-reads-with-oarfish">Long reads with Oarfish<a class="anchor" aria-label="anchor" href="#long-reads-with-oarfish"></a>
 </h2>
-<p>Oxford Nanopore and PacBio reads are quantified with Oarfish, which writes bootstrap replicates and a table of unique and shared reads next to the counts. <code><a href="../reference/read_oarfish.html">read_oarfish()</a></code> reads them like <code><a href="../reference/read_salmon.html">read_salmon()</a></code> and the uncertainty functions of the <a href="isoformic-uncertainty.html">uncertainty article</a> work on them unchanged. The three samples below are simulated nanopore reads of the RBPJ transcripts, quantified with Oarfish 0.10.3 and 30 bootstrap replicates (<code>data-raw/oarfish/</code>), so they only show the file layout and the functions, not a real library.</p>
+<p>Oxford Nanopore and PacBio reads are quantified with Oarfish, which writes bootstrap replicates and a table of unique and shared reads next to the counts. <code><a href="../reference/read_oarfish.html">read_oarfish()</a></code> reads them like <code><a href="../reference/read_salmon.html">read_salmon()</a></code> and the uncertainty functions of the <a href="isoformic-uncertainty.html">uncertainty article</a> work on them unchanged. The three samples below are simulated nanopore reads of the 141 GENCODE v50 transcripts of RBPJ, PNCK and FLT1 (<code>example_transcripts.fa.gz</code>), quantified with Oarfish 0.10.3 and 30 bootstrap replicates (<code>data-raw/oarfish/</code>), so they only show the file layout and the functions, not a real library.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">oarfish_dir</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span>, <span class="st">"oarfish"</span><span class="op">)</span></span>
@@ -381,10 +389,10 @@
 <span>  inferential <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">iso_long</span></span>
-<span><span class="co">#&gt; &lt;IsoformicExperiment&gt; isoformic_18c6a75d81</span></span>
-<span><span class="co">#&gt;   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)</span></span>
+<span><span class="co">#&gt; &lt;IsoformicExperiment&gt; isoformic_95e441dbd6</span></span>
+<span><span class="co">#&gt;   annotation : gencode_v50_example_subset (69 genes, 1,914 transcripts, 18,656 exons)</span></span>
 <span><span class="co">#&gt;   samples    : 3 [oarfish_num_processed, oarfish_num_mapped, oarfish_percent_mapped, oarfish_replicate_type, oarfish_num_replicates, oarfish_optimiser, oarfish_alignment_source, oarfish_prob_model, oarfish_qc_flag]</span></span>
-<span><span class="co">#&gt;   transcripts: 72 assayed from 3 genes</span></span>
+<span><span class="co">#&gt;   transcripts: 141 assayed from 3 genes</span></span>
 <span><span class="co">#&gt;   assays     : abundance, counts, length</span></span>
 <span><span class="co">#&gt;   gene assays: derived from transcript assays on demand</span></span>
 <span><span class="co">#&gt;   DE results : &lt;none&gt;</span></span>
@@ -395,12 +403,12 @@
 <span><span class="co">#&gt; # A tibble: 6 × 4</span></span>
 <span><span class="co">#&gt;   transcript_name mean_count mean_inf_rv unique_fraction</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;                &lt;dbl&gt;       &lt;dbl&gt;           &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt; 1 PNCK-201             46.6         2.18         0      </span></span>
-<span><span class="co">#&gt; 2 PNCK-230             18.1         1.84         0.0455 </span></span>
-<span><span class="co">#&gt; 3 PNCK-203             41.9         1.77         0.00234</span></span>
-<span><span class="co">#&gt; 4 PNCK-220              9.35        1.77         0      </span></span>
-<span><span class="co">#&gt; 5 PNCK-223              2.49        1.70         0      </span></span>
-<span><span class="co">#&gt; 6 RBPJ-205             56.2         1.65         0</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 RBPJ-202              62.3       28.7          0      </span></span>
+<span><span class="co">#&gt; 2 RBPJ-204              40.9       23.3          0      </span></span>
+<span><span class="co">#&gt; 3 RBPJ-238              60.7       15.3          0      </span></span>
+<span><span class="co">#&gt; 4 PNCK-233              18.5        7.71         0      </span></span>
+<span><span class="co">#&gt; 5 RBPJ-240              33.8        7.58         0.00127</span></span>
+<span><span class="co">#&gt; 6 PNCK-239              20.2        6.65         0</span></span></code></pre></div>
 </div>
 <p>The Oarfish output has no TPM, so the <code>abundance</code> assay is computed from the read counts and the transcript lengths. <code>unique_fraction</code> comes from the unique and shared read counts of <code>.ambig_info.tsv</code>; Oarfish has no equivalence classes, so <code>n_classes</code> is not available. Samples quantified by Oarfish and by Salmon cannot be read together.</p>
 <p>In single-cell mode (<code>--single-cell</code>, on a transcriptome-aligned BAM whose reads carry their cell barcode in the <code>CB:Z</code> tag) Oarfish writes a cell by transcript count matrix and no replicates. <code><a href="../reference/read_oarfish_sc_counts.html">read_oarfish_sc()</a></code> sums the cells of each sample, given a table of barcodes and samples, so the isoform analyses apply to samples or to cell types (give each combination of sample and cell type its own <code>sample_id</code>). The example has 60 simulated cells in three samples:</p>
@@ -410,9 +418,9 @@
 <span><span class="va">cells</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.delim</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">sc_dir</span>, <span class="st">"cells.tsv"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">cells</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt;            barcode sample_id</span></span>
-<span><span class="co">#&gt; 1 CGGCGCGAACCACCTC control_1</span></span>
-<span><span class="co">#&gt; 2 GTCTAGCTCGACCATC control_1</span></span>
-<span><span class="co">#&gt; 3 GAAAACTGGCGGAAAG control_1</span></span>
+<span><span class="co">#&gt; 1 CACATCGAACAGCTAA control_1</span></span>
+<span><span class="co">#&gt; 2 ATACAAGACTGGCTCG control_1</span></span>
+<span><span class="co">#&gt; 3 GTTCATGACTTAACCG control_1</span></span>
 <span><span class="va">iso_sc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_oarfish_sc_counts.html">read_oarfish_sc</a></span><span class="op">(</span></span>
 <span>  <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">sc_dir</span>, <span class="st">"out"</span><span class="op">)</span>,</span>
 <span>  cells <span class="op">=</span> <span class="va">cells</span>,</span>
@@ -428,7 +436,7 @@
 </div>
 </section><section class="level2"><h2 id="next-steps">Next steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
 </h2>
-<p>From here the object is analysed like the one of the introduction: <a href="isoformic-diversity.html">transcriptomic diversity</a>, <a href="isoformic-productivity.html">isoform structure and productivity</a>, <a href="isoformic-polyadenylation.html">alternative polyadenylation</a>, <a href="isoformic-enrichment.html">enrichment by transcript type</a> and <a href="isoformic-plots.html">plots</a>. The inferential replicates imported above can be stored in <code>metadata(iso)$inf_reps</code> so that <code><a href="../reference/productivity.html">productive_fraction()</a></code> reports the uncertainty of each fraction.</p>
+<p>From here the object is analysed like the one of the introduction: <a href="isoformic-diversity.html">transcriptomic diversity</a>, <a href="isoformic-productivity.html">isoform structure and productivity</a>, <a href="isoformic-polyadenylation.html">alternative polyadenylation</a>, <a href="isoformic-enrichment.html">enrichment by transcript type</a> and <a href="isoformic-plots.html">plots</a>. The inferential replicates imported above can be stored in <code>iso@metadata$inf_reps</code> so that <code><a href="../reference/productivity.html">productive_fraction()</a></code> reports the uncertainty of each fraction.</p>
 </section><section class="level2"><h2 id="citing-isoformic">Citing isoformic<a class="anchor" aria-label="anchor" href="#citing-isoformic"></a>
 </h2>
 <p>If you use <code>isoformic</code> in publications, please cite <span class="citation" data-cites="isoformic">Mamede et al. (<a href="#ref-isoformic" role="doc-biblioref">2025</a>)</span>; <code>citation("isoformic")</code> prints the reference.</p>
@@ -487,7 +495,7 @@
 <span><span class="co">#&gt;  [35] filelock_1.0.3              labeling_0.4.3             </span></span>
 <span><span class="co">#&gt;  [37] httr_1.4.9                  abind_1.4-8                </span></span>
 <span><span class="co">#&gt;  [39] compiler_4.6.2              bit64_4.8.6                </span></span>
-<span><span class="co">#&gt;  [41] withr_3.0.3                 S7_0.2.2                   </span></span>
+<span><span class="co">#&gt;  [41] withr_3.0.3                 S7_1.0.0                   </span></span>
 <span><span class="co">#&gt;  [43] BiocParallel_1.46.0         DBI_1.3.0                  </span></span>
 <span><span class="co">#&gt;  [45] duckdb_2.0.0                biomaRt_2.68.6             </span></span>
 <span><span class="co">#&gt;  [47] MASS_7.3-66                 rappdirs_0.3.4             </span></span>

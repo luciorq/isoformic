@@ -5,17 +5,21 @@ using the annotation sees them and caches refresh automatically). This is
 the hook for evidence that the package does not compute itself: FANTOM
 CAGE clusters, GTEx dominant isoforms per tissue, Ribo-seq translation
 calls, NMD-inhibition responses, protein domain retention, long-read
-full-length counts. A column named productivity_evidence with values
-&quot;productive&quot; / &quot;unproductive&quot; overrides the call of
-transcript_productivity()."><meta property="og:description" content="Joins columns of an external per-transcript or per-gene table into the
+full-length counts. A column named productivity_evidence holding one of
+the classes of productivity_palette() (&quot;productive&quot;,
+&quot;altered_productive&quot;, &quot;unproductive&quot;, &quot;noncoding&quot;, &quot;uncertain&quot;)
+overrides the call of transcript_productivity(); other values are
+ignored."><meta property="og:description" content="Joins columns of an external per-transcript or per-gene table into the
 annotation directory (persisted in the Parquet tables, so every object
 using the annotation sees them and caches refresh automatically). This is
 the hook for evidence that the package does not compute itself: FANTOM
 CAGE clusters, GTEx dominant isoforms per tissue, Ribo-seq translation
 calls, NMD-inhibition responses, protein domain retention, long-read
-full-length counts. A column named productivity_evidence with values
-&quot;productive&quot; / &quot;unproductive&quot; overrides the call of
-transcript_productivity()."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
+full-length counts. A column named productivity_evidence holding one of
+the classes of productivity_palette() (&quot;productive&quot;,
+&quot;altered_productive&quot;, &quot;unproductive&quot;, &quot;noncoding&quot;, &quot;uncertain&quot;)
+overrides the call of transcript_productivity(); other values are
+ignored."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -31,7 +35,8 @@ transcript_productivity()."><meta property="og:image" content="https://luciorq.g
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -43,6 +48,7 @@ transcript_productivity()."><meta property="og:image" content="https://luciorq.g
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -85,9 +91,11 @@ using the annotation sees them and caches refresh automatically). This is
 the hook for evidence that the package does not compute itself: FANTOM
 CAGE clusters, GTEx dominant isoforms per tissue, Ribo-seq translation
 calls, NMD-inhibition responses, protein domain retention, long-read
-full-length counts. A column named <code>productivity_evidence</code> with values
-<code>"productive"</code> / <code>"unproductive"</code> overrides the call of
-<code><a href="productivity.html">transcript_productivity()</a></code>.</p>
+full-length counts. A column named <code>productivity_evidence</code> holding one of
+the classes of <code><a href="productivity.html">productivity_palette()</a></code> (<code>"productive"</code>,
+<code>"altered_productive"</code>, <code>"unproductive"</code>, <code>"noncoding"</code>, <code>"uncertain"</code>)
+overrides the call of <code><a href="productivity.html">transcript_productivity()</a></code>; other values are
+ignored.</p>
     </div>
 
     <div class="section level2">
@@ -131,12 +139,18 @@ full-length counts. A column named <code>productivity_evidence</code> with value
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>The annotation directory path, invisibly.</p>
     </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Only the first row of each key of <code>table</code> is used. An annotation column
+with the name of a new column is replaced, and rows of the annotation
+without a match get <code>NA</code>.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">gff</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"example.gff3"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">gff</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"example.gff3.gz"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">annot</span> <span class="op">&lt;-</span> <span class="fu"><a href="prepare_isoformic_annotation.html">prepare_isoformic_annotation</a></span><span class="op">(</span><span class="va">gff</span>, output_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, annot_name <span class="op">=</span> <span class="st">"evidence_demo"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Parsing <span style="color: #0000BB;">example.gff3</span> (GFF) into <span style="color: #0000BB;">/tmp/RtmpatoNKq/evidence_demo</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Parsing <span style="color: #0000BB;">example.gff3.gz</span> (GFF) into <span style="color: #0000BB;">/tmp/RtmpPCTCTT/evidence_demo</span>.</span>
 <span class="r-in"><span><span class="va">tx</span> <span class="op">&lt;-</span> <span class="fu"><a href="parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">annot</span>, <span class="st">"annot_data_transcripts.parquet"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">evidence</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  transcript_id <span class="op">=</span> <span class="va">tx</span><span class="op">$</span><span class="va">transcript_id</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span>,</span></span>
@@ -144,16 +158,16 @@ full-length counts. A column named <code>productivity_evidence</code> with value
 <span class="r-in"><span>  productivity_evidence <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"productive"</span>, <span class="st">"unproductive"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">add_annotation_columns</span><span class="op">(</span><span class="va">annot</span>, <span class="va">evidence</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Added 2 columns (<span style="color: #00BB00;">riboseq_translated</span> and <span style="color: #00BB00;">productivity_evidence</span>) for 2 of 72</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   transcripts in <span style="color: #0000BB;">/tmp/RtmpatoNKq/evidence_demo</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Added 2 columns (<span style="color: #00BB00;">riboseq_translated</span> and <span style="color: #00BB00;">productivity_evidence</span>) for 2 of 141</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   transcripts in <span style="color: #0000BB;">/tmp/RtmpPCTCTT/evidence_demo</span>.</span>
 <span class="r-in"><span><span class="va">tx</span> <span class="op">&lt;-</span> <span class="fu"><a href="parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">annot</span>, <span class="st">"annot_data_transcripts.parquet"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">tx</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"transcript_id"</span>, <span class="st">"riboseq_translated"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">3</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 3 × 2</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   transcript_id     riboseq_translated</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>             </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENST00000282397.9 TRUE              </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENST00000615611.4 FALSE             </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00000617835.4 <span style="color: #BB0000;">NA</span>                </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENST00000909997.2 TRUE              </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENST00000909998.2 FALSE             </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00000909999.2 <span style="color: #BB0000;">NA</span>                </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

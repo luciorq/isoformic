@@ -36,6 +36,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -49,6 +50,7 @@
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -107,23 +109,23 @@
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/luciorq/isoformic" class="external-link">isoformic</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">extdata</span> <span class="op">&lt;-</span> <span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path_package.html" class="external-link">path_package</a></span><span class="op">(</span><span class="st">"isoformic"</span>, <span class="st">"extdata"</span><span class="op">)</span></span>
-<span><span class="va">annot_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_isoformic_annotation.html">prepare_isoformic_annotation</a></span><span class="op">(</span><span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"33"</span>, file_type <span class="op">=</span> <span class="st">"gff"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">data_dir</span> <span class="op">&lt;-</span> <span class="st">"data/preeclampsia"</span></span>
+<span><span class="va">annot_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_isoformic_annotation.html">prepare_isoformic_annotation</a></span><span class="op">(</span><span class="fu"><a href="../reference/download_reference.html">download_reference</a></span><span class="op">(</span>version <span class="op">=</span> <span class="st">"50"</span>, file_type <span class="op">=</span> <span class="st">"gff"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/IsoformicExperiment.html">IsoformicExperiment</a></span><span class="op">(</span></span>
 <span>  experiment_name <span class="op">=</span> <span class="st">"preeclampsia_placenta"</span>,</span>
 <span>  annot_path <span class="op">=</span> <span class="va">annot_dir</span>,</span>
-<span>  assays <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>abundance <span class="op">=</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">extdata</span>, <span class="st">"pe_abundance.parquet"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  col_data <span class="op">=</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">extdata</span>, <span class="st">"pe_col_data.parquet"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  assays <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>abundance <span class="op">=</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">data_dir</span>, <span class="st">"pe_abundance.parquet"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  col_data <span class="op">=</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">data_dir</span>, <span class="st">"pe_col_data.parquet"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/dea.html">de_tx</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">extdata</span>, <span class="st">"pe_det.parquet"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/dea.html">de_gene</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">extdata</span>, <span class="st">"pe_deg.parquet"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/dea.html">de_tx</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">data_dir</span>, <span class="st">"pe_det.parquet"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/dea.html">de_gene</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">data_dir</span>, <span class="st">"pe_deg.parquet"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <section class="level2"><h2 id="gene-sets">Gene sets<a class="anchor" aria-label="anchor" href="#gene-sets"></a>
 </h2>
-<p><code><a href="../reference/enrichment.html">read_gmt()</a></code> reads a GMT file into a named list of gene symbols; the package bundles a subset of the Reactome collection of MSigDB.</p>
+<p><code><a href="../reference/enrichment.html">read_gmt()</a></code> reads a GMT file into a named list of gene symbols. This article reads the complete Reactome collection of MSigDB release 2023.1 (C2:CP:REACTOME), which sits next to the placenta tables in the source repository of the package; the package bundles <code>reactome_subset.gmt</code>, a small subset of it for quick examples (<code>system.file("extdata", "reactome_subset.gmt", package = "isoformic")</code>).</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">genesets</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/enrichment.html">read_gmt</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">extdata</span>, <span class="st">"c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">genesets</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/enrichment.html">read_gmt</a></span><span class="op">(</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/path.html" class="external-link">path</a></span><span class="op">(</span><span class="va">data_dir</span>, <span class="st">"c2.cp.reactome.v2023.1.Hs.symbols.gmt.txt"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">genesets</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 1654</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">genesets</span><span class="op">)</span><span class="op">)</span></span>
@@ -144,20 +146,22 @@
 <span><span class="va">iso</span><span class="op">@</span><span class="va">gsea</span><span class="op">$</span><span class="va">reactome</span> <span class="op">&lt;-</span> <span class="va">enrichment</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">enrichment</span><span class="op">$</span><span class="va">experiment</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; nonsense_mediated_decay    processed_transcript          protein_coding </span></span>
-<span><span class="co">#&gt;                      50                      57                     219 </span></span>
-<span><span class="co">#&gt;         retained_intron            unproductive </span></span>
-<span><span class="co">#&gt;                     195                     227</span></span>
+<span><span class="co">#&gt;        nonsense_mediated_decay                 protein_coding </span></span>
+<span><span class="co">#&gt;                            151                            291 </span></span>
+<span><span class="co">#&gt; protein_coding_CDS_not_defined                retained_intron </span></span>
+<span><span class="co">#&gt;                             41                            136 </span></span>
+<span><span class="co">#&gt;                   unproductive </span></span>
+<span><span class="co">#&gt;                            224</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">enrichment</span><span class="op">)</span></span>
 <span><span class="co">#&gt; # A tibble: 6 × 10</span></span>
-<span><span class="co">#&gt;   pathway           pval   padj log2err    ES   NES  size leadingEdge experiment</span></span>
-<span><span class="co">#&gt;   &lt;chr&gt;            &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt; &lt;list&gt;      &lt;chr&gt;     </span></span>
-<span><span class="co">#&gt; 1 REACTOME_ABC_… 2.27e-3 0.0572   0.432 0.377  1.45   266 &lt;chr [47]&gt;  protein_c…</span></span>
-<span><span class="co">#&gt; 2 REACTOME_ABC_… 1.94e-2 0.175    0.352 0.367  1.37   199 &lt;chr [34]&gt;  protein_c…</span></span>
-<span><span class="co">#&gt; 3 REACTOME_ACTI… 3.88e-2 0.268    0.288 0.613  1.52    16 &lt;chr [5]&gt;   protein_c…</span></span>
-<span><span class="co">#&gt; 4 REACTOME_ACTI… 5.54e-4 0.0295   0.477 0.729  1.85    19 &lt;chr [10]&gt;  protein_c…</span></span>
-<span><span class="co">#&gt; 5 REACTOME_ACTI… 6.91e-3 0.101    0.407 0.602  1.61    26 &lt;chr [5]&gt;   protein_c…</span></span>
-<span><span class="co">#&gt; 6 REACTOME_ACTI… 1.00e-2 0.118    0.381 0.569  1.62    34 &lt;chr [14]&gt;  protein_c…</span></span>
+<span><span class="co">#&gt;   pathway          pval    padj log2err    ES   NES  size leadingEdge experiment</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;           &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt; &lt;list&gt;      &lt;chr&gt;     </span></span>
+<span><span class="co">#&gt; 1 REACTOME_ABC… 3.37e-2 1.29e-1   0.253 0.318  1.26   442 &lt;chr [75]&gt;  protein_c…</span></span>
+<span><span class="co">#&gt; 2 REACTOME_ABC… 2.57e-4 3.78e-3   0.498 0.386  1.50   334 &lt;chr [70]&gt;  protein_c…</span></span>
+<span><span class="co">#&gt; 3 REACTOME_ACT… 6.50e-3 4.03e-2   0.407 0.392  1.45   198 &lt;chr [59]&gt;  protein_c…</span></span>
+<span><span class="co">#&gt; 4 REACTOME_ACT… 7.79e-4 8.55e-3   0.477 0.493  1.70   100 &lt;chr [17]&gt;  protein_c…</span></span>
+<span><span class="co">#&gt; 5 REACTOME_ACT… 4.31e-2 1.50e-1   0.225 0.320  1.25   359 &lt;chr [76]&gt;  protein_c…</span></span>
+<span><span class="co">#&gt; 6 REACTOME_ACT… 9.53e-7 4.33e-5   0.659 0.429  1.68   385 &lt;chr [164]&gt; protein_c…</span></span>
 <span><span class="co">#&gt; # ℹ 1 more variable: rank_by &lt;chr&gt;</span></span></code></pre></div>
 </div>
 <p><code><a href="../reference/enrichment.html">plot_enrichment()</a></code> draws the pathways side by side for each transcript category.</p>
@@ -173,7 +177,7 @@
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/enrichment.html">plot_enrichment</a></span><span class="op">(</span><span class="va">enrichment</span>, n <span class="op">=</span> <span class="fl">20</span>, experiments <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"retained_intron"</span>, <span class="st">"nonsense_mediated_decay"</span>, <span class="st">"processed_transcript"</span><span class="op">)</span>, nes_cutoff <span class="op">=</span> <span class="fl">1.5</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/enrichment.html">plot_enrichment</a></span><span class="op">(</span><span class="va">enrichment</span>, n <span class="op">=</span> <span class="fl">20</span>, experiments <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"retained_intron"</span>, <span class="st">"nonsense_mediated_decay"</span>, <span class="st">"protein_coding_CDS_not_defined"</span><span class="op">)</span>, nes_cutoff <span class="op">=</span> <span class="fl">1.5</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
 <figure><p><img src="isoformic-enrichment_files/figure-html/unnamed-chunk-5-1.png" width="960"></p>
@@ -181,13 +185,55 @@
 </div>
 </div>
 </div>
-</section><section class="level2"><h2 id="enrichment-on-the-productive-fraction">Enrichment on the productive fraction<a class="anchor" aria-label="anchor" href="#enrichment-on-the-productive-fraction"></a>
+</section><section class="level2"><h2 id="ranking-statistic">Ranking statistic<a class="anchor" aria-label="anchor" href="#ranking-statistic"></a>
 </h2>
-<p>Ranking genes by the change in their productive fraction rather than by fold-change targets regulated unproductive splicing; <code><a href="../reference/productivity.html">run_productivity_enrichment()</a></code> is described in the <a href="isoformic-productivity.html">productivity article</a>.</p>
+<p>By default the transcripts are ranked by their log2 fold-change, a point estimate that ignores how well it is determined. <code>rank_by = "signed_p"</code> ranks them by <code>-log10(pvalue)</code> with the sign of the fold-change, so that the test of the differential expression weighs the ranking. <code>rank_by = "lfc_z"</code> ranks them by the median fold-change over the inferential replicates divided by its standard deviation, so that a fold-change the quantification cannot determine ranks low; it needs the fold-change table that <code>add_uncertainty(x, group = )</code> stores (see the <a href="isoformic-uncertainty.html">uncertainty article</a>), which this object does not have. The <code>rank_by</code> column of the result records the choice.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
+<span><span class="va">enrichment_p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/enrichment.html">run_enrichment</a></span><span class="op">(</span><span class="va">iso</span>, <span class="va">genesets</span>, pval_cutoff <span class="op">=</span> <span class="fl">0.05</span>, rank_by <span class="op">=</span> <span class="st">"signed_p"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">enrichment_p</span><span class="op">$</span><span class="va">experiment</span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;        nonsense_mediated_decay                 protein_coding </span></span>
+<span><span class="co">#&gt;                            123                            247 </span></span>
+<span><span class="co">#&gt; protein_coding_CDS_not_defined                retained_intron </span></span>
+<span><span class="co">#&gt;                             57                            147 </span></span>
+<span><span class="co">#&gt;                   unproductive </span></span>
+<span><span class="co">#&gt;                            224</span></span></code></pre></div>
+</div>
+</section><section class="level2"><h2 id="several-collections">Several collections<a class="anchor" aria-label="anchor" href="#several-collections"></a>
+</h2>
+<p><code>genesets_list</code> can also be a named list of collections, for example <code>list(hallmark = read_gmt(h), reactome = read_gmt(r))</code>. Each collection is tested on its own, so that the adjusted p-values are those of the collection; the result has a <code>collection</code> column and <code><a href="../reference/enrichment.html">plot_enrichment()</a></code> draws one panel per collection. Every gene set and every collection needs a name. Here the Reactome sets are split into signalling and other pathways:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">collections</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  signaling <span class="op">=</span> <span class="va">genesets</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"SIGNALING"</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">genesets</span><span class="op">)</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>  other <span class="op">=</span> <span class="va">genesets</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"SIGNALING"</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">genesets</span><span class="op">)</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
+<span><span class="va">enrichment_collections</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/enrichment.html">run_enrichment</a></span><span class="op">(</span><span class="va">iso</span>, <span class="va">collections</span>, pval_cutoff <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">enrichment_collections</span>, <span class="va">collection</span>, <span class="va">experiment</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 10 × 3</span></span>
+<span><span class="co">#&gt;    collection experiment                         n</span></span>
+<span><span class="co">#&gt;    &lt;chr&gt;      &lt;chr&gt;                          &lt;int&gt;</span></span>
+<span><span class="co">#&gt;  1 other      nonsense_mediated_decay          114</span></span>
+<span><span class="co">#&gt;  2 other      protein_coding                   242</span></span>
+<span><span class="co">#&gt;  3 other      protein_coding_CDS_not_defined    35</span></span>
+<span><span class="co">#&gt;  4 other      retained_intron                   99</span></span>
+<span><span class="co">#&gt;  5 other      unproductive                     160</span></span>
+<span><span class="co">#&gt;  6 signaling  nonsense_mediated_decay           36</span></span>
+<span><span class="co">#&gt;  7 signaling  protein_coding                    56</span></span>
+<span><span class="co">#&gt;  8 signaling  protein_coding_CDS_not_defined     9</span></span>
+<span><span class="co">#&gt;  9 signaling  retained_intron                   40</span></span>
+<span><span class="co">#&gt; 10 signaling  unproductive                      55</span></span></code></pre></div>
+</div>
+</section><section class="level2"><h2 id="enrichment-on-the-productive-fraction-and-on-3-end-usage">Enrichment on the productive fraction and on 3’ end usage<a class="anchor" aria-label="anchor" href="#enrichment-on-the-productive-fraction-and-on-3-end-usage"></a>
+</h2>
+<p>Ranking genes by the change in their productive fraction rather than by fold-change targets regulated unproductive splicing; <code><a href="../reference/productivity.html">run_productivity_enrichment()</a></code> is described in the <a href="isoformic-productivity.html">productivity article</a>. Ranking them by the change in the usage of their distal 3’ end, or in their 3’ UTR length, is <code><a href="../reference/polyadenylation.html">run_apa_enrichment()</a></code>, described in the <a href="isoformic-polyadenylation.html">alternative polyadenylation article</a>. Both take the same gene set collections.</p>
 </section><section class="level2"><h2 id="session-information">Session information<a class="anchor" aria-label="anchor" href="#session-information"></a>
 </h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.6.2 (2026-10-29)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-pc-linux-gnu</span></span>
@@ -218,17 +264,17 @@
 <span><span class="co">#&gt;  [7] parallel_4.6.2      scales_1.4.0        BiocParallel_1.46.0</span></span>
 <span><span class="co">#&gt; [10] yaml_2.3.12         fastmap_1.2.0       lattice_0.23-1     </span></span>
 <span><span class="co">#&gt; [13] ggplot2_4.0.4       R6_2.6.1            labeling_0.4.3     </span></span>
-<span><span class="co">#&gt; [16] generics_0.1.4      curl_8.1.0          knitr_1.52         </span></span>
-<span><span class="co">#&gt; [19] tibble_3.3.1        DBI_1.3.0           RColorBrewer_1.1-3 </span></span>
-<span><span class="co">#&gt; [22] pillar_1.11.1       rlang_1.3.0         utf8_1.2.6         </span></span>
-<span><span class="co">#&gt; [25] fastmatch_1.1-8     xfun_0.62           fs_2.1.0           </span></span>
-<span><span class="co">#&gt; [28] S7_0.2.2            otel_0.3.0          cli_3.6.6          </span></span>
-<span><span class="co">#&gt; [31] withr_3.0.3         magrittr_2.0.5      digest_0.6.39      </span></span>
-<span><span class="co">#&gt; [34] grid_4.6.2          fgsea_1.38.0        cowplot_1.2.0      </span></span>
-<span><span class="co">#&gt; [37] lifecycle_1.0.5     vctrs_0.7.3         data.table_1.18.6.1</span></span>
-<span><span class="co">#&gt; [40] evaluate_1.0.5      glue_1.8.1          farver_2.1.2       </span></span>
-<span><span class="co">#&gt; [43] duckdb_2.0.0        codetools_0.2-20    rmarkdown_2.32     </span></span>
-<span><span class="co">#&gt; [46] tools_4.6.2         pkgconfig_2.0.3     htmltools_0.5.9</span></span></code></pre></div>
+<span><span class="co">#&gt; [16] generics_0.1.4      knitr_1.52          tibble_3.3.1       </span></span>
+<span><span class="co">#&gt; [19] DBI_1.3.0           RColorBrewer_1.1-3  pillar_1.11.1      </span></span>
+<span><span class="co">#&gt; [22] rlang_1.3.0         utf8_1.2.6          fastmatch_1.1-8    </span></span>
+<span><span class="co">#&gt; [25] xfun_0.62           fs_2.1.0            S7_1.0.0           </span></span>
+<span><span class="co">#&gt; [28] otel_0.3.0          cli_3.6.6           withr_3.0.3        </span></span>
+<span><span class="co">#&gt; [31] magrittr_2.0.5      digest_0.6.39       grid_4.6.2         </span></span>
+<span><span class="co">#&gt; [34] fgsea_1.38.0        cowplot_1.2.0       lifecycle_1.0.5    </span></span>
+<span><span class="co">#&gt; [37] vctrs_0.7.3         data.table_1.18.6.1 evaluate_1.0.5     </span></span>
+<span><span class="co">#&gt; [40] glue_1.8.1          farver_2.1.2        duckdb_2.0.0       </span></span>
+<span><span class="co">#&gt; [43] codetools_0.2-20    rmarkdown_2.32      tools_4.6.2        </span></span>
+<span><span class="co">#&gt; [46] pkgconfig_2.0.3     htmltools_0.5.9</span></span></code></pre></div>
 </div>
 </section><script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {

@@ -4,12 +4,16 @@ fold-changes of each of their transcripts, coloured by transcript type
 and faded when not significant. With several genes, one panel per gene
 is drawn. The IsoformicExperiment method uses the stored differential
 expression results (see de_table()); the data frame method accepts the
-long table produced by de_table() or join_DEG_DET()."><meta property="og:description" content="Bar plot of the log2 fold-change of one or more genes next to the
+long table produced by de_table() or join_DEG_DET().
+plot_log2FC() is kept as an alias of the data frame method. Features
+without a fold-change are not drawn."><meta property="og:description" content="Bar plot of the log2 fold-change of one or more genes next to the
 fold-changes of each of their transcripts, coloured by transcript type
 and faded when not significant. With several genes, one panel per gene
 is drawn. The IsoformicExperiment method uses the stored differential
 expression results (see de_table()); the data frame method accepts the
-long table produced by de_table() or join_DEG_DET()."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
+long table produced by de_table() or join_DEG_DET().
+plot_log2FC() is kept as an alias of the data frame method. Features
+without a fold-change are not drawn."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -25,7 +29,8 @@ long table produced by de_table() or join_DEG_DET()."><meta property="og:image" 
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -37,6 +42,7 @@ long table produced by de_table() or join_DEG_DET()."><meta property="og:image" 
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -78,7 +84,9 @@ fold-changes of each of their transcripts, coloured by transcript type
 and faded when not significant. With several genes, one panel per gene
 is drawn. The <a href="IsoformicExperiment.html">IsoformicExperiment</a> method uses the stored differential
 expression results (see <code><a href="dea.html">de_table()</a></code>); the data frame method accepts the
-long table produced by <code><a href="dea.html">de_table()</a></code> or <code><a href="join_DEG_DET.html">join_DEG_DET()</a></code>.</p>
+long table produced by <code><a href="dea.html">de_table()</a></code> or <code><a href="join_DEG_DET.html">join_DEG_DET()</a></code>.
+<code>plot_log2FC()</code> is kept as an alias of the data frame method. Features
+without a fold-change are not drawn.</p>
     </div>
 
     <div class="section level2">
@@ -110,8 +118,9 @@ long table produced by <code><a href="dea.html">de_table()</a></code> or <code><
 
 
 <dt id="arg-feature">feature<a class="anchor" aria-label="anchor" href="#arg-feature"></a></dt>
-<dd><p>Character vector of gene names (or IDs, or transcript
-names, matched against <code>feature_column</code>).</p></dd>
+<dd><p>Character vector of values matched against
+<code>feature_column</code>: gene names by default, or gene IDs, transcript names
+and so on with another column.</p></dd>
 
 
 <dt id="arg-feature-column">feature_column<a class="anchor" aria-label="anchor" href="#arg-feature-column"></a></dt>
@@ -129,7 +138,7 @@ to the object's palette or <code><a href="tx_type_palette.html">tx_type_palette(
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed on to methods.</p></dd>
+<dd><p>Not used; reserved for methods.</p></dd>
 
 
 <dt id="arg-de-data">de_data<a class="anchor" aria-label="anchor" href="#arg-de-data"></a></dt>

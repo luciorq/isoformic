@@ -28,5 +28,18 @@ directory for the `isoformic` package.
 
 ## Details
 
-This function uses the `[tools::R_user_dir()]` function to determine the
-user cache directory.
+This function uses
+[`tools::R_user_dir()`](https://rdrr.io/r/tools/userdir.html) to
+determine the user cache directory, so `R_USER_CACHE_DIR` and
+`XDG_CACHE_HOME` move it (see
+[isoformic_options](https://luciorq.github.io/isoformic/reference/isoformic-options.md)).
+The directory is not created.
+
+## Examples
+
+``` r
+get_isoformic_cache()
+#> /home/runner/.cache/R/isoformic
+get_isoformic_cache("frozen")
+#> /home/runner/.cache/R/isoformic/frozen
+```

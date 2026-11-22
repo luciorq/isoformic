@@ -5,31 +5,39 @@ table used by the package and returns the file path. They are what
 fetch_frozen_data() runs when a frozen file cannot be downloaded, and
 what data-raw/build_frozen_data.R runs to publish a new version. The
 resulting tables:
-build_frozen_appris(): one row per transcript with
+build_frozen_appris(): one row per transcript (transcript_id,
+gene_id, gene_name, translation_id, transcript_type) with
 appris_annotation (PRINCIPAL:1 to ALTERNATIVE:2, MINOR),
+appris_principal (TRUE for the PRINCIPAL labels),
 appris_score, the method scores (firestar_residues,
 matador_structure, corsair_conservation, spade_domain_score,
 thump_tm_helices, crash_signal, trifid_score), protein_length,
 ccds_id and mane label.
 build_frozen_appris_domains(): one row per Pfam domain per transcript
-with its genomic span (seqid, start_pos, end_pos, strand),
-pfam_acc, pfam_name, evalue, pep_start, pep_end.
-build_frozen_riboseq_orfs(): one row per Ribo-seq ORF with phase,
-genomic span, block_starts/block_ends (1-based, ;-separated),
-orf_type, gene_id, gene_name, transcript_ids (compatible
-transcripts, phase 1 only), replicated and studies.
+(transcript_id, gene_id) with its genomic span (seqid,
+start_pos, end_pos, strand), score, pfam_acc, pfam_name,
+evalue, pep_start, pep_end.
+build_frozen_riboseq_orfs(): one row per Ribo-seq ORF with orf_id,
+phase, genomic span, n_blocks, block_starts/block_ends
+(1-based, ;-separated), orf_type, gene_id, gene_name,
+transcript_biotype, transcript_ids (compatible transcripts),
+replicated, studies and protein. orf_type, gene_id,
+transcript_ids, replicated, studies and protein are NA for
+the phase 2 ORFs.
 build_frozen_nmd_exons(): one row per validated NMD-inducing exon with
 seqid, start_pos, end_pos, strand, the flanking exons,
-nmd_transcript_ids, non_nmd_transcript_ids, gene_id, gene_name.
-Reading the supplementary spreadsheet needs the readxl package.
+nmd_transcript_ids, non_nmd_transcript_ids, gene_id, gene_name,
+source. Reading the supplementary spreadsheet needs the readxl
+package.
 build_frozen_polyasite(): one row per poly(A) site cluster with
-seqid, start_pos, end_pos, cleavage_pos, strand, tpm,
-frac_samples, n_protocols, site_class (TE terminal exon, EX exon,
-IN intron, DS downstream, AE/AI/AU antisense, IG intergenic) and
-signals.
-build_frozen_gtex(): one row per transcript and tissue with
-median_tpm and n_samples (GTEx v8, RSEM transcript TPM; identifiers
-are GENCODE v26, stored without version).
+site_id, seqid, start_pos, end_pos, cleavage_pos, strand,
+tpm, frac_samples, n_protocols, site_class (TE terminal exon,
+EX exon, IN intron, DS downstream, AE/AI/AU antisense, IG intergenic)
+and signals.
+build_frozen_gtex(): one row per transcript and tissue
+(transcript_id, gene_id, tissue) with median_tpm and
+n_samples (GTEx v8, RSEM transcript TPM; identifiers are GENCODE
+v26, stored without version).
 
 "><meta property="og:description" content="Each function downloads the source files of one frozen dataset (see
 frozen_datasets()) into the sources cache, converts them to the Parquet
@@ -37,31 +45,39 @@ table used by the package and returns the file path. They are what
 fetch_frozen_data() runs when a frozen file cannot be downloaded, and
 what data-raw/build_frozen_data.R runs to publish a new version. The
 resulting tables:
-build_frozen_appris(): one row per transcript with
+build_frozen_appris(): one row per transcript (transcript_id,
+gene_id, gene_name, translation_id, transcript_type) with
 appris_annotation (PRINCIPAL:1 to ALTERNATIVE:2, MINOR),
+appris_principal (TRUE for the PRINCIPAL labels),
 appris_score, the method scores (firestar_residues,
 matador_structure, corsair_conservation, spade_domain_score,
 thump_tm_helices, crash_signal, trifid_score), protein_length,
 ccds_id and mane label.
 build_frozen_appris_domains(): one row per Pfam domain per transcript
-with its genomic span (seqid, start_pos, end_pos, strand),
-pfam_acc, pfam_name, evalue, pep_start, pep_end.
-build_frozen_riboseq_orfs(): one row per Ribo-seq ORF with phase,
-genomic span, block_starts/block_ends (1-based, ;-separated),
-orf_type, gene_id, gene_name, transcript_ids (compatible
-transcripts, phase 1 only), replicated and studies.
+(transcript_id, gene_id) with its genomic span (seqid,
+start_pos, end_pos, strand), score, pfam_acc, pfam_name,
+evalue, pep_start, pep_end.
+build_frozen_riboseq_orfs(): one row per Ribo-seq ORF with orf_id,
+phase, genomic span, n_blocks, block_starts/block_ends
+(1-based, ;-separated), orf_type, gene_id, gene_name,
+transcript_biotype, transcript_ids (compatible transcripts),
+replicated, studies and protein. orf_type, gene_id,
+transcript_ids, replicated, studies and protein are NA for
+the phase 2 ORFs.
 build_frozen_nmd_exons(): one row per validated NMD-inducing exon with
 seqid, start_pos, end_pos, strand, the flanking exons,
-nmd_transcript_ids, non_nmd_transcript_ids, gene_id, gene_name.
-Reading the supplementary spreadsheet needs the readxl package.
+nmd_transcript_ids, non_nmd_transcript_ids, gene_id, gene_name,
+source. Reading the supplementary spreadsheet needs the readxl
+package.
 build_frozen_polyasite(): one row per poly(A) site cluster with
-seqid, start_pos, end_pos, cleavage_pos, strand, tpm,
-frac_samples, n_protocols, site_class (TE terminal exon, EX exon,
-IN intron, DS downstream, AE/AI/AU antisense, IG intergenic) and
-signals.
-build_frozen_gtex(): one row per transcript and tissue with
-median_tpm and n_samples (GTEx v8, RSEM transcript TPM; identifiers
-are GENCODE v26, stored without version).
+site_id, seqid, start_pos, end_pos, cleavage_pos, strand,
+tpm, frac_samples, n_protocols, site_class (TE terminal exon,
+EX exon, IN intron, DS downstream, AE/AI/AU antisense, IG intergenic)
+and signals.
+build_frozen_gtex(): one row per transcript and tissue
+(transcript_id, gene_id, tissue) with median_tpm and
+n_samples (GTEx v8, RSEM transcript TPM; identifiers are GENCODE
+v26, stored without version).
 
 "><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -79,7 +95,8 @@ are GENCODE v26, stored without version).
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -91,6 +108,7 @@ are GENCODE v26, stored without version).
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -132,31 +150,39 @@ are GENCODE v26, stored without version).
 table used by the package and returns the file path. They are what
 <code><a href="frozen_data.html">fetch_frozen_data()</a></code> runs when a frozen file cannot be downloaded, and
 what <code>data-raw/build_frozen_data.R</code> runs to publish a new version. The
-resulting tables:</p><ul><li><p><code>build_frozen_appris()</code>: one row per transcript with
+resulting tables:</p><ul><li><p><code>build_frozen_appris()</code>: one row per transcript (<code>transcript_id</code>,
+<code>gene_id</code>, <code>gene_name</code>, <code>translation_id</code>, <code>transcript_type</code>) with
 <code>appris_annotation</code> (<code>PRINCIPAL:1</code> to <code>ALTERNATIVE:2</code>, <code>MINOR</code>),
+<code>appris_principal</code> (<code>TRUE</code> for the <code>PRINCIPAL</code> labels),
 <code>appris_score</code>, the method scores (<code>firestar_residues</code>,
 <code>matador_structure</code>, <code>corsair_conservation</code>, <code>spade_domain_score</code>,
 <code>thump_tm_helices</code>, <code>crash_signal</code>, <code>trifid_score</code>), <code>protein_length</code>,
 <code>ccds_id</code> and <code>mane</code> label.</p></li>
 <li><p><code>build_frozen_appris_domains()</code>: one row per Pfam domain per transcript
-with its genomic span (<code>seqid</code>, <code>start_pos</code>, <code>end_pos</code>, <code>strand</code>),
-<code>pfam_acc</code>, <code>pfam_name</code>, <code>evalue</code>, <code>pep_start</code>, <code>pep_end</code>.</p></li>
-<li><p><code>build_frozen_riboseq_orfs()</code>: one row per Ribo-seq ORF with <code>phase</code>,
-genomic span, <code>block_starts</code>/<code>block_ends</code> (1-based, <code>;</code>-separated),
-<code>orf_type</code>, <code>gene_id</code>, <code>gene_name</code>, <code>transcript_ids</code> (compatible
-transcripts, phase 1 only), <code>replicated</code> and <code>studies</code>.</p></li>
+(<code>transcript_id</code>, <code>gene_id</code>) with its genomic span (<code>seqid</code>,
+<code>start_pos</code>, <code>end_pos</code>, <code>strand</code>), <code>score</code>, <code>pfam_acc</code>, <code>pfam_name</code>,
+<code>evalue</code>, <code>pep_start</code>, <code>pep_end</code>.</p></li>
+<li><p><code>build_frozen_riboseq_orfs()</code>: one row per Ribo-seq ORF with <code>orf_id</code>,
+<code>phase</code>, genomic span, <code>n_blocks</code>, <code>block_starts</code>/<code>block_ends</code>
+(1-based, <code>;</code>-separated), <code>orf_type</code>, <code>gene_id</code>, <code>gene_name</code>,
+<code>transcript_biotype</code>, <code>transcript_ids</code> (compatible transcripts),
+<code>replicated</code>, <code>studies</code> and <code>protein</code>. <code>orf_type</code>, <code>gene_id</code>,
+<code>transcript_ids</code>, <code>replicated</code>, <code>studies</code> and <code>protein</code> are <code>NA</code> for
+the phase 2 ORFs.</p></li>
 <li><p><code>build_frozen_nmd_exons()</code>: one row per validated NMD-inducing exon with
 <code>seqid</code>, <code>start_pos</code>, <code>end_pos</code>, <code>strand</code>, the flanking exons,
-<code>nmd_transcript_ids</code>, <code>non_nmd_transcript_ids</code>, <code>gene_id</code>, <code>gene_name</code>.
-Reading the supplementary spreadsheet needs the <code>readxl</code> package.</p></li>
+<code>nmd_transcript_ids</code>, <code>non_nmd_transcript_ids</code>, <code>gene_id</code>, <code>gene_name</code>,
+<code>source</code>. Reading the supplementary spreadsheet needs the <code>readxl</code>
+package.</p></li>
 <li><p><code>build_frozen_polyasite()</code>: one row per poly(A) site cluster with
-<code>seqid</code>, <code>start_pos</code>, <code>end_pos</code>, <code>cleavage_pos</code>, <code>strand</code>, <code>tpm</code>,
-<code>frac_samples</code>, <code>n_protocols</code>, <code>site_class</code> (TE terminal exon, EX exon,
-IN intron, DS downstream, AE/AI/AU antisense, IG intergenic) and
-<code>signals</code>.</p></li>
-<li><p><code>build_frozen_gtex()</code>: one row per transcript and tissue with
-<code>median_tpm</code> and <code>n_samples</code> (GTEx v8, RSEM transcript TPM; identifiers
-are GENCODE v26, stored without version).</p></li>
+<code>site_id</code>, <code>seqid</code>, <code>start_pos</code>, <code>end_pos</code>, <code>cleavage_pos</code>, <code>strand</code>,
+<code>tpm</code>, <code>frac_samples</code>, <code>n_protocols</code>, <code>site_class</code> (TE terminal exon,
+EX exon, IN intron, DS downstream, AE/AI/AU antisense, IG intergenic)
+and <code>signals</code>.</p></li>
+<li><p><code>build_frozen_gtex()</code>: one row per transcript and tissue
+(<code>transcript_id</code>, <code>gene_id</code>, <code>tissue</code>) with <code>median_tpm</code> and
+<code>n_samples</code> (GTEx v8, RSEM transcript TPM; identifiers are GENCODE
+v26, stored without version).</p></li>
 </ul></div>
 
     <div class="section level2">

@@ -7,7 +7,9 @@ from a `tximport` list (`abundance`, `counts`, `length`) or from a named
 list of matrices. `as_summarized_experiment()` does the reverse at the
 transcript or gene level, which is convenient for running Bioconductor
 tools such as `DESeq2` or `fishpond` on the stored assays (a `counts`
-assay is placed first, as those tools expect).
+assay is placed first, as those tools expect). The `metadata` of the
+result holds `experiment_name`, `annot_path` and the object's `metadata`
+without the inferential replicates.
 
 ## Usage
 
@@ -29,7 +31,9 @@ as_summarized_experiment(self, level = c("transcript", "gene"), ...)
 - x:
 
   A `SummarizedExperiment`, a `tximport` list or a named list of
-  matrices.
+  matrices. An
+  [IsoformicExperiment](https://luciorq.github.io/isoformic/reference/IsoformicExperiment.md)
+  is returned as it is.
 
 - annot_path:
 
@@ -64,7 +68,7 @@ as_summarized_experiment(self, level = c("transcript", "gene"), ...)
 
 - ...:
 
-  Passed on to methods.
+  Not used; reserved for methods.
 
 ## Value
 
@@ -76,29 +80,24 @@ as_summarized_experiment(self, level = c("transcript", "gene"), ...)
 
 ``` r
 iso <- example_isoformic()
-txi <- list(abundance = assay(iso, "abundance"), counts = assay(iso, "counts"))
+txi <- list(
+  abundance = tx_assay(iso, "abundance"),
+  counts = tx_assay(iso, "counts")
+)
 annot <- system.file("extdata", "example_experiment", "annotation", package = "isoformic")
 iso2 <- as_isoformic(txi, annot_path = annot, col_data = col_data(iso))
 iso2
-#> <IsoformicExperiment> isoformic_35b784a7b1
-#>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)
+#> <IsoformicExperiment> isoformic_f2faf1f9ff
+#>   annotation : gencode_v50_example_subset (69 genes, 1,914 transcripts, 18,656 exons)
 #>   samples    : 25 [condition]
-#>   transcripts: 499 assayed from 69 genes
+#>   transcripts: 1,911 assayed from 69 genes
 #>   assays     : abundance, counts
 #>   gene assays: derived from transcript assays on demand
 #>   DE results : <none>
 
-if (requireNamespace("SummarizedExperiment", quietly = TRUE)) {
+# Loading the SummarizedExperiment namespace takes several seconds
+if (interactive() && requireNamespace("SummarizedExperiment", quietly = TRUE)) {
   se <- as_summarized_experiment(iso, level = "gene")
   se
 }
-#> class: SummarizedExperiment 
-#> dim: 69 25 
-#> metadata(5): experiment_name annot_path source annotation note
-#> assays(2): counts abundance
-#> rownames(69): ENSG00000005007.12 ENSG00000005206.17 ...
-#>   ENSG00000229807.12 ENSG00000270641.1
-#> rowData names(14): gene_id gene_name ... end_pos gene_strand
-#> colnames(25): SRR11498039 SRR11498040 ... SRR11498078 SRR11498079
-#> colData names(2): sample_id condition
 ```

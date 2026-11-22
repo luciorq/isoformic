@@ -33,7 +33,8 @@ v26, so transcripts annotated later have no reference value."><meta property="og
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -45,6 +46,7 @@ v26, so transcripts annotated later have no reference value."><meta property="og
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -124,15 +126,19 @@ productive (default <code>TRUE</code>).</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed on to methods.</p></dd>
+<dd><p>Not used; reserved for methods.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A tibble with one row per gene of <code>x</code>: <code>reference_tissue</code>,
-<code>reference_gene_tpm</code>, <code>reference_productive_fraction</code>,
-<code>reference_dominant_transcript_id</code>, <code>reference_dominant_productivity</code>,
-<code>n_reference_transcripts</code>.</p>
+    <p><code>gtex_reference()</code> returns a tibble with one row per gene of <code>x</code>
+that has a transcript in the GTEx table: <code>gene_id</code>, <code>gene_name</code>,
+<code>reference_tissue</code>, <code>reference_gene_tpm</code>,
+<code>reference_productive_fraction</code> (<code>NA</code> for genes without a coding
+isoform or with a total TPM of 0), <code>reference_dominant_transcript_id</code>,
+<code>reference_dominant_productivity</code>, <code>n_reference_transcripts</code>.
+<code>gtex_tissues()</code> returns a tibble with the <code>tissue</code> names and their
+<code>n_samples</code>.</p>
     </div>
 
     <div class="section level2">

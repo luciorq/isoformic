@@ -15,9 +15,9 @@ changes.
 
 The 6 samples (3 vehicle, 3 lorecivivint) were quantified with Oarfish
 ([Jousheghani et al. 2025](#ref-oarfish)) in its nanopore cDNA mode. The
-reference was the GENCODE v49 transcripts ([Frankish et al.
+reference was the GENCODE v50 transcripts ([Frankish et al.
 2018](#ref-gencode)), with 30 bootstrap replicates per sample. Each
-sample has 6.3 to 7.0 million reads assigned to transcripts. Transcripts
+sample has 6.4 to 7.1 million reads assigned to transcripts. Transcripts
 were tested with `swish` ([Zhu et al. 2019](#ref-swish)) on the
 bootstrap replicates. Genes were tested with `DESeq2` on the summed
 counts. The scripts that download the reads from SRA and run every step
@@ -44,13 +44,13 @@ data_dir <- "data/prostate_ont"
 iso <- read_isoformic(data_dir)
 iso
 #> <IsoformicExperiment> prostate_ont
-#>   annotation : gencode_v49_chr_patch_hapl_scaff_annotation_gff3_case_study_subset (14,050 genes, 280,285 transcripts, 8,729 exons)
+#>   annotation : gencode_v50_chr_patch_hapl_scaff_annotation_gff3_case_study_subset (13,886 genes, 391,411 transcripts, 15,354 exons)
 #>   samples    : 6 [condition, replicate, run]
-#>   transcripts: 1,383 assayed from 48 genes
+#>   transcripts: 2,038 assayed from 48 genes
 #>   assays     : abundance, counts
 #>   gene assays: derived from transcript assays on demand
-#>   DE results : det (27,934 transcripts), deg (14,050 genes)
-#>   on disk    : /home/runner/work/isoformic/isoformic/vignettes/articles/data/prostate_ont
+#>   DE results : det (30,033 transcripts), deg (13,886 genes)
+#>   on disk    : data/prostate_ont
 col_data(iso)
 #> # A tibble: 6 × 4
 #>   sample_id      condition    replicate run        
@@ -63,7 +63,7 @@ col_data(iso)
 #> 6 lorecivivint_6 lorecivivint         6 SRR28114370
 iso@metadata[c("quantification", "transcript_de", "gene_de")]
 #> $quantification
-#> [1] "Oarfish 0.11.0 (--seq-tech ont-cdna) against GENCODE v49 transcripts, 30 bootstrap replicates"
+#> [1] "Oarfish 0.11.0 (--seq-tech ont-cdna) against GENCODE v50 transcripts, 30 bootstrap replicates"
 #> 
 #> $transcript_de
 #> [1] "swish (fishpond), 30 inferential replicates"
@@ -106,19 +106,19 @@ c(
   transcripts_fdr_5 = sum(det$qvalue < 0.05, na.rm = TRUE)
 )
 #>       genes_tested        genes_fdr_5 transcripts_tested  transcripts_fdr_5 
-#>              14050                140              27934                287
+#>              13886                137              30033                275
 ```
 
-At a false discovery rate of 5%, `DESeq2` finds 140 genes and `swish`
-287 transcripts. `swish` computes its p-values from permutations of the
+At a false discovery rate of 5%, `DESeq2` finds 137 genes and `swish`
+275 transcripts. `swish` computes its p-values from permutations of the
 samples. Three against three samples allow only a few distinct
-permutations. All 287 significant transcripts share the smallest
+permutations. All 275 significant transcripts share the smallest
 q-value, so they are ranked by fold change below.
 
 ``` r
 
 range(det$qvalue[det$qvalue < 0.05], na.rm = TRUE)
-#> [1] 3.484321e-05 3.484321e-05
+#> [1] 3.636364e-05 3.636364e-05
 ```
 
 Most significant transcripts are protein coding, followed by lncRNAs:
@@ -129,22 +129,22 @@ det |>
   filter(qvalue < 0.05) |>
   left_join(tx_annot(iso), by = "transcript_id") |>
   count(transcript_type, sort = TRUE)
-#> # A tibble: 6 × 2
+#> # A tibble: 5 × 2
 #>   transcript_type                    n
 #>   <chr>                          <int>
-#> 1 protein_coding                   251
-#> 2 lncRNA                            21
-#> 3 nonsense_mediated_decay            7
-#> 4 retained_intron                    5
+#> 1 protein_coding                   235
+#> 2 lncRNA                            19
+#> 3 nonsense_mediated_decay           13
+#> 4 retained_intron                    6
 #> 5 protein_coding_CDS_not_defined     2
-#> 6 artifact                           1
 ```
 
 [`isoform_switches()`](https://luciorq.github.io/isoformic/reference/diversity.md)
 relates the two levels. It uses the default cutoffs of the experiment:
 an absolute log2 fold change of at least 1 and a false discovery rate
-below 5%. Two thirds of the genes with a significant transcript have no
-significant change of their total expression (`det_not_deg`).
+below 5%. Three quarters of the genes with a significant transcript (53
+of 71) have no significant change of their total expression
+(`det_not_deg`).
 
 ``` r
 
@@ -152,24 +152,24 @@ switches <- isoform_switches(iso)
 table(switches$switch_type)
 #> 
 #>  consistent det_not_deg 
-#>          22          42
+#>          18          53
 switches |>
   filter(switch_type == "det_not_deg") |>
   select(gene_name, n_tx_tested, n_det_up, n_det_down, det_sig_types, gene_log2FC) |>
   head(10)
 #> # A tibble: 10 × 6
-#>    gene_name n_tx_tested n_det_up n_det_down det_sig_types           gene_log2FC
-#>    <chr>           <int>    <int>      <int> <chr>                         <dbl>
-#>  1 SNHG29             21        4          0 lncRNA                     0.0448  
-#>  2 RPL28               9        2          0 protein_coding;retaine…    0.00862 
-#>  3 SELENBP1            9        2          0 protein_coding             0.537   
-#>  4 CXorf38             2        1          0 protein_coding             0.0713  
-#>  5 RPL37A              5        1          0 protein_coding            -0.000110
-#>  6 PART1               3        1          0 lncRNA                     0.136   
-#>  7 ADRA2A              1        0          1 protein_coding            -0.0313  
-#>  8 C5                  5        0          1 protein_coding            -0.864   
-#>  9 GSTA4               4        1          0 protein_coding             0.339   
-#> 10 LGR5                1        0          1 protein_coding            -0.0492
+#>    gene_name n_tx_tested n_det_up n_det_down det_sig_types   gene_log2FC
+#>    <chr>           <int>    <int>      <int> <chr>                 <dbl>
+#>  1 RPL37A              8        2          0 protein_coding     0.000600
+#>  2 SELENBP1            9        2          0 protein_coding     0.537   
+#>  3 SNHG29             21        2          0 lncRNA             0.0441  
+#>  4 OS9                 8        2          0 protein_coding     0.198   
+#>  5 RASA4               6        0          1 protein_coding    -0.495   
+#>  6 C5                  5        0          1 protein_coding    -0.858   
+#>  7 PART1               3        1          0 lncRNA             0.146   
+#>  8 ADRA2A              1        0          1 protein_coding    -0.0320  
+#>  9 RPL28               8        1          0 retained_intron    0.0136  
+#> 10 GSTA4               4        1          0 protein_coding     0.344
 ```
 
 ## The CLK genes regulate themselves
@@ -199,9 +199,9 @@ deg |>
 #> # A tibble: 3 × 4
 #>   gene_name log2FC      qvalue deg_sig
 #>   <chr>      <dbl>       <dbl> <chr>  
-#> 1 CLK1       0.873 0.000000274 no     
-#> 2 CLK3       0.858 0.0000568   no     
-#> 3 CLK4       0.707 0.0598      no
+#> 1 CLK1       0.881 0.000000176 no     
+#> 2 CLK3       0.827 0.000142    no     
+#> 3 CLK4       0.696 0.0616      no
 ```
 
 The isoforms of *CLK1* explain most of its gene-level change. `CLK1-201`
@@ -211,9 +211,9 @@ nonsense-mediated decay. `CLK1-210` keeps the introns on both sides of
 exon 4. CLK1 activity favours the skipping of its own exon 4, and CLK
 inhibitors shift the balance towards the full-length isoform ([Uzor et
 al. 2018](#ref-uzor2018)). The long reads show that shift. The
-full-length isoform rises from about 17 to 46 transcripts per million.
+full-length isoform rises from about 19 to 52 transcripts per million.
 The skipped one falls from about 4 to 1.5 (not significant on its own,
-with q = 0.25).
+with q = 0.36).
 
 ``` r
 
@@ -252,10 +252,10 @@ det |>
 #> # A tibble: 4 × 4
 #>   gene_name n_tested best_qvalue log2FC_of_best
 #>   <chr>        <int>       <dbl>          <dbl>
-#> 1 CLK2             3   0.363              1.24 
-#> 2 SRSF9            3   0.642             -0.841
-#> 3 SRSF3            7   0.0000348         -0.266
-#> 4 AR               4   0.266             -0.390
+#> 1 CLK2             2   0.412              1.03 
+#> 2 SRSF9            5   0.679             -0.879
+#> 3 SRSF3            7   0.0000364         -0.263
+#> 4 AR               3   0.309             -0.378
 ```
 
 ## Enrichment by transcript type
@@ -273,8 +273,10 @@ set.seed(42)
 enrichment <- run_enrichment(iso, genesets, pval_cutoff = 0.05)
 table(enrichment$experiment)
 #> 
-#>  protein_coding retained_intron    unproductive 
-#>              13               4               9
+#> nonsense_mediated_decay          protein_coding         retained_intron 
+#>                       4                      19                       3 
+#>            unproductive 
+#>                       7
 ```
 
 ``` r
@@ -284,15 +286,24 @@ plot_enrichment(enrichment, n = 20)
 
 ![](isoformic-case-long-reads_files/figure-html/unnamed-chunk-13-1.png)
 
-At an adjusted p-value below 0.05, three gene sets go down in the
-protein coding isoforms of the treated cells: androgen response,
-cholesterol homeostasis and mitotic spindle. This agrees with the
-anti-proliferative effect of lorecivivint reported by Van Goubergen et
-al. ([2024](#ref-vangoubergen2024)). The proliferation sets (G2M
-checkpoint, E2F and MYC targets) go down in the retained intron and
-other unproductive isoforms. They do not go down in the protein coding
-ones. Only the transcript-level analysis shows this part of the response
-to the drug.
+At an adjusted p-value below 0.05, nine gene sets go down in the protein
+coding isoforms of the treated cells, among them androgen response,
+cholesterol homeostasis, mitotic spindle and the proliferation sets E2F
+targets and G2M checkpoint (the most significant), and four go up
+(interferon alpha and gamma responses, KRAS signalling and the p53
+pathway). The loss of the mitotic spindle and proliferation sets agrees
+with the anti-proliferative effect of lorecivivint reported by Van
+Goubergen et al. ([2024](#ref-vangoubergen2024)). The proliferation sets
+also go down in the unproductive isoforms: G2M checkpoint and E2F
+targets in the retained intron, the nonsense-mediated decay and the
+grouped unproductive isoforms, and E2F targets has a larger normalized
+enrichment score in each of these three groups than in the protein
+coding isoforms, so the unproductive isoforms of these genes fall
+together with the coding ones. MYC targets go down only in the retained
+intron isoforms.
+[`run_enrichment()`](https://luciorq.github.io/isoformic/reference/enrichment.md)
+sizes the gene sets by their genes, not by their transcripts, so the
+large hallmark sets are tested in every transcript type.
 
 ## Citing isoformic
 
@@ -336,7 +347,7 @@ sessionInfo()
 #> [16] knitr_1.52          ggrepel_0.9.8       tibble_3.3.1       
 #> [19] DBI_1.3.0           pillar_1.11.1       RColorBrewer_1.1-3 
 #> [22] rlang_1.3.0         fastmatch_1.1-8     utf8_1.2.6         
-#> [25] xfun_0.62           fs_2.1.0            S7_0.2.2           
+#> [25] xfun_0.62           fs_2.1.0            S7_1.0.0           
 #> [28] otel_0.3.0          cli_3.6.6           withr_3.0.3        
 #> [31] magrittr_2.0.5      digest_0.6.39       grid_4.6.2         
 #> [34] fgsea_1.38.0        cowplot_1.2.0       lifecycle_1.0.5    

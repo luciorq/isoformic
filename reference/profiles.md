@@ -39,11 +39,13 @@ plot_tx_expr(
 
 - gene_name:
 
-  Character vector of gene names or IDs to profile.
+  Character vector of gene names or IDs to profile. For a profile table,
+  optional genes to keep.
 
 - group:
 
-  Name of the `col_data` column defining the groups (x axis).
+  Name of the `col_data` column defining the groups (x axis). Not needed
+  for a profile table, which has its groups.
 
 - levels:
 
@@ -54,11 +56,12 @@ plot_tx_expr(
 
 - assay:
 
-  Name of the transcript assay to summarise (default `"abundance"`).
+  Name of the transcript assay to summarise (default `"abundance"`); not
+  used for a profile table.
 
 - ...:
 
-  Passed on to methods.
+  Not used; reserved for methods.
 
 - log_scale:
 
@@ -82,9 +85,11 @@ plot_tx_expr(
 
 `profile_data()` returns a tibble with columns `feature_id`,
 `feature_name`, `feature_type`, `gene_id`, `gene_name`, `group`,
-`mean_expr`, `sd_expr`, `n_samples` and `is_de`; the grouping variable
-name is stored in the `"group_var"` attribute. `plot_tx_expr()` returns
-a `ggplot` object.
+`mean_expr`, `sd_expr`, `n_samples` and `is_de` (`"yes"`/`"no"`, from
+the stored results and
+[`de_cutoffs()`](https://luciorq.github.io/isoformic/reference/dea.md));
+the grouping variable name is stored in the `"group_var"` attribute.
+`plot_tx_expr()` returns a `ggplot` object.
 
 ## Examples
 
@@ -94,12 +99,12 @@ head(profile_data(iso, gene_name = "RBPJ", group = "condition"))
 #> # A tibble: 6 × 10
 #>   feature_id feature_name feature_type gene_id gene_name group mean_expr sd_expr
 #>   <chr>      <chr>        <chr>        <chr>   <chr>     <fct>     <dbl>   <dbl>
-#> 1 ENSG00000… RBPJ         gene         ENSG00… RBPJ      pree…   1297.    427.  
-#> 2 ENSG00000… RBPJ         gene         ENSG00… RBPJ      cont…   1367.    195.  
-#> 3 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      pree…     11.2    25.1 
-#> 4 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      cont…      3.95    8.30
-#> 5 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      pree…    838.    303.  
-#> 6 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      cont…   1095.    169.  
+#> 1 ENSG00000… RBPJ         gene         ENSG00… RBPJ      pree…    33.0    11.1  
+#> 2 ENSG00000… RBPJ         gene         ENSG00… RBPJ      cont…    36.3     6.25 
+#> 3 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      pree…     0.116   0.148
+#> 4 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      cont…     0.125   0.160
+#> 5 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      pree…     0       0    
+#> 6 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      cont…     0.952   1.39 
 #> # ℹ 2 more variables: n_samples <int>, is_de <chr>
 plot_tx_expr(iso, gene_name = c("RBPJ", "EGFR"), group = "condition")
 

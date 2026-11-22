@@ -5,8 +5,8 @@ them in more than one way, so the estimate of each isoform carries an
 inferential uncertainty that is unrelated to biological variability.
 Salmon measures it by drawing replicates from the posterior (Gibbs
 sampling, --numGibbsSamples) and by writing the equivalence classes
-(--dumpEq). These functions turn that information into columns that can
-be filtered on and reported.
+(--dumpEq). These functions turn that information into columns that
+describe each isoform and each call, to be reported next to the results.
 Every isoform gets four kinds of evidence:
 Quantification uncertainty: the inferential relative variance
 (mean_inf_rv, Zhu et al. 2019, as in fishpond), the variance of the
@@ -29,45 +29,50 @@ replicates that agree on its direction and frac_draws_sig the share in
 which the isoform is called differentially expressed.
 
 
-de_confidence() combines the last three into one class per isoform:
-high when the fold-change is stable (sign_agreement &amp;gt;= min_agreement),
-the isoform is not uncertain and has no ambiguous sibling; moderate
-when exactly one of these fails; low when two or more fail. After
-add_uncertainty(identifiability = TRUE) a fourth condition counts: the
-equivalence classes must identify the isoform (identifiable). The class
-says how far a call on the isoform can be trusted, so read it for the
-isoforms flagged by the primary test (n_det_sig, confident_de): an
-isoform without a real change is moderate or low simply because its
-fold-change is not stable.
+de_confidence() repeats the contrast on every replicate. unstable
+flags a fold-change whose direction fewer than min_agreement (95%) of
+the replicates agree on, and unstable_de a call of the primary test with
+such a direction. The other columns describe the quantification of the
+isoform, and flags lists those that apply. None of them is a verdict on
+a call: report them next to it.
 add_uncertainty(x, paths) reads the replicates, equivalence classes and
-run metadata from the Salmon output directories paths (named by sample
-ID, in any order), computes the tables below and stores them in the
-object, so that they are written by write_isoformic(). When group is
-given it also stores the fold-change stability of that contrast.
+run metadata from the Salmon output directories (or Oarfish output
+prefixes, see read_oarfish()) paths (named by sample ID, in any
+order), computes the tables below and stores them in the object, so that
+they are written by write_isoformic(). When group is given it also
+stores the fold-change stability of that contrast.
 tx_uncertainty(x): per-transcript table, for the transcripts whose
 draws are in the object (the expressed ones).
 isoform_ambiguity(x): per-pair table of replicate correlations.
-de_confidence(x, group): per-feature table of fold-change stability
-and confidence class; with collapse_groups = TRUE, ambiguous isoforms
-are summed into one feature before testing.
+de_confidence(x, group): per-feature table of fold-change stability,
+recomputed from the replicates; with
+collapse_groups = TRUE, ambiguous isoforms are summed into one feature
+before testing. Without group it returns the table that
+add_uncertainty(group = ) stored.
 uncertainty_report(x): a list of summary tables for a methods or
 results section.
 uncertainty_methods(x): a ready-to-edit paragraph that states the
 settings used.
 
 
-The replicates themselves are kept in memory only (in
-metadata(x)$inf_reps) and are not written by write_isoformic(); the
-tables derived from them are. Draws are kept for the transcripts with an
-estimated mean count of at least min_count; the others are treated as
-unexpressed."><meta property="og:description" content="An isoform-level result is only as good as the quantification behind it.
+The replicates themselves are kept in x@metadata$inf_reps, a list with
+one transcript x sample matrix per replicate. write_isoformic() writes
+them, one Parquet file per replicate, with the tables derived from them,
+and read_isoformic() restores them; with keep_draws = FALSE only the
+tables are kept and written. x[i, j] keeps the replicates of the
+kept transcripts and samples as a view: it shares the draws of x and
+records the selection, so the draws of x stay in memory while the subset
+exists (see the Subsetting section of IsoformicExperiment); to contrast
+two groups of a larger object, pass levels instead of subsetting. Draws are read only for the
+transcripts of x; with a counts assay, only for those with a mean
+count of at least min_count, and the others are treated as unexpressed."><meta property="og:description" content="An isoform-level result is only as good as the quantification behind it.
 Reads that map to several isoforms of a gene can be shared out between
 them in more than one way, so the estimate of each isoform carries an
 inferential uncertainty that is unrelated to biological variability.
 Salmon measures it by drawing replicates from the posterior (Gibbs
 sampling, --numGibbsSamples) and by writing the equivalence classes
-(--dumpEq). These functions turn that information into columns that can
-be filtered on and reported.
+(--dumpEq). These functions turn that information into columns that
+describe each isoform and each call, to be reported next to the results.
 Every isoform gets four kinds of evidence:
 Quantification uncertainty: the inferential relative variance
 (mean_inf_rv, Zhu et al. 2019, as in fishpond), the variance of the
@@ -90,38 +95,43 @@ replicates that agree on its direction and frac_draws_sig the share in
 which the isoform is called differentially expressed.
 
 
-de_confidence() combines the last three into one class per isoform:
-high when the fold-change is stable (sign_agreement &amp;gt;= min_agreement),
-the isoform is not uncertain and has no ambiguous sibling; moderate
-when exactly one of these fails; low when two or more fail. After
-add_uncertainty(identifiability = TRUE) a fourth condition counts: the
-equivalence classes must identify the isoform (identifiable). The class
-says how far a call on the isoform can be trusted, so read it for the
-isoforms flagged by the primary test (n_det_sig, confident_de): an
-isoform without a real change is moderate or low simply because its
-fold-change is not stable.
+de_confidence() repeats the contrast on every replicate. unstable
+flags a fold-change whose direction fewer than min_agreement (95%) of
+the replicates agree on, and unstable_de a call of the primary test with
+such a direction. The other columns describe the quantification of the
+isoform, and flags lists those that apply. None of them is a verdict on
+a call: report them next to it.
 add_uncertainty(x, paths) reads the replicates, equivalence classes and
-run metadata from the Salmon output directories paths (named by sample
-ID, in any order), computes the tables below and stores them in the
-object, so that they are written by write_isoformic(). When group is
-given it also stores the fold-change stability of that contrast.
+run metadata from the Salmon output directories (or Oarfish output
+prefixes, see read_oarfish()) paths (named by sample ID, in any
+order), computes the tables below and stores them in the object, so that
+they are written by write_isoformic(). When group is given it also
+stores the fold-change stability of that contrast.
 tx_uncertainty(x): per-transcript table, for the transcripts whose
 draws are in the object (the expressed ones).
 isoform_ambiguity(x): per-pair table of replicate correlations.
-de_confidence(x, group): per-feature table of fold-change stability
-and confidence class; with collapse_groups = TRUE, ambiguous isoforms
-are summed into one feature before testing.
+de_confidence(x, group): per-feature table of fold-change stability,
+recomputed from the replicates; with
+collapse_groups = TRUE, ambiguous isoforms are summed into one feature
+before testing. Without group it returns the table that
+add_uncertainty(group = ) stored.
 uncertainty_report(x): a list of summary tables for a methods or
 results section.
 uncertainty_methods(x): a ready-to-edit paragraph that states the
 settings used.
 
 
-The replicates themselves are kept in memory only (in
-metadata(x)$inf_reps) and are not written by write_isoformic(); the
-tables derived from them are. Draws are kept for the transcripts with an
-estimated mean count of at least min_count; the others are treated as
-unexpressed."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
+The replicates themselves are kept in x@metadata$inf_reps, a list with
+one transcript x sample matrix per replicate. write_isoformic() writes
+them, one Parquet file per replicate, with the tables derived from them,
+and read_isoformic() restores them; with keep_draws = FALSE only the
+tables are kept and written. x[i, j] keeps the replicates of the
+kept transcripts and samples as a view: it shares the draws of x and
+records the selection, so the draws of x stay in memory while the subset
+exists (see the Subsetting section of IsoformicExperiment); to contrast
+two groups of a larger object, pass levels instead of subsetting. Draws are read only for the
+transcripts of x; with a counts assay, only for those with a mean
+count of at least min_count, and the others are treated as unexpressed."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -137,7 +147,8 @@ unexpressed."><meta property="og:image" content="https://luciorq.github.io/isofo
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -149,6 +160,7 @@ unexpressed."><meta property="og:image" content="https://luciorq.github.io/isofo
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -191,8 +203,8 @@ them in more than one way, so the estimate of each isoform carries an
 <em>inferential</em> uncertainty that is unrelated to biological variability.
 Salmon measures it by drawing replicates from the posterior (Gibbs
 sampling, <code>--numGibbsSamples</code>) and by writing the equivalence classes
-(<code>--dumpEq</code>). These functions turn that information into columns that can
-be filtered on and reported.</p>
+(<code>--dumpEq</code>). These functions turn that information into columns that
+describe each isoform and each call, to be reported next to the results.</p>
 <p>Every isoform gets four kinds of evidence:</p><ul><li><p><strong>Quantification uncertainty</strong>: the inferential relative variance
 (<code>mean_inf_rv</code>, Zhu et al. 2019, as in <code>fishpond</code>), the variance of the
 replicates in excess of what counting noise alone would give, relative
@@ -212,35 +224,40 @@ repeated on every replicate. <code>lfc_lo</code>/<code>lfc_hi</code> is the 95% 
 the log2 fold-change over replicates, <code>sign_agreement</code> the share of
 replicates that agree on its direction and <code>frac_draws_sig</code> the share in
 which the isoform is called differentially expressed.</p></li>
-</ul><p><code>de_confidence()</code> combines the last three into one class per isoform:
-<code>high</code> when the fold-change is stable (<code>sign_agreement &gt;= min_agreement</code>),
-the isoform is not <code>uncertain</code> and has no ambiguous sibling; <code>moderate</code>
-when exactly one of these fails; <code>low</code> when two or more fail. After
-<code>add_uncertainty(identifiability = TRUE)</code> a fourth condition counts: the
-equivalence classes must identify the isoform (<code>identifiable</code>). The class
-says how far a call on the isoform can be trusted, so read it for the
-isoforms flagged by the primary test (<code>n_det_sig</code>, <code>confident_de</code>): an
-isoform without a real change is <code>moderate</code> or <code>low</code> simply because its
-fold-change is not stable.</p><ul><li><p><code>add_uncertainty(x, paths)</code> reads the replicates, equivalence classes and
-run metadata from the Salmon output directories <code>paths</code> (named by sample
-ID, in any order), computes the tables below and stores them in the
-object, so that they are written by <code><a href="isoformic-io.html">write_isoformic()</a></code>. When <code>group</code> is
-given it also stores the fold-change stability of that contrast.</p></li>
+</ul><p><code>de_confidence()</code> repeats the contrast on every replicate. <code>unstable</code>
+flags a fold-change whose direction fewer than <code>min_agreement</code> (95%) of
+the replicates agree on, and <code>unstable_de</code> a call of the primary test with
+such a direction. The other columns describe the quantification of the
+isoform, and <code>flags</code> lists those that apply. None of them is a verdict on
+a call: report them next to it.</p><ul><li><p><code>add_uncertainty(x, paths)</code> reads the replicates, equivalence classes and
+run metadata from the Salmon output directories (or Oarfish output
+prefixes, see <code><a href="read_oarfish.html">read_oarfish()</a></code>) <code>paths</code> (named by sample ID, in any
+order), computes the tables below and stores them in the object, so that
+they are written by <code><a href="isoformic-io.html">write_isoformic()</a></code>. When <code>group</code> is given it also
+stores the fold-change stability of that contrast.</p></li>
 <li><p><code>tx_uncertainty(x)</code>: per-transcript table, for the transcripts whose
 draws are in the object (the expressed ones).</p></li>
 <li><p><code>isoform_ambiguity(x)</code>: per-pair table of replicate correlations.</p></li>
-<li><p><code>de_confidence(x, group)</code>: per-feature table of fold-change stability
-and confidence class; with <code>collapse_groups = TRUE</code>, ambiguous isoforms
-are summed into one feature before testing.</p></li>
+<li><p><code>de_confidence(x, group)</code>: per-feature table of fold-change stability,
+recomputed from the replicates; with
+<code>collapse_groups = TRUE</code>, ambiguous isoforms are summed into one feature
+before testing. Without <code>group</code> it returns the table that
+<code>add_uncertainty(group = )</code> stored.</p></li>
 <li><p><code>uncertainty_report(x)</code>: a list of summary tables for a methods or
 results section.</p></li>
 <li><p><code>uncertainty_methods(x)</code>: a ready-to-edit paragraph that states the
 settings used.</p></li>
-</ul><p>The replicates themselves are kept in memory only (in
-<code>metadata(x)$inf_reps</code>) and are not written by <code><a href="isoformic-io.html">write_isoformic()</a></code>; the
-tables derived from them are. Draws are kept for the transcripts with an
-estimated mean count of at least <code>min_count</code>; the others are treated as
-unexpressed.</p>
+</ul><p>The replicates themselves are kept in <code>x@metadata$inf_reps</code>, a list with
+one transcript x sample matrix per replicate. <code><a href="isoformic-io.html">write_isoformic()</a></code> writes
+them, one Parquet file per replicate, with the tables derived from them,
+and <code><a href="isoformic-io.html">read_isoformic()</a></code> restores them; with <code>keep_draws = FALSE</code> only the
+tables are kept and written. <code>x[i, j]</code> keeps the replicates of the
+kept transcripts and samples as a view: it shares the draws of <code>x</code> and
+records the selection, so the draws of <code>x</code> stay in memory while the subset
+exists (see the Subsetting section of <a href="IsoformicExperiment.html">IsoformicExperiment</a>); to contrast
+two groups of a larger object, pass <code>levels</code> instead of subsetting. Draws are read only for the
+transcripts of <code>x</code>; with a <code>counts</code> assay, only for those with a mean
+count of at least <code>min_count</code>, and the others are treated as unexpressed.</p>
     </div>
 
     <div class="section level2">
@@ -294,13 +311,14 @@ unexpressed.</p>
 
 
 <dt id="arg-paths">paths<a class="anchor" aria-label="anchor" href="#arg-paths"></a></dt>
-<dd><p>Salmon output directories (see <code><a href="inferential-io.html">read_inferential_replicates()</a></code>),
-named by sample ID. <code>NULL</code> uses the replicates already stored in the
-object.</p></dd>
+<dd><p>Salmon output directories or Oarfish output prefixes (see
+<code><a href="inferential-io.html">read_inferential_replicates()</a></code>), named by sample ID. <code>NULL</code> uses the
+replicates already stored in the object.</p></dd>
 
 
 <dt id="arg-group">group<a class="anchor" aria-label="anchor" href="#arg-group"></a></dt>
-<dd><p>Name of a <code><a href="IsoformicExperiment-accessors.html">col_data()</a></code> column with the sample groups.</p></dd>
+<dd><p>Name of a <code><a href="IsoformicExperiment-accessors.html">col_data()</a></code> column with the sample groups. In
+<code>de_confidence()</code>, <code>NULL</code> returns the stored table.</p></dd>
 
 
 <dt id="arg-levels">levels<a class="anchor" aria-label="anchor" href="#arg-levels"></a></dt>
@@ -315,12 +333,15 @@ of other groups are left out of the contrast. <code>NULL</code> uses the levels 
 
 <dt id="arg-min-count">min_count<a class="anchor" aria-label="anchor" href="#arg-min-count"></a></dt>
 <dd><p>Minimum mean estimated count for a transcript to be
-assessed.</p></dd>
+assessed (and, with a <code>counts</code> assay, for its replicates to be read).</p></dd>
 
 
 <dt id="arg-inf-rv-cutoff">inf_rv_cutoff<a class="anchor" aria-label="anchor" href="#arg-inf-rv-cutoff"></a></dt>
 <dd><p>Inferential relative variance from which an isoform is
-called uncertain. <code>NULL</code> uses the value the tables were computed with.</p></dd>
+called uncertain. In <code>de_confidence()</code>, <code>NULL</code> uses the value the tables
+were computed with; without <code>group</code>, a value recomputes the
+"uncertain quantification" flag of the stored table. It describes the
+isoform and is not used to judge calls.</p></dd>
 
 
 <dt id="arg-cor-cutoff">cor_cutoff<a class="anchor" aria-label="anchor" href="#arg-cor-cutoff"></a></dt>
@@ -334,8 +355,10 @@ correlations as noise). The value used is stored and stated by
 
 <dt id="arg-min-agreement">min_agreement<a class="anchor" aria-label="anchor" href="#arg-min-agreement"></a></dt>
 <dd><p>Share of replicates that must agree on the direction
-of a fold-change for it to be called stable. <code>NULL</code> uses the stored
-value.</p></dd>
+of a fold-change; below it the fold-change is flagged <code>unstable</code>. In
+<code>de_confidence()</code>, <code>NULL</code> uses the stored value; without <code>group</code>, a value
+recomputes <code>unstable</code>, <code>flags</code> and <code>unstable_de</code> of the stored table
+from its <code>sign_agreement</code>, without the replicates.</p></dd>
 
 
 <dt id="arg-equivalence">equivalence<a class="anchor" aria-label="anchor" href="#arg-equivalence"></a></dt>
@@ -349,18 +372,21 @@ the draws are supplied without <code>paths</code>.</p></dd>
 equivalence classes can tell apart (<code><a href="equivalence_identifiability.html">equivalence_identifiability()</a></code>;
 minutes per sample, needs <code>paths</code> and, for human samples, the <code>Matrix</code>
 package), or the table that function returned. <code>de_confidence()</code> then
-counts a non-identifiable transcript as one more reason against the
-call.</p></dd>
+reports <code>identifiable</code>.</p></dd>
 
 
 <dt id="arg-run-qc">run_qc<a class="anchor" aria-label="anchor" href="#arg-run-qc"></a></dt>
-<dd><p>Logical, add the Salmon run metadata (see
-<code><a href="inferential-io.html">salmon_run_qc()</a></code>) to <code><a href="IsoformicExperiment-accessors.html">col_data()</a></code>.</p></dd>
+<dd><p>Logical, add the run metadata of Salmon or Oarfish (see
+<code><a href="inferential-io.html">salmon_run_qc()</a></code>) to <code><a href="IsoformicExperiment-accessors.html">col_data()</a></code>, with the column names prefixed by
+<code>salmon_</code> or <code>oarfish_</code>.</p></dd>
 
 
 <dt id="arg-keep-draws">keep_draws<a class="anchor" aria-label="anchor" href="#arg-keep-draws"></a></dt>
 <dd><p>Logical, keep the replicates in the object (needed to
-recompute the tables and for <code><a href="productivity.html">productive_fraction()</a></code> uncertainty).</p></dd>
+recompute the tables, for <code>de_confidence(group = )</code>,
+<code><a href="inferential-overdispersion.html">inferential_overdispersion()</a></code> and the uncertainty of
+<code><a href="productivity.html">productive_fraction()</a></code>). Kept replicates are also written by
+<code><a href="isoformic-io.html">write_isoformic()</a></code>.</p></dd>
 
 
 <dt id="arg-collapse-groups">collapse_groups<a class="anchor" aria-label="anchor" href="#arg-collapse-groups"></a></dt>
@@ -373,13 +399,13 @@ before testing the contrast.</p></dd>
 apart, replacing the groups built from the correlation of the replicates:
 a table with <code>transcript_id</code> and <code>group_id</code>, or the path to Terminus output
 (see <code><a href="read_terminus_groups.html">read_terminus_groups()</a></code>), or the cut of TreeTerminus trees (see
-<code><a href="treeterminus.html">cut_transcript_trees()</a></code>). The confidence classes and
-<code>collapse_groups</code> then follow these groups; the pairs of
+<code><a href="treeterminus.html">cut_transcript_trees()</a></code>). <code>ambiguous</code> and <code>collapse_groups</code> then
+follow these groups; the pairs of
 <code>isoform_ambiguity()</code> keep describing the correlation.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Unused.</p></dd>
+<dd><p>Not used; reserved for methods.</p></dd>
 
 
 <dt id="arg-gene-name">gene_name<a class="anchor" aria-label="anchor" href="#arg-gene-name"></a></dt>
@@ -400,47 +426,108 @@ ambiguous pairs.</p></dd>
 
 <ul><li><p><code>add_uncertainty()</code>: the object with <code>dea$uncertainty</code>, <code>dea$ambiguity</code>
 and, when <code>group</code> is given, <code>dea$confidence</code> filled in.</p></li>
-<li><p><code>tx_uncertainty()</code>: a tibble with <code>transcript_id</code>, <code>gene_id</code>, names and
-type, <code>mean_count</code>, <code>mean_inf_rv</code>, <code>max_inf_rv</code>, <code>mean_inf_cv</code>,
-<code>uncertain</code>, <code>min_sibling_cor</code>, <code>n_ambiguous_partners</code>,
-<code>ambiguity_group</code> and, when equivalence classes were read, <code>n_classes</code>,
+<li><p><code>tx_uncertainty()</code>: a tibble with <code>transcript_id</code>, <code>gene_id</code>,
+<code>gene_name</code>, <code>transcript_name</code>, <code>transcript_type</code>, <code>mean_count</code>,
+<code>assessed</code> (<code>mean_count &gt;= min_count</code>; the statistics are <code>NA</code> for the
+others), <code>mean_inf_rv</code>, <code>max_inf_rv</code>, <code>mean_inf_cv</code>, <code>uncertain</code>,
+<code>min_sibling_cor</code>, <code>n_ambiguous_partners</code>, <code>ambiguity_group</code> and, when
+equivalence classes were read, <code>n_classes</code>, <code>n_fragments</code>,
 <code>n_unique_fragments</code>, <code>unique_fraction</code> and <code>low_information</code> (<code>TRUE</code>
 for an uncertain isoform without a single fragment of its own, the
 isoforms <code>mmcollapse</code> selects for collapsing). With <code>identifiability</code>,
 also <code>identifiable_fraction</code> and <code>identifiable</code>.</p></li>
-<li><p><code>isoform_ambiguity()</code>: a tibble of isoform pairs of the same gene with
-<code>mean_cor</code>, <code>min_cor</code>, <code>n_samples</code>, <code>collapse_gain</code> and <code>ambiguous</code>.
+<li><p><code>isoform_ambiguity()</code>: a tibble of isoform pairs of the same gene,
+sorted by <code>mean_cor</code>, with <code>gene_id</code>, <code>gene_name</code>, <code>transcript_id_1</code>,
+<code>transcript_id_2</code>, <code>mean_cor</code>, <code>min_cor</code>, <code>n_samples</code>, <code>collapse_gain</code>,
+<code>ambiguous</code>, <code>transcript_name_1</code> and <code>transcript_name_2</code>.
 <code>collapse_gain</code> is the score Terminus groups on (Sarkar et al. 2020):
 the inferential relative variance of the sum of the two isoforms minus
 the mean of their own, averaged over samples. The more negative, the
 more is gained by testing the pair as one feature.</p></li>
-<li><p><code>de_confidence()</code>: a tibble with one row per feature: <code>feature_id</code>,
-<code>feature_type</code> (<code>"transcript"</code> or <code>"group"</code>), gene and transcript names,
-the interval and stability of the fold-change, <code>mean_inf_rv</code>,
-<code>ambiguous</code>, <code>identifiable</code> (only when the identifiability was
-computed; <code>NA</code> for groups), <code>confidence</code> (an ordered factor), <code>reason</code>,
-the existing
-differential expression result (<code>det_log2FC</code>, <code>det_qvalue</code>,
-<code>n_det_sig</code>) and <code>confident_de</code>, which is <code>TRUE</code> when a significant
-isoform has <code>high</code> confidence.</p></li>
-<li><p><code>uncertainty_report()</code>: a list with <code>settings</code>, <code>replicates</code> (replicate
-type, number of draws, degrees of freedom over the study and, when the
-draws are in the object, the median overdispersion, which is close to 1
-for long reads), <code>run</code>, <code>transcripts</code> (by transcript type), <code>genes</code>,
-<code>de</code> and <code>switches</code> tibbles.</p></li>
+<li><p><code>de_confidence()</code>: a tibble with one row per feature, sorted by the
+absolute median fold-change: <code>feature_id</code>, <code>feature_type</code>
+(<code>"transcript"</code> or <code>"group"</code>), <code>gene_id</code>, <code>gene_name</code>, <code>transcript_ids</code>
+(the members, separated by <code>;</code>), <code>transcript_name</code>, <code>transcript_type</code>,
+<code>mean_count</code>, the fold-change over the replicates (<code>lfc_median</code>,
+<code>lfc_lo</code>, <code>lfc_hi</code>, <code>lfc_sd</code>), <code>sign_agreement</code>, <code>frac_draws_effect</code>
+(share of replicates that agree on the direction with an absolute
+fold-change of at least the cutoff of <code><a href="dea.html">de_cutoffs()</a></code>), <code>frac_draws_sig</code>,
+<code>mean_inf_rv</code> (<code>NA</code> for a feature that is not assessed, which is then
+never flagged as uncertain), <code>ambiguous</code>, <code>identifiable</code> (only when the
+identifiability was computed; <code>NA</code> for groups), <code>flags</code> (the
+descriptive flags that apply, separated by <code>"; "</code>: "unstable
+direction", "uncertain quantification", "ambiguous with a sibling
+isoform", "not identifiable from the equivalence classes"; <code>NA</code> when
+none applies), the current differential expression result
+(<code>det_log2FC</code>, <code>det_qvalue</code>, <code>n_det_sig</code>, the number of significant
+members; read from <code><a href="dea.html">de_tx()</a></code> each time, so they follow <code>de_tx&lt;-</code> and
+<code><a href="dea.html">de_cutoffs()</a></code>) and <code>unstable_de</code>, <code>TRUE</code> for a feature with a
+significant member and an unstable direction (<code>NA</code> without stored
+results). <code>unstable</code> (after <code>sign_agreement</code>) is
+<code>sign_agreement &lt; min_agreement</code>, <code>NA</code> for a feature that is not
+assessed. The sign agreement is measured against the median sign over
+the replicates, not against <code>det_log2FC</code>.</p></li>
+<li><p><code>uncertainty_report()</code>: a list with <code>settings</code> (a list of the cutoffs),
+and the tibbles <code>replicates</code> (<code>replicate_type</code>, <code>n_draws</code>,
+<code>resampling_df</code>, the degrees of freedom over the study, and
+<code>median_overdispersion</code>, <code>NA</code> unless the draws are in the object and
+close to 1 for long reads), <code>run</code> (the run metadata in <code><a href="IsoformicExperiment-accessors.html">col_data()</a></code>), <code>transcripts</code> (by
+transcript type, with <code>median_inf_rv</code>, <code>q25_inf_rv</code> and <code>q75_inf_rv</code>),
+<code>genes</code>, <code>de</code> (significant features per flag; the flags describe the
+calls and are not a verdict: one row per flag, <code>unstable</code> first, with
+<code>flag</code>, <code>rule</code>, <code>n_significant</code>, <code>n_assessed</code>, <code>n_flagged</code> and
+<code>pct_flagged</code>; a collapsed group with a significant member counts once,
+and is never <code>ambiguous</code>, since its members were summed) and <code>switches</code>
+(genes with isoform switches, all and without unstable directions:
+<code>n_genes</code>, <code>n_opposite_direction</code> and <code>n_det_not_deg</code>). <code>run</code> and <code>de</code>
+are <code>NULL</code> when their input is missing; <code>switches</code> needs only the
+transcript-level table (<code><a href="dea.html">de_tx()</a></code>) and is <code>NULL</code> without it, its
+"without unstable directions" row is <code>NA</code> without the fold-change
+stability of <code>add_uncertainty(group = )</code>, and its <code>n_det_not_deg</code> is
+<code>NA</code> without a gene-level table (<code><a href="dea.html">de_gene()</a></code>).</p></li>
 <li><p><code>uncertainty_methods()</code>: a character string.</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>The thresholds are heuristics, not universal constants: <code>inf_rv_cutoff</code>
-(0.5), <code>cor_cutoff</code> (-0.5) and <code>min_agreement</code> (0.95) are conservative
-starting points. With 30 draws, sampling noise alone puts the inferential
-relative variance of a well-determined, highly expressed transcript near
-0.1, so cutoffs much below 0.5 flag noise; poorly determined isoforms
-typically reach values of several units. Report the numbers next to the
-classes, and rerun with other cutoffs if the data call for it. The replicates measure the
+    <p>What the evidence supports. In a genome-wide evaluation on a placenta
+cohort (GENCODE 50, 30 Gibbs draws; see the article "Is quantification
+uncertainty worth checking?"), calls with an unstable direction
+replicated less often in held-out halves of the cohort than the other
+calls (35% against 64% pooled; odds ratio 0.36, 95% interval 0.31 to 0.41
+with genes resampled as clusters, adjusted for count, test statistic,
+number of isoforms of the gene and transcript type; the interval is for
+that cohort and does not include the choice of samples). Their raw
+replication rate was lower in all 60 directed comparisons (30 half-splits
+of the same samples, each used in both directions); against flags of the
+same size made of the lowest-count or lowest-|z| calls, the gap was larger
+in all 60. The flag marked 6% of the calls and only about 10% of the
+calls that failed to replicate, so a stable direction is not evidence that a call is right: in comparisons of
+control samples, 93% of the false calls had a stable direction. The flag
+was a secondary measure of that evaluation, chosen as the headline after
+the results; its threshold of 0.95 was fixed in advance and no other was
+tried, and other primary tests (DESeq2, swish) and long-read bootstraps
+were not evaluated. Ambiguity predicted replication little (odds ratio
+0.87); isoforms not identifiable from the equivalence classes, or in the
+top third of InfRV, replicated somewhat less (0.56 and 0.63). An InfRV of
+at least 0.5 marked 87% of the expressed isoforms.</p>
+<p>The thresholds are heuristics, not universal constants.
+<code>min_agreement = 0.95</code> is the threshold of that evaluation. It is a share
+of the replicates: with fewer than 20 replicates no replicate may
+disagree, with 30 one may, and with 100 five may.
+<code>inf_rv_cutoff = 0.5</code> marks inferential relative variance above the
+sampling noise of about 30 draws: with 30 draws, sampling noise alone puts
+the value of a well-determined, highly expressed transcript near 0.1,
+while poorly determined isoforms typically reach several units. It
+describes the isoform and is not used to judge calls. <code>cor_cutoff</code> (-0.5)
+defines the ambiguity groups and the features of <code>collapse_groups</code>. Rerun
+with other cutoffs if the data call for it. The replicates measure the
 uncertainty of the quantification only; they do not replace biological
 replicates and cannot make a noisy contrast significant.</p>
+<p><code>lfc_lo</code>-<code>lfc_hi</code> is the spread of the screening statistic over the
+replicates, not a confidence interval for the point estimate of the
+primary test; for low counts that estimate can lie outside it. The sign
+agreement is measured against the sign of the median fold-change over the
+replicates (<code>lfc_median</code>), not against <code>det_log2FC</code>.</p>
 <p>What is not measured. The replicates describe how much an estimate moves
 under the quantification model. They do not find the transcripts whose
 abundance is not identifiable, that is, where several abundance vectors
@@ -459,9 +546,13 @@ at least 60 and prefer 200 to 300, and find that Gibbs samples resolve
 low counts better than bootstrap replicates. <code>add_uncertainty()</code> says so
 when the total is below 60.</p>
 <p>Fold-changes are computed on counts scaled to a common library size, as
-<code>log2(mean_b + pseudocount) - log2(mean_a + pseudocount)</code> with a pseudocount
-of 5 (the <code>swish</code> convention), and the per-replicate test is a Welch
-t-test on the log scale with Benjamini-Hochberg adjustment across features.
+the difference between the groups of the mean of
+<code>log2(scaled count + pseudocount)</code>, with a pseudocount of 5 (the <code>swish</code>
+convention): a log ratio of geometric means, on the scale of the
+per-replicate test, a Welch t-test on that log scale with
+Benjamini-Hochberg adjustment across features. It is not the log ratio of
+the arithmetic group means, and the two can differ in sign when one
+sample dominates a group.
 This is a screening statistic for stability, not a replacement for the
 primary test (<code>swish</code>, <code>DESeq2</code>, ...), whose results are shown next to it.
 When the sample table (<code>col_data</code>) has a <code>library_size</code> column, with the
@@ -505,7 +596,7 @@ edgeR v4. <em>NAR Genomics and Bioinformatics</em> 6(4), lqae151.</p>
 <span class="r-in"><span><span class="va">annot</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"mini_annotation"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">col_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  sample_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">quant_dirs</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  condition <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"treatment"</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  condition <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"preeclampsia"</span>, <span class="st">"control"</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_salmon.html">read_salmon</a></span><span class="op">(</span><span class="va">quant_dirs</span>, annot_path <span class="op">=</span> <span class="va">annot</span>, col_data <span class="op">=</span> <span class="va">col_data</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
@@ -521,47 +612,52 @@ edgeR v4. <em>NAR Genomics and Bioinformatics</em> 6(4), lqae151.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 14</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   transcript_id     gene_id gene_name transcript_name transcript_type mean_count</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENST00000367468.… ENSG00… PTGS2     PTGS2-201       protein_coding       22.2 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENST00000681605.1 ENSG00… PTGS2     PTGS2-206       nonsense_media…       6.69</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00000680451.1 ENSG00… PTGS2     PTGS2-205       protein_coding        4.26</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENST00000490885.6 ENSG00… PTGS2     PTGS2-203       retained_intron       2.87</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENST00000559627.1 ENSG00… PTGS2     PTGS2-204       nonsense_media…       1.54</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENST00000466691.1 ENSG00… PTGS2     PTGS2-202       retained_intron       1.01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENST00000367468.… ENSG00… PTGS2     PTGS2-201       protein_coding        9.93</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENST00000681605.1 ENSG00… PTGS2     PTGS2-206       nonsense_media…       5.11</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00000680451.1 ENSG00… PTGS2     PTGS2-205       protein_coding        9.70</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENST00000490885.6 ENSG00… PTGS2     PTGS2-203       retained_intron       8.98</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENST00000559627.1 ENSG00… PTGS2     PTGS2-204       nonsense_media…       6.61</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENST00000466691.1 ENSG00… PTGS2     PTGS2-202       retained_intron       1.58</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 8 more variables: assessed &lt;lgl&gt;, mean_inf_rv &lt;dbl&gt;, max_inf_rv &lt;dbl&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   mean_inf_cv &lt;dbl&gt;, uncertain &lt;lgl&gt;, min_sibling_cor &lt;dbl&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   n_ambiguous_partners &lt;int&gt;, ambiguity_group &lt;chr&gt;</span></span>
 <span class="r-in"><span><span class="fu">isoform_ambiguity</span><span class="op">(</span><span class="va">iso</span>, ambiguous_only <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 2 × 11</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 11</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   gene_id   gene_name transcript_id_1 transcript_id_2 mean_cor min_cor n_samples</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG0000… PTGS2     ENST0000036746… ENST0000068160…   -<span style="color: #BB0000;">0.618</span>  -<span style="color: #BB0000;">0.873</span>         6</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG0000… NFKBIA    ENST0000069795… ENST0000069796…   -<span style="color: #BB0000;">0.528</span>  -<span style="color: #BB0000;">0.787</span>         5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG0000… NFKBIA    ENST0000113342… ENST0000021679…   -<span style="color: #BB0000;">0.879</span>  -<span style="color: #BB0000;">0.937</span>         6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG0000… CCL5      ENST0000060514… ENST0000100676…   -<span style="color: #BB0000;">0.878</span>  -<span style="color: #BB0000;">0.983</span>         6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENSG0000… CCL2      ENST0000113714… ENST0000022583…   -<span style="color: #BB0000;">0.801</span>  -<span style="color: #BB0000;">0.962</span>         6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENSG0000… NFKBIA    ENST0000069795… ENST0000069796…   -<span style="color: #BB0000;">0.707</span>  -<span style="color: #BB0000;">0.787</span>         6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENSG0000… CXCL10    ENST0000030660… ENST0000113500…   -<span style="color: #BB0000;">0.707</span>  -<span style="color: #BB0000;">0.932</span>         6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENSG0000… ICAM1     ENST0000113664… ENST0000026483…   -<span style="color: #BB0000;">0.624</span>  -<span style="color: #BB0000;">0.704</span>         6</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 4 more variables: collapse_gain &lt;dbl&gt;, ambiguous &lt;lgl&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   transcript_name_1 &lt;chr&gt;, transcript_name_2 &lt;chr&gt;</span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">de_confidence</span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 23</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   feature_id       feature_type gene_id gene_name transcript_ids transcript_name</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENST00000263341… transcript   ENSG00… IL1B      ENST000002633… IL1B-201       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENST00000307407… transcript   ENSG00… CXCL8     ENST000003074… CXCL8-201      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00000697966… transcript   ENSG00… NFKBIA    ENST000006979… NFKBIA-221     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENST00000496280… transcript   ENSG00… IL1B      ENST000004962… IL1B-208       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENST00000651122… transcript   ENSG00… CCL5      ENST000006511… CCL5-203       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENST00000415035… transcript   ENSG00… STAT1     ENST000004150… STAT1-205      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENST00000907726… transcript   ENSG00… SOCS3     ENST000009077… SOCS3-203      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENST00000540176… transcript   ENSG00… STAT1     ENST000005401… STAT1-212      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00000624362… transcript   ENSG00… CCL2      ENST000006243… CCL2-203       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENST00000580907… transcript   ENSG00… CCL2      ENST000005809… CCL2-202       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENST00000697958… transcript   ENSG00… NFKBIA    ENST000006979… NFKBIA-215     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENST00000225831… transcript   ENSG00… CCL2      ENST000002258… CCL2-201       </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 17 more variables: transcript_type &lt;chr&gt;, mean_count &lt;dbl&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   lfc_median &lt;dbl&gt;, lfc_lo &lt;dbl&gt;, lfc_hi &lt;dbl&gt;, lfc_sd &lt;dbl&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   sign_agreement &lt;dbl&gt;, frac_draws_effect &lt;dbl&gt;, frac_draws_sig &lt;dbl&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   mean_inf_rv &lt;dbl&gt;, ambiguous &lt;lgl&gt;, confidence &lt;ord&gt;, reason &lt;chr&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   det_log2FC &lt;dbl&gt;, det_qvalue &lt;dbl&gt;, n_det_sig &lt;int&gt;, confident_de &lt;lgl&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   sign_agreement &lt;dbl&gt;, unstable &lt;lgl&gt;, frac_draws_effect &lt;dbl&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   frac_draws_sig &lt;dbl&gt;, mean_inf_rv &lt;dbl&gt;, ambiguous &lt;lgl&gt;, flags &lt;chr&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   det_log2FC &lt;dbl&gt;, det_qvalue &lt;dbl&gt;, n_det_sig &lt;int&gt;, unstable_de &lt;lgl&gt;</span></span>
 <span class="r-in"><span><span class="fu">uncertainty_report</span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">$</span><span class="va">transcripts</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 7</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   transcript_type n_assessed n_uncertain pct_uncertain median_inf_rv n_ambiguous</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> protein_coding          47          21          44.7         0.383           1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> retained_intron         27          12          44.4         0.334           2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> nonsense_media…         17          13          76.5         1.37            1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> protein_coding…          6           5          83.3         1.37            0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 1 more variable: median_unique_fraction &lt;dbl&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 9</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   transcript_type  n_assessed n_uncertain pct_uncertain median_inf_rv q25_inf_rv</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                 <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> protein_coding           86          66          76.7          2.96      0.643</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> nonsense_mediat…         28          27          96.4          3.22      1.94 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> retained_intron          27          16          59.3          1.27      0.154</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> protein_coding_…          7           5          71.4          2.67      1.08 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 3 more variables: q75_inf_rv &lt;dbl&gt;, n_ambiguous &lt;int&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   median_unique_fraction &lt;dbl&gt;</span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

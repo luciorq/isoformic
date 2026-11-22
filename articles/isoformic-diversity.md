@@ -15,16 +15,16 @@ library(isoformic)
 library(dplyr)
 library(ggplot2)
 
-extdata <- fs::path_package("isoformic", "extdata")
-annot_dir <- prepare_isoformic_annotation(download_reference(version = "33", file_type = "gff"))
+data_dir <- "data/preeclampsia"
+annot_dir <- prepare_isoformic_annotation(download_reference(version = "50", file_type = "gff"))
 iso <- IsoformicExperiment(
   experiment_name = "preeclampsia_placenta",
   annot_path = annot_dir,
-  assays = list(abundance = read_parquet(fs::path(extdata, "pe_abundance.parquet"))),
-  col_data = read_parquet(fs::path(extdata, "pe_col_data.parquet"))
+  assays = list(abundance = read_parquet(fs::path(data_dir, "pe_abundance.parquet"))),
+  col_data = read_parquet(fs::path(data_dir, "pe_col_data.parquet"))
 )
-de_tx(iso) <- read_parquet(fs::path(extdata, "pe_det.parquet"))
-de_gene(iso) <- read_parquet(fs::path(extdata, "pe_deg.parquet"))
+de_tx(iso) <- read_parquet(fs::path(data_dir, "pe_det.parquet"))
+de_gene(iso) <- read_parquet(fs::path(data_dir, "pe_deg.parquet"))
 ```
 
 ## Isoform usage per gene
@@ -43,12 +43,12 @@ head(diversity)
 #> # A tibble: 6 × 14
 #>   gene_id         gene_name gene_type n_tx_annotated n_tx_assayed n_tx_expressed
 #>   <chr>           <chr>     <chr>              <int>        <int>          <int>
-#> 1 ENSG0000017296… MIR4435-… lncRNA               108           29             29
-#> 2 ENSG0000019791… SPG7      protein_…             96           45             45
-#> 3 ENSG0000010126… CSNK2A1   protein_…             48           34             34
-#> 4 ENSG0000024208… MUC20-OT1 lncRNA               142           53             53
-#> 5 ENSG0000024853… AC022784… lncRNA                70           26             26
-#> 6 ENSG0000017981… PCBP1-AS1 lncRNA               239           32             32
+#> 1 ENSG0000024208… MUC20-OT1 lncRNA               249           52             45
+#> 2 ENSG0000023172… LINC-PINT lncRNA               284           49             35
+#> 3 ENSG0000012478… SLC35B3   protein_…             86           36             14
+#> 4 ENSG0000021398… AP1G2     protein_…            126           46             33
+#> 5 ENSG0000019791… SPG7      protein_…            133           51             27
+#> 6 ENSG0000017253… BANP      protein_…            121           43             24
 #> # ℹ 8 more variables: n_tx_types <int>, tx_types <chr>, mean_gene_expr <dbl>,
 #> #   dominant_transcript_id <chr>, dominant_transcript_name <chr>,
 #> #   dominant_transcript_type <chr>, dominant_fraction <dbl>,
@@ -82,16 +82,16 @@ dominant |>
 #> # A tibble: 10 × 11
 #>    gene_id            gene_name gene_type      condition  dominant_transcript_id
 #>    <chr>              <chr>     <chr>          <chr>      <chr>                 
-#>  1 ENSG00000000938.13 FGR       protein_coding preeclamp… ENST00000374005.8     
-#>  2 ENSG00000000938.13 FGR       protein_coding control    ENST00000374004.5     
-#>  3 ENSG00000001084.13 GCLC      protein_coding preeclamp… ENST00000650454.1     
-#>  4 ENSG00000001084.13 GCLC      protein_coding control    ENST00000509541.5     
-#>  5 ENSG00000003436.16 TFPI      protein_coding preeclamp… ENST00000392365.5     
-#>  6 ENSG00000003436.16 TFPI      protein_coding control    ENST00000233156.9     
-#>  7 ENSG00000004846.16 ABCB5     protein_coding preeclamp… ENST00000404938.6     
-#>  8 ENSG00000004846.16 ABCB5     protein_coding control    ENST00000443026.6     
-#>  9 ENSG00000005187.12 ACSM3     protein_coding preeclamp… ENST00000289416.10    
-#> 10 ENSG00000005187.12 ACSM3     protein_coding control    ENST00000614721.1     
+#>  1 ENSG00000000003.18 TSPAN6    protein_coding preeclamp… ENST00000966006.2     
+#>  2 ENSG00000000003.18 TSPAN6    protein_coding control    ENST00001101988.1     
+#>  3 ENSG00000001497.20 LAS1L     protein_coding control    ENST00000677834.1     
+#>  4 ENSG00000002822.18 MAD1L1    protein_coding control    ENST00000477172.1     
+#>  5 ENSG00000002919.17 SNX11     protein_coding preeclamp… ENST00000581298.5     
+#>  6 ENSG00000003989.20 SLC7A2    protein_coding preeclamp… ENST00000494857.6     
+#>  7 ENSG00000003989.20 SLC7A2    protein_coding control    ENST00000640220.2     
+#>  8 ENSG00000004142.14 POLDIP2   protein_coding preeclamp… ENST00001121072.1     
+#>  9 ENSG00000004142.14 POLDIP2   protein_coding control    ENST00000540200.6     
+#> 10 ENSG00000004897.14 CDC27     protein_coding preeclamp… ENST00000575483.5     
 #> # ℹ 6 more variables: dominant_transcript_name <chr>,
 #> #   dominant_transcript_type <chr>, dominant_is_canonical <lgl>,
 #> #   dominant_fraction <dbl>, gene_expr <dbl>, dominant_switch <lgl>
@@ -100,9 +100,9 @@ dominant_isoform(iso, gene_name = c("RBPJ", "EGFR", "FLT1"))[, c("gene_name", "d
 #> # A tibble: 3 × 4
 #>   gene_name dominant_transcript_name dominant_is_canonical dominant_fraction
 #>   <chr>     <chr>                    <lgl>                             <dbl>
-#> 1 FLT1      FLT1-204                 FALSE                             0.580
-#> 2 EGFR      EGFR-201                 TRUE                              0.963
-#> 3 RBPJ      RBPJ-202                 FALSE                             0.753
+#> 1 FLT1      FLT1-204                 FALSE                             0.749
+#> 2 EGFR      EGFR-201                 TRUE                              0.341
+#> 3 RBPJ      RBPJ-205                 TRUE                              0.485
 ```
 
 `min_expr` sets the expression floor below which a sample does not vote
@@ -122,24 +122,28 @@ switches <- isoform_switches(iso)
 table(switches$switch_type)
 #> 
 #>         consistent        det_not_deg opposite_direction 
-#>                596               1804                241
+#>                444               2604                552
 head(switches)
 #> # A tibble: 6 × 12
 #>   gene_id          gene_name gene_type n_tx_tested n_det_sig n_det_up n_det_down
 #>   <chr>            <chr>     <chr>           <int>     <int>    <int>      <int>
-#> 1 ENSG00000198668… CALM1     protein_…          16         9        8          1
-#> 2 ENSG00000213923… CSNK1E    protein_…          13         9        8          1
-#> 3 ENSG00000196730… DAPK1     protein_…          16         8        7          1
-#> 4 ENSG00000104763… ASAH1     protein_…          31         7        1          6
-#> 5 ENSG00000100650… SRSF5     protein_…          17         7        5          2
-#> 6 ENSG00000197102… DYNC1H1   protein_…          30         7        6          1
+#> 1 ENSG00000251562… MALAT1    lncRNA             46        12        6          6
+#> 2 ENSG00000100650… SRSF5     protein_…          25        11        8          3
+#> 3 ENSG00000147872… PLIN2     protein_…          26        11       10          1
+#> 4 ENSG00000133112… TPT1      protein_…          47        10        5          5
+#> 5 ENSG00000196975… ANXA4     protein_…          36         9        8          1
+#> 6 ENSG00000167986… DDB1      protein_…          62         8        5          3
 #> # ℹ 5 more variables: det_sig_types <chr>, max_abs_log2FC <dbl>,
 #> #   gene_log2FC <dbl>, deg_sig <chr>, switch_type <chr>
 ```
 
-The expression profile plot makes a switch visible as crossing lines
+The expression profile plot shows how the isoforms of a gene share its
+expression in each condition, and a switch appears as crossing lines
 (see the [plots
-article](https://luciorq.github.io/isoformic/articles/isoformic-plots.md)):
+article](https://luciorq.github.io/isoformic/articles/isoformic-plots.md)).
+RBPJ is not a switch: none of its isoforms passes the significance
+cutoffs (`det_sig`) and its canonical isoform, RBPJ-205, dominates in
+both conditions:
 
 ``` r
 
@@ -159,9 +163,9 @@ exon_diversity(iso, gene_name = c("RBPJ", "EGFR", "FLT1"))
 #> # A tibble: 3 × 9
 #>   gene_id   gene_name gene_type  n_tx mean_exons_per_tx max_exons_per_tx n_exons
 #>   <chr>     <chr>     <chr>     <int>             <dbl>            <int>   <int>
-#> 1 ENSG0000… RBPJ      protein_…    31              6.52               12      65
-#> 2 ENSG0000… EGFR      protein_…    11             14.4                28      46
-#> 3 ENSG0000… FLT1      protein_…     9             14                  30      44
+#> 1 ENSG0000… RBPJ      protein_…    65              9.52               13     113
+#> 2 ENSG0000… EGFR      protein_…    23             15.1                28      57
+#> 3 ENSG0000… FLT1      protein_…    17             19                  30      52
 #> # ℹ 2 more variables: n_constitutive <int>, n_alternative <int>
 ```
 
@@ -199,13 +203,13 @@ sessionInfo()
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6       jsonlite_2.0.0     compiler_4.6.2     Rcpp_1.1.2        
-#>  [5] tidyselect_1.2.1   scales_1.4.0       yaml_2.3.12        fastmap_1.2.0     
-#>  [9] R6_2.6.1           labeling_0.4.3     generics_0.1.4     curl_8.1.0        
-#> [13] knitr_1.52         ggrepel_0.9.8      tibble_3.3.1       DBI_1.3.0         
-#> [17] pillar_1.11.1      RColorBrewer_1.1-3 rlang_1.3.0        utf8_1.2.6        
-#> [21] xfun_0.62          fs_2.1.0           S7_0.2.2           otel_0.3.0        
-#> [25] cli_3.6.6          withr_3.0.3        magrittr_2.0.5     digest_0.6.39     
-#> [29] grid_4.6.2         lifecycle_1.0.5    vctrs_0.7.3        evaluate_1.0.5    
-#> [33] glue_1.8.1         farver_2.1.2       duckdb_2.0.0       rmarkdown_2.32    
-#> [37] tools_4.6.2        pkgconfig_2.0.3    htmltools_0.5.9
+#>  [5] tidyselect_1.2.1   parallel_4.6.2     scales_1.4.0       yaml_2.3.12       
+#>  [9] fastmap_1.2.0      R6_2.6.1           labeling_0.4.3     generics_0.1.4    
+#> [13] curl_8.1.0         knitr_1.52         ggrepel_0.9.8      tibble_3.3.1      
+#> [17] DBI_1.3.0          pillar_1.11.1      RColorBrewer_1.1-3 rlang_1.3.0       
+#> [21] utf8_1.2.6         xfun_0.62          fs_2.1.0           S7_1.0.0          
+#> [25] otel_0.3.0         cli_3.6.6          withr_3.0.3        magrittr_2.0.5    
+#> [29] digest_0.6.39      grid_4.6.2         lifecycle_1.0.5    vctrs_0.7.3       
+#> [33] evaluate_1.0.5     glue_1.8.1         farver_2.1.2       duckdb_2.0.0      
+#> [37] rmarkdown_2.32     tools_4.6.2        pkgconfig_2.0.3    htmltools_0.5.9
 ```

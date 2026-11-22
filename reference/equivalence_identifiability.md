@@ -31,15 +31,14 @@ equivalence_identifiability(
 - paths:
 
   Character vector of Salmon output directories (containing `quant.sf`)
-  or paths to `quant.sf` files. Names, when present, are the sample IDs;
-  otherwise the directory name is used.
+  or paths to `quant.sf` files, or Oarfish output prefixes. Names, when
+  present, are the sample IDs; otherwise the directory name (or the
+  prefix) is used.
 
 - transcripts:
 
-  Optional transcript IDs to keep. Reading every transcript of a human
-  annotation for many samples takes gigabytes of memory, so
-  [`add_uncertainty()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
-  only reads the expressed ones.
+  Optional transcript IDs to keep in the result; the classes of all
+  transcripts are used for the computation.
 
 - ignore_after_bar:
 
@@ -54,15 +53,17 @@ equivalence_identifiability(
 - max_iterations:
 
   Maximum number of iterations of the iterative solver per block. The
-  transcripts of a block that does not converge get `NA`.
+  transcripts of a block that does not converge are not counted in that
+  sample, with a message.
 
 ## Value
 
-A tibble with one row per transcript that has fragments in at least one
-sample: `transcript_id`, `n_samples` (samples in which it has fragments
-and was resolved), `n_identifiable` (in how many of them it is
-identifiable), `identifiable_fraction` and `identifiable` (`TRUE` when
-identifiable in all of them, `NA` when it was resolved in none).
+A tibble with one row per transcript that has fragments and was resolved
+in at least one sample (transcripts of a block that did not converge in
+any sample are left out): `transcript_id`, `n_samples` (samples in which
+it has fragments and was resolved), `n_identifiable` (in how many of
+them it is identifiable), `identifiable_fraction` and `identifiable`
+(`TRUE` when identifiable in all of them).
 
 ## Details
 
@@ -102,12 +103,14 @@ Limits:
 - Human samples have one block of tens of thousands of transcripts
   linked by multi-mapping fragments; expect minutes per sample.
 
-In the six GSE129540 samples of the quantification stability article,
-the estimates of non-identifiable transcripts differed more between two
-halves of the reads of a sample than those of identifiable transcripts
-of the same expression: a median absolute log2 ratio of 2.4 against 0.7
-at 20 to 100 reads. The posterior draws call three quarters of both
-kinds uncertain, so the two measures are close to independent.
+In the six GSE129540 samples of the uncertainty article, the estimates
+of non-identifiable transcripts differed more between two halves of the
+reads of a sample than those of identifiable transcripts of the same
+expression: a median absolute log2 ratio of 2.4 against 0.7 at 20 to 100
+reads. The posterior draws call three quarters of both kinds uncertain,
+so the two measures are close to independent.
+
+Oarfish output has no equivalence classes and gives an error.
 
 ## References
 

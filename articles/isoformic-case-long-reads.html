@@ -36,6 +36,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -49,6 +50,7 @@
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -103,7 +105,7 @@
     <p>This article applies <code>isoformic</code> to Oxford Nanopore long-read cDNA sequencing of 22Rv1 prostate cancer cells treated with lorecivivint against vehicle-treated cells [<span class="citation" data-cites="vangoubergen2024">Van Goubergen et al. (<a href="#ref-vangoubergen2024" role="doc-biblioref">2024</a>)</span>; GEO <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE259334" class="external-link">GSE259334</a>]. Lorecivivint inhibits the CDC-like kinases (CLKs), which phosphorylate splicing factors. Long reads often span a transcript from end to end, so they assign reads to isoforms with less ambiguity than short reads. The analysis is the same as for short reads. Only the quantification step changes.</p>
 <section class="level2"><h2 id="the-data">The data<a class="anchor" aria-label="anchor" href="#the-data"></a>
 </h2>
-<p>The 6 samples (3 vehicle, 3 lorecivivint) were quantified with Oarfish <span class="citation" data-cites="oarfish">(<a href="#ref-oarfish" role="doc-biblioref">Jousheghani et al. 2025</a>)</span> in its nanopore cDNA mode. The reference was the GENCODE v49 transcripts <span class="citation" data-cites="gencode">(<a href="#ref-gencode" role="doc-biblioref">Frankish et al. 2018</a>)</span>, with 30 bootstrap replicates per sample. Each sample has 6.3 to 7.0 million reads assigned to transcripts. Transcripts were tested with <code>swish</code> <span class="citation" data-cites="swish">(<a href="#ref-swish" role="doc-biblioref">Zhu et al. 2019</a>)</span> on the bootstrap replicates. Genes were tested with <code>DESeq2</code> on the summed counts. The scripts that download the reads from SRA and run every step are in <code>data-raw/case_studies/</code> of the package repository.</p>
+<p>The 6 samples (3 vehicle, 3 lorecivivint) were quantified with Oarfish <span class="citation" data-cites="oarfish">(<a href="#ref-oarfish" role="doc-biblioref">Jousheghani et al. 2025</a>)</span> in its nanopore cDNA mode. The reference was the GENCODE v50 transcripts <span class="citation" data-cites="gencode">(<a href="#ref-gencode" role="doc-biblioref">Frankish et al. 2018</a>)</span>, with 30 bootstrap replicates per sample. Each sample has 6.4 to 7.1 million reads assigned to transcripts. Transcripts were tested with <code>swish</code> <span class="citation" data-cites="swish">(<a href="#ref-swish" role="doc-biblioref">Zhu et al. 2019</a>)</span> on the bootstrap replicates. Genes were tested with <code>DESeq2</code> on the summed counts. The scripts that download the reads from SRA and run every step are in <code>data-raw/case_studies/</code> of the package repository.</p>
 <p>The result is an <code>IsoformicExperiment</code> saved with <code><a href="../reference/isoformic-io.html">write_isoformic()</a></code>. It keeps the complete differential expression tables (every tested transcript and gene). The expression assays and exon structures cover only a panel of 48 genes, so that the object fits in the repository. It is not installed with the package. <code><a href="../reference/read_oarfish.html">read_oarfish()</a></code> creates the same object from the Oarfish output directly, as shown in the <a href="isoformic-preprocess.html">preprocessing article</a>.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="downlit sourceCode r">
@@ -115,13 +117,13 @@
 <span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/isoformic-io.html">read_isoformic</a></span><span class="op">(</span><span class="va">data_dir</span><span class="op">)</span></span>
 <span><span class="va">iso</span></span>
 <span><span class="co">#&gt; &lt;IsoformicExperiment&gt; prostate_ont</span></span>
-<span><span class="co">#&gt;   annotation : gencode_v49_chr_patch_hapl_scaff_annotation_gff3_case_study_subset (14,050 genes, 280,285 transcripts, 8,729 exons)</span></span>
+<span><span class="co">#&gt;   annotation : gencode_v50_chr_patch_hapl_scaff_annotation_gff3_case_study_subset (13,886 genes, 391,411 transcripts, 15,354 exons)</span></span>
 <span><span class="co">#&gt;   samples    : 6 [condition, replicate, run]</span></span>
-<span><span class="co">#&gt;   transcripts: 1,383 assayed from 48 genes</span></span>
+<span><span class="co">#&gt;   transcripts: 2,038 assayed from 48 genes</span></span>
 <span><span class="co">#&gt;   assays     : abundance, counts</span></span>
 <span><span class="co">#&gt;   gene assays: derived from transcript assays on demand</span></span>
-<span><span class="co">#&gt;   DE results : det (27,934 transcripts), deg (14,050 genes)</span></span>
-<span><span class="co">#&gt;   on disk    : /home/runner/work/isoformic/isoformic/vignettes/articles/data/prostate_ont</span></span>
+<span><span class="co">#&gt;   DE results : det (30,033 transcripts), deg (13,886 genes)</span></span>
+<span><span class="co">#&gt;   on disk    : data/prostate_ont</span></span>
 <span><span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">col_data</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span></span>
 <span><span class="co">#&gt; # A tibble: 6 × 4</span></span>
 <span><span class="co">#&gt;   sample_id      condition    replicate run        </span></span>
@@ -134,7 +136,7 @@
 <span><span class="co">#&gt; 6 lorecivivint_6 lorecivivint         6 SRR28114370</span></span>
 <span><span class="va">iso</span><span class="op">@</span><span class="va">metadata</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"quantification"</span>, <span class="st">"transcript_de"</span>, <span class="st">"gene_de"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; $quantification</span></span>
-<span><span class="co">#&gt; [1] "Oarfish 0.11.0 (--seq-tech ont-cdna) against GENCODE v49 transcripts, 30 bootstrap replicates"</span></span>
+<span><span class="co">#&gt; [1] "Oarfish 0.11.0 (--seq-tech ont-cdna) against GENCODE v50 transcripts, 30 bootstrap replicates"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $transcript_de</span></span>
 <span><span class="co">#&gt; [1] "swish (fishpond), 30 inferential replicates"</span></span>
@@ -176,13 +178,13 @@
 <span>  transcripts_fdr_5 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">det</span><span class="op">$</span><span class="va">qvalue</span> <span class="op">&lt;</span> <span class="fl">0.05</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt;       genes_tested        genes_fdr_5 transcripts_tested  transcripts_fdr_5 </span></span>
-<span><span class="co">#&gt;              14050                140              27934                287</span></span></code></pre></div>
+<span><span class="co">#&gt;              13886                137              30033                275</span></span></code></pre></div>
 </div>
-<p>At a false discovery rate of 5%, <code>DESeq2</code> finds 140 genes and <code>swish</code> 287 transcripts. <code>swish</code> computes its p-values from permutations of the samples. Three against three samples allow only a few distinct permutations. All 287 significant transcripts share the smallest q-value, so they are ranked by fold change below.</p>
+<p>At a false discovery rate of 5%, <code>DESeq2</code> finds 137 genes and <code>swish</code> 275 transcripts. <code>swish</code> computes its p-values from permutations of the samples. Three against three samples allow only a few distinct permutations. All 275 significant transcripts share the smallest q-value, so they are ranked by fold change below.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="va">det</span><span class="op">$</span><span class="va">qvalue</span><span class="op">[</span><span class="va">det</span><span class="op">$</span><span class="va">qvalue</span> <span class="op">&lt;</span> <span class="fl">0.05</span><span class="op">]</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 3.484321e-05 3.484321e-05</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 3.636364e-05 3.636364e-05</span></span></code></pre></div>
 </div>
 <p>Most significant transcripts are protein coding, followed by lncRNAs:</p>
 <div class="cell">
@@ -191,41 +193,40 @@
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">qvalue</span> <span class="op">&lt;</span> <span class="fl">0.05</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span><span class="fu"><a href="../reference/IsoformicExperiment-accessors.html">tx_annot</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span>, by <span class="op">=</span> <span class="st">"transcript_id"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">transcript_type</span>, sort <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; # A tibble: 6 × 2</span></span>
+<span><span class="co">#&gt; # A tibble: 5 × 2</span></span>
 <span><span class="co">#&gt;   transcript_type                    n</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;                          &lt;int&gt;</span></span>
-<span><span class="co">#&gt; 1 protein_coding                   251</span></span>
-<span><span class="co">#&gt; 2 lncRNA                            21</span></span>
-<span><span class="co">#&gt; 3 nonsense_mediated_decay            7</span></span>
-<span><span class="co">#&gt; 4 retained_intron                    5</span></span>
-<span><span class="co">#&gt; 5 protein_coding_CDS_not_defined     2</span></span>
-<span><span class="co">#&gt; 6 artifact                           1</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 protein_coding                   235</span></span>
+<span><span class="co">#&gt; 2 lncRNA                            19</span></span>
+<span><span class="co">#&gt; 3 nonsense_mediated_decay           13</span></span>
+<span><span class="co">#&gt; 4 retained_intron                    6</span></span>
+<span><span class="co">#&gt; 5 protein_coding_CDS_not_defined     2</span></span></code></pre></div>
 </div>
-<p><code><a href="../reference/diversity.html">isoform_switches()</a></code> relates the two levels. It uses the default cutoffs of the experiment: an absolute log2 fold change of at least 1 and a false discovery rate below 5%. Two thirds of the genes with a significant transcript have no significant change of their total expression (<code>det_not_deg</code>).</p>
+<p><code><a href="../reference/diversity.html">isoform_switches()</a></code> relates the two levels. It uses the default cutoffs of the experiment: an absolute log2 fold change of at least 1 and a false discovery rate below 5%. Three quarters of the genes with a significant transcript (53 of 71) have no significant change of their total expression (<code>det_not_deg</code>).</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">switches</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/diversity.html">isoform_switches</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">switches</span><span class="op">$</span><span class="va">switch_type</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;  consistent det_not_deg </span></span>
-<span><span class="co">#&gt;          22          42</span></span>
+<span><span class="co">#&gt;          18          53</span></span>
 <span><span class="va">switches</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">switch_type</span> <span class="op">==</span> <span class="st">"det_not_deg"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">gene_name</span>, <span class="va">n_tx_tested</span>, <span class="va">n_det_up</span>, <span class="va">n_det_down</span>, <span class="va">det_sig_types</span>, <span class="va">gene_log2FC</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span></span>
 <span><span class="co">#&gt; # A tibble: 10 × 6</span></span>
-<span><span class="co">#&gt;    gene_name n_tx_tested n_det_up n_det_down det_sig_types           gene_log2FC</span></span>
-<span><span class="co">#&gt;    &lt;chr&gt;           &lt;int&gt;    &lt;int&gt;      &lt;int&gt; &lt;chr&gt;                         &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt;  1 SNHG29             21        4          0 lncRNA                     0.0448  </span></span>
-<span><span class="co">#&gt;  2 RPL28               9        2          0 protein_coding;retaine…    0.00862 </span></span>
-<span><span class="co">#&gt;  3 SELENBP1            9        2          0 protein_coding             0.537   </span></span>
-<span><span class="co">#&gt;  4 CXorf38             2        1          0 protein_coding             0.0713  </span></span>
-<span><span class="co">#&gt;  5 RPL37A              5        1          0 protein_coding            -0.000110</span></span>
-<span><span class="co">#&gt;  6 PART1               3        1          0 lncRNA                     0.136   </span></span>
-<span><span class="co">#&gt;  7 ADRA2A              1        0          1 protein_coding            -0.0313  </span></span>
-<span><span class="co">#&gt;  8 C5                  5        0          1 protein_coding            -0.864   </span></span>
-<span><span class="co">#&gt;  9 GSTA4               4        1          0 protein_coding             0.339   </span></span>
-<span><span class="co">#&gt; 10 LGR5                1        0          1 protein_coding            -0.0492</span></span></code></pre></div>
+<span><span class="co">#&gt;    gene_name n_tx_tested n_det_up n_det_down det_sig_types   gene_log2FC</span></span>
+<span><span class="co">#&gt;    &lt;chr&gt;           &lt;int&gt;    &lt;int&gt;      &lt;int&gt; &lt;chr&gt;                 &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt;  1 RPL37A              8        2          0 protein_coding     0.000600</span></span>
+<span><span class="co">#&gt;  2 SELENBP1            9        2          0 protein_coding     0.537   </span></span>
+<span><span class="co">#&gt;  3 SNHG29             21        2          0 lncRNA             0.0441  </span></span>
+<span><span class="co">#&gt;  4 OS9                 8        2          0 protein_coding     0.198   </span></span>
+<span><span class="co">#&gt;  5 RASA4               6        0          1 protein_coding    -0.495   </span></span>
+<span><span class="co">#&gt;  6 C5                  5        0          1 protein_coding    -0.858   </span></span>
+<span><span class="co">#&gt;  7 PART1               3        1          0 lncRNA             0.146   </span></span>
+<span><span class="co">#&gt;  8 ADRA2A              1        0          1 protein_coding    -0.0320  </span></span>
+<span><span class="co">#&gt;  9 RPL28               8        1          0 retained_intron    0.0136  </span></span>
+<span><span class="co">#&gt; 10 GSTA4               4        1          0 protein_coding     0.344</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h2 id="the-clk-genes-regulate-themselves">The CLK genes regulate themselves<a class="anchor" aria-label="anchor" href="#the-clk-genes-regulate-themselves"></a>
 </h2>
@@ -250,11 +251,11 @@
 <span><span class="co">#&gt; # A tibble: 3 × 4</span></span>
 <span><span class="co">#&gt;   gene_name log2FC      qvalue deg_sig</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;      &lt;dbl&gt;       &lt;dbl&gt; &lt;chr&gt;  </span></span>
-<span><span class="co">#&gt; 1 CLK1       0.873 0.000000274 no     </span></span>
-<span><span class="co">#&gt; 2 CLK3       0.858 0.0000568   no     </span></span>
-<span><span class="co">#&gt; 3 CLK4       0.707 0.0598      no</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 CLK1       0.881 0.000000176 no     </span></span>
+<span><span class="co">#&gt; 2 CLK3       0.827 0.000142    no     </span></span>
+<span><span class="co">#&gt; 3 CLK4       0.696 0.0616      no</span></span></code></pre></div>
 </div>
-<p>The isoforms of <em>CLK1</em> explain most of its gene-level change. <code>CLK1-201</code> encodes the full-length kinase. <code>CLK1-204</code> is the same transcript without exon 4, which shifts the reading frame and makes it a target of nonsense-mediated decay. <code>CLK1-210</code> keeps the introns on both sides of exon 4. CLK1 activity favours the skipping of its own exon 4, and CLK inhibitors shift the balance towards the full-length isoform <span class="citation" data-cites="uzor2018">(<a href="#ref-uzor2018" role="doc-biblioref">Uzor et al. 2018</a>)</span>. The long reads show that shift. The full-length isoform rises from about 17 to 46 transcripts per million. The skipped one falls from about 4 to 1.5 (not significant on its own, with q = 0.25).</p>
+<p>The isoforms of <em>CLK1</em> explain most of its gene-level change. <code>CLK1-201</code> encodes the full-length kinase. <code>CLK1-204</code> is the same transcript without exon 4, which shifts the reading frame and makes it a target of nonsense-mediated decay. <code>CLK1-210</code> keeps the introns on both sides of exon 4. CLK1 activity favours the skipping of its own exon 4, and CLK inhibitors shift the balance towards the full-length isoform <span class="citation" data-cites="uzor2018">(<a href="#ref-uzor2018" role="doc-biblioref">Uzor et al. 2018</a>)</span>. The long reads show that shift. The full-length isoform rises from about 19 to 52 transcripts per million. The skipped one falls from about 4 to 1.5 (not significant on its own, with q = 0.36).</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/profiles.html">plot_tx_expr</a></span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"CLK1"</span>, group <span class="op">=</span> <span class="st">"condition"</span><span class="op">)</span></span></code></pre></div>
@@ -292,10 +293,10 @@
 <span><span class="co">#&gt; # A tibble: 4 × 4</span></span>
 <span><span class="co">#&gt;   gene_name n_tested best_qvalue log2FC_of_best</span></span>
 <span><span class="co">#&gt;   &lt;chr&gt;        &lt;int&gt;       &lt;dbl&gt;          &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt; 1 CLK2             3   0.363              1.24 </span></span>
-<span><span class="co">#&gt; 2 SRSF9            3   0.642             -0.841</span></span>
-<span><span class="co">#&gt; 3 SRSF3            7   0.0000348         -0.266</span></span>
-<span><span class="co">#&gt; 4 AR               4   0.266             -0.390</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 CLK2             2   0.412              1.03 </span></span>
+<span><span class="co">#&gt; 2 SRSF9            5   0.679             -0.879</span></span>
+<span><span class="co">#&gt; 3 SRSF3            7   0.0000364         -0.263</span></span>
+<span><span class="co">#&gt; 4 AR               3   0.309             -0.378</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h2 id="enrichment-by-transcript-type">Enrichment by transcript type<a class="anchor" aria-label="anchor" href="#enrichment-by-transcript-type"></a>
 </h2>
@@ -307,8 +308,10 @@
 <span><span class="va">enrichment</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/enrichment.html">run_enrichment</a></span><span class="op">(</span><span class="va">iso</span>, <span class="va">genesets</span>, pval_cutoff <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">enrichment</span><span class="op">$</span><span class="va">experiment</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;  protein_coding retained_intron    unproductive </span></span>
-<span><span class="co">#&gt;              13               4               9</span></span></code></pre></div>
+<span><span class="co">#&gt; nonsense_mediated_decay          protein_coding         retained_intron </span></span>
+<span><span class="co">#&gt;                       4                      19                       3 </span></span>
+<span><span class="co">#&gt;            unproductive </span></span>
+<span><span class="co">#&gt;                       7</span></span></code></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb13"><pre class="downlit sourceCode r">
@@ -320,7 +323,7 @@
 </div>
 </div>
 </div>
-<p>At an adjusted p-value below 0.05, three gene sets go down in the protein coding isoforms of the treated cells: androgen response, cholesterol homeostasis and mitotic spindle. This agrees with the anti-proliferative effect of lorecivivint reported by <span class="citation" data-cites="vangoubergen2024">Van Goubergen et al. (<a href="#ref-vangoubergen2024" role="doc-biblioref">2024</a>)</span>. The proliferation sets (G2M checkpoint, E2F and MYC targets) go down in the retained intron and other unproductive isoforms. They do not go down in the protein coding ones. Only the transcript-level analysis shows this part of the response to the drug.</p>
+<p>At an adjusted p-value below 0.05, nine gene sets go down in the protein coding isoforms of the treated cells, among them androgen response, cholesterol homeostasis, mitotic spindle and the proliferation sets E2F targets and G2M checkpoint (the most significant), and four go up (interferon alpha and gamma responses, KRAS signalling and the p53 pathway). The loss of the mitotic spindle and proliferation sets agrees with the anti-proliferative effect of lorecivivint reported by <span class="citation" data-cites="vangoubergen2024">Van Goubergen et al. (<a href="#ref-vangoubergen2024" role="doc-biblioref">2024</a>)</span>. The proliferation sets also go down in the unproductive isoforms: G2M checkpoint and E2F targets in the retained intron, the nonsense-mediated decay and the grouped unproductive isoforms, and E2F targets has a larger normalized enrichment score in each of these three groups than in the protein coding isoforms, so the unproductive isoforms of these genes fall together with the coding ones. MYC targets go down only in the retained intron isoforms. <code><a href="../reference/enrichment.html">run_enrichment()</a></code> sizes the gene sets by their genes, not by their transcripts, so the large hallmark sets are tested in every transcript type.</p>
 </section><section class="level2"><h2 id="citing-isoformic">Citing isoformic<a class="anchor" aria-label="anchor" href="#citing-isoformic"></a>
 </h2>
 <p>If you use <code>isoformic</code> in publications, please cite <span class="citation" data-cites="isoformic">Mamede et al. (<a href="#ref-isoformic" role="doc-biblioref">2025</a>)</span>. <code>citation("isoformic")</code> prints the reference.</p>
@@ -361,7 +364,7 @@
 <span><span class="co">#&gt; [16] knitr_1.52          ggrepel_0.9.8       tibble_3.3.1       </span></span>
 <span><span class="co">#&gt; [19] DBI_1.3.0           pillar_1.11.1       RColorBrewer_1.1-3 </span></span>
 <span><span class="co">#&gt; [22] rlang_1.3.0         fastmatch_1.1-8     utf8_1.2.6         </span></span>
-<span><span class="co">#&gt; [25] xfun_0.62           fs_2.1.0            S7_0.2.2           </span></span>
+<span><span class="co">#&gt; [25] xfun_0.62           fs_2.1.0            S7_1.0.0           </span></span>
 <span><span class="co">#&gt; [28] otel_0.3.0          cli_3.6.6           withr_3.0.3        </span></span>
 <span><span class="co">#&gt; [31] magrittr_2.0.5      digest_0.6.39       grid_4.6.2         </span></span>
 <span><span class="co">#&gt; [34] fgsea_1.38.0        cowplot_1.2.0       lifecycle_1.0.5    </span></span>

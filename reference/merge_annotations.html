@@ -9,6 +9,11 @@ therefore become &amp;lt;id&amp;gt;_&amp;lt;haplotype&amp;gt;, the convention ex
 names of a haplotype-resolved IsoformicExperiment (rename the sequences
 of the per-haplotype transcript FASTA files the same way before building
 the Salmon index).
+The tables are copied by DuckDB from the Parquet files of each haplotype
+to the merged files, so they are not read into R: merging two annotations
+of a whole human release with their transcript sequences takes seconds
+and less than 2 GB of memory. The sequences are copied by one DuckDB
+thread, which keeps their memory to a few hundred megabytes.
 The source_gene_id / source_transcript_id columns (GRCh38 identifiers
 kept by Liftoff/CAT) are left untouched, which is what
 haplotype_summary() uses to compare haplotypes of the same gene."><meta property="og:description" content="Phased (trio-binned or pangenome) assemblies come with one annotation per
@@ -21,6 +26,11 @@ therefore become &amp;lt;id&amp;gt;_&amp;lt;haplotype&amp;gt;, the convention ex
 names of a haplotype-resolved IsoformicExperiment (rename the sequences
 of the per-haplotype transcript FASTA files the same way before building
 the Salmon index).
+The tables are copied by DuckDB from the Parquet files of each haplotype
+to the merged files, so they are not read into R: merging two annotations
+of a whole human release with their transcript sequences takes seconds
+and less than 2 GB of memory. The sequences are copied by one DuckDB
+thread, which keeps their memory to a few hundred megabytes.
 The source_gene_id / source_transcript_id columns (GRCh38 identifiers
 kept by Liftoff/CAT) are left untouched, which is what
 haplotype_summary() uses to compare haplotypes of the same gene."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
@@ -39,7 +49,8 @@ haplotype_summary() uses to compare haplotypes of the same gene."><meta property
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -51,6 +62,7 @@ haplotype_summary() uses to compare haplotypes of the same gene."><meta property
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -97,6 +109,11 @@ therefore become <code>&lt;id&gt;_&lt;haplotype&gt;</code>, the convention expec
 names of a haplotype-resolved <a href="IsoformicExperiment.html">IsoformicExperiment</a> (rename the sequences
 of the per-haplotype transcript FASTA files the same way before building
 the Salmon index).</p>
+<p>The tables are copied by DuckDB from the Parquet files of each haplotype
+to the merged files, so they are not read into R: merging two annotations
+of a whole human release with their transcript sequences takes seconds
+and less than 2 GB of memory. The sequences are copied by one DuckDB
+thread, which keeps their memory to a few hundred megabytes.</p>
 <p>The <code>source_gene_id</code> / <code>source_transcript_id</code> columns (GRCh38 identifiers
 kept by Liftoff/CAT) are left untouched, which is what
 <code><a href="diversity.html">haplotype_summary()</a></code> uses to compare haplotypes of the same gene.</p>
@@ -148,23 +165,23 @@ are already unique across haplotypes.</p></dd>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">gff</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"example.gff3"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">gff</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"example.gff3.gz"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">merged</span> <span class="op">&lt;-</span> <span class="fu">merge_annotations</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>hap1 <span class="op">=</span> <span class="va">gff</span>, hap2 <span class="op">=</span> <span class="va">gff</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  output_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  annot_name <span class="op">=</span> <span class="st">"example_diploid"</span>,</span></span>
 <span class="r-in"><span>  overwrite <span class="op">=</span> <span class="cn">TRUE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Using cached annotation directory <span style="color: #0000BB;">/tmp/RtmpatoNKq/example</span>.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Using cached annotation directory <span style="color: #0000BB;">/tmp/RtmpatoNKq/example</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Using cached annotation directory <span style="color: #0000BB;">/tmp/RtmpPCTCTT/example_gff3</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Using cached annotation directory <span style="color: #0000BB;">/tmp/RtmpPCTCTT/example_gff3</span>.</span>
 <span class="r-in"><span><span class="va">tx</span> <span class="op">&lt;-</span> <span class="fu"><a href="parquet.html">read_parquet</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">merged</span>, <span class="st">"annot_data_transcripts.parquet"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">tx</span><span class="op">$</span><span class="va">haplotype</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> hap1 hap2 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   72   72 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  141  141 </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">tx</span><span class="op">$</span><span class="va">transcript_id</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "ENST00000282397.9_hap1" "ENST00000615611.4_hap1" "ENST00000617835.4_hap1"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4] "ENST00000543394.2_hap1" "ENST00000540678.2_hap1" "ENST00000541932.5_hap1"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "ENST00000909997.2_hap1" "ENST00000909998.2_hap1" "ENST00000909999.2_hap1"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [4] "ENST00000910000.2_hap1" "ENST00001131755.1_hap1" "ENST00000282397.9_hap1"</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

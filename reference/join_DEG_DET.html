@@ -19,7 +19,8 @@ de_table() produces the same table from the stored results."><meta property="og:
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -31,6 +32,7 @@ de_table() produces the same table from the stored results."><meta property="og:
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -114,13 +116,18 @@ present), as the stored cutoffs of an <a href="IsoformicExperiment.html">Isoform
 
 
 <dt id="arg-transcript-types">transcript_types<a class="anchor" aria-label="anchor" href="#arg-transcript-types"></a></dt>
-<dd><p>Transcript types to keep. <code>NULL</code> keeps all.</p></dd>
+<dd><p>Transcript types to keep. The default keeps
+protein coding, <code>lncRNA</code>, <code>retained_intron</code>,
+<code>nonsense_mediated_decay</code>, <code>non_stop_decay</code>,
+<code>processed_transcript</code>, <code>protein_coding_CDS_not_defined</code> and the
+pseudogene types. <code>NULL</code> keeps all.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A tibble with <code>feature_id</code>, <code>feature_name</code>, <code>feature_type</code>,
-<code>gene_name</code>, <code>log2FC</code>, <code>pvalue</code> (and <code>qvalue</code> when present) and <code>is_de</code>.</p>
+<code>gene_id</code> (when present), <code>gene_name</code>, <code>log2FC</code>, <code>pvalue</code> (and <code>qvalue</code>
+when present) and <code>is_de</code> (<code>"yes"</code>/<code>"no"</code>).</p>
     </div>
 
     <div class="section level2">

@@ -4,7 +4,7 @@ Builds the hexamer log-odds table and the logistic regression used by
 [`coding_potential()`](https://luciorq.github.io/isoformic/reference/transcript_orfs.md)
 from a set of coding ORF sequences and non-coding transcript sequences,
 and writes both as Parquet files. The shipped model was trained on
-GENCODE human protein-coding CDS versus lncRNA transcripts by
+GENCODE 50 human protein-coding CDS versus lncRNA transcripts by
 `data-raw/build_coding_model.R`; rerun that script to refresh it for a
 new GENCODE release or another organism.
 

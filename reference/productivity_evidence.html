@@ -25,7 +25,9 @@ the listed NMD isoforms. This is unproductive evidence.
 
 Each function returns the annotation directory path invisibly and
 invalidates the object caches of x (the next call to a method rereads
-the annotation)."><meta property="og:description" content="These functions add evidence columns to the transcript table of the
+the annotation). When no transcript of the annotation matches the
+dataset, the function raises an error of class
+isoformic_invalid_evidence and the annotation is left unchanged."><meta property="og:description" content="These functions add evidence columns to the transcript table of the
 annotation directory of x from the frozen datasets (frozen_data), so
 that transcript_productivity() can use observed translation and decay
 instead of rules alone. Identifiers are matched without version.
@@ -51,7 +53,9 @@ the listed NMD isoforms. This is unproductive evidence.
 
 Each function returns the annotation directory path invisibly and
 invalidates the object caches of x (the next call to a method rereads
-the annotation)."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
+the annotation). When no transcript of the annotation matches the
+dataset, the function raises an error of class
+isoformic_invalid_evidence and the annotation is left unchanged."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -67,7 +71,8 @@ the annotation)."><meta property="og:image" content="https://luciorq.github.io/i
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -79,6 +84,7 @@ the annotation)."><meta property="og:image" content="https://luciorq.github.io/i
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -138,7 +144,9 @@ exon validated by NMD inhibition (Karousis et al. 2021), or is one of
 the listed NMD isoforms. This is unproductive evidence.</p></li>
 </ul><p>Each function returns the annotation directory path invisibly and
 invalidates the object caches of <code>x</code> (the next call to a method rereads
-the annotation).</p>
+the annotation). When no transcript of the annotation matches the
+dataset, the function raises an error of class
+<code>isoformic_invalid_evidence</code> and the annotation is left unchanged.</p>
     </div>
 
     <div class="section level2">

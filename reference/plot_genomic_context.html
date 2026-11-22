@@ -39,7 +39,8 @@ and exon_right."><meta property="og:image" content="https://luciorq.github.io/is
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -51,6 +52,7 @@ and exon_right."><meta property="og:image" content="https://luciorq.github.io/is
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -152,17 +154,20 @@ to the object's palette or <code><a href="tx_type_palette.html">tx_type_palette(
 
 <dt id="arg-expression">expression<a class="anchor" aria-label="anchor" href="#arg-expression"></a></dt>
 <dd><p>Optional named numeric vector (by transcript ID) used
-to label transcripts (data frame method).</p></dd>
+to label transcripts. For an <a href="IsoformicExperiment.html">IsoformicExperiment</a> it replaces the
+labels computed from <code>assay</code>.</p></dd>
 
 
 <dt id="arg-highlight">highlight<a class="anchor" aria-label="anchor" href="#arg-highlight"></a></dt>
 <dd><p>Optional character vector of transcript IDs or names to
-outline (data frame method).</p></dd>
+outline. For an <a href="IsoformicExperiment.html">IsoformicExperiment</a> it replaces the isoforms chosen
+by <code>highlight_de</code>.</p></dd>
 
 
 <dt id="arg-highlight-poison-exons">highlight_poison_exons<a class="anchor" aria-label="anchor" href="#arg-highlight-poison-exons"></a></dt>
 <dd><p>Logical, outline exons found only in
-unproductive isoforms of the gene (see <code><a href="productivity.html">poison_exons()</a></code>).</p></dd>
+unproductive isoforms of the gene (see <code><a href="productivity.html">poison_exons()</a></code>); used by the
+<a href="IsoformicExperiment.html">IsoformicExperiment</a> method only.</p></dd>
 
 
 <dt id="arg-upstream-offset-downstream-offset">upstream_offset, downstream_offset<a class="anchor" aria-label="anchor" href="#arg-upstream-offset-downstream-offset"></a></dt>
@@ -179,7 +184,9 @@ before and after the gene.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed on to methods.</p></dd>
+<dd><p>For <code>plot_tx_context()</code>, passed on to the data frame method of
+<code>plot_genomic_context()</code>. Not used by <code>plot_genomic_context()</code>; reserved
+for methods.</p></dd>
 
 
 <dt id="arg-exon-table">exon_table<a class="anchor" aria-label="anchor" href="#arg-exon-table"></a></dt>
@@ -195,15 +202,11 @@ before and after the gene.</p></dd>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="example_isoformic.html">example_isoformic</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">plot_genomic_context</span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"RBPJ"</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span><span style="color: #BBBB00;">!</span> 1 transcript has a sequence length differing from the exon length; its ORF is</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span>   skipped.</span>
 <span class="r-plt img"><img src="plot_genomic_context-1.png" alt="" width="700" height="433"></span>
-<span class="r-in"><span><span class="fu">plot_genomic_context</span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="st">"EGFR"</span>, assay <span class="op">=</span> <span class="cn">NULL</span>, highlight_de <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
-<span class="r-plt img"><img src="plot_genomic_context-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Table-based</span></span></span>
 <span class="r-in"><span><span class="fu">plot_genomic_context</span><span class="op">(</span><span class="fu"><a href="IsoformicExperiment-accessors.html">exon_table</a></span><span class="op">(</span><span class="va">iso</span>, <span class="st">"PNCK"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-plt img"><img src="plot_genomic_context-3.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="plot_genomic_context-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

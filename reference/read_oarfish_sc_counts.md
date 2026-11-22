@@ -91,14 +91,14 @@ dir <- system.file("extdata", "oarfish_sc", package = "isoformic")
 counts <- read_oarfish_sc_counts(file.path(dir, "out"))
 head(counts)
 #> # A tibble: 6 × 3
-#>   barcode          transcript_id     count
-#>   <chr>            <chr>             <dbl>
-#> 1 CGGCGCGAACCACCTC ENST00000512351.5  1   
-#> 2 CGGCGCGAACCACCTC ENST00000345843.7  1.26
-#> 3 CGGCGCGAACCACCTC ENST00000342295.5  5.86
-#> 4 CGGCGCGAACCACCTC ENST00000514380.5  1.13
-#> 5 CGGCGCGAACCACCTC ENST00000355476.7  5.63
-#> 6 CGGCGCGAACCACCTC ENST00000511401.5  6   
+#>   barcode          transcript_id         count
+#>   <chr>            <chr>                 <dbl>
+#> 1 CACATCGAACAGCTAA ENST00000681799.1 6.00     
+#> 2 CACATCGAACAGCTAA ENST00000342295.7 0.0000234
+#> 3 CACATCGAACAGCTAA ENST00000506956.5 1.16     
+#> 4 CACATCGAACAGCTAA ENST00000512671.7 0.0000234
+#> 5 CACATCGAACAGCTAA ENST00000345843.9 0.0000234
+#> 6 CACATCGAACAGCTAA ENST00001068163.1 1.16     
 cells <- read.delim(file.path(dir, "cells.tsv"))
 iso <- read_oarfish_sc(
   file.path(dir, "out"),

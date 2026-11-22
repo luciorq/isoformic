@@ -71,18 +71,25 @@ plot_tx_context(exon_table, ...)
 - expression:
 
   Optional named numeric vector (by transcript ID) used to label
-  transcripts (data frame method).
+  transcripts. For an
+  [IsoformicExperiment](https://luciorq.github.io/isoformic/reference/IsoformicExperiment.md)
+  it replaces the labels computed from `assay`.
 
 - highlight:
 
-  Optional character vector of transcript IDs or names to outline (data
-  frame method).
+  Optional character vector of transcript IDs or names to outline. For
+  an
+  [IsoformicExperiment](https://luciorq.github.io/isoformic/reference/IsoformicExperiment.md)
+  it replaces the isoforms chosen by `highlight_de`.
 
 - highlight_poison_exons:
 
   Logical, outline exons found only in unproductive isoforms of the gene
   (see
-  [`poison_exons()`](https://luciorq.github.io/isoformic/reference/productivity.md)).
+  [`poison_exons()`](https://luciorq.github.io/isoformic/reference/productivity.md));
+  used by the
+  [IsoformicExperiment](https://luciorq.github.io/isoformic/reference/IsoformicExperiment.md)
+  method only.
 
 - upstream_offset, downstream_offset:
 
@@ -98,7 +105,9 @@ plot_tx_context(exon_table, ...)
 
 - ...:
 
-  Passed on to methods.
+  For `plot_tx_context()`, passed on to the data frame method of
+  `plot_genomic_context()`. Not used by `plot_genomic_context()`;
+  reserved for methods.
 
 - exon_table:
 
@@ -113,10 +122,6 @@ A `ggplot` object.
 ``` r
 iso <- example_isoformic()
 plot_genomic_context(iso, gene_name = "RBPJ")
-#> Warning: ! 1 transcript has a sequence length differing from the exon length; its ORF is
-#>   skipped.
-
-plot_genomic_context(iso, gene_name = "EGFR", assay = NULL, highlight_de = FALSE)
 
 
 # Table-based

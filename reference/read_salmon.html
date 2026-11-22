@@ -23,7 +23,8 @@ are derived lazily by the object (see gene_assays())."><meta property="og:image"
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -35,6 +36,7 @@ are derived lazily by the object (see gene_assays())."><meta property="og:image"
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -158,10 +160,10 @@ Inferential replicates (Gibbs/bootstrap samples) are read only with
 <span class="r-in"><span><span class="va">annot</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"mini_annotation"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu">read_salmon</span><span class="op">(</span><span class="va">quant_dirs</span>, annot_path <span class="op">=</span> <span class="va">annot</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">iso</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;IsoformicExperiment&gt; isoformic_1805a11373</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   annotation : gencode_v49_mini_subset (15 genes, 111 transcripts, 1,071 exons)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;IsoformicExperiment&gt; isoformic_23705b33fc</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   annotation : gencode_v50_mini_subset (15 genes, 158 transcripts, 1,802 exons)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   samples    : 6</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   transcripts: 111 assayed from 15 genes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   transcripts: 158 assayed from 15 genes</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   assays     : abundance, counts, length</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   gene assays: derived from transcript assays on demand</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   DE results : &lt;none&gt;</span>

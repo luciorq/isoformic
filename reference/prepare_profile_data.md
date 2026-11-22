@@ -49,13 +49,14 @@ prepare_profile_data(
 
 - de_result_gene:
 
-  Gene-level results with `gene_id` or `gene_name`, `log2FC` and
-  `qvalue`/`pvalue` columns. May be `NULL`.
+  Gene-level results with `gene_id` or `gene_name`, `log2FC` (or
+  `log2FoldChange`) and `qvalue`/`padj`/`pvalue` columns. May be `NULL`.
 
 - de_result_transcript:
 
   Transcript-level results with `transcript_id` or `transcript_name`,
-  `log2FC` and `qvalue`/`pvalue` columns. May be `NULL`.
+  `log2FC` (or `log2FoldChange`) and `qvalue`/`padj`/`pvalue` columns.
+  May be `NULL`.
 
 - var:
 
@@ -77,7 +78,10 @@ prepare_profile_data(
 
 - pvalue_cutoff, lfc_cutoff, use_fdr:
 
-  Significance cutoffs.
+  Significance cutoffs (defaults 0.05, 1 and `TRUE`): a feature is
+  significant when `abs(log2FC) >= lfc_cutoff` and its p-value is
+  `<= pvalue_cutoff`. With `use_fdr = TRUE` the `qvalue` (or `padj`)
+  column is tested when present, `pvalue` otherwise.
 
 ## Value
 
@@ -89,7 +93,7 @@ A tibble in the format described in
 ``` r
 iso <- example_isoformic()
 prof <- prepare_profile_data(
-  txi_transcript = assay(iso, "abundance"),
+  txi_transcript = tx_assay(iso, "abundance"),
   sample_metadata = col_data(iso),
   tx_to_gene = tx_annot(iso),
   de_result_gene = de_gene(iso),
@@ -101,11 +105,11 @@ head(prof)
 #> # A tibble: 6 × 10
 #>   feature_id feature_name feature_type gene_id gene_name group mean_expr sd_expr
 #>   <chr>      <chr>        <chr>        <chr>   <chr>     <fct>     <dbl>   <dbl>
-#> 1 ENSG00000… RBPJ         gene         ENSG00… RBPJ      pree…   1297.    427.  
-#> 2 ENSG00000… RBPJ         gene         ENSG00… RBPJ      cont…   1367.    195.  
-#> 3 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      pree…     11.2    25.1 
-#> 4 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      cont…      3.95    8.30
-#> 5 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      pree…    838.    303.  
-#> 6 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      cont…   1095.    169.  
+#> 1 ENSG00000… RBPJ         gene         ENSG00… RBPJ      pree…    33.0    11.1  
+#> 2 ENSG00000… RBPJ         gene         ENSG00… RBPJ      cont…    36.3     6.25 
+#> 3 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      pree…     0.116   0.148
+#> 4 ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      cont…     0.125   0.160
+#> 5 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      pree…     0       0    
+#> 6 ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      cont…     0.952   1.39 
 #> # ℹ 2 more variables: n_samples <int>, is_de <chr>
 ```

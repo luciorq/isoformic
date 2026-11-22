@@ -52,12 +52,22 @@ summarise it per gene:
 - `test_productive_fraction()` tests the change in productive fraction
   between two groups on counts, with a quasi-binomial model per gene
   (pooled proportions per group, Pearson over-dispersion, t test on the
-  log odds ratio, BH adjustment).
+  log odds ratio, BH adjustment). A gene with fewer than 5 reads in its
+  smaller class (productive or not), pooled over both groups, carries
+  too little information on usage: it gets a `log_odds_ratio` of 0 and
+  no statistic or p-value, and does not count in the BH adjustment. A
+  gene without reads in one group gets `NA` there too.
 
 - `run_productivity_enrichment()` ranks genes by the change in
-  productive fraction between two groups and runs gene set enrichment
-  (`fgsea`) on gene symbols, which captures regulated unproductive
-  splicing (AS-NMD) directly.
+  productive fraction between the last and the first group level
+  (`rank_by = "delta"`), by that change over its standard deviation
+  (`rank_by = "delta_z"`) or by the statistic of
+  `test_productive_fraction()` (`rank_by = "statistic"`), and runs gene
+  set enrichment (`fgsea`) on gene symbols, which captures regulated
+  unproductive splicing (AS-NMD) directly. It takes an
+  [IsoformicExperiment](https://luciorq.github.io/isoformic/reference/IsoformicExperiment.md),
+  a `productive_fraction()` table or a `test_productive_fraction()`
+  table, and one or several gene set collections.
 
 - `poison_exons()` lists exons that occur only in unproductive isoforms
   of genes that also have productive isoforms and that do not overlap
@@ -98,6 +108,7 @@ productive_fraction(
   as_matrix = FALSE,
   gene_name = NULL,
   min_expr = 0,
+  min_gene_count = 0,
   inf_reps = NULL,
   reference = NULL,
   ...
@@ -120,6 +131,7 @@ test_productive_fraction(
   assay = "counts",
   include_altered = TRUE,
   min_expr = 0,
+  min_gene_count = 0,
   gene_name = NULL,
   ...
 )
@@ -132,10 +144,12 @@ run_productivity_enrichment(
   assay = "abundance",
   min_size = 15,
   max_size = 500,
-  rank_by = c("delta", "delta_z"),
+  rank_by = c("delta", "delta_z", "statistic"),
   include_altered = TRUE,
   min_expr = 0,
+  min_gene_count = 0,
   inf_reps = NULL,
+  workers = getOption("isoformic.workers", 1L),
   ...
 )
 
@@ -151,10 +165,11 @@ benchmark_productivity(self, nmd_rule = 50, use_sequence = TRUE, ...)
   An
   [IsoformicExperiment](https://luciorq.github.io/isoformic/reference/IsoformicExperiment.md).
   `run_productivity_enrichment()` also takes the table of
-  `productive_fraction()` for two or more groups, so that one table
-  serves several gene set collections; the arguments that build the
-  table (`group`, `levels`, `assay`, `include_altered`, `min_expr`,
-  `inf_reps`) are then ignored.
+  `productive_fraction()` for two or more groups, or of
+  `test_productive_fraction()` for `rank_by = "statistic"`, so that one
+  table serves several gene set collections; the arguments that build
+  the table (`group`, `levels`, `assay`, `include_altered`, `min_expr`,
+  `min_gene_count`, `inf_reps`) are then ignored.
 
 - gene_name:
 
@@ -187,8 +202,14 @@ benchmark_productivity(self, nmd_rule = 50, use_sequence = TRUE, ...)
 
 - ...:
 
-  Passed on to methods or to
-  [`fgsea::fgseaMultilevel()`](https://rdrr.io/pkg/fgsea/man/fgseaMultilevel.html).
+  Used only by `run_productivity_enrichment()`, which passes them to
+  [`fgsea::fgseaMultilevel()`](https://rdrr.io/pkg/fgsea/man/fgseaMultilevel.html);
+  the other functions do not use them (reserved for methods). Each
+  `fgsea` call runs with
+  [`BiocParallel::SerialParam()`](https://rdrr.io/pkg/BiocParallel/man/SerialParam-class.html)
+  unless `nproc` or `BPPARAM` is given; prefer `workers` (see *Workers*
+  in
+  [`run_enrichment()`](https://luciorq.github.io/isoformic/reference/enrichment.md)).
 
 - group:
 
@@ -227,14 +248,26 @@ benchmark_productivity(self, nmd_rule = 50, use_sequence = TRUE, ...)
   Minimum assay value for an isoform to contribute (default 0): isoforms
   below it count as zero.
 
+- min_gene_count:
+
+  Minimum mean count of a gene, the sum of its isoforms in the
+  `"counts"` assay, in every group (over all the samples kept without
+  `group`); genes below it are dropped. Needs a `"counts"` assay
+  whatever `assay` is. The default 0 keeps every gene. See Details.
+
 - inf_reps:
 
   Optional list of transcript matrices (inferential replicates with the
-  same dimnames as the assay); `NULL` uses `metadata(x)$inf_reps` when
-  present and `FALSE` skips the replicates, which leaves out the
-  standard deviations and `delta_z` and is much faster.
-  `run_productivity_enrichment()` reads the replicates only for
-  `rank_by = "delta_z"`.
+  transcripts in rows and the samples of the assay in columns, as
+  counts, as
+  [`read_inferential_replicates()`](https://luciorq.github.io/isoformic/reference/inferential-io.md)
+  returns them); `NULL` uses `x@metadata$inf_reps` when present and
+  `FALSE` skips the replicates, which leaves out the standard deviations
+  and `delta_z` and is much faster. For an `assay` other than `"counts"`
+  the draws are put on its scale with the `"counts"` assay (see
+  Details); an object without a `"counts"` assay takes the draws to be
+  on the scale of `assay`. `run_productivity_enrichment()` reads the
+  replicates only for `rank_by = "delta_z"`.
 
 - reference:
 
@@ -258,51 +291,159 @@ benchmark_productivity(self, nmd_rule = 50, use_sequence = TRUE, ...)
 - rank_by:
 
   Statistic that ranks the genes in `run_productivity_enrichment()`:
-  `"delta"` (default), the change in productive fraction, or
-  `"delta_z"`, that change divided by its standard deviation over the
-  inferential replicates, which moves the genes with an uncertain change
-  towards the middle of the ranking. `"delta_z"` needs inferential
-  replicates; a change that is the same in every replicate gets the
-  largest `delta_z` of the table. It reflects the quantification
-  uncertainty only, not the variation between samples.
+  `"delta"` (default), the change in productive fraction, `"delta_z"`,
+  that change divided by its standard deviation over the inferential
+  replicates, which moves the genes with an uncertain change towards the
+  middle of the ranking, or `"statistic"`, the test of
+  `test_productive_fraction()` on the `"counts"` assay between the first
+  and the last level of `levels`, as a signed normal quantile of its
+  p-value (see Details); `assay` and `inf_reps` are then not used.
+  `"delta_z"` needs inferential replicates; a change that is the same in
+  every replicate (`delta_z` is `NA` in the `productive_fraction()`
+  table) is ranked with the largest absolute `delta_z` of the table (at
+  least 1), with the sign of the change. It reflects the quantification
+  uncertainty only, not the variation between samples or the number of
+  reads; `"statistic"` reflects both (see Details).
+
+- workers:
+
+  Number of worker processes that run the `fgsea` calls of
+  `run_productivity_enrichment()` (one per gene set collection) in
+  parallel: a whole number, or `"auto"` for the CPUs available to the
+  session. Defaults to the `isoformic.workers` option, or 1 (serial).
+  Needs the `mirai` package above 1; see *Workers* in
+  [`run_enrichment()`](https://luciorq.github.io/isoformic/reference/enrichment.md),
+  also for the random seeds.
 
 ## Value
 
-Tibbles, a matrix for `productive_fraction(as_matrix = TRUE)`, a named
-character vector for `productivity_palette()`, a list with `summary` and
-`confusion` tibbles for `benchmark_productivity()`.
+- `transcript_productivity()`: one row per transcript with
+  `transcript_id`, `transcript_name`, `transcript_type`, `gene_id`,
+  `gene_name`, `productivity` (a factor with the levels of
+  `productivity_palette()`), `reason`, `source`, `has_cds`,
+  `cds_complete`, `orf_length`, `nmd_predicted`,
+  `stop_to_last_junction`, `orf_fraction_of_canonical`, `is_canonical`
+  and, with sequences, the ORF columns behind the call (`orf_source`,
+  `nmd_class`, `frame_vs_canonical`, `coding_probability`, `n_uorf`).
+
+- `productive_fraction()`: one row per coding gene with `gene_id`,
+  `gene_name`, `mean_gene_expr`, `productive_fraction` (mean over the
+  samples kept), with `group` one `productive_fraction_<level>` column
+  per level and `delta_productive_fraction`, with inferential replicates
+  `productive_fraction_sd` (the standard deviation over the draws, see
+  Details) and, with `group`, `delta_productive_fraction_sd` and
+  `delta_z`, and with `reference` the `reference_*` columns and
+  `delta_vs_reference`. A genes x samples matrix with
+  `as_matrix = TRUE`.
+
+- `productivity_fractions()`: one row per gene and class present
+  (`productivity`, a factor), with `fraction` and, with `group`, the
+  `fraction_<level>` and `delta_fraction` columns.
+
+- `test_productive_fraction()`: one row per coding gene with
+  `mean_gene_expr`, the two `productive_fraction_<level>` columns,
+  `delta_productive_fraction`, `log_odds_ratio`, `se`, `statistic`,
+  `dispersion`, `df`, `pvalue` and `padj`, ordered by `pvalue`.
+
+- `run_productivity_enrichment()`: the `fgsea` result with the columns
+  `experiment` (`"productive_fraction"`), `rank_by` and, for a list of
+  collections, `collection`.
+
+- `poison_exons()`: one row per exon with `gene_id`, `gene_name`,
+  `seqid`, `start_pos`, `end_pos`, `strand`, `n_unproductive`,
+  `transcript_ids` and `exon_length`.
+
+- `benchmark_productivity()`: a list with the `summary` (`metric`, `n`,
+  `value`, `source`) and `confusion` (`transcript_type`, `productivity`,
+  `n`) tibbles.
+
+- `productivity_palette()`: a named character vector of colours.
+
+## Details
+
+**Low-count genes.** A productive fraction computed from a few reads is
+mostly sampling noise: a gene with 4 reads moves by 0.25 when one read
+changes isoform. `delta_z` does not catch this, because the inferential
+replicates measure how the reads are split between isoforms, not how
+many reads were sampled. `min_gene_count` removes genes whose mean count
+(the sum of the counts of their isoforms in the `"counts"` assay) is
+below it in any group, before the statistics and the BH adjustment; with
+`rank_by = "statistic"`, before the ranking. The filter is off by
+default (0); 10 reads is a reasonable start. The rule asks for enough
+reads in every group, because a fraction is compared between groups: it
+is stricter than the transcript filter of
+[`test_usage()`](https://luciorq.github.io/isoformic/reference/test_usage.md)
+(`min_count` reads in as many samples as the smallest group), and
+`min_expr` sets single isoform values to zero rather than removing
+genes. `rank_by = "statistic"` accounts for the reads of every gene and
+for the variation between its samples. Its dispersion is estimated for
+each gene alone, on `n - 2` degrees of freedom and not moderated, so
+with three samples per group the ranking is still noisy. The t statistic
+is put on the normal scale through its p-value
+(`sign(statistic) * qnorm(pvalue / 2, lower.tail = FALSE)`), because the
+degrees of freedom differ between genes when samples without reads drop
+out. Its sign is that of the pooled change (`delta_productive_fraction`
+of `test_productive_fraction()`), which can differ from the mean of the
+per-sample fractions in `productive_fraction()` when the samples differ
+much in depth. Genes with fewer than 5 reads in one class get no
+statistic and are left out of the ranking, so that a change in the
+expression of the whole gene does not rank it.
+
+**Uncertainty of the fractions.** With inferential replicates,
+`productive_fraction()` computes the productive fraction of every gene
+and sample in each draw. The draws are counts; for another `assay` each
+draw is first put on the scale of that assay, multiplied by
+`assay / counts` of the same transcript and sample (for TPM, the inverse
+of the effective length times the scaling of the sample), so that the
+fractions of the draws and of the assay, and `min_expr`, are on one
+scale. Where the point count or value is zero (Gibbs draws often give
+reads to such cells) the factor is estimated: from the `length` assay
+when the assay follows it (TPM of
+[`read_salmon()`](https://luciorq.github.io/isoformic/reference/read_salmon.md)
+and
+[`read_oarfish()`](https://luciorq.github.io/isoformic/reference/read_oarfish.md)),
+otherwise from a transcript effect plus a sample effect on the log scale
+fitted on the other cells, and for a transcript without any count from
+its annotated length. `productive_fraction_sd` is the sample standard
+deviation of a gene's fraction over the draws, around the mean of the
+draws, averaged over the samples kept; `delta_productive_fraction_sd` is
+the standard deviation over the draws of the change between the group
+means, and `delta_z` is `delta_productive_fraction` divided by it. In
+every draw, only the samples in which the assay gives the gene a
+fraction are used. Both measure the spread of the draws, not their
+distance to the point estimate: the mean of Gibbs draws can differ from
+the EM estimate of the assay.
 
 ## Examples
 
 ``` r
 iso <- example_isoformic()
 prod <- transcript_productivity(iso, gene_name = "RBPJ")
-#> Warning: ! 1 transcript has a sequence length differing from the exon length; its ORF is
-#>   skipped.
 prod[, c("transcript_name", "transcript_type", "productivity", "reason", "source")]
-#> # A tibble: 10 × 5
-#>    transcript_name transcript_type productivity       reason              source
-#>    <chr>           <chr>           <fct>              <chr>               <chr> 
-#>  1 RBPJ-222        protein_coding  uncertain          incomplete 3' end,… seque…
-#>  2 RBPJ-201        protein_coding  productive         complete ORF ident… seque…
-#>  3 RBPJ-206        protein_coding  productive         complete ORF ident… seque…
-#>  4 RBPJ-225        retained_intron unproductive       unproductive bioty… annot…
-#>  5 RBPJ-204        protein_coding  altered_productive alternative start … seque…
-#>  6 RBPJ-205        protein_coding  altered_productive alternative start … seque…
-#>  7 RBPJ-214        protein_coding  altered_productive alternative start … seque…
-#>  8 RBPJ-208        protein_coding  altered_productive alternative start … seque…
-#>  9 RBPJ-202        protein_coding  altered_productive alternative start … seque…
-#> 10 RBPJ-210        retained_intron unproductive       unproductive bioty… annot…
+#> # A tibble: 65 × 5
+#>    transcript_name transcript_type         productivity       reason      source
+#>    <chr>           <chr>                   <fct>              <chr>       <chr> 
+#>  1 RBPJ-222        protein_coding          uncertain          incomplete… seque…
+#>  2 RBPJ-247        nonsense_mediated_decay unproductive       unproducti… annot…
+#>  3 RBPJ-243        retained_intron         unproductive       unproducti… annot…
+#>  4 RBPJ-201        protein_coding          altered_productive alternativ… seque…
+#>  5 RBPJ-213        protein_coding          uncertain          incomplete… seque…
+#>  6 RBPJ-223        protein_coding          altered_productive alternativ… seque…
+#>  7 RBPJ-203        protein_coding          altered_productive alternativ… seque…
+#>  8 RBPJ-206        protein_coding          altered_productive alternativ… seque…
+#>  9 RBPJ-225        retained_intron         unproductive       unproducti… annot…
+#> 10 RBPJ-229        protein_coding          uncertain          incomplete… seque…
+#> # ℹ 55 more rows
 head(productive_fraction(iso, group = "condition"))
 #> # A tibble: 6 × 7
 #>   gene_id    gene_name mean_gene_expr productive_fraction productive_fraction_…¹
 #>   <chr>      <chr>              <dbl>               <dbl>                  <dbl>
-#> 1 ENSG00000… PNCK                50.6               0.251                  0.450
-#> 2 ENSG00000… REV3L              831.                0.265                  0.458
-#> 3 ENSG00000… PSMA3              860.                0.527                  0.614
-#> 4 ENSG00000… ANO8               208.                0.668                  0.747
-#> 5 ENSG00000… GDPD3              152.                0.792                  0.862
-#> 6 ENSG00000… TSG101            1002.                0.847                  0.912
+#> 1 ENSG00000… SNX6               47.8                0.337                  0.154
+#> 2 ENSG00000… ERO1A              17.9                0.830                  0.655
+#> 3 ENSG00000… DNAJB6             52.5                0.659                  0.496
+#> 4 ENSG00000… GPT2                8.34               0.511                  0.377
+#> 5 ENSG00000… PIP5K1A           108.                 0.408                  0.541
+#> 6 ENSG00000… MYO7B              10.2                0.291                  0.414
 #> # ℹ abbreviated name: ¹​productive_fraction_preeclampsia
 #> # ℹ 2 more variables: productive_fraction_control <dbl>,
 #> #   delta_productive_fraction <dbl>
@@ -310,40 +451,51 @@ head(productivity_fractions(iso, group = "condition"))
 #> # A tibble: 6 × 7
 #>   gene_id gene_name productivity fraction fraction_preeclampsia fraction_control
 #>   <chr>   <chr>     <fct>           <dbl>                 <dbl>            <dbl>
-#> 1 ENSG00… UPF1      productive     0.132                 0.141           0.128  
-#> 2 ENSG00… UPF1      altered_pro…   0.829                 0.823           0.832  
-#> 3 ENSG00… UPF1      retained_in…   0.0386                0.0364          0.0397 
-#> 4 ENSG00… SPPL2B    productive     0.399                 0.350           0.422  
-#> 5 ENSG00… SPPL2B    altered_pro…   0.307                 0.377           0.274  
-#> 6 ENSG00… SPPL2B    nmd            0.0111                0.0138          0.00984
+#> 1 ENSG00… FSTL3     productive    0.889               0.926               0.871 
+#> 2 ENSG00… FSTL3     altered_pro…  0.0452              0.0404              0.0474
+#> 3 ENSG00… FSTL3     nmd           0.0210              0.0294              0.0171
+#> 4 ENSG00… FSTL3     no_orf        0.00700             0.0000164           0.0103
+#> 5 ENSG00… FSTL3     uncertain     0.0382              0.00450             0.0541
+#> 6 ENSG00… CDC42     productive    0.0212              0.0120              0.0255
 #> # ℹ 1 more variable: delta_fraction <dbl>
 head(test_productive_fraction(iso, group = "condition"))
 #> # A tibble: 6 × 13
 #>   gene_id gene_name mean_gene_expr productive_fraction_…¹ productive_fraction_…²
 #>   <chr>   <chr>              <dbl>                  <dbl>                  <dbl>
-#> 1 ENSG00… TSG101            20031.                  0.910                  0.814
-#> 2 ENSG00… FAM120A           73031.                  0.933                  0.970
-#> 3 ENSG00… POLR2F             7000.                  0.729                  0.634
-#> 4 ENSG00… REV3L             16616.                  0.465                  0.183
-#> 5 ENSG00… MED24             23507.                  0.822                  0.869
-#> 6 ENSG00… U2AF2             40683.                  0.874                  0.840
+#> 1 ENSG00… MYO7B               593.                  0.647                  0.354
+#> 2 ENSG00… CCSAP              5483.                  0.961                  0.977
+#> 3 ENSG00… TPT1              24353.                  0.923                  0.813
+#> 4 ENSG00… DNAJB6             1408.                  0.599                  0.711
+#> 5 ENSG00… PIP5K1A            3240.                  0.815                  0.682
+#> 6 ENSG00… PSMA3               889.                  0.618                  0.504
 #> # ℹ abbreviated names: ¹​productive_fraction_preeclampsia,
 #> #   ²​productive_fraction_control
 #> # ℹ 8 more variables: delta_productive_fraction <dbl>, log_odds_ratio <dbl>,
 #> #   se <dbl>, statistic <dbl>, dispersion <dbl>, df <dbl>, pvalue <dbl>,
 #> #   padj <dbl>
 poison_exons(iso, gene_name = "RBPJ")
-#> # A tibble: 0 × 9
-#> # ℹ 9 variables: gene_id <chr>, gene_name <chr>, seqid <chr>, start_pos <int>,
-#> #   end_pos <int>, strand <chr>, n_unproductive <int>, transcript_ids <chr>,
-#> #   exon_length <int>
+#> # A tibble: 11 × 9
+#>    gene_id            gene_name seqid start_pos  end_pos strand n_unproductive
+#>    <chr>              <chr>     <chr>     <int>    <int> <chr>           <int>
+#>  1 ENSG00000168214.24 RBPJ      chr4   26163458 26163614 +                   1
+#>  2 ENSG00000168214.24 RBPJ      chr4   26163530 26163614 +                   1
+#>  3 ENSG00000168214.24 RBPJ      chr4   26263617 26263714 +                   1
+#>  4 ENSG00000168214.24 RBPJ      chr4   26321228 26321295 +                   1
+#>  5 ENSG00000168214.24 RBPJ      chr4   26367874 26368145 +                   1
+#>  6 ENSG00000168214.24 RBPJ      chr4   26385917 26386072 +                   1
+#>  7 ENSG00000168214.24 RBPJ      chr4   26408060 26408174 +                   3
+#>  8 ENSG00000168214.24 RBPJ      chr4   26410042 26410292 +                   2
+#>  9 ENSG00000168214.24 RBPJ      chr4   26412930 26412987 +                   4
+#> 10 ENSG00000168214.24 RBPJ      chr4   26414049 26414155 +                   3
+#> 11 ENSG00000168214.24 RBPJ      chr4   26422132 26422156 +                   2
+#> # ℹ 2 more variables: transcript_ids <chr>, exon_length <int>
 benchmark_productivity(iso)$summary
 #> # A tibble: 5 × 4
 #>   metric                                  n value source  
 #>   <chr>                               <int> <dbl> <chr>   
-#> 1 nmd_biotype_called_unproductive        38 0.974 sequence
-#> 2 retained_intron_called_unproductive   145 0.6   sequence
-#> 3 protein_coding_called_productive      252 0.782 sequence
-#> 4 canonical_called_productive            67 1     sequence
-#> 5 lncrna_called_noncoding                19 1     sequence
+#> 1 nmd_biotype_called_unproductive       353 1     sequence
+#> 2 retained_intron_called_unproductive   125 0.68  sequence
+#> 3 protein_coding_called_productive     1226 0.900 sequence
+#> 4 canonical_called_productive            57 0.982 sequence
+#> 5 lncrna_called_noncoding               107 1     sequence
 ```

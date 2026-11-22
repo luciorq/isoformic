@@ -36,8 +36,18 @@ transcript of its gene. When the object carries uncertainty tables (see
 add_uncertainty()) it adds dominant_inf_rv, the inferential relative
 variance of the dominant isoform, and dominant_ambiguous, whether it
 cannot be told apart from a sibling isoform. isoform_switches() adds
-n_det_confident, the number of significant isoforms with high
-confidence, once de_confidence() results are stored."><meta property="og:description" content="These generics quantify how expression is distributed across the isoforms
+n_det_unstable, the number of significant isoforms whose fold-change
+direction the inferential replicates do not agree on (unstable in
+de_confidence()), once those results are stored.
+drop_unstable = TRUE leaves these calls out; calls whose direction was
+not assessed (below min_count) are kept. When ambiguous isoforms were
+summed (add_uncertainty(group = , collapse_groups = TRUE)), each member
+of a group takes the direction of the group: the significant members of
+an unstable group are counted in n_det_unstable and left out. It is a sensitivity analysis.
+In a placenta cohort it would have removed about 3% of the calls that
+replicated and about 10% of those that did not. It does not remove false
+calls caused by biological variability: most false calls have a stable
+direction."><meta property="og:description" content="These generics quantify how expression is distributed across the isoforms
 of each gene, which is the question an IsoformicExperiment is built to
 answer. All computations use matrix operations on the cached assays and
 scale to full transcriptome experiments.
@@ -74,8 +84,18 @@ transcript of its gene. When the object carries uncertainty tables (see
 add_uncertainty()) it adds dominant_inf_rv, the inferential relative
 variance of the dominant isoform, and dominant_ambiguous, whether it
 cannot be told apart from a sibling isoform. isoform_switches() adds
-n_det_confident, the number of significant isoforms with high
-confidence, once de_confidence() results are stored."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
+n_det_unstable, the number of significant isoforms whose fold-change
+direction the inferential replicates do not agree on (unstable in
+de_confidence()), once those results are stored.
+drop_unstable = TRUE leaves these calls out; calls whose direction was
+not assessed (below min_count) are kept. When ambiguous isoforms were
+summed (add_uncertainty(group = , collapse_groups = TRUE)), each member
+of a group takes the direction of the group: the significant members of
+an unstable group are counted in n_det_unstable and left out. It is a sensitivity analysis.
+In a placenta cohort it would have removed about 3% of the calls that
+replicated and about 10% of those that did not. It does not remove false
+calls caused by biological variability: most false calls have a stable
+direction."><meta property="og:image" content="https://luciorq.github.io/isoformic/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -91,7 +111,8 @@ confidence, once de_confidence() results are stored."><meta property="og:image" 
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -103,6 +124,7 @@ confidence, once de_confidence() results are stored."><meta property="og:image" 
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -173,8 +195,18 @@ transcript of its gene. When the object carries uncertainty tables (see
 <code><a href="uncertainty.html">add_uncertainty()</a></code>) it adds <code>dominant_inf_rv</code>, the inferential relative
 variance of the dominant isoform, and <code>dominant_ambiguous</code>, whether it
 cannot be told apart from a sibling isoform. <code>isoform_switches()</code> adds
-<code>n_det_confident</code>, the number of significant isoforms with high
-confidence, once <code><a href="uncertainty.html">de_confidence()</a></code> results are stored.</p>
+<code>n_det_unstable</code>, the number of significant isoforms whose fold-change
+direction the inferential replicates do not agree on (<code>unstable</code> in
+<code><a href="uncertainty.html">de_confidence()</a></code>), once those results are stored.</p>
+<p><code>drop_unstable = TRUE</code> leaves these calls out; calls whose direction was
+not assessed (below <code>min_count</code>) are kept. When ambiguous isoforms were
+summed (<code>add_uncertainty(group = , collapse_groups = TRUE)</code>), each member
+of a group takes the direction of the group: the significant members of
+an unstable group are counted in <code>n_det_unstable</code> and left out. It is a sensitivity analysis.
+In a placenta cohort it would have removed about 3% of the calls that
+replicated and about 10% of those that did not. It does not remove false
+calls caused by biological variability: most false calls have a stable
+direction.</p>
     </div>
 
     <div class="section level2">
@@ -200,7 +232,13 @@ confidence, once <code><a href="uncertainty.html">de_confidence()</a></code> res
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">isoform_switches</span><span class="op">(</span><span class="va">self</span>, gene_name <span class="op">=</span> <span class="cn">NULL</span>, confident_only <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">isoform_switches</span><span class="op">(</span></span>
+<span>  <span class="va">self</span>,</span>
+<span>  gene_name <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  confident_only <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  drop_unstable <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">exon_diversity</span><span class="op">(</span><span class="va">self</span>, gene_name <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
@@ -228,17 +266,20 @@ falling back to the first assay).</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed on to methods.</p></dd>
+<dd><p>Not used; reserved for methods.</p></dd>
 
 
 <dt id="arg-min-expr">min_expr<a class="anchor" aria-label="anchor" href="#arg-min-expr"></a></dt>
 <dd><p>Minimum assay value for a transcript to count as
-expressed in a sample.</p></dd>
+expressed in a sample (default <code>1</code> in <code>tx_diversity()</code>). In
+<code>dominant_isoform()</code> (default <code>0</code>, no floor), values below it are set
+to zero, so these isoforms neither dominate nor count towards the gene
+total.</p></dd>
 
 
 <dt id="arg-min-samples">min_samples<a class="anchor" aria-label="anchor" href="#arg-min-samples"></a></dt>
 <dd><p>Minimum number of samples in which a transcript must
-be expressed to count as expressed.</p></dd>
+be expressed to count as expressed in <code>tx_diversity()</code>.</p></dd>
 
 
 <dt id="arg-gene-name">gene_name<a class="anchor" aria-label="anchor" href="#arg-gene-name"></a></dt>
@@ -258,8 +299,14 @@ groups are ignored, as if the object had been subset to these samples.
 
 
 <dt id="arg-confident-only">confident_only<a class="anchor" aria-label="anchor" href="#arg-confident-only"></a></dt>
-<dd><p>Logical. Count only the significant isoforms with
-high confidence (see <code><a href="uncertainty.html">de_confidence()</a></code>) in <code>isoform_switches()</code>.</p></dd>
+<dd><p>Defunct: the confidence class it filtered on was
+removed. Use <code>drop_unstable</code>, by name.</p></dd>
+
+
+<dt id="arg-drop-unstable">drop_unstable<a class="anchor" aria-label="anchor" href="#arg-drop-unstable"></a></dt>
+<dd><p>Logical. In <code>isoform_switches()</code>, leave out the
+significant isoforms with an unstable direction (<code>unstable</code> in
+<code><a href="uncertainty.html">de_confidence()</a></code>).</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -272,19 +319,19 @@ high confidence (see <code><a href="uncertainty.html">de_confidence()</a></code>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="example_isoformic.html">example_isoformic</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">isoform_fraction</span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                   SRR11498039 SRR11498040 SRR11498041</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENST00000374514.8  0.96675753  0.98117418  0.98239081</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENST00000420982.5  0.00000000  0.00000000  0.00000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ENST00000374502.7  0.02265948  0.01882582  0.01760919</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENST00001127150.1   0.0000000   0.0000000   0.0000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENST00001127151.1   0.4706061   0.5451462   0.2777801</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ENST00001091268.1   0.0000000   0.0000000   0.0000000</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">tx_diversity</span><span class="op">(</span><span class="va">iso</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 14</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   gene_id         gene_name gene_type n_tx_annotated n_tx_assayed n_tx_expressed</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG0000002319… RNH1      protein_…             24           17             17</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG0000010042… HDAC10    protein_…             22           16             16</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENSG0000022980… XIST      lncRNA                30           18             18</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENSG0000007980… DNM2      protein_…             22           15             15</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENSG0000007231… SREBF1    protein_…             24           18             18</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENSG0000005082… BCAR1     protein_…             22           15             15</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG0000013082… PNCK      protein_…             59           59             15</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG0000020484… ATXN2     protein_…            101          101             46</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENSG0000015309… ACOXL     protein_…             49           49             19</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENSG0000020458… DDR1      protein_…            135          135             24</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENSG0000016043… RDH13     protein_…             28           27             24</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENSG0000017697… DPP7      protein_…             65           65             23</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 8 more variables: n_tx_types &lt;int&gt;, tx_types &lt;chr&gt;, mean_gene_expr &lt;dbl&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   dominant_transcript_id &lt;chr&gt;, dominant_transcript_name &lt;chr&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   dominant_transcript_type &lt;chr&gt;, dominant_fraction &lt;dbl&gt;,</span></span>
@@ -293,43 +340,43 @@ high confidence (see <code><a href="uncertainty.html">de_confidence()</a></code>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 138 × 11</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    gene_id            gene_name gene_type      condition  dominant_transcript_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> ENSG00000009413.16 REV3L     protein_coding preeclamp… ENST00000368802.8     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> ENSG00000009413.16 REV3L     protein_coding control    ENST00000619481.1     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> ENSG00000023191.17 RNH1      protein_coding preeclamp… ENST00000356187.9     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> ENSG00000023191.17 RNH1      protein_coding control    ENST00000397604.7     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> ENSG00000072310.17 SREBF1    protein_coding preeclamp… ENST00000355815.8     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> ENSG00000072310.17 SREBF1    protein_coding control    ENST00000261646.10    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> ENSG00000082996.19 RNF13     protein_coding preeclamp… ENST00000392894.7     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> ENSG00000082996.19 RNF13     protein_coding control    ENST00000361785.10    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> ENSG00000100038.19 TOP3B     protein_coding preeclamp… ENST00000444502.5     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> ENSG00000100038.19 TOP3B     protein_coding control    ENST00000457270.5     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> ENSG00000092199.21 HNRNPC    protein_coding preeclamp… ENST00000553614.5     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> ENSG00000092199.21 HNRNPC    protein_coding control    ENST00000557157.5     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> ENSG00000100567.15 PSMA3     protein_coding preeclamp… ENST00000216455.9     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> ENSG00000100567.15 PSMA3     protein_coding control    ENST00000557508.6     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> ENSG00000104827.13 CGB3      protein_coding preeclamp… ENST00001140563.1     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> ENSG00000104827.13 CGB3      protein_coding control    ENST00000357383.4     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> ENSG00000105993.17 DNAJB6    protein_coding preeclamp… ENST00000488001.5     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> ENSG00000105993.17 DNAJB6    protein_coding control    ENST00000262177.9     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> ENSG00000107819.17 SFXN3     protein_coding preeclamp… ENST00000465383.5     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> ENSG00000107819.17 SFXN3     protein_coding control    ENST00000896242.2     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 128 more rows</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 6 more variables: dominant_transcript_name &lt;chr&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   dominant_transcript_type &lt;chr&gt;, dominant_is_canonical &lt;lgl&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   dominant_fraction &lt;dbl&gt;, gene_expr &lt;dbl&gt;, dominant_switch &lt;lgl&gt;</span></span>
 <span class="r-in"><span><span class="fu">isoform_switches</span><span class="op">(</span><span class="va">iso</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 34 × 12</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 60 × 12</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    gene_id         gene_name gene_type n_tx_tested n_det_sig n_det_up n_det_down</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> ENSG0000008299… RNF13     protein_…          11         4        1          3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> ENSG0000008915… GCN1      protein_…           6         4        3          1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> ENSG0000010056… PSMA3     protein_…           8         3        1          2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> ENSG0000006366… GPC1      protein_…           6         3        2          1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> ENSG0000014664… EGFR      protein_…           7         3        3          0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> ENSG0000004882… FAM120A   protein_…           5         3        3          0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> ENSG0000008928… FUS       protein_…          11         2        2          0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> ENSG0000003244… PNPLA6    protein_…          11         2        2          0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> ENSG0000001134… SYT7      protein_…           7         2        2          0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> ENSG0000007112… WDR1      protein_…           7         1        1          0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 24 more rows</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> ENSG0000013311… TPT1      protein_…          47        10        5          5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> ENSG0000014664… EGFR      protein_…          20         7        5          2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> ENSG0000020484… ATXN2     protein_…          38         7        1          6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> ENSG0000010513… SYDE1     protein_…           9         6        5          1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> ENSG0000009219… HNRNPC    protein_…          28         5        4          1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> ENSG0000015442… CCSAP     protein_…           6         3        2          1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> ENSG0000010056… PSMA3     protein_…          11         2        1          1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> ENSG0000014339… PIP5K1A   protein_…          25         4        0          4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> ENSG0000012951… SNX6      protein_…          21         2        2          0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> ENSG0000012494… AHNAK     protein_…           7         1        1          0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 50 more rows</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 5 more variables: det_sig_types &lt;chr&gt;, max_abs_log2FC &lt;dbl&gt;,</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   gene_log2FC &lt;dbl&gt;, deg_sig &lt;chr&gt;, switch_type &lt;chr&gt;</span></span>
 <span class="r-in"><span><span class="fu">exon_diversity</span><span class="op">(</span><span class="va">iso</span>, gene_name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"RBPJ"</span>, <span class="st">"EGFR"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 2 × 9</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   gene_id   gene_name gene_type  n_tx mean_exons_per_tx max_exons_per_tx n_exons</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG0000… RBPJ      protein_…    31              6.52               12      65</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG0000… EGFR      protein_…    11             14.4                28      46</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG0000… RBPJ      protein_…    65              9.52               13     113</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG0000… EGFR      protein_…    23             15.1                28      57</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 2 more variables: n_constitutive &lt;int&gt;, n_alternative &lt;int&gt;</span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

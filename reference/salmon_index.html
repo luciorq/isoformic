@@ -15,7 +15,8 @@
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -27,6 +28,7 @@
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -113,8 +115,14 @@ first <code>|</code> so that they match the annotation.</p></dd>
 
 
 <dt id="arg-decoy-fasta">decoy_fasta<a class="anchor" aria-label="anchor" href="#arg-decoy-fasta"></a></dt>
-<dd><p>Optional path to a FASTA file containing decoy sequences
-(default is <code>NULL</code>).</p></dd>
+<dd><p>Optional path to a FASTA file, plain or compressed
+with gzip, xz or bzip2, with
+the decoy sequences (default is <code>NULL</code>, an index without decoys). Usually
+the genome assembly the transcripts come from (for GENCODE, the
+<code>GRCh38.primary_assembly.genome.fa.gz</code> of the same release). A full human
+genome makes the index several times larger and slower to build (tens of
+GB of memory and disk instead of a few), and needs free space in
+<code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code> for a copy of the genome while the index is built.</p></dd>
 
 
 <dt id="arg-clip-poly-a">clip_poly_a<a class="anchor" aria-label="anchor" href="#arg-clip-poly-a"></a></dt>
@@ -132,6 +140,21 @@ first <code>|</code> so that they match the annotation.</p></dd>
 <code><a href="salmon_quant.html">salmon_quant()</a></code>: Salmon 2 (the Rust rewrite) cannot read indices built by
 Salmon 1.x and rejects them with an error. Rebuild the index after
 upgrading.</p>
+<p>Transcripts with identical sequences are all kept (<code>--keepDuplicates</code>),
+so that every annotated transcript is quantified.</p>
+<p>With <code>decoy_fasta</code>, the index is decoy-aware, as recommended by the Salmon
+authors: the function writes, in a temporary directory, a <code>gentrome</code> FASTA
+(the transcripts followed by the decoy sequences) and a <code>decoys.txt</code> file
+with the names of the decoy sequences (the first word of each FASTA
+header), passes them to <code>salmon index</code> as <code>--transcripts</code> and <code>--decoys</code>,
+and removes them afterwards. Reads that align better to a decoy than to a
+transcript are then discarded instead of being assigned to a transcript.
+The <code>gentrome</code> is gzipped when <code>decoy_fasta</code> is (the decoy file is
+appended byte by byte, and concatenated gzip streams are valid gzip), so a
+gzipped genome is not decompressed to disk; the transcript FASTA, plain or
+gzipped, is re-encoded to match. A decoy compressed with xz or bzip2 is
+decompressed into a plain <code>gentrome</code>. Decoy names that are also
+transcript names are an error.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

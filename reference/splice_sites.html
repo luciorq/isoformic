@@ -41,7 +41,8 @@ intron with by = &quot;intron&quot;.
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -53,6 +54,7 @@ intron with by = &quot;intron&quot;.
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -150,7 +152,7 @@ experiment reports its own transcripts.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Unused.</p></dd>
+<dd><p>Not used; reserved for methods.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -158,7 +160,9 @@ experiment reports its own transcripts.</p></dd>
 
 <ul><li><p><code>extract_splice_sites()</code>: the path of the written Parquet file,
 invisibly. The table has <code>seqid</code>, <code>strand</code>, <code>intron_start</code>, <code>intron_end</code>
-(1-based, inclusive), <code>donor_seq</code> and <code>acceptor_seq</code>.</p></li>
+(1-based, inclusive), <code>donor_seq</code> and <code>acceptor_seq</code>. An existing table
+is kept, with a message, unless <code>overwrite = TRUE</code>.</p></li>
+<li><p><code>has_splice_sites()</code>: <code>TRUE</code> when the table is present.</p></li>
 <li><p><code>splice_site_strength()</code>: a tibble. By transcript: <code>transcript_id</code>,
 <code>gene_id</code>, <code>gene_name</code>, <code>n_introns</code>, <code>n_scored</code>, <code>weakest_donor</code>,
 <code>weakest_acceptor</code>, <code>mean_donor</code>, <code>mean_acceptor</code> and <code>n_noncanonical</code>;
@@ -177,6 +181,12 @@ all introns when the annotation marks fewer than 100 canonical introns.
 A score is the sum over the window of <code>log2(frequency / background)</code>, with
 the background taken from the base composition of the training windows
 and half a pseudocount per base. Positive means closer to the consensus.</p>
+<p>The matrices are trained once per annotation directory and kept for the
+session. With <code>gene_name</code>, only the introns of those genes are read and
+scored, with the same matrices, so a transcript gets the same scores as in
+the genome-wide table. On an <a href="IsoformicExperiment.html">IsoformicExperiment</a>, the table by
+transcript is cached in the object, and later calls with <code>gene_name</code> take
+their rows from it.</p>
 <p>Limits. The matrices assume that positions are independent, so they are
 weaker than MaxEntScan or a sequence model, and they describe the major
 (GT-AG) spliceosome: U12 introns and other non-canonical sites get low
@@ -198,13 +208,13 @@ Computational Biology</em> 11(2-3), 377-394.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">gff</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"example.gff3"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">gff</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"example.gff3.gz"</span>, package <span class="op">=</span> <span class="st">"isoformic"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">annot</span> <span class="op">&lt;-</span> <span class="fu"><a href="prepare_isoformic_annotation.html">prepare_isoformic_annotation</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">gff</span>,</span></span>
 <span class="r-in"><span>  output_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  annot_name <span class="op">=</span> <span class="st">"splice_demo"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Parsing <span style="color: #0000BB;">example.gff3</span> (GFF) into <span style="color: #0000BB;">/tmp/RtmpatoNKq/splice_demo</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Parsing <span style="color: #0000BB;">example.gff3.gz</span> (GFF) into <span style="color: #0000BB;">/tmp/RtmpPCTCTT/splice_demo</span>.</span>
 <span class="r-in"><span><span class="fu">has_splice_sites</span><span class="op">(</span><span class="va">annot</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] FALSE</span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>

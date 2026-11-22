@@ -47,14 +47,18 @@ gtex_tissues(gtex = NULL)
 
 - ...:
 
-  Passed on to methods.
+  Not used; reserved for methods.
 
 ## Value
 
-A tibble with one row per gene of `x`: `reference_tissue`,
-`reference_gene_tpm`, `reference_productive_fraction`,
-`reference_dominant_transcript_id`, `reference_dominant_productivity`,
-`n_reference_transcripts`.
+`gtex_reference()` returns a tibble with one row per gene of `x` that
+has a transcript in the GTEx table: `gene_id`, `gene_name`,
+`reference_tissue`, `reference_gene_tpm`,
+`reference_productive_fraction` (`NA` for genes without a coding isoform
+or with a total TPM of 0), `reference_dominant_transcript_id`,
+`reference_dominant_productivity`, `n_reference_transcripts`.
+`gtex_tissues()` returns a tibble with the `tissue` names and their
+`n_samples`.
 
 ## Examples
 

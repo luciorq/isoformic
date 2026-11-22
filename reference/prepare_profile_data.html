@@ -23,7 +23,8 @@ txi_gene is supplied."><meta property="og:image" content="https://luciorq.github
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -35,6 +36,7 @@ txi_gene is supplied."><meta property="og:image" content="https://luciorq.github
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -119,13 +121,14 @@ column) holds the sample IDs and that contains the <code>var</code> column.</p><
 
 <dt id="arg-de-result-gene">de_result_gene<a class="anchor" aria-label="anchor" href="#arg-de-result-gene"></a></dt>
 <dd><p>Gene-level results with <code>gene_id</code> or <code>gene_name</code>,
-<code>log2FC</code> and <code>qvalue</code>/<code>pvalue</code> columns. May be <code>NULL</code>.</p></dd>
+<code>log2FC</code> (or <code>log2FoldChange</code>) and <code>qvalue</code>/<code>padj</code>/<code>pvalue</code> columns.
+May be <code>NULL</code>.</p></dd>
 
 
 <dt id="arg-de-result-transcript">de_result_transcript<a class="anchor" aria-label="anchor" href="#arg-de-result-transcript"></a></dt>
 <dd><p>Transcript-level results with
-<code>transcript_id</code> or <code>transcript_name</code>, <code>log2FC</code> and <code>qvalue</code>/<code>pvalue</code>
-columns. May be <code>NULL</code>.</p></dd>
+<code>transcript_id</code> or <code>transcript_name</code>, <code>log2FC</code> (or <code>log2FoldChange</code>)
+and <code>qvalue</code>/<code>padj</code>/<code>pvalue</code> columns. May be <code>NULL</code>.</p></dd>
 
 
 <dt id="arg-var">var<a class="anchor" aria-label="anchor" href="#arg-var"></a></dt>
@@ -148,7 +151,11 @@ appearance.</p></dd>
 
 
 <dt id="arg-pvalue-cutoff-lfc-cutoff-use-fdr">pvalue_cutoff, lfc_cutoff, use_fdr<a class="anchor" aria-label="anchor" href="#arg-pvalue-cutoff-lfc-cutoff-use-fdr"></a></dt>
-<dd><p>Significance cutoffs.</p></dd>
+<dd><p>Significance cutoffs (defaults
+0.05, 1 and <code>TRUE</code>): a feature is significant when
+<code>abs(log2FC) &gt;= lfc_cutoff</code> and its p-value is <code>&lt;= pvalue_cutoff</code>.
+With <code>use_fdr = TRUE</code> the <code>qvalue</code> (or <code>padj</code>) column is tested when
+present, <code>pvalue</code> otherwise.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -160,7 +167,7 @@ appearance.</p></dd>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="example_isoformic.html">example_isoformic</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">prof</span> <span class="op">&lt;-</span> <span class="fu">prepare_profile_data</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  txi_transcript <span class="op">=</span> <span class="fu"><a href="IsoformicExperiment-accessors.html">assay</a></span><span class="op">(</span><span class="va">iso</span>, <span class="st">"abundance"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  txi_transcript <span class="op">=</span> <span class="fu"><a href="IsoformicExperiment-accessors.html">tx_assay</a></span><span class="op">(</span><span class="va">iso</span>, <span class="st">"abundance"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  sample_metadata <span class="op">=</span> <span class="fu"><a href="IsoformicExperiment-accessors.html">col_data</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  tx_to_gene <span class="op">=</span> <span class="fu"><a href="IsoformicExperiment-accessors.html">tx_annot</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  de_result_gene <span class="op">=</span> <span class="fu"><a href="dea.html">de_gene</a></span><span class="op">(</span><span class="va">iso</span><span class="op">)</span>,</span></span>
@@ -172,12 +179,12 @@ appearance.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 10</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   feature_id feature_name feature_type gene_id gene_name group mean_expr sd_expr</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG00000… RBPJ         gene         ENSG00… RBPJ      pree…   <span style="text-decoration: underline;">1</span>297.    427.  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG00000… RBPJ         gene         ENSG00… RBPJ      cont…   <span style="text-decoration: underline;">1</span>367.    195.  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      pree…     11.2    25.1 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      cont…      3.95    8.30</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      pree…    838.    303.  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      cont…   <span style="text-decoration: underline;">1</span>095.    169.  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ENSG00000… RBPJ         gene         ENSG00… RBPJ      pree…    33.0    11.1  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ENSG00000… RBPJ         gene         ENSG00… RBPJ      cont…    36.3     6.25 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      pree…     0.116   0.148</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ENST00000… RBPJ-201     protein_cod… ENSG00… RBPJ      cont…     0.125   0.160</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      pree…     0       0    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ENST00000… RBPJ-202     protein_cod… ENSG00… RBPJ      cont…     0.952   1.39 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 2 more variables: n_samples &lt;int&gt;, is_de &lt;chr&gt;</span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

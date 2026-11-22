@@ -92,7 +92,7 @@ test_usage(
   The comparisons to test: `NULL` (default) compares every level with
   the first one; `"pairwise"` tests every pair of levels (the later
   level against the earlier one); `"omnibus"` tests whether usage
-  differs among any of the groups (see Details); otherwise a list of
+  differs among any of the groups (see Description); otherwise a list of
   `c(numerator, denominator)` pairs of levels, or one such pair. With
   two levels the default is the single contrast second against first.
 
@@ -103,16 +103,20 @@ test_usage(
 
 - assay:
 
-  Counts assay to test.
+  Counts assay to test (default `"counts"`).
 
 - scale:
 
   Logical, divide the counts by the overdispersion of the replicates.
-  `NULL` (default) does it when the object has replicates. In a
-  read-split experiment (technical replicates of the same libraries, see
-  the uncertainty article) this removed most false positives of
-  `"diffsplice"` and `"DEXSeq"` and made their calls reproducible, so
-  keep it on.
+  `NULL` (default) does it when the object has replicates. Between
+  technical halves of the same libraries (read-split experiment, see the
+  uncertainty article) it removed most false positives of `"diffsplice"`
+  and `"DEXSeq"`, and their calls kept their direction in the other
+  half. In a biological null of control placentas (see the uncertainty
+  evidence article) the gain was smaller and depended on the method:
+  `"diffsplice"` gained mainly at 5 samples per group, `"satuRn"` showed
+  no detectable difference, and `"DEXSeq"` made fewer but still many
+  false calls either way.
 
 - min_count, min_prop:
 
@@ -120,8 +124,16 @@ test_usage(
 
 - workers:
 
-  Number of workers for `satuRn` and `DEXSeq` (parallel on Unix-like
-  systems).
+  Number of workers for `satuRn` and `DEXSeq`: a whole number of at
+  least 1 or `"auto"` for
+  [`parallelly::availableCores()`](https://parallelly.futureverse.org/reference/availableCores.html),
+  checked as in
+  [`run_enrichment()`](https://luciorq.github.io/isoformic/reference/enrichment.md)
+  (default 1). Above 1 they run on
+  [`BiocParallel::MulticoreParam()`](https://rdrr.io/pkg/BiocParallel/man/MulticoreParam-class.html)
+  forked workers on Unix-like systems (serial elsewhere); this argument
+  does not read the `isoformic.workers` option, which sets the `mirai`
+  daemons of the enrichment functions.
 
 - gene_name:
 
@@ -130,7 +142,7 @@ test_usage(
 
 - ...:
 
-  Unused.
+  Not used; reserved for methods.
 
 ## Value
 
@@ -172,5 +184,5 @@ if (requireNamespace("edgeR", quietly = TRUE)) {
 }
 #> 
 #> control vs preeclampsia 
-#>                     164 
+#>                     111 
 ```

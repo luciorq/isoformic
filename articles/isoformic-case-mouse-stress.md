@@ -13,7 +13,7 @@ isoforms are expressed.
 ## The data
 
 The 19 male samples (10 control, 9 stressed) were quantified with Salmon
-([Patro et al. 2017](#ref-salmon)) against the GENCODE vM38 transcripts
+([Patro et al. 2017](#ref-salmon)) against the GENCODE vM39 transcripts
 ([Frankish et al. 2018](#ref-gencode)). The GRCm39 genome served as
 decoy, and each sample has 30 Gibbs draws. Transcripts were tested with
 `swish` ([Zhu et al. 2019](#ref-swish)) on the inferential replicates.
@@ -38,13 +38,13 @@ data_dir <- "data/mouse_bnst"
 iso <- read_isoformic(data_dir)
 iso
 #> <IsoformicExperiment> mouse_bnst
-#>   annotation : gencode_vm38_chr_patch_hapl_scaff_annotation_gff3_case_study_subset (20,720 genes, 135,433 transcripts, 4,443 exons)
+#>   annotation : gencode_vm39_chr_patch_hapl_scaff_annotation_gff3_case_study_subset (20,736 genes, 330,137 transcripts, 17,003 exons)
 #>   samples    : 19 [condition, batch, replicate, run]
-#>   transcripts: 538 assayed from 47 genes
+#>   transcripts: 1,346 assayed from 47 genes
 #>   assays     : abundance, counts
 #>   gene assays: derived from transcript assays on demand
-#>   DE results : det (58,661 transcripts), deg (20,720 genes)
-#>   on disk    : /home/runner/work/isoformic/isoformic/vignettes/articles/data/mouse_bnst
+#>   DE results : det (103,288 transcripts), deg (20,736 genes)
+#>   on disk    : data/mouse_bnst
 col_data(iso)
 #> # A tibble: 19 × 5
 #>    sample_id  condition batch replicate run        
@@ -79,7 +79,8 @@ not annotated in GEO but are most likely two processing batches. They
 are balanced between conditions (4 + 4 and 6 + 5 samples), so the tests
 can adjust for them. `swish` stratifies its permutations by batch and
 `DESeq2` uses the design `~ batch + condition`. Without the adjustment,
-no transcript and no gene reaches a false discovery rate of 10%.
+no transcript and no gene reaches a false discovery rate of 5%, and only
+4 transcripts and no gene reach 10%.
 
 ``` r
 
@@ -98,7 +99,7 @@ ggplot(pca, aes(PC1, PC2, color = batch, shape = condition)) +
 
 The sample far below the others on the second component (`control_3`)
 has the smallest library (18.6 million read pairs) and the lowest
-mapping rate (71%). It is kept in the analysis. It is the first sample
+mapping rate (72%). It is kept in the analysis. It is the first sample
 to check when a result depends on a single animal.
 
 ## Genes barely change, isoforms do
@@ -120,22 +121,24 @@ c(
   transcripts_fdr_5 = sum(det$qvalue < 0.05, na.rm = TRUE)
 )
 #>       genes_tested        genes_fdr_5 transcripts_tested  transcripts_fdr_5 
-#>              20720                  4              58661                137
+#>              20736                  4             103288                126
 ```
 
-At a false discovery rate of 5%, `DESeq2` finds 4 genes and `swish` 137
-transcripts. Many of the transcript changes are moderate. This article
-therefore lowers the fold-change cutoff of the significance calls from
-the default of 1 to 0.5 (a 1.4-fold change):
+At a false discovery rate of 5%, `DESeq2` finds 4 genes and `swish` 126
+transcripts. Many of the transcript changes are moderate: 74 of the 126
+transcripts change less than 2-fold. This article therefore lowers the
+fold-change cutoff of the significance calls from the default of 1 to
+0.5 (a 1.4-fold change):
 
 ``` r
 
 de_cutoffs(iso) <- list(log2fc = 0.5, pvalue = 0.05, use_fdr = TRUE)
 ```
 
-The significant transcripts are not only protein coding isoforms. About
-a third are retained intron, nonsense-mediated decay, other non-coding
-isoforms of protein coding genes or lncRNAs.
+The significant transcripts are not only protein coding isoforms. More
+than half of them (69 of 126) are nonsense-mediated decay, retained
+intron or other non-coding isoforms of protein coding genes, lncRNAs or
+a TEC transcript.
 
 ``` r
 
@@ -146,63 +149,68 @@ det |>
 #> # A tibble: 6 × 2
 #>   transcript_type                    n
 #>   <chr>                          <int>
-#> 1 protein_coding                    89
-#> 2 retained_intron                   24
-#> 3 protein_coding_CDS_not_defined    11
-#> 4 nonsense_mediated_decay            7
+#> 1 protein_coding                    57
+#> 2 nonsense_mediated_decay           28
+#> 3 retained_intron                   24
+#> 4 protein_coding_CDS_not_defined    12
 #> 5 lncRNA                             4
-#> 6 TEC                                2
+#> 6 TEC                                1
 ```
 
 [`isoform_switches()`](https://luciorq.github.io/isoformic/reference/diversity.md)
-relates the two levels. Almost every gene with significant isoforms has
-no significant change of its total expression (`det_not_deg`). A
-gene-level analysis would miss all of them.
+relates the two levels. With these cutoffs, 107 genes have one
+significant isoform each, and none of them has a significant change of
+its total expression (`det_not_deg`). A gene-level analysis would miss
+all of them.
 
 ``` r
 
 switches <- isoform_switches(iso)
 table(switches$switch_type)
 #> 
-#>         consistent        det_not_deg opposite_direction 
-#>                  1                 88                  1
+#> det_not_deg 
+#>         107
 switches |>
   select(gene_name, n_det_up, n_det_down, det_sig_types, gene_log2FC, switch_type) |>
   head(10)
 #> # A tibble: 10 × 6
 #>    gene_name n_det_up n_det_down det_sig_types           gene_log2FC switch_type
 #>    <chr>        <int>      <int> <chr>                         <dbl> <chr>      
-#>  1 Taf15            1          1 protein_coding;protein…    -0.0193  opposite_d…
-#>  2 Atrx             2          0 retained_intron             0.0334  det_not_deg
-#>  3 Rbm39            2          0 retained_intron             0.0315  det_not_deg
-#>  4 Tspoap1          0          1 protein_coding              0.00976 det_not_deg
-#>  5 Sympk            0          1 protein_coding_CDS_not…    -0.0210  det_not_deg
-#>  6 Atp5f1b          0          1 protein_coding_CDS_not…    -0.0379  det_not_deg
-#>  7 Ptk2b            0          1 protein_coding             -0.0238  det_not_deg
-#>  8 Atp2a2           1          0 protein_coding              0.0266  det_not_deg
-#>  9 Prrc2c           1          0 protein_coding              0.240   det_not_deg
-#> 10 Sez6             0          1 nonsense_mediated_decay     0.00178 det_not_deg
+#>  1 Gng7             0          1 protein_coding             -0.107   det_not_deg
+#>  2 Psap             0          1 protein_coding             -0.00322 det_not_deg
+#>  3 Hsp90ab1         0          1 nonsense_mediated_decay    -0.0143  det_not_deg
+#>  4 Slc6a6           0          1 nonsense_mediated_decay     0.0966  det_not_deg
+#>  5 Sdha             0          1 nonsense_mediated_decay     0.0233  det_not_deg
+#>  6 Celf1            1          0 protein_coding              0.0135  det_not_deg
+#>  7 Kif1b            1          0 retained_intron             0.126   det_not_deg
+#>  8 Glyr1            1          0 nonsense_mediated_decay     0.00392 det_not_deg
+#>  9 Eno2             0          1 retained_intron            -0.0311  det_not_deg
+#> 10 Epn1             0          1 protein_coding             -0.0245  det_not_deg
 ```
 
-## An isoform switch in *Taf15*
+## A change of isoforms in *Celf1*
 
-*Taf15* encodes an RNA-binding protein of the FET family. Its total
-expression does not change. Its protein coding isoform `Taf15-201` goes
-down while `Taf15-204`, a transcript without a coding sequence, goes up.
-This is a switch from a productive to an unproductive isoform.
+*Celf1* encodes an RNA-binding protein of the CELF family that regulates
+alternative splicing. Its total expression does not change. Its protein
+coding isoform `Celf1-203` goes up (log2 fold change 2.8), from 1.2 to
+13 transcripts per million on average. `Celf1-203` encodes the same
+protein as `Celf1-205`, one of the two most expressed isoforms in the
+controls, but starts at a first exon far upstream and has a longer last
+exon. `Celf1-205` goes down from 16 to 11 transcripts per million, which
+is not significant on its own (q = 0.15).
 
 ``` r
 
-plot_log2fc(iso, feature = "Taf15")
+plot_log2fc(iso, feature = "Celf1")
 ```
 
 ![](isoformic-case-mouse-stress_files/figure-html/unnamed-chunk-7-1.png)
 
-The expression profile shows the same switch in transcripts per million:
+The expression profile shows the change in transcripts per million:
 
 ``` r
 
-plot_tx_expr(iso, gene_name = "Taf15", group = "condition")
+plot_tx_expr(iso, gene_name = "Celf1", group = "condition")
 ```
 
 ![](isoformic-case-mouse-stress_files/figure-html/unnamed-chunk-8-1.png)
@@ -212,19 +220,20 @@ differentially expressed ones outlined:
 
 ``` r
 
-plot_genomic_context(iso, gene_name = "Taf15")
+plot_genomic_context(iso, gene_name = "Celf1")
 ```
 
 ![](isoformic-case-mouse-stress_files/figure-html/unnamed-chunk-9-1.png)
 
 ## More genes with isoform-level changes
 
-The other panel genes show the same pattern: one or two significant
-isoforms in genes whose total does not move.
+Most other panel genes (34 of the other 46) show the same pattern: a
+single significant isoform in a gene whose total expression does not
+change significantly.
 
 ``` r
 
-plot_log2fc(iso, feature = c("Clstn2", "Sympk", "Neu2", "Prrc2c"), ncol = 2)
+plot_log2fc(iso, feature = c("Clstn2", "Gng7", "Npas2", "Ptk2b"), ncol = 2)
 ```
 
 ![](isoformic-case-mouse-stress_files/figure-html/unnamed-chunk-10-1.png)
@@ -243,11 +252,11 @@ det |>
 #> # A tibble: 5 × 2
 #>   gene_name best_qvalue
 #>   <chr>           <dbl>
-#> 1 Meg3           0.0932
-#> 2 Trip12         0.0516
-#> 3 Sgk1           0.321 
-#> 4 Map4           0.111 
-#> 5 Fkbp5          0.313
+#> 1 Map4           0.162 
+#> 2 Meg3           0.0976
+#> 3 Fkbp5          0.660 
+#> 4 Trip12         0.247 
+#> 5 Sgk1           0.286
 ```
 
 ## Enrichment by transcript type
@@ -267,11 +276,11 @@ enrichment <- run_enrichment(iso, genesets, pval_cutoff = 0.05)
 table(enrichment$experiment)
 #> 
 #>        nonsense_mediated_decay                 protein_coding 
-#>                             27                            132 
+#>                             52                            119 
 #> protein_coding_CDS_not_defined                retained_intron 
-#>                             34                             77 
+#>                             20                             58 
 #>                   unproductive 
-#>                            109
+#>                             68
 ```
 
 ``` r
@@ -286,14 +295,20 @@ plot_enrichment(
 
 ![](isoformic-case-mouse-stress_files/figure-html/unnamed-chunk-13-1.png)
 
-Translation, ribosome biogenesis and respiration pathways go down in the
-protein coding isoforms of the stressed animals. Synaptic pathways go up
-(protein interactions at synapses, neurexins and neuroligins,
-transmission across chemical synapses). The translation pathways go down
-in the unproductive isoforms of the same genes as well. The ribosomal
-protein genes also dominate the *nonsense-mediated decay* pathways of
-Reactome, which is why those appear as well. That pathway name describes
-the genes, not the transcript type.
+Translation and mitochondrial pathways go down in the protein coding
+isoforms of the stressed animals (translation and eukaryotic translation
+initiation, rRNA processing, mitochondrial translation, aerobic
+respiration and respiratory electron transport, and complex IV assembly;
+false discovery rate below 5%). Complex I biogenesis, in the figure,
+goes down too, but not at a 5% false discovery rate. Few pathways go up
+in the protein coding isoforms, and none of them is synaptic. The
+ribosomal protein genes dominate the *nonsense-mediated decay* pathways
+of Reactome (75 of the 92 leading-edge genes in the protein coding
+isoforms), which is why those pathways are the most significant ones.
+That pathway name describes the genes, not the transcript type. In the
+unproductive isoforms the nonsense-mediated decay pathways and
+mitochondrial translation go down as well, while apoptosis and
+programmed cell death go up.
 
 ## Citing isoformic
 
@@ -337,7 +352,7 @@ sessionInfo()
 #> [16] knitr_1.52          ggrepel_0.9.8       tibble_3.3.1       
 #> [19] DBI_1.3.0           pillar_1.11.1       RColorBrewer_1.1-3 
 #> [22] rlang_1.3.0         fastmatch_1.1-8     utf8_1.2.6         
-#> [25] xfun_0.62           fs_2.1.0            S7_0.2.2           
+#> [25] xfun_0.62           fs_2.1.0            S7_1.0.0           
 #> [28] otel_0.3.0          cli_3.6.6           withr_3.0.3        
 #> [31] magrittr_2.0.5      digest_0.6.39       grid_4.6.2         
 #> [34] fgsea_1.38.0        cowplot_1.2.0       lifecycle_1.0.5    

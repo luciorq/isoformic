@@ -1,8 +1,9 @@
 # Open Reading Frames of Transcripts from Their Sequences
 
-Computes, for every assayed transcript, an open reading frame (ORF) and
-the sequence-level features that decide whether it is productive.
-Requires transcript sequences in the annotation directory (see
+Computes, for every assayed transcript (every transcript of the
+annotation when `self` is a path), an open reading frame (ORF) and the
+sequence-level features that decide whether it is productive. Requires
+transcript sequences in the annotation directory (see
 [`extract_transcript_sequences()`](https://luciorq.github.io/isoformic/reference/transcript_sequences.md)).
 The ORF of each transcript comes from the first applicable source
 (`orf_source`):
@@ -60,9 +61,12 @@ at the stop codon is in frame with the canonical ORF
 
 `coding_potential()` scores every transcript's longest ORF with the
 Fickett TESTCODE statistic and an in-frame hexamer usage score, combined
-by a logistic model trained on GENCODE coding versus lncRNA transcripts
-(see `data-raw/build_coding_model.R`); `coding_probability` above
-`coding_cutoff` (0.364, the CPAT human cutoff) is called coding.
+with the ORF length and the fraction of the transcript the ORF covers by
+a logistic model trained on GENCODE 50 human coding versus lncRNA
+transcripts (see `data-raw/build_coding_model.R` and
+[`build_coding_model()`](https://luciorq.github.io/isoformic/reference/build_coding_model.md));
+`coding_probability` above `coding_cutoff` (0.364, the CPAT human
+cutoff) is called coding.
 
 ## Usage
 
@@ -119,7 +123,7 @@ coding_potential(
 
 - ...:
 
-  Passed on to methods.
+  Not used; reserved for methods.
 
 - coding_cutoff:
 
@@ -128,7 +132,21 @@ coding_potential(
 
 ## Value
 
-A tibble with one row per transcript.
+`transcript_orfs()` returns a tibble with one row per transcript:
+`transcript_id`, `transcript_name`, `gene_id`, `gene_name`,
+`has_sequence`, `orf_source`, `annotation_cds_agrees`, `orf_tx_start`
+and `orf_tx_end` (ORF span in transcript coordinates, stop codon
+included), `orf_length`, `protein_length`, `start_codon`, `stop_codon`,
+`orf_genomic_start`, `orf_genomic_end`, `utr5_length`, `utr3_length`,
+`stop_to_last_junction`, `nmd_class`, `end_incomplete`, `n_uorf`,
+`n_overlapping_uorf`, `canonical_transcript_id`,
+`start_same_as_canonical`, `stop_same_as_canonical`,
+`frame_vs_canonical` (`"in_frame"`, `"frameshift"` or `"novel_sequence"`
+when the stop lies outside the canonical isoform), and the coding
+potential columns `longest_orf_length`, `orf_coverage`, `fickett_score`,
+`hexamer_score` and `coding_probability`. `coding_potential()` returns
+`transcript_id`, `transcript_name`, `gene_id`, `gene_name`, the five
+coding potential columns and `is_coding`.
 
 ## Stored ORF table
 
@@ -159,20 +177,19 @@ are computed, not when they are read back.
 ``` r
 iso <- example_isoformic()
 orfs <- transcript_orfs(iso, gene_name = "RBPJ")
-#> Warning: ! 1 transcript has a sequence length differing from the exon length; its ORF is
-#>   skipped.
 orfs[, c("transcript_name", "orf_source", "orf_length", "nmd_class", "coding_probability")]
-#> # A tibble: 10 × 5
+#> # A tibble: 65 × 5
 #>    transcript_name orf_source         orf_length nmd_class coding_probability
 #>    <chr>           <chr>                   <dbl> <chr>                  <dbl>
 #>  1 RBPJ-222        annotation_partial        283 NA                    0.0809
-#>  2 RBPJ-201        annotation               1503 none                  0.984 
-#>  3 RBPJ-206        annotation               1503 none                  0.959 
-#>  4 RBPJ-225        projected                1140 none                  0.909 
-#>  5 RBPJ-204        annotation               1464 none                  0.953 
-#>  6 RBPJ-205        annotation               1461 none                  0.981 
-#>  7 RBPJ-214        annotation               1398 none                  0.947 
-#>  8 RBPJ-208        annotation               1149 none                  0.895 
-#>  9 RBPJ-202        annotation               1461 none                  0.980 
-#> 10 RBPJ-210        longest                   462 none                  0.528 
+#>  2 RBPJ-247        annotation                177 ptc                   0.855 
+#>  3 RBPJ-243        longest                  1098 none                  0.885 
+#>  4 RBPJ-201        annotation               1503 none                  0.984 
+#>  5 RBPJ-213        annotation_partial        291 NA                    0.101 
+#>  6 RBPJ-223        annotation               1503 none                  0.984 
+#>  7 RBPJ-203        annotation               1398 none                  0.980 
+#>  8 RBPJ-206        annotation               1503 none                  0.959 
+#>  9 RBPJ-225        longest                  1140 none                  0.909 
+#> 10 RBPJ-229        annotation_partial        145 NA                    0.0200
+#> # ℹ 55 more rows
 ```

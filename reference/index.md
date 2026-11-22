@@ -11,10 +11,10 @@ Parquet files.
 - [`col_data()`](https://luciorq.github.io/isoformic/reference/IsoformicExperiment-accessors.md)
   [`` `col_data<-`() ``](https://luciorq.github.io/isoformic/reference/IsoformicExperiment-accessors.md)
   [`col_names()`](https://luciorq.github.io/isoformic/reference/IsoformicExperiment-accessors.md)
-  [`assays()`](https://luciorq.github.io/isoformic/reference/IsoformicExperiment-accessors.md)
+  [`tx_assays()`](https://luciorq.github.io/isoformic/reference/IsoformicExperiment-accessors.md)
   [`assay_names()`](https://luciorq.github.io/isoformic/reference/IsoformicExperiment-accessors.md)
-  [`assay()`](https://luciorq.github.io/isoformic/reference/IsoformicExperiment-accessors.md)
-  [`` `assay<-`() ``](https://luciorq.github.io/isoformic/reference/IsoformicExperiment-accessors.md)
+  [`tx_assay()`](https://luciorq.github.io/isoformic/reference/IsoformicExperiment-accessors.md)
+  [`` `tx_assay<-`() ``](https://luciorq.github.io/isoformic/reference/IsoformicExperiment-accessors.md)
   [`row_names()`](https://luciorq.github.io/isoformic/reference/IsoformicExperiment-accessors.md)
   [`row_data()`](https://luciorq.github.io/isoformic/reference/IsoformicExperiment-accessors.md)
   [`tx_annot()`](https://luciorq.github.io/isoformic/reference/IsoformicExperiment-accessors.md)
@@ -85,18 +85,23 @@ Parquet files.
 - [`isoformic-options`](https://luciorq.github.io/isoformic/reference/isoformic-options.md)
   [`isoformic_options`](https://luciorq.github.io/isoformic/reference/isoformic-options.md)
   [`isoformic.frozen_mirrors`](https://luciorq.github.io/isoformic/reference/isoformic-options.md)
+  [`isoformic.orf_cache`](https://luciorq.github.io/isoformic/reference/isoformic-options.md)
+  [`isoformic.duckdb_threads`](https://luciorq.github.io/isoformic/reference/isoformic-options.md)
+  [`isoformic.duckdb_memory_limit`](https://luciorq.github.io/isoformic/reference/isoformic-options.md)
+  [`isoformic.workers`](https://luciorq.github.io/isoformic/reference/isoformic-options.md)
   : Options and environment variables used by isoformic
 
 ## Quantification uncertainty
 
 Inferential replicates, equivalence classes and run metadata from Salmon
-turned into uncertainty, ambiguity and confidence of isoform-level
+turned into uncertainty, ambiguity and stability of isoform-level
 results.
 
 - [`read_inferential_replicates()`](https://luciorq.github.io/isoformic/reference/inferential-io.md)
   [`equivalence_support()`](https://luciorq.github.io/isoformic/reference/inferential-io.md)
   [`salmon_run_qc()`](https://luciorq.github.io/isoformic/reference/inferential-io.md)
   [`inferential_replicates_table()`](https://luciorq.github.io/isoformic/reference/inferential-io.md)
+  [`inferential_moments_table()`](https://luciorq.github.io/isoformic/reference/inferential-io.md)
   [`as_inferential_replicates()`](https://luciorq.github.io/isoformic/reference/inferential-io.md)
   : Read the inferential uncertainty that Salmon writes
 - [`equivalence_identifiability()`](https://luciorq.github.io/isoformic/reference/equivalence_identifiability.md)
@@ -108,8 +113,7 @@ results.
   [`uncertainty_report()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
   [`uncertainty_methods()`](https://luciorq.github.io/isoformic/reference/uncertainty.md)
   : Quantify and report the uncertainty of isoform-level results
-- [`confidence_palette()`](https://luciorq.github.io/isoformic/reference/uncertainty-plots.md)
-  [`plot_de_confidence()`](https://luciorq.github.io/isoformic/reference/uncertainty-plots.md)
+- [`plot_de_confidence()`](https://luciorq.github.io/isoformic/reference/uncertainty-plots.md)
   [`plot_isoform_correlation()`](https://luciorq.github.io/isoformic/reference/uncertainty-plots.md)
   [`plot_inf_rv()`](https://luciorq.github.io/isoformic/reference/uncertainty-plots.md)
   : Plot the uncertainty of isoform-level results
@@ -245,6 +249,8 @@ validated NMD exons, PolyASite, GTEx) and the coding potential model.
   [`read_gmt()`](https://luciorq.github.io/isoformic/reference/enrichment.md)
   [`plot_enrichment()`](https://luciorq.github.io/isoformic/reference/enrichment.md)
   : Transcript-Type Aware Gene Set Enrichment
+- [`isoformic_workers()`](https://luciorq.github.io/isoformic/reference/isoformic_workers.md)
+  : Start or stop the enrichment workers
 
 ## Parquet and quantification tools
 

@@ -86,23 +86,31 @@ salmon_quant(
 [`salmon_quant()`](https://luciorq.github.io/isoformic/reference/salmon_quant.md)
 draws 30 Gibbs samples per sample by default (`num_gibbs = 0` skips
 them). Besides `swish`, they quantify how well the reads determine each
-isoform, which isoforms cannot be told apart and how confident each
-differential expression call is; `read_salmon(inferential = TRUE)` reads
-them and the [uncertainty
+isoform, which isoforms cannot be told apart and how stable the
+direction of each differential expression call is over the replicates;
+`read_salmon(inferential = TRUE)` reads them and the [uncertainty
 article](https://luciorq.github.io/isoformic/articles/isoformic-uncertainty.md)
 explains how to use and report them.
 
-For a decoy-aware index (recommended by the Salmon authors), build the
-`gentrome` FASTA and `decoys.txt` from the genome as described in the
-Salmon documentation and pass `--decoys decoys.txt` to `salmon index`.
+For a decoy-aware index (recommended by the Salmon authors), pass the
+genome FASTA as `decoy_fasta`, for GENCODE the
+`GRCh38.primary_assembly.genome.fa.gz` of the same release:
+[`salmon_index()`](https://luciorq.github.io/isoformic/reference/salmon_index.md)
+writes the `gentrome` FASTA (transcripts followed by the genome) and
+`decoys.txt` (the genome sequence names) in a temporary directory, runs
+`salmon index --decoys decoys.txt` and removes them. The genome makes
+the index much larger and slower to build, and needs free disk space in
+[`tempdir()`](https://rdrr.io/r/base/tempfile.html) for a copy of the
+genome while it runs.
 
 ## Reading quantifications directly
 
 [`read_salmon()`](https://luciorq.github.io/isoformic/reference/read_salmon.md)
 reads any number of `quant.sf` files with DuckDB and returns an
 `IsoformicExperiment` with `abundance` (TPM), `counts` and `length`
-assays. The package ships a down-sampled dataset of six placenta samples
-quantified against GENCODE v49.
+assays. The package ships the Salmon output of six placenta samples
+(three with preeclampsia, three controls) quantified against the GENCODE
+v50 transcripts of 15 genes.
 
 ``` r
 
@@ -114,27 +122,27 @@ names(quant_dirs) <- sub("_quant$", "", fs::path_file(quant_dirs))
 
 col_data <- tibble::tibble(
   sample_id = names(quant_dirs),
-  condition = factor(c(rep("control", 3), rep("treatment", 3)), levels = c("control", "treatment"))
+  condition = factor(c(rep("preeclampsia", 3), rep("control", 3)), levels = c("control", "preeclampsia"))
 )
 col_data
 #> # A tibble: 6 × 2
-#>   sample_id   condition
-#>   <chr>       <fct>    
-#> 1 SRR11498039 control  
-#> 2 SRR11498040 control  
-#> 3 SRR11498041 control  
-#> 4 SRR11498079 treatment
-#> 5 SRR11498080 treatment
-#> 6 SRR11498081 treatment
+#>   sample_id   condition   
+#>   <chr>       <fct>       
+#> 1 SRR11498039 preeclampsia
+#> 2 SRR11498040 preeclampsia
+#> 3 SRR11498041 preeclampsia
+#> 4 SRR11498077 control     
+#> 5 SRR11498078 control     
+#> 6 SRR11498079 control
 ```
 
 The annotation must match the reference used for quantification, GENCODE
-v49 here. For real data it is downloaded once into the package cache and
+v50 here. For real data it is downloaded once into the package cache and
 converted to Parquet once:
 
 ``` r
 
-gff_path <- download_reference(version = "49", file_type = "gff")
+gff_path <- download_reference(version = "50", file_type = "gff")
 annot_dir <- prepare_isoformic_annotation(gff_path)
 ```
 
@@ -148,9 +156,9 @@ annot_dir <- fs::path_package("isoformic", "extdata", "mini_annotation")
 iso <- read_salmon(quant_dirs, annot_path = annot_dir, col_data = col_data, experiment_name = "mini_placenta")
 iso
 #> <IsoformicExperiment> mini_placenta
-#>   annotation : gencode_v49_mini_subset (15 genes, 111 transcripts, 1,071 exons)
+#>   annotation : gencode_v50_mini_subset (15 genes, 158 transcripts, 1,802 exons)
 #>   samples    : 6 [condition]
-#>   transcripts: 111 assayed from 15 genes
+#>   transcripts: 158 assayed from 15 genes
 #>   assays     : abundance, counts, length
 #>   gene assays: derived from transcript assays on demand
 #>   DE results : <none>
@@ -175,8 +183,9 @@ head(row_data(iso))
 ## Transcript-level differential expression with swish
 
 `swish` needs the inferential replicates, which `tximeta` imports from
-the Salmon output (the bundled quantifications carry them separately to
-keep the package small).
+the Salmon output (the bundled quantifications carry their 20 Gibbs
+draws separately, in `mini_draws.parquet`, to keep the package small, so
+`tximeta` is told to skip them).
 
 ``` r
 
@@ -197,13 +206,17 @@ se_tx <- tximeta::tximeta(
   skipMeta = TRUE,
   useHub = FALSE,
   ignoreAfterBar = TRUE,
-  skipSeqinfo = TRUE
+  skipSeqinfo = TRUE,
+  dropInfReps = TRUE # the draws are not in the bundled directories
 )
 mini_draws <- as_inferential_replicates(
   read_parquet(fs::path_package("isoformic", "extdata", "mini_draws.parquet"))
 )
 names(mini_draws) <- paste0("infRep", seq_along(mini_draws))
-assays(se_tx) <- c(as.list(assays(se_tx)), mini_draws)
+SummarizedExperiment::assays(se_tx) <- c(
+  as.list(SummarizedExperiment::assays(se_tx)),
+  mini_draws
+)
 
 y <- fishpond::scaleInfReps(se_tx)
 y <- fishpond::labelKeep(y, minCount = 10, minN = 3)
@@ -214,13 +227,13 @@ swish_results <- mcols(y) |>
   as.data.frame() |>
   tibble::rownames_to_column("transcript_id")
 head(swish_results)
-#>        transcript_id log10mean  keep stat   log2FC    pvalue locfdr    qvalue
-#> 1 ENST00000367468.10  2.923578  TRUE 1.85 1.821603 0.3115385      1 0.5785714
-#> 2  ENST00000681605.1  2.553906 FALSE   NA       NA        NA     NA        NA
-#> 3  ENST00000680451.1  2.350137 FALSE   NA       NA        NA     NA        NA
-#> 4  ENST00000490885.6  2.225321 FALSE   NA       NA        NA     NA        NA
-#> 5  ENST00000559627.1  1.959647 FALSE   NA       NA        NA     NA        NA
-#> 6  ENST00000466691.1  1.607356 FALSE   NA       NA        NA     NA        NA
+#>        transcript_id log10mean  keep stat log2FC pvalue locfdr qvalue
+#> 1 ENST00000367468.10 1.0366158 FALSE   NA     NA     NA     NA     NA
+#> 2  ENST00000681605.1 0.7665459 FALSE   NA     NA     NA     NA     NA
+#> 3  ENST00000680451.1 1.0361596 FALSE   NA     NA     NA     NA     NA
+#> 4  ENST00000490885.6 1.0145195 FALSE   NA     NA     NA     NA     NA
+#> 5  ENST00000559627.1 0.8826379 FALSE   NA     NA     NA     NA     NA
+#> 6  ENST00000466691.1 0.3940242 FALSE   NA     NA     NA     NA     NA
 ```
 
 The results are attached to the object; `tximeta` objects can also be
@@ -231,14 +244,14 @@ converted directly with `as_isoformic(se_tx, annot_path = annot_dir)`.
 de_tx(iso) <- swish_results
 head(de_tx(iso))
 #> # A tibble: 6 × 9
-#>   transcript_id     log10mean keep   stat log2FC pvalue locfdr qvalue det_sig
-#>   <chr>                 <dbl> <lgl> <dbl>  <dbl>  <dbl>  <dbl>  <dbl> <chr>  
-#> 1 ENST00000263341.7      3.59 TRUE   3.25   6.63 0.0727  0.529  0.234 no     
-#> 2 ENST00000651122.1      2.72 TRUE   3.5    4.91 0.0562  0.455  0.234 no     
-#> 3 ENST00000306602.3      2.44 TRUE  -3.3   -3.75 0.0673  0.506  0.234 no     
-#> 4 ENST00000392322.7      2.61 TRUE   2.45   2.62 0.157   0.839  0.407 no     
-#> 5 ENST00000698141.1      2.45 TRUE   2      2.24 0.264   1      0.528 no     
-#> 6 ENST00000697958.1      2.52 TRUE  -3.65  -2.01 0.0423  0.388  0.234 no
+#>   transcript_id     log10mean keep   stat log2FC  pvalue locfdr qvalue det_sig
+#>   <chr>                 <dbl> <lgl> <dbl>  <dbl>   <dbl>  <dbl>  <dbl> <chr>  
+#> 1 ENST00000907726.2      1.97 TRUE   4.3    2.69 0.00545  0.176  0.18  no     
+#> 2 ENST00000306602.3      1.45 TRUE   0.5    1.60 0.779    1      0.951 no     
+#> 3 ENST00000580907.6      1.13 TRUE  -4.1   -1.46 0.0155   0.276  0.255 no     
+#> 4 ENST00000361099.8      1.65 TRUE  -1.7   -1.43 0.343    1      0.566 no     
+#> 5 ENST00000225831.4      1.69 TRUE  -2.9   -1.36 0.0830   0.599  0.404 no     
+#> 6 ENST00000540176.6      1.51 TRUE   3.35   1.31 0.0448   0.446  0.296 no
 ```
 
 ## Gene-level differential expression with DESeq2
@@ -250,35 +263,37 @@ abundance) so that `DESeq2` can run on them.
 ``` r
 
 se_gene <- as_summarized_experiment(iso, level = "gene")
-assay(se_gene, "counts") <- round(assay(se_gene, "counts"))
-se_gene$condition <- factor(se_gene$condition, levels = c("control", "treatment"))
+SummarizedExperiment::assay(se_gene, "counts") <- round(
+  SummarizedExperiment::assay(se_gene, "counts")
+)
+se_gene$condition <- factor(se_gene$condition, levels = c("control", "preeclampsia"))
 
 dds <- DESeq2::DESeqDataSet(se_gene, design = ~condition)
 dds <- dds[rowSums(DESeq2::counts(dds) >= 10) >= 3, ]
 dds <- DESeq2::DESeq(dds, quiet = TRUE)
-res <- DESeq2::results(dds, contrast = c("condition", "treatment", "control"))
+res <- DESeq2::results(dds, contrast = c("condition", "preeclampsia", "control"))
 shrink_type <- if (rlang::is_installed("apeglm")) "apeglm" else "normal"
-res_shr <- DESeq2::lfcShrink(dds, coef = "condition_treatment_vs_control", res = res, type = shrink_type, quiet = TRUE)
+res_shr <- DESeq2::lfcShrink(dds, coef = "condition_preeclampsia_vs_control", res = res, type = shrink_type, quiet = TRUE)
 
 de_gene(iso) <- as.data.frame(res_shr)
 head(de_gene(iso))
 #> # A tibble: 6 × 7
-#>   gene_id            baseMean       log2FC   lfcSE   pvalue  qvalue deg_sig
-#>   <chr>                 <dbl>        <dbl>   <dbl>    <dbl>   <dbl> <chr>  
-#> 1 ENSG00000125538.12    140.   3.94        1.55    0.000218 0.00196 yes    
-#> 2 ENSG00000115415.22    435.   0.00000191  0.00144 0.452    0.614   no     
-#> 3 ENSG00000100906.13   1212.  -0.00000132  0.00144 0.362    0.614   no     
-#> 4 ENSG00000271503.7   20364.  -0.000000869 0.00144 0.477    0.614   no     
-#> 5 ENSG00000184557.5     241.   0.000000810 0.00144 0.586    0.659   no     
-#> 6 ENSG00000073756.13     63.9  0.000000600 0.00144 0.438    0.614   no
+#>   gene_id            baseMean log2FC lfcSE   pvalue  qvalue deg_sig
+#>   <chr>                 <dbl>  <dbl> <dbl>    <dbl>   <dbl> <chr>  
+#> 1 ENSG00000184557.6     256.   1.16  0.430 0.000601 0.00722 yes    
+#> 2 ENSG00000108691.11     97.1 -0.802 0.899 0.0193   0.116   no     
+#> 3 ENSG00000090339.11    250.   0.435 0.392 0.0806   0.242   no     
+#> 4 ENSG00000274233.4     106.  -0.297 0.422 0.170    0.407   no     
+#> 5 ENSG00000073756.13     47.2  0.257 0.509 0.0405   0.162   no     
+#> 6 ENSG00000115415.23    779.  -0.180 0.213 0.318    0.504   no
 iso
 #> <IsoformicExperiment> mini_placenta
-#>   annotation : gencode_v49_mini_subset (15 genes, 111 transcripts, 1,071 exons)
+#>   annotation : gencode_v50_mini_subset (15 genes, 158 transcripts, 1,802 exons)
 #>   samples    : 6 [condition]
-#>   transcripts: 111 assayed from 15 genes
+#>   transcripts: 158 assayed from 15 genes
 #>   assays     : abundance, counts, length
 #>   gene assays: derived from transcript assays on demand
-#>   DE results : det (111 transcripts), deg (12 genes)
+#>   DE results : det (158 transcripts), deg (12 genes)
 ```
 
 ## Looking at the results
@@ -291,7 +306,7 @@ top_gene <- de_gene(iso) |>
   dplyr::pull(gene_id)
 gene_name <- gene_data(iso)$gene_name[gene_data(iso)$gene_id == top_gene]
 gene_name
-#> [1] "IL1B"
+#> [1] "SOCS3"
 
 plot_log2fc(iso, feature = gene_name)
 ```
@@ -333,13 +348,13 @@ Parquet files and restored with
 out_dir <- fs::path(tempdir(), "mini_placenta")
 iso <- write_isoformic(iso, out_dir, overwrite = TRUE)
 iso@data_path
-#> [1] "/tmp/RtmpREvlr3/mini_placenta"
+#> [1] "/tmp/RtmpPPTSB0/mini_placenta"
 fs::dir_ls(out_dir)
-#> /tmp/RtmpREvlr3/mini_placenta/assays
-#> /tmp/RtmpREvlr3/mini_placenta/col_data.parquet
-#> /tmp/RtmpREvlr3/mini_placenta/dea
-#> /tmp/RtmpREvlr3/mini_placenta/experiment.parquet
-#> /tmp/RtmpREvlr3/mini_placenta/tx_type_palette.parquet
+#> /tmp/RtmpPPTSB0/mini_placenta/assays
+#> /tmp/RtmpPPTSB0/mini_placenta/col_data.parquet
+#> /tmp/RtmpPPTSB0/mini_placenta/dea
+#> /tmp/RtmpPPTSB0/mini_placenta/experiment.parquet
+#> /tmp/RtmpPPTSB0/mini_placenta/tx_type_palette.parquet
 ```
 
 ## Long reads with Oarfish
@@ -353,7 +368,8 @@ reads them like
 and the uncertainty functions of the [uncertainty
 article](https://luciorq.github.io/isoformic/articles/isoformic-uncertainty.md)
 work on them unchanged. The three samples below are simulated nanopore
-reads of the RBPJ transcripts, quantified with Oarfish 0.10.3 and 30
+reads of the 141 GENCODE v50 transcripts of RBPJ, PNCK and FLT1
+(`example_transcripts.fa.gz`), quantified with Oarfish 0.10.3 and 30
 bootstrap replicates (`data-raw/oarfish/`), so they only show the file
 layout and the functions, not a real library.
 
@@ -374,10 +390,10 @@ iso_long <- read_oarfish(
   inferential = TRUE
 )
 iso_long
-#> <IsoformicExperiment> isoformic_18c6a75d81
-#>   annotation : gencode_v33_example_subset (69 genes, 892 transcripts, 7,032 exons)
+#> <IsoformicExperiment> isoformic_95e441dbd6
+#>   annotation : gencode_v50_example_subset (69 genes, 1,914 transcripts, 18,656 exons)
 #>   samples    : 3 [oarfish_num_processed, oarfish_num_mapped, oarfish_percent_mapped, oarfish_replicate_type, oarfish_num_replicates, oarfish_optimiser, oarfish_alignment_source, oarfish_prob_model, oarfish_qc_flag]
-#>   transcripts: 72 assayed from 3 genes
+#>   transcripts: 141 assayed from 3 genes
 #>   assays     : abundance, counts, length
 #>   gene assays: derived from transcript assays on demand
 #>   DE results : <none>
@@ -388,12 +404,12 @@ tx_uncertainty(iso_long) |>
 #> # A tibble: 6 × 4
 #>   transcript_name mean_count mean_inf_rv unique_fraction
 #>   <chr>                <dbl>       <dbl>           <dbl>
-#> 1 PNCK-201             46.6         2.18         0      
-#> 2 PNCK-230             18.1         1.84         0.0455 
-#> 3 PNCK-203             41.9         1.77         0.00234
-#> 4 PNCK-220              9.35        1.77         0      
-#> 5 PNCK-223              2.49        1.70         0      
-#> 6 RBPJ-205             56.2         1.65         0
+#> 1 RBPJ-202              62.3       28.7          0      
+#> 2 RBPJ-204              40.9       23.3          0      
+#> 3 RBPJ-238              60.7       15.3          0      
+#> 4 PNCK-233              18.5        7.71         0      
+#> 5 RBPJ-240              33.8        7.58         0.00127
+#> 6 PNCK-239              20.2        6.65         0
 ```
 
 The Oarfish output has no TPM, so the `abundance` assay is computed from
@@ -417,9 +433,9 @@ sc_dir <- fs::path_package("isoformic", "extdata", "oarfish_sc")
 cells <- read.delim(fs::path(sc_dir, "cells.tsv"))
 head(cells, 3)
 #>            barcode sample_id
-#> 1 CGGCGCGAACCACCTC control_1
-#> 2 GTCTAGCTCGACCATC control_1
-#> 3 GAAAACTGGCGGAAAG control_1
+#> 1 CACATCGAACAGCTAA control_1
+#> 2 ATACAAGACTGGCTCG control_1
+#> 3 GTTCATGACTTAACCG control_1
 iso_sc <- read_oarfish_sc(
   fs::path(sc_dir, "out"),
   cells = cells,
@@ -448,7 +464,7 @@ type](https://luciorq.github.io/isoformic/articles/isoformic-enrichment.md)
 and
 [plots](https://luciorq.github.io/isoformic/articles/isoformic-plots.md).
 The inferential replicates imported above can be stored in
-`metadata(iso)$inf_reps` so that
+`iso@metadata$inf_reps` so that
 [`productive_fraction()`](https://luciorq.github.io/isoformic/reference/productivity.md)
 reports the uncertainty of each fraction.
 
@@ -512,7 +528,7 @@ sessionInfo()
 #>  [35] filelock_1.0.3              labeling_0.4.3             
 #>  [37] httr_1.4.9                  abind_1.4-8                
 #>  [39] compiler_4.6.2              bit64_4.8.6                
-#>  [41] withr_3.0.3                 S7_0.2.2                   
+#>  [41] withr_3.0.3                 S7_1.0.0                   
 #>  [43] BiocParallel_1.46.0         DBI_1.3.0                  
 #>  [45] duckdb_2.0.0                biomaRt_2.68.6             
 #>  [47] MASS_7.3-66                 rappdirs_0.3.4             

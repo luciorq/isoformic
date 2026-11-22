@@ -5,11 +5,11 @@ biotype for novel transcripts. SQANTI3 classifies every isoform against
 a reference (`*_classification.txt`: `isoform`, `structural_category`,
 `associated_gene`, `associated_transcript`, `subcategory`, ...).
 `add_sqanti_classification()` writes those categories into the
-`transcript_type` column of an annotation directory (and the associated
-reference transcript / gene into `source_transcript_id`,
-`source_gene_id` and `gene_name` when they are missing), so the SQANTI
-categories behave like transcript types everywhere in the package
-(plots, enrichment by category,
+`transcript_type` column of an annotation directory (and, when the
+columns are present, the associated reference transcript into
+`source_transcript_id` and the associated gene into the `gene_name` of
+genes without a name), so the SQANTI categories behave like transcript
+types everywhere in the package (plots, enrichment by category,
 [`tx_diversity()`](https://luciorq.github.io/isoformic/reference/diversity.md)).
 The categories are part of
 [`tx_type_palette()`](https://luciorq.github.io/isoformic/reference/tx_type_palette.md).
@@ -47,9 +47,9 @@ The annotation directory path, invisibly.
 ## Examples
 
 ``` r
-gff <- system.file("extdata", "example.gff3", package = "isoformic")
+gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 annot <- prepare_isoformic_annotation(gff, output_path = tempdir(), annot_name = "sqanti_demo")
-#> ℹ Parsing example.gff3 (GFF) into /tmp/RtmpatoNKq/sqanti_demo.
+#> ℹ Parsing example.gff3.gz (GFF) into /tmp/RtmpPCTCTT/sqanti_demo.
 tx <- read_parquet(file.path(annot, "annot_data_transcripts.parquet"))
 classification <- data.frame(
   isoform = tx$transcript_id[1:3],
@@ -58,15 +58,15 @@ classification <- data.frame(
   associated_transcript = c(tx$transcript_id[1], "novel", "novel")
 )
 add_sqanti_classification(annot, classification)
-#> ✔ Assigned SQANTI categories to 3 of 72 transcripts in
-#>   /tmp/RtmpatoNKq/sqanti_demo.
+#> ✔ Assigned SQANTI categories to 3 of 141 transcripts in
+#>   /tmp/RtmpPCTCTT/sqanti_demo.
 tx <- read_parquet(file.path(annot, "annot_data_transcripts.parquet"))
 head(tx[, c("transcript_id", "transcript_type")], 4)
 #> # A tibble: 4 × 2
 #>   transcript_id     transcript_type     
 #>   <chr>             <chr>               
-#> 1 ENST00000282397.9 full-splice_match   
-#> 2 ENST00000615611.4 novel_in_catalog    
-#> 3 ENST00000617835.4 novel_not_in_catalog
-#> 4 ENST00000543394.2 protein_coding      
+#> 1 ENST00000909997.2 full-splice_match   
+#> 2 ENST00000909998.2 novel_in_catalog    
+#> 3 ENST00000909999.2 novel_not_in_catalog
+#> 4 ENST00000910000.2 protein_coding      
 ```

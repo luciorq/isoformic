@@ -44,15 +44,16 @@ prepare_exon_annotation(
 ## Value
 
 A tibble with columns `gene_id`, `gene_name`, `transcript_id`,
-`transcript_name`, `transcript_type`, `exon_id`, `exon_number`, `seqid`,
-`start_pos`, `end_pos`, `strand`.
+`transcript_name`, `transcript_type`, `haplotype`, `exon_id`,
+`exon_number`, `seqid`, `start_pos`, `end_pos`, `strand`. Genes not
+found in the annotation give a warning.
 
 ## Examples
 
 ``` r
-gff <- system.file("extdata", "example.gff3", package = "isoformic")
+gff <- system.file("extdata", "example.gff3.gz", package = "isoformic")
 exons <- prepare_exon_annotation("RBPJ", gff, output_path = tempdir())
-#> ℹ Using cached annotation directory /tmp/RtmpatoNKq/example.
+#> ℹ Using cached annotation directory /tmp/RtmpPCTCTT/example_gff3.
 head(exons)
 #> # A tibble: 6 × 12
 #>   gene_id      gene_name transcript_id transcript_name transcript_type haplotype

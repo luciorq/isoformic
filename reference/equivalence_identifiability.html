@@ -35,7 +35,8 @@ small inferential variance (see Details)."><meta property="og:image" content="ht
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/isoformic-introduction.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
@@ -47,6 +48,7 @@ small inferential variance (see Details)."><meta property="og:image" content="ht
     <li><a class="dropdown-item" href="../articles/isoformic-diversity.html">Transcriptomic diversity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-uncertainty.html">How confident are we in an isoform-level result?</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-quantification-stability.html">What makes an isoform hard to quantify?</a></li>
+    <li><a class="dropdown-item" href="../articles/isoformic-uncertainty-evidence.html">Is quantification uncertainty worth checking? Genome-wide evidence</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-productivity.html">Isoform structure and productivity</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-polyadenylation.html">Alternative polyadenylation</a></li>
     <li><a class="dropdown-item" href="../articles/isoformic-enrichment.html">Functional enrichment by transcript type</a></li>
@@ -113,14 +115,14 @@ small inferential variance (see Details).</p>
 
 <dl><dt id="arg-paths">paths<a class="anchor" aria-label="anchor" href="#arg-paths"></a></dt>
 <dd><p>Character vector of Salmon output directories (containing
-<code>quant.sf</code>) or paths to <code>quant.sf</code> files. Names, when present, are the
-sample IDs; otherwise the directory name is used.</p></dd>
+<code>quant.sf</code>) or paths to <code>quant.sf</code> files, or Oarfish output prefixes.
+Names, when present, are the sample IDs; otherwise the directory name (or
+the prefix) is used.</p></dd>
 
 
 <dt id="arg-transcripts">transcripts<a class="anchor" aria-label="anchor" href="#arg-transcripts"></a></dt>
-<dd><p>Optional transcript IDs to keep. Reading every
-transcript of a human annotation for many samples takes gigabytes of
-memory, so <code><a href="uncertainty.html">add_uncertainty()</a></code> only reads the expressed ones.</p></dd>
+<dd><p>Optional transcript IDs to keep in the result; the
+classes of all transcripts are used for the computation.</p></dd>
 
 
 <dt id="arg-ignore-after-bar">ignore_after_bar<a class="anchor" aria-label="anchor" href="#arg-ignore-after-bar"></a></dt>
@@ -135,17 +137,18 @@ dense decomposition. Larger blocks use the iterative solver.</p></dd>
 
 <dt id="arg-max-iterations">max_iterations<a class="anchor" aria-label="anchor" href="#arg-max-iterations"></a></dt>
 <dd><p>Maximum number of iterations of the iterative
-solver per block. The transcripts of a block that does not converge get
-<code>NA</code>.</p></dd>
+solver per block. The transcripts of a block that does not converge are
+not counted in that sample, with a message.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A tibble with one row per transcript that has fragments in at
-least one sample: <code>transcript_id</code>, <code>n_samples</code> (samples in which it has
-fragments and was resolved), <code>n_identifiable</code> (in how many of them it is
-identifiable), <code>identifiable_fraction</code> and <code>identifiable</code> (<code>TRUE</code> when
-identifiable in all of them, <code>NA</code> when it was resolved in none).</p>
+    <p>A tibble with one row per transcript that has fragments and was
+resolved in at least one sample (transcripts of a block that did not
+converge in any sample are left out): <code>transcript_id</code>, <code>n_samples</code>
+(samples in which it has fragments and was resolved), <code>n_identifiable</code>
+(in how many of them it is identifiable), <code>identifiable_fraction</code> and
+<code>identifiable</code> (<code>TRUE</code> when identifiable in all of them).</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -174,12 +177,13 @@ assessed in it.</p></li>
 their sufficient statistics and a linear program per transcript.</p></li>
 <li><p>Human samples have one block of tens of thousands of transcripts
 linked by multi-mapping fragments; expect minutes per sample.</p></li>
-</ul><p>In the six GSE129540 samples of the quantification stability article,
-the estimates of non-identifiable transcripts differed more between two
-halves of the reads of a sample than those of identifiable transcripts of
-the same expression: a median absolute log2 ratio of 2.4 against 0.7 at 20
-to 100 reads. The posterior draws call three quarters of both kinds
-uncertain, so the two measures are close to independent.</p>
+</ul><p>In the six GSE129540 samples of the uncertainty article, the estimates of
+non-identifiable transcripts differed more between two halves of the reads
+of a sample than those of identifiable transcripts of the same
+expression: a median absolute log2 ratio of 2.4 against 0.7 at 20 to 100
+reads. The posterior draws call three quarters of both kinds uncertain, so
+the two measures are close to independent.</p>
+<p>Oarfish output has no equivalence classes and gives an error.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
